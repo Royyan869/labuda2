@@ -71,7 +71,7 @@ export function OrdersPage() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
-          <p className="mt-4 text-gray-600">Loading orders...</p>
+          <p className="mt-4 text-muted-foreground">Loading orders...</p>
         </div>
       </div>
     )
@@ -81,12 +81,12 @@ export function OrdersPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Orders</h1>
-          <p className="text-gray-600 mt-1">View and manage all marketplace orders</p>
+          <h1 className="text-3xl font-bold text-foreground">Orders</h1>
+          <p className="text-muted-foreground mt-1">View and manage all marketplace orders</p>
         </div>
         <Card>
           <CardContent className="p-6">
-            <div className="text-center text-red-600">
+            <div className="text-center text-destructive">
               <p>Error loading orders: {error.message}</p>
             </div>
           </CardContent>
@@ -100,8 +100,8 @@ export function OrdersPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Orders</h1>
-          <p className="text-gray-600 mt-1">View and manage all marketplace orders</p>
+          <h1 className="text-3xl font-bold text-foreground">Orders</h1>
+          <p className="text-muted-foreground mt-1">View and manage all marketplace orders</p>
         </div>
         <Button
           variant="secondary"
@@ -118,11 +118,11 @@ export function OrdersPage() {
         <CardContent className="pt-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Total Orders</p>
+              <p className="text-sm font-medium text-muted-foreground">Total Orders</p>
               <p className="text-3xl font-bold text-primary mt-1">{total}</p>
             </div>
-            <div className="p-4 rounded-lg bg-blue-100">
-              <ShoppingBag className="h-8 w-8 text-blue-600" />
+            <div className="p-4 rounded-lg bg-info-bg">
+              <ShoppingBag className="h-8 w-8 text-info" />
             </div>
           </div>
         </CardContent>
@@ -133,15 +133,15 @@ export function OrdersPage() {
         <CardContent className="pt-6">
           <div className="flex items-center gap-6 flex-wrap">
             <div className="flex items-center gap-4">
-              <Filter className="h-5 w-5 text-gray-500" />
-              <label htmlFor="status-filter" className="text-sm font-medium text-gray-700">
+              <Filter className="h-5 w-5 text-muted-foreground" />
+              <label htmlFor="status-filter" className="text-sm font-medium text-foreground">
                 Status:
               </label>
               <select
                 id="status-filter"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value as OrderStatus | '')}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 {ORDER_STATUSES.map((status) => (
                   <option key={status.value} value={status.value}>
@@ -151,14 +151,14 @@ export function OrdersPage() {
               </select>
             </div>
             <div className="flex items-center gap-4">
-              <label htmlFor="source-filter" className="text-sm font-medium text-gray-700">
+              <label htmlFor="source-filter" className="text-sm font-medium text-foreground">
                 Source:
               </label>
               <select
                 id="source-filter"
                 value={sourceFilter}
                 onChange={(e) => setSourceFilter(e.target.value as SourceType | '')}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 {SOURCE_TYPES.map((source) => (
                   <option key={source.value} value={source.value}>
@@ -168,13 +168,13 @@ export function OrdersPage() {
               </select>
             </div>
             <div className="flex items-center gap-2 ml-auto">
-              <Search className="h-4 w-4 text-gray-400" />
+              <Search className="h-4 w-4 text-muted-foreground" />
               <input
                 type="text"
                 placeholder="Order number or UUID…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm w-56 focus:outline-none focus:ring-2 focus:ring-primary"
+                className="px-3 py-2 border border-border rounded-lg text-sm w-56 focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
           </div>
@@ -189,16 +189,16 @@ export function OrdersPage() {
         <CardContent>
           {orders.length === 0 ? (
             <div className="text-center py-12">
-              <ShoppingBag className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Orders Found</h3>
-              <p className="text-gray-600">
+              <ShoppingBag className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-foreground mb-2">No Orders Found</h3>
+              <p className="text-muted-foreground">
                 {statusFilter || sourceFilter
                   ? 'No orders match the current filters.'
                   : 'No orders in the system.'}
               </p>
             </div>
           ) : (
-            <div className="border border-gray-200 rounded-lg overflow-hidden">
+            <div className="border border-border rounded-lg overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -217,7 +217,7 @@ export function OrdersPage() {
                       <TableCell className="font-mono text-sm">
                         <div className="flex flex-col gap-0.5">
                           <span className="font-medium">{order.order_number || '—'}</span>
-                          <span className="text-xs text-gray-400">{order.id.slice(0, 8)}</span>
+                          <span className="text-xs text-muted-foreground">{order.id.slice(0, 8)}</span>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -229,7 +229,7 @@ export function OrdersPage() {
                               className="w-6 h-6 rounded-full object-cover"
                             />
                           ) : (
-                            <div className="w-6 h-6 rounded-full bg-gray-200" />
+                            <div className="w-6 h-6 rounded-full bg-border" />
                           )}
                           <div className="min-w-0">
                             <span className="text-sm truncate max-w-[120px] block">
@@ -247,14 +247,14 @@ export function OrdersPage() {
                               className="w-6 h-6 rounded-full object-cover"
                             />
                           ) : (
-                            <div className="w-6 h-6 rounded-full bg-gray-200" />
+                            <div className="w-6 h-6 rounded-full bg-border" />
                           )}
                           <div className="min-w-0">
                             <span className="text-sm truncate max-w-[120px] block">
                               {order.seller_username ? `@${order.seller_username}` : 'Unknown'}
                             </span>
                             {order.seller_farm_name && (
-                              <span className="text-xs text-gray-500 truncate max-w-[120px] block">
+                              <span className="text-xs text-muted-foreground truncate max-w-[120px] block">
                                 {order.seller_farm_name}
                               </span>
                             )}
@@ -269,7 +269,7 @@ export function OrdersPage() {
                       <TableCell className="text-sm">
                         {formatRupiah(order.total_before_coins_amount)}
                       </TableCell>
-                      <TableCell className="text-sm text-gray-600">
+                      <TableCell className="text-sm text-muted-foreground">
                         {formatDate(order.created_at)}
                       </TableCell>
                       <TableCell className="text-right">

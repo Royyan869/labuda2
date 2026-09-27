@@ -137,7 +137,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Widget _buildEmptyState() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Center(
       child: Padding(
@@ -150,13 +150,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               width: 100,
               height: 100,
               decoration: BoxDecoration(
-                color: AppColors.primaryRed.withValues(alpha: 0.1),
+                color: scheme.primary.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.emoji_emotions_outlined,
                 size: 48,
-                color: AppColors.primaryRed,
+                color: scheme.primary,
               ),
             ),
             const SizedBox(height: 24),
@@ -167,9 +167,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
-                color: isDark
-                    ? AppColors.neutralWhite
-                    : AppColors.neutralGray900,
+                color: scheme.onSurface,
               ),
               textAlign: TextAlign.center,
             ),
@@ -201,6 +199,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     required String label,
     required VoidCallback onTap,
   }) {
+    final scheme = Theme.of(context).colorScheme;
     return SizedBox(
       width: 280,
       child: FilledButton.icon(
@@ -211,8 +210,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
         onPressed: onTap,
         style: FilledButton.styleFrom(
-          backgroundColor: AppColors.primaryRed,
-          foregroundColor: Colors.white,
+          backgroundColor: scheme.primary,
+          foregroundColor: scheme.onPrimary,
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
@@ -228,7 +227,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     required String label,
     required VoidCallback onTap,
   }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return SizedBox(
       width: 280,
@@ -239,16 +238,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.w500,
-            color: isDark ? AppColors.neutralWhite : AppColors.neutralGray900,
+            color: scheme.onSurface,
           ),
         ),
         onPressed: onTap,
         style: OutlinedButton.styleFrom(
-          foregroundColor: isDark
-              ? AppColors.neutralWhite
-              : AppColors.neutralGray900,
+          foregroundColor: scheme.onSurface,
           side: BorderSide(
-            color: isDark ? AppColors.darkGray600 : AppColors.neutralGray300,
+            color: scheme.outlineVariant,
           ),
           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
           shape: RoundedRectangleBorder(
@@ -269,14 +266,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Widget _buildError(String error) {
+    final scheme = Theme.of(context).colorScheme;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(
+          Icon(
             Icons.error_outline,
             size: 64,
-            color: AppColors.statusError,
+            color: scheme.error,
           ),
           const SizedBox(height: 16),
           const Text(
@@ -286,9 +284,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           const SizedBox(height: 8),
           Text(
             error,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
-              color: AppColors.neutralGray500,
+              color: scheme.onSurfaceVariant,
             ),
             textAlign: TextAlign.center,
           ),

@@ -48,7 +48,7 @@ export function GovernanceCasesPage() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
-          <p className="mt-4 text-gray-600">Loading governance cases...</p>
+          <p className="mt-4 text-muted-foreground">Loading governance cases...</p>
         </div>
       </div>
     )
@@ -58,12 +58,12 @@ export function GovernanceCasesPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Governance Cases</h1>
-          <p className="text-gray-600 mt-1">Review and decide on reported subjects</p>
+          <h1 className="text-3xl font-bold text-foreground">Governance Cases</h1>
+          <p className="text-muted-foreground mt-1">Review and decide on reported subjects</p>
         </div>
         <Card>
           <CardContent className="p-6">
-            <div className="text-center text-red-600">
+            <div className="text-center text-destructive">
               <p className="font-medium">Error loading cases</p>
               <p className="text-sm mt-1">{error.message}</p>
               <Button
@@ -84,8 +84,8 @@ export function GovernanceCasesPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Governance Cases</h1>
-        <p className="text-gray-600 mt-1">Review and decide on reported subjects</p>
+        <h1 className="text-3xl font-bold text-foreground">Governance Cases</h1>
+        <p className="text-muted-foreground mt-1">Review and decide on reported subjects</p>
       </div>
 
       {/* Stats Card */}
@@ -93,11 +93,11 @@ export function GovernanceCasesPage() {
         <CardContent className="pt-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Total Cases</p>
+              <p className="text-sm font-medium text-muted-foreground">Total Cases</p>
               <p className="text-3xl font-bold text-primary mt-1">{count}</p>
             </div>
-            <div className="p-4 rounded-lg bg-blue-100">
-              <Shield className="h-8 w-8 text-blue-600" />
+            <div className="p-4 rounded-lg bg-info-bg">
+              <Shield className="h-8 w-8 text-info" />
             </div>
           </div>
         </CardContent>
@@ -107,8 +107,8 @@ export function GovernanceCasesPage() {
       <Card>
         <CardContent className="pt-6">
           <div className="flex items-center gap-4">
-            <Filter className="h-5 w-5 text-gray-500" />
-            <label htmlFor="status-filter" className="text-sm font-medium text-gray-700">
+            <Filter className="h-5 w-5 text-muted-foreground" />
+            <label htmlFor="status-filter" className="text-sm font-medium text-foreground">
               Status:
             </label>
             <select
@@ -118,7 +118,7 @@ export function GovernanceCasesPage() {
                 setStatusFilter(e.target.value as GovernanceCaseStatus | '')
                 setPage(1)
               }}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             >
               {CASE_FILTERS.map((f) => (
                 <option key={f.value} value={f.value}>
@@ -138,14 +138,14 @@ export function GovernanceCasesPage() {
         <CardContent>
           {cases.length === 0 ? (
             <div className="text-center py-12">
-              <Shield className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Cases Found</h3>
-              <p className="text-gray-600">
+              <Shield className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-foreground mb-2">No Cases Found</h3>
+              <p className="text-muted-foreground">
                 {statusFilter ? `No ${statusFilter} cases found.` : 'No governance cases yet.'}
               </p>
             </div>
           ) : (
-            <div className="border border-gray-200 rounded-lg overflow-hidden">
+            <div className="border border-border rounded-lg overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -177,10 +177,10 @@ export function GovernanceCasesPage() {
                           {caseStatusLabels[caseItem.status]}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-sm text-gray-600">
+                      <TableCell className="text-sm text-muted-foreground">
                         {formatDate(caseItem.created_at)}
                       </TableCell>
-                      <TableCell className="text-sm text-gray-600">
+                      <TableCell className="text-sm text-muted-foreground">
                         {formatDate(caseItem.updated_at)}
                       </TableCell>
                       <TableCell className="text-right">
@@ -202,7 +202,7 @@ export function GovernanceCasesPage() {
           {/* Pagination */}
           {count > 20 && (
             <div className="flex items-center justify-between mt-4">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-muted-foreground">
                 Showing {(page - 1) * 20 + 1}–{Math.min(page * 20, count)} of {count}
               </p>
               <div className="flex gap-2">

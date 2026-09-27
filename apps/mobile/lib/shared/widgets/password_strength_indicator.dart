@@ -17,16 +17,15 @@ import 'package:labuda/shared/helpers/canonical_password_strength.dart';
 /// [CanonicalPasswordPolicy]; this widget never gates submission.
 class PasswordStrengthIndicator extends StatelessWidget {
   final String password;
-  final bool isDark;
 
   const PasswordStrengthIndicator({
     super.key,
     required this.password,
-    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final level = CanonicalPasswordStrength.evaluate(password);
 
     // Neutral state for empty input: no classification, no "Weak" warning.
@@ -34,7 +33,7 @@ class PasswordStrengthIndicator extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    final color = _colorFor(level);
+    final color = _colorFor(context, level);
     final progress = CanonicalPasswordStrength.progress(password);
 
     return Column(
@@ -47,9 +46,7 @@ class PasswordStrengthIndicator extends StatelessWidget {
             Expanded(
               child: LinearProgressIndicator(
                 value: progress,
-                backgroundColor: isDark
-                    ? AppColors.darkGray600
-                    : AppColors.neutralGray200,
+                backgroundColor: scheme.surfaceContainerHighest,
                 valueColor: AlwaysStoppedAnimation<Color>(color),
                 minHeight: 4,
               ),
@@ -69,10 +66,11 @@ class PasswordStrengthIndicator extends StatelessWidget {
     );
   }
 
-  Color _colorFor(PasswordStrengthLevel level) {
+  Color _colorFor(BuildContext context, PasswordStrengthLevel level) {
+    final scheme = Theme.of(context).colorScheme;
     switch (level) {
       case PasswordStrengthLevel.weak:
-        return AppColors.error;
+        return scheme.error;
       case PasswordStrengthLevel.medium:
         return AppColors.warning;
       case PasswordStrengthLevel.strong:

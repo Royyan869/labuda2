@@ -9,7 +9,9 @@ import 'package:labuda/domains/commerce/negotiation/negotiation/presentation/pro
 /// Chat Input Area Widget
 ///
 /// Provides text input and attachment options for sending messages.
-/// Shows commerce action buttons when fixed-price sale context exists.
+/// Composer commerce CTAs were removed together with the room-level
+/// context — the composer never decides commerce actions (O4: chat is a
+/// display layer only; enforced by the purge contract test in test/).
 ///
 /// **CV2:** Enhanced with pending deal visibility, CTA clarity, and next-step guidance.
 class ChatInputArea extends ConsumerStatefulWidget {
@@ -17,9 +19,11 @@ class ChatInputArea extends ConsumerStatefulWidget {
   final TextEditingController messageController;
   final Future<void> Function(String content, {MessageType type}) onSendMessage;
   final VoidCallback onAttachmentTap;
-  final VoidCallback? onSendQuote;
-  final VoidCallback? onStartNegotiation;
-  final VoidCallback? onBuyNow;
+
+  /// True while the composer holds a pending commerce attachment. Enables
+  /// resource-only sends: the send button shows and submits even with an
+  /// empty draft (attachment + optional text = one message).
+  final bool hasPendingAttachment;
 
   const ChatInputArea({
     super.key,
@@ -27,9 +31,7 @@ class ChatInputArea extends ConsumerStatefulWidget {
     required this.messageController,
     required this.onSendMessage,
     required this.onAttachmentTap,
-    this.onSendQuote,
-    this.onStartNegotiation,
-    this.onBuyNow,
+    this.hasPendingAttachment = false,
   });
 
   @override
@@ -63,7 +65,7 @@ class _ChatInputAreaState extends ConsumerState<ChatInputArea> {
 
   Future<void> _handleSendMessage() async {
     final content = widget.messageController.text.trim();
-    if (content.isEmpty) return;
+    if (content.isEmpty && !widget.hasPendingAttachment) return;
 
     await widget.onSendMessage(content);
 
@@ -341,13 +343,14 @@ class _ChatInputAreaState extends ConsumerState<ChatInputArea> {
   }
 
   Widget _buildSendButton(BuildContext context, bool canSend) {
+    final showSend = _isTyping || widget.hasPendingAttachment;
     return IconButton(
       icon: Icon(
-        _isTyping ? Icons.send : Icons.mic,
+        showSend ? Icons.send : Icons.mic,
         color: canSend ? Theme.of(context).colorScheme.primary : Colors.grey,
         size: 28,
       ),
-      onPressed: canSend && _isTyping ? _handleSendMessage : null,
+      onPressed: canSend && showSend ? _handleSendMessage : null,
     );
   }
 }

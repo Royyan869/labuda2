@@ -1,12 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/domain/entities/for_sale.dart';
+import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_card_seller_metadata.dart';
+import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_marketplace_primitives.dart';
 import 'package:labuda/domains/social/content/domain/entities/content.dart';
-import 'package:labuda/shared/governance/content_lifecycle.dart';
-import 'package:labuda/shared/governance/seller_inactive_badge.dart';
-import 'package:labuda/shared/utils/commerce_seller_identity.dart';
 
-/// Canonical buyer-facing forSale card.
+/// Canonical buyer-facing forSale card — a THIN channel wrapper.
+///
+/// CANONICAL DESIGN (owner-locked): every public commerce card is one
+/// `CommerceMarketplaceCardShell` inside the shared `CommerceMarketplaceGrid`
+/// (2 columns). A channel may only fill slots; it may NOT re-implement the
+/// frame, typography, media badge or seller block.
+///
+/// Slots: badges (item state) → title → value (money) → seller metadata.
+/// Channel-specific content lives in the slot data only (fixed price here,
+/// current bid on [AuctionCard]); description belongs to the detail surface.
 ///
 /// Used by every discovery / browsing surface (Marketplace, ForSaleList,
 /// ProfileStore). Seller identity is redacted when [ForSale.sellerUserLifecycle]
@@ -19,172 +26,33 @@ class ForSaleCard extends StatelessWidget {
 
   const ForSaleCard({super.key, required this.forSale, required this.onTap});
 
-  CommerceSellerIdentity? get _sellerIdentity => buildCommerceSellerIdentity(
-    username: forSale.sellerUsername,
-    storeName: forSale.sellerFarmName,
-  );
-
-  bool get _isSellerDegraded => forSale.sellerUserLifecycle.isDegraded;
-
-  String? get _sellerLine1 => _isSellerDegraded
-      ? forSale.sellerUserLifecycle.publicRedactionLabel
-      : _sellerIdentity?.line1;
-
-  String? get _sellerLine2 => _isSellerDegraded ? null : _sellerIdentity?.line2;
-
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
+    final media = forSale.media.isNotEmpty ? forSale.media.first : null;
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Image
-            AspectRatio(
-              aspectRatio: 16 / 9,
-              child: Container(
-                color: isDark
-                    ? AppColors.darkGray700
-                    : AppColors.neutralGray200,
-                child: forSale.media.isNotEmpty
-                    ? Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          Image.network(
-                            forSale.media.first.originalUrl,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Icon(
-                                Icons.image,
-                                size: 48,
-                                color: isDark
-                                    ? AppColors.neutralGray600
-                                    : AppColors.neutralGray400,
-                              );
-                            },
-                          ),
-                          // Video badge
-                          if (forSale.media.first.type == MediaType.video)
-                            Positioned(
-                              top: 8,
-                              right: 8,
-                              child: Container(
-                                padding: const EdgeInsets.all(4),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withValues(alpha: 0.7),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: const Icon(
-                                  Icons.play_circle_filled,
-                                  color: Colors.white,
-                                  size: 18,
-                                ),
-                              ),
-                            ),
-                        ],
-                      )
-                    : Icon(
-                        Icons.image,
-                        size: 48,
-                        color: isDark
-                            ? AppColors.neutralGray600
-                            : AppColors.neutralGray400,
-                      ),
-              ),
-            ),
-            // Content
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Title
-                  Text(
-                    forSale.title,
-                    style: AppTypography.bodyLarge.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  // Description
-                  Text(
-                    forSale.description,
-                    style: AppTypography.bodySmall.copyWith(
-                      color: isDark
-                          ? AppColors.neutralGray400
-                          : AppColors.neutralGray600,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  // Seller identity with E8.2 lifecycle redaction
-                  if (_sellerLine1 != null) ...[
-                    const SizedBox(height: 4),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _sellerLine1!,
-                          style: AppTypography.bodySmall.copyWith(
-                            color: isDark
-                                ? AppColors.neutralGray500
-                                : AppColors.neutralGray400,
-                            fontStyle: _isSellerDegraded
-                                ? FontStyle.italic
-                                : FontStyle.normal,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        if (_sellerLine2 != null) ...[
-                          const SizedBox(height: 2),
-                          Text(
-                            _sellerLine2!,
-                            style: AppTypography.bodySmall.copyWith(
-                              color: isDark
-                                  ? AppColors.neutralGray500
-                                  : AppColors.neutralGray400,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ],
-                    ),
-                  ],
-                  // Expired-seller visibility — seller-trust axis badge.
-                  // Only when user-axis NOT already degraded (which fully
-                  // redacts identity above).
-                  if (shouldShowSellerInactiveBadge(
-                    sellerTrustLifecycle: forSale.sellerTrustLifecycle,
-                    sellerUserLifecycle: forSale.sellerUserLifecycle,
-                  )) ...[
-                    const SizedBox(height: 4),
-                    const SellerInactiveBadge(),
-                  ],
-                  const SizedBox(height: 8),
-                  // Price
-                  Text(
-                    forSale.formattedPrice,
-                    style: AppTypography.bodyMedium.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.primaryRed,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+    return CommerceMarketplaceCardShell(
+      onTap: onTap,
+      semanticLabel: forSale.title,
+      media: CommerceMarketplaceCardMedia(
+        imageUrl: media?.originalUrl,
+        mediaType: media?.type ?? MediaType.image,
+        fallback: Icon(
+          Icons.image_outlined,
+          size: 48,
+          color: scheme.onSurfaceVariant,
         ),
+      ),
+      title: forSale.title,
+      value: CommerceMarketplaceCardValue(
+        value: forSale.formattedPrice,
+        compact: true,
+      ),
+      metadata: CommerceCardSellerMetadata(
+        username: forSale.sellerUsername,
+        storeName: forSale.sellerFarmName,
+        sellerUserLifecycle: forSale.sellerUserLifecycle,
+        sellerTrustLifecycle: forSale.sellerTrustLifecycle,
       ),
     );
   }

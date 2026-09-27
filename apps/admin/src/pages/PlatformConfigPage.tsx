@@ -126,9 +126,9 @@ function FinancialConfirmModal({
   return (
     <Modal isOpen={isOpen} onClose={onCancel} title="Confirm Financial Config Change">
       <div className="space-y-4">
-        <div className="flex items-start gap-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-          <ShieldAlert className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
-          <div className="text-sm text-amber-800">
+        <div className="flex items-start gap-3 p-3 bg-warning-bg border border-warning rounded-lg">
+          <ShieldAlert className="h-5 w-5 text-warning mt-0.5 flex-shrink-0" />
+          <div className="text-sm text-warning">
             <p className="font-semibold">This change affects platform revenue calculations.</p>
             <p className="mt-1">
               The new value will apply to all future orders. Existing orders are unaffected
@@ -137,16 +137,16 @@ function FinancialConfirmModal({
           </div>
         </div>
 
-        <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm bg-gray-50 rounded-lg p-3">
-          <dt className="font-medium text-gray-600">Config Key</dt>
-          <dd className="font-mono text-gray-900">{configKey}</dd>
-          <dt className="font-medium text-gray-600">Current Value</dt>
-          <dd className="font-mono text-gray-700">{oldValue}</dd>
-          <dt className="font-medium text-gray-600">New Value</dt>
-          <dd className="font-mono font-bold text-gray-900">{newValue}</dd>
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm bg-surface-muted rounded-lg p-3">
+          <dt className="font-medium text-muted-foreground">Config Key</dt>
+          <dd className="font-mono text-foreground">{configKey}</dd>
+          <dt className="font-medium text-muted-foreground">Current Value</dt>
+          <dd className="font-mono text-foreground">{oldValue}</dd>
+          <dt className="font-medium text-muted-foreground">New Value</dt>
+          <dd className="font-mono font-bold text-foreground">{newValue}</dd>
         </dl>
 
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-muted-foreground">
           This action will be recorded in the audit log.
         </p>
 
@@ -226,32 +226,32 @@ function EditableRow({ item, meta, canEdit, onSaved }: EditableRowProps) {
 
   if (editing) {
     return (
-      <tr className="bg-blue-50">
-        <td className="px-6 py-3 font-mono text-xs text-gray-900 font-medium">{item.key}</td>
+      <tr className="bg-info-bg">
+        <td className="px-6 py-3 font-mono text-xs text-foreground font-medium">{item.key}</td>
         <td className="px-6 py-3" colSpan={2}>
           <div className="flex items-center gap-2">
             <input
               type="text"
               value={draft}
               onChange={(e) => { setDraft(e.target.value); setError(null) }}
-              className="border border-blue-400 rounded px-2 py-1 text-sm font-mono w-40 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="border border-info rounded px-2 py-1 text-sm font-mono w-40 focus:outline-none focus:ring-2 focus:ring-info"
               placeholder={meta.hint}
               autoFocus
               onKeyDown={(e) => { if (e.key === 'Enter') requestSave(); if (e.key === 'Escape') cancelEdit() }}
             />
-            <span className="text-xs text-gray-400">{meta.hint}</span>
+            <span className="text-xs text-muted-foreground">{meta.hint}</span>
             {error && (
-              <span className="text-xs text-red-600 flex items-center gap-1">
+              <span className="text-xs text-destructive flex items-center gap-1">
                 <AlertTriangle className="h-3 w-3" />
                 {error}
               </span>
             )}
           </div>
         </td>
-        <td className="px-6 py-3 font-mono text-xs text-gray-600">
+        <td className="px-6 py-3 font-mono text-xs text-muted-foreground">
           {item.updated_by ? `${item.updated_by.slice(0, 8)}...` : '-'}
         </td>
-        <td className="px-6 py-3 text-xs text-gray-600 whitespace-nowrap">
+        <td className="px-6 py-3 text-xs text-muted-foreground whitespace-nowrap">
           {new Date(item.updated_at * 1000).toLocaleString()}
         </td>
         <td className="px-6 py-3">
@@ -279,16 +279,16 @@ function EditableRow({ item, meta, canEdit, onSaved }: EditableRowProps) {
   }
 
   return (
-    <tr className="hover:bg-gray-50">
-      <td className="px-6 py-3 font-mono text-xs text-gray-900 font-medium">{item.key}</td>
-      <td className="px-6 py-3 font-mono text-sm text-gray-900">{displayValue(item)}</td>
+    <tr className="hover:bg-surface-muted">
+      <td className="px-6 py-3 font-mono text-xs text-foreground font-medium">{item.key}</td>
+      <td className="px-6 py-3 font-mono text-sm text-foreground">{displayValue(item)}</td>
       <td className="px-6 py-3">
         <Badge variant={valueType === 'numeric' ? 'info' : 'pending'}>{valueType}</Badge>
       </td>
-      <td className="px-6 py-3 font-mono text-xs text-gray-600">
+      <td className="px-6 py-3 font-mono text-xs text-muted-foreground">
         {item.updated_by ? `${item.updated_by.slice(0, 8)}...` : '-'}
       </td>
-      <td className="px-6 py-3 text-xs text-gray-600 whitespace-nowrap">
+      <td className="px-6 py-3 text-xs text-muted-foreground whitespace-nowrap">
         {new Date(item.updated_at * 1000).toLocaleString()}
       </td>
       <td className="px-6 py-3">
@@ -298,7 +298,7 @@ function EditableRow({ item, meta, canEdit, onSaved }: EditableRowProps) {
             Edit
           </Button>
         ) : (
-          <span className="text-xs text-gray-400 italic">
+          <span className="text-xs text-muted-foreground italic">
             Requires {meta.cap === 'config.update.financial' ? 'financial' : 'general'} cap
           </span>
         )}
@@ -311,27 +311,27 @@ function EditableRow({ item, meta, canEdit, onSaved }: EditableRowProps) {
 function DangerousRow({ item }: { item: PlatformConfigItem }) {
   const valueType = item.value_numeric !== undefined ? 'numeric' : 'text'
   return (
-    <tr className="hover:bg-gray-50 opacity-75">
-      <td className="px-6 py-3 font-mono text-xs text-gray-900 font-medium">
+    <tr className="hover:bg-surface-muted opacity-75">
+      <td className="px-6 py-3 font-mono text-xs text-foreground font-medium">
         <span className="inline-flex items-center gap-1">
           {item.key}
           <span title="Not editable — no runtime consumer">
-            <Lock className="inline h-3 w-3 text-gray-400" />
+            <Lock className="inline h-3 w-3 text-muted-foreground" />
           </span>
         </span>
       </td>
-      <td className="px-6 py-3 font-mono text-sm text-gray-900">{displayValue(item)}</td>
+      <td className="px-6 py-3 font-mono text-sm text-foreground">{displayValue(item)}</td>
       <td className="px-6 py-3">
         <Badge variant={valueType === 'numeric' ? 'info' : 'pending'}>{valueType}</Badge>
       </td>
-      <td className="px-6 py-3 font-mono text-xs text-gray-600">
+      <td className="px-6 py-3 font-mono text-xs text-muted-foreground">
         {item.updated_by ? `${item.updated_by.slice(0, 8)}...` : '-'}
       </td>
-      <td className="px-6 py-3 text-xs text-gray-600 whitespace-nowrap">
+      <td className="px-6 py-3 text-xs text-muted-foreground whitespace-nowrap">
         {new Date(item.updated_at * 1000).toLocaleString()}
       </td>
       <td className="px-6 py-3">
-        <span className="text-xs text-amber-600 font-medium">future-only</span>
+        <span className="text-xs text-warning font-medium">future-only</span>
       </td>
     </tr>
   )
@@ -341,20 +341,20 @@ function DangerousRow({ item }: { item: PlatformConfigItem }) {
 function ReadOnlyRow({ item }: { item: PlatformConfigItem }) {
   const valueType = item.value_numeric !== undefined ? 'numeric' : 'text'
   return (
-    <tr className="hover:bg-gray-50">
-      <td className="px-6 py-3 font-mono text-xs text-gray-900 font-medium">{item.key}</td>
-      <td className="px-6 py-3 font-mono text-sm text-gray-900">{displayValue(item)}</td>
+    <tr className="hover:bg-surface-muted">
+      <td className="px-6 py-3 font-mono text-xs text-foreground font-medium">{item.key}</td>
+      <td className="px-6 py-3 font-mono text-sm text-foreground">{displayValue(item)}</td>
       <td className="px-6 py-3">
         <Badge variant={valueType === 'numeric' ? 'info' : 'pending'}>{valueType}</Badge>
       </td>
-      <td className="px-6 py-3 font-mono text-xs text-gray-600">
+      <td className="px-6 py-3 font-mono text-xs text-muted-foreground">
         {item.updated_by ? `${item.updated_by.slice(0, 8)}...` : '-'}
       </td>
-      <td className="px-6 py-3 text-xs text-gray-600 whitespace-nowrap">
+      <td className="px-6 py-3 text-xs text-muted-foreground whitespace-nowrap">
         {new Date(item.updated_at * 1000).toLocaleString()}
       </td>
       <td className="px-6 py-3">
-        <span className="text-xs text-gray-400">-</span>
+        <span className="text-xs text-muted-foreground">-</span>
       </td>
     </tr>
   )
@@ -481,13 +481,13 @@ function SellerSubscriptionCard({ onRefreshParent, canEdit }: SellerSubscription
         {loading && !config && (
           <div className="space-y-3">
             {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="animate-pulse h-4 bg-gray-200 rounded w-48" />
+              <div key={i} className="animate-pulse h-4 bg-border rounded w-48" />
             ))}
           </div>
         )}
 
         {error && (
-          <div className="flex items-center gap-2 text-red-600 text-sm">
+          <div className="flex items-center gap-2 text-destructive text-sm">
             <AlertTriangle className="h-4 w-4" />
             {error}
           </div>
@@ -495,29 +495,29 @@ function SellerSubscriptionCard({ onRefreshParent, canEdit }: SellerSubscription
 
         {!loading && !error && config && !editing && (
           <dl className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
-            <dt className="font-medium text-gray-600">Yearly Fee</dt>
+            <dt className="font-medium text-muted-foreground">Yearly Fee</dt>
             <dd className="font-mono">
               {formatIdr(config.yearly_fee_rupiah)}
             </dd>
 
-            <dt className="font-medium text-gray-600">Duration</dt>
+            <dt className="font-medium text-muted-foreground">Duration</dt>
             <dd className="font-mono">{config.duration_days} days</dd>
 
-            <dt className="font-medium text-gray-600">Renewal Reminder</dt>
+            <dt className="font-medium text-muted-foreground">Renewal Reminder</dt>
             <dd className="font-mono">{config.renewal_reminder_days} days before expiry</dd>
 
-            <dt className="font-medium text-gray-600">Status</dt>
+            <dt className="font-medium text-muted-foreground">Status</dt>
             <dd>
               <Badge variant={config.enabled ? 'success' : 'default'}>
                 {config.enabled ? 'Enabled' : 'Disabled'}
               </Badge>
             </dd>
 
-            <dt className="font-medium text-gray-600">Config ID</dt>
-            <dd className="font-mono text-xs text-gray-500">{config.id}</dd>
+            <dt className="font-medium text-muted-foreground">Config ID</dt>
+            <dd className="font-mono text-xs text-muted-foreground">{config.id}</dd>
 
-            <dt className="font-medium text-gray-600">Created At</dt>
-            <dd className="text-xs text-gray-500">{new Date(config.created_at).toLocaleString()}</dd>
+            <dt className="font-medium text-muted-foreground">Created At</dt>
+            <dd className="text-xs text-muted-foreground">{new Date(config.created_at).toLocaleString()}</dd>
           </dl>
         )}
 
@@ -525,7 +525,7 @@ function SellerSubscriptionCard({ onRefreshParent, canEdit }: SellerSubscription
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   Yearly Fee (IDR)
                 </label>
                 <input
@@ -533,47 +533,47 @@ function SellerSubscriptionCard({ onRefreshParent, canEdit }: SellerSubscription
                   min={1}
                   value={feeIdr}
                   onChange={(e) => setFeeIdr(e.target.value)}
-                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-border rounded px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-info"
                   placeholder="e.g. 70000"
                 />
                 {feeIdr && !isNaN(parseInt(feeIdr)) && (
-                  <p className="mt-1 text-xs text-gray-500">
+                  <p className="mt-1 text-xs text-muted-foreground">
                     = {formatIdr(parseInt(feeIdr))}
                   </p>
                 )}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Duration (days)</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Duration (days)</label>
                 <input
                   type="number"
                   min={1}
                   value={durationDays}
                   onChange={(e) => setDurationDays(e.target.value)}
-                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-border rounded px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-info"
                   placeholder="e.g. 365"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Renewal Reminder (days)</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Renewal Reminder (days)</label>
                 <input
                   type="number"
                   min={0}
                   value={renewalReminderDays}
                   onChange={(e) => setRenewalReminderDays(e.target.value)}
-                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-border rounded px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-info"
                   placeholder="e.g. 7"
                 />
               </div>
 
               <div className="flex items-end pb-2">
-                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer">
+                <label className="flex items-center gap-2 text-sm font-medium text-foreground cursor-pointer">
                   <input
                     type="checkbox"
                     checked={isEnabled}
                     onChange={(e) => setIsEnabled(e.target.checked)}
-                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    className="h-4 w-4 rounded border-border text-info focus:ring-info"
                   />
                   Enabled
                 </label>
@@ -581,7 +581,7 @@ function SellerSubscriptionCard({ onRefreshParent, canEdit }: SellerSubscription
             </div>
 
             {saveError && (
-              <p className="text-sm text-red-600 flex items-center gap-1">
+              <p className="text-sm text-destructive flex items-center gap-1">
                 <AlertTriangle className="h-4 w-4" />
                 {saveError}
               </p>
@@ -671,8 +671,8 @@ export function PlatformConfigPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Platform Config</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-3xl font-bold text-foreground">Platform Config</h1>
+          <p className="text-muted-foreground mt-1">
             Runtime configuration.
             {canEditFinancial && ' Financial keys editable.'}
             {canEditGeneral && !canEditFinancial && ' General keys editable.'}
@@ -692,9 +692,9 @@ export function PlatformConfigPage() {
       {error && (
         <Card>
           <CardContent className="p-8 text-center">
-            <AlertTriangle className="h-10 w-10 text-red-400 mx-auto mb-3" />
-            <p className="text-gray-900 font-medium">Failed to load config</p>
-            <p className="text-gray-600 text-sm mt-1">{error}</p>
+            <AlertTriangle className="h-10 w-10 text-destructive mx-auto mb-3" />
+            <p className="text-foreground font-medium">Failed to load config</p>
+            <p className="text-muted-foreground text-sm mt-1">{error}</p>
             <Button variant="secondary" size="sm" onClick={fetchConfigs} className="mt-4">
               Retry
             </Button>
@@ -709,8 +709,8 @@ export function PlatformConfigPage() {
             <div className="space-y-4">
               {Array.from({ length: 5 }).map((_, i) => (
                 <div key={i} className="animate-pulse flex items-center gap-4">
-                  <div className="h-4 bg-gray-200 rounded w-40" />
-                  <div className="h-4 bg-gray-200 rounded flex-1" />
+                  <div className="h-4 bg-border rounded w-40" />
+                  <div className="h-4 bg-border rounded flex-1" />
                 </div>
               ))}
             </div>
@@ -722,9 +722,9 @@ export function PlatformConfigPage() {
       {!loading && !error && configs.length === 0 && (
         <Card>
           <CardContent className="p-12 text-center">
-            <Settings className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-            <h2 className="text-lg font-semibold text-gray-900">No Config Values</h2>
-            <p className="text-gray-600 mt-1">No platform configuration values are set.</p>
+            <Settings className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h2 className="text-lg font-semibold text-foreground">No Config Values</h2>
+            <p className="text-muted-foreground mt-1">No platform configuration values are set.</p>
           </CardContent>
         </Card>
       )}
@@ -739,16 +739,16 @@ export function PlatformConfigPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-200 bg-gray-50">
-                    <th className="px-6 py-3 text-left font-medium text-gray-600">Key</th>
-                    <th className="px-6 py-3 text-left font-medium text-gray-600">Value</th>
-                    <th className="px-6 py-3 text-left font-medium text-gray-600">Type</th>
-                    <th className="px-6 py-3 text-left font-medium text-gray-600">Updated By</th>
-                    <th className="px-6 py-3 text-left font-medium text-gray-600">Updated At</th>
-                    <th className="px-6 py-3 text-left font-medium text-gray-600">Action</th>
+                  <tr className="border-b border-border bg-surface-muted">
+                    <th className="px-6 py-3 text-left font-medium text-muted-foreground">Key</th>
+                    <th className="px-6 py-3 text-left font-medium text-muted-foreground">Value</th>
+                    <th className="px-6 py-3 text-left font-medium text-muted-foreground">Type</th>
+                    <th className="px-6 py-3 text-left font-medium text-muted-foreground">Updated By</th>
+                    <th className="px-6 py-3 text-left font-medium text-muted-foreground">Updated At</th>
+                    <th className="px-6 py-3 text-left font-medium text-muted-foreground">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody className="divide-y divide-[hsl(var(--border))]">
                   {grouped[category].map((item) => {
                     if (DANGEROUS_KEYS.has(item.key)) {
                       return <DangerousRow key={item.key} item={item} />

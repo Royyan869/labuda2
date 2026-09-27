@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/models/seller_identity_data.dart';
 import 'package:labuda/shared/widgets/profile_avatar.dart';
 import 'package:labuda/shared/widgets/stable_network_image.dart';
@@ -49,7 +48,9 @@ class SellerDualAvatar extends StatelessWidget {
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.2),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.shadow.withValues(alpha: 0.2),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -83,13 +84,13 @@ class SellerDualAvatar extends StatelessWidget {
   }
 
   Widget _buildStorePlaceholder(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     return Container(
-      color: isDark ? AppColors.darkGray700 : AppColors.neutralGray200,
+      color: scheme.surfaceContainerHighest,
       child: Icon(
         Icons.storefront,
         size: size * 0.4,
-        color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray500,
+        color: scheme.onSurfaceVariant,
       ),
     );
   }

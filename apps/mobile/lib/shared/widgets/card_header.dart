@@ -36,7 +36,7 @@ class CardHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Material(
       color: Colors.transparent,
@@ -70,9 +70,7 @@ class CardHeader extends StatelessWidget {
                             color: AppColors.statusSuccess,
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: isDark
-                                  ? AppColors.neutralGray800
-                                  : AppColors.neutralWhite,
+                              color: scheme.surface,
                               width: 2,
                             ),
                           ),
@@ -91,9 +89,7 @@ class CardHeader extends StatelessWidget {
                     Text(
                       name,
                       style: AppTypography.username.copyWith(
-                        color: isDark
-                            ? AppColors.neutralWhite
-                            : AppColors.neutralGray900,
+                        color: scheme.onSurface,
                       ),
                     ),
                     if (subtitle != null) ...[
@@ -101,9 +97,7 @@ class CardHeader extends StatelessWidget {
                       Text(
                         subtitle!,
                         style: AppTypography.caption.copyWith(
-                          color: isDark
-                              ? AppColors.neutralGray400
-                              : AppColors.neutralGray600,
+                          color: scheme.onSurfaceVariant,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -118,9 +112,7 @@ class CardHeader extends StatelessWidget {
                 Text(
                   timeAgo!,
                   style: AppTypography.timestamp.copyWith(
-                    color: isDark
-                        ? AppColors.neutralGray500
-                        : AppColors.neutralGray400,
+                    color: scheme.onSurfaceVariant,
                   ),
                 )
               else

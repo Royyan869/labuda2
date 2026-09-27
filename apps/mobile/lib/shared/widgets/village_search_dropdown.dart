@@ -74,7 +74,7 @@ class _VillageSearchDropdownState extends ConsumerState<VillageSearchDropdown> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     final villagesAsync = ref.watch(
       villagesProvider(widget.selectedDistrict?.id),
     );
@@ -88,53 +88,43 @@ class _VillageSearchDropdownState extends ConsumerState<VillageSearchDropdown> {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
-              color: isDark
-                  ? AppColors.neutralGray300
-                  : AppColors.neutralGray700,
+              color: scheme.onSurface,
             ),
           ),
           const SizedBox(height: 8),
         ],
         widget.selectedDistrict == null
-            ? _buildDisabledField(context, isDark)
+            ? _buildDisabledField(context)
             : villagesAsync.when(
                 data: (villages) =>
-                    _buildSearchableDropdown(context, isDark, villages),
-                loading: () => _buildLoadingField(context, isDark),
-                error: (error, stack) => _buildErrorField(context, isDark),
+                    _buildSearchableDropdown(context, villages),
+                loading: () => _buildLoadingField(context),
+                error: (error, stack) => _buildErrorField(context),
               ),
       ],
     );
   }
 
-  Widget _buildDisabledField(BuildContext context, bool isDark) {
+  Widget _buildDisabledField(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       height: 50,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDark ? AppColors.darkGray600 : AppColors.neutralGray300,
-        ),
-        color: isDark ? AppColors.darkGray800 : AppColors.neutralGray100,
+        border: Border.all(color: scheme.outlineVariant),
+        color: scheme.surfaceContainerHighest,
       ),
       child: Row(
         children: [
           if (widget.prefixIcon != null) ...[
-            Icon(
-              widget.prefixIcon,
-              color: isDark
-                  ? AppColors.neutralGray500
-                  : AppColors.neutralGray400,
-            ),
+            Icon(widget.prefixIcon, color: scheme.onSurfaceVariant),
             const SizedBox(width: 12),
           ],
           Text(
             'Pilih kecamatan dulu',
             style: TextStyle(
-              color: isDark
-                  ? AppColors.neutralGray500
-                  : AppColors.neutralGray400,
+              color: scheme.onSurfaceVariant,
               fontSize: 16,
             ),
           ),
@@ -143,26 +133,20 @@ class _VillageSearchDropdownState extends ConsumerState<VillageSearchDropdown> {
     );
   }
 
-  Widget _buildLoadingField(BuildContext context, bool isDark) {
+  Widget _buildLoadingField(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       height: 50,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDark ? AppColors.darkGray600 : AppColors.neutralGray300,
-        ),
-        color: isDark ? AppColors.darkGray700 : AppColors.neutralWhite,
+        border: Border.all(color: scheme.outlineVariant),
+        color: scheme.surface,
       ),
       child: Row(
         children: [
           if (widget.prefixIcon != null) ...[
-            Icon(
-              widget.prefixIcon,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray600,
-            ),
+            Icon(widget.prefixIcon, color: scheme.onSurfaceVariant),
             const SizedBox(width: 12),
           ],
           const SizedBox(
@@ -173,25 +157,22 @@ class _VillageSearchDropdownState extends ConsumerState<VillageSearchDropdown> {
           const SizedBox(width: 12),
           Text(
             'Loading desa...',
-            style: TextStyle(
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray500,
-            ),
+            style: TextStyle(color: scheme.onSurfaceVariant),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildErrorField(BuildContext context, bool isDark) {
+  Widget _buildErrorField(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       height: 50,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.statusError),
-        color: isDark ? AppColors.darkGray700 : AppColors.neutralWhite,
+        color: scheme.surface,
       ),
       child: Row(
         children: [
@@ -208,9 +189,9 @@ class _VillageSearchDropdownState extends ConsumerState<VillageSearchDropdown> {
 
   Widget _buildSearchableDropdown(
     BuildContext context,
-    bool isDark,
     List<Village> villages,
   ) {
+    final scheme = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: () {
         // Close dropdown ketika tap di luar
@@ -231,9 +212,7 @@ class _VillageSearchDropdownState extends ConsumerState<VillageSearchDropdown> {
               prefixIcon: widget.prefixIcon != null
                   ? Icon(
                       widget.prefixIcon,
-                      color: isDark
-                          ? AppColors.neutralGray400
-                          : AppColors.neutralGray600,
+                      color: scheme.onSurfaceVariant,
                     )
                   : null,
               suffixIcon: GestureDetector(
@@ -251,44 +230,30 @@ class _VillageSearchDropdownState extends ConsumerState<VillageSearchDropdown> {
                   _isDropdownOpen
                       ? Icons.keyboard_arrow_up
                       : Icons.keyboard_arrow_down,
-                  color: isDark
-                      ? AppColors.neutralGray400
-                      : AppColors.neutralGray600,
+                  color: scheme.onSurfaceVariant,
                 ),
               ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: isDark
-                      ? AppColors.darkGray600
-                      : AppColors.neutralGray300,
-                ),
+                borderSide: BorderSide(color: scheme.outlineVariant),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: isDark
-                      ? AppColors.darkGray600
-                      : AppColors.neutralGray300,
-                ),
+                borderSide: BorderSide(color: scheme.outlineVariant),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: AppColors.primaryRed),
+                borderSide: BorderSide(color: scheme.primary),
               ),
               filled: true,
-              fillColor: isDark
-                  ? AppColors.darkGray700
-                  : AppColors.neutralWhite,
+              fillColor: scheme.surface,
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 16,
                 vertical: 14,
               ),
             ),
             style: TextStyle(
-              color: isDark
-                  ? AppColors.neutralGray200
-                  : AppColors.neutralGray900,
+              color: scheme.onSurface,
               fontSize: 16,
             ),
             onChanged: (query) {
@@ -323,15 +288,11 @@ class _VillageSearchDropdownState extends ConsumerState<VillageSearchDropdown> {
               constraints: const BoxConstraints(maxHeight: 200),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: isDark
-                      ? AppColors.darkGray600
-                      : AppColors.neutralGray300,
-                ),
-                color: isDark ? AppColors.darkGray700 : AppColors.neutralWhite,
+                border: Border.all(color: scheme.outlineVariant),
+                color: scheme.surfaceContainerHigh,
                 boxShadow: [
                   BoxShadow(
-                    color: isDark ? Colors.black26 : Colors.black12,
+                    color: scheme.shadow.withValues(alpha: 0.15),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -347,9 +308,7 @@ class _VillageSearchDropdownState extends ConsumerState<VillageSearchDropdown> {
                   return Container(
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? (isDark
-                                ? AppColors.primaryRed.withValues(alpha: 0.2)
-                                : AppColors.primaryRed.withValues(alpha: 0.1))
+                          ? scheme.primary.withValues(alpha: 0.12)
                           : Colors.transparent,
                     ),
                     child: ListTile(
@@ -357,10 +316,8 @@ class _VillageSearchDropdownState extends ConsumerState<VillageSearchDropdown> {
                         village.name,
                         style: TextStyle(
                           color: isSelected
-                              ? AppColors.primaryRed
-                              : (isDark
-                                    ? AppColors.neutralGray200
-                                    : AppColors.neutralGray900),
+                              ? scheme.primary
+                              : scheme.onSurface,
                           fontSize: 14,
                           fontWeight: isSelected
                               ? FontWeight.w600
@@ -389,29 +346,21 @@ class _VillageSearchDropdownState extends ConsumerState<VillageSearchDropdown> {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: isDark
-                      ? AppColors.darkGray600
-                      : AppColors.neutralGray300,
-                ),
-                color: isDark ? AppColors.darkGray700 : AppColors.neutralWhite,
+                border: Border.all(color: scheme.outlineVariant),
+                color: scheme.surface,
               ),
               child: Row(
                 children: [
                   Icon(
                     Icons.search_off,
-                    color: isDark
-                        ? AppColors.neutralGray400
-                        : AppColors.neutralGray500,
+                    color: scheme.onSurfaceVariant,
                     size: 20,
                   ),
                   const SizedBox(width: 8),
                   Text(
                     'Tidak ditemukan hasil pencarian',
                     style: TextStyle(
-                      color: isDark
-                          ? AppColors.neutralGray400
-                          : AppColors.neutralGray500,
+                      color: scheme.onSurfaceVariant,
                       fontSize: 14,
                     ),
                   ),

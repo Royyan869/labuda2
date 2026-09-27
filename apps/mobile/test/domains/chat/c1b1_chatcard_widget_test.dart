@@ -170,18 +170,22 @@ void main() {
   // 1) Active participant with valid username and no avatar
   // -------------------------------------------------------------------------
   group('C1B1 ChatCard — active participant, username, no avatar', () {
-    testWidgets('CircleAvatar is present', (tester) async {
-      await tester.pumpWidget(_wrap(_chat(username: 'john_doe')));
-      expect(find.byType(CircleAvatar), findsOneWidget);
-    });
-
-    testWidgets('canonical initial J is rendered (single-char)', (
+    testWidgets('ProfileAvatar is present (canonical avatar, no initials)', (
       tester,
     ) async {
       await tester.pumpWidget(_wrap(_chat(username: 'john_doe')));
-      // ChatCard _buildAvatar uses userName[0].toUpperCase() → 'J'
-      expect(find.text('J'), findsOneWidget);
+      expect(find.byType(ProfileAvatar), findsOneWidget);
+      expect(find.byIcon(Icons.person), findsOneWidget);
+    });
+
+    testWidgets('no text initials in avatar (Owner 2026-09-24)', (
+      tester,
+    ) async {
+      await tester.pumpWidget(_wrap(_chat(username: 'john_doe')));
+      // Canonical avatar = photo or Icons.person; initials are forbidden.
+      expect(find.text('J'), findsNothing);
       expect(find.text('JD'), findsNothing);
+      expect(find.byIcon(Icons.person), findsOneWidget);
     });
 
     testWidgets('visible participant text is @john_doe', (tester) async {
@@ -211,10 +215,13 @@ void main() {
   // 2) Active participant without username
   // -------------------------------------------------------------------------
   group('C1B1 ChatCard — active participant, no username', () {
-    testWidgets('CircleAvatar renders U initial for null username', (tester) async {
+    testWidgets('missing username renders canonical icon, no initial', (
+      tester,
+    ) async {
       await tester.pumpWidget(_wrap(_chat(username: null)));
-      expect(find.byType(CircleAvatar), findsOneWidget);
-      expect(find.text('U'), findsOneWidget);
+      expect(find.byType(ProfileAvatar), findsOneWidget);
+      expect(find.text('U'), findsNothing);
+      expect(find.byIcon(Icons.person), findsOneWidget);
     });
 
     testWidgets('visible label is @User bbbbbbbb... (fallback with ID)', (tester) async {
@@ -246,16 +253,18 @@ void main() {
       expect(find.text('@@john_doe'), findsNothing);
     });
 
-    testWidgets('avatar shows @ initial for leading-@', (tester) async {
+    testWidgets('no @ initial for leading-@ username', (tester) async {
       await tester.pumpWidget(_wrap(_chat(username: '@john_doe')));
-      // ChatCard uses CircleAvatar with userName[0] → '@'
-      expect(find.text('@'), findsOneWidget);
+      // Canonical avatar never renders a text initial.
+      expect(find.text('@'), findsNothing);
+      expect(find.byIcon(Icons.person), findsOneWidget);
     });
 
-    testWidgets('initial is @ (not JD) for leading-@', (tester) async {
+    testWidgets('no text initial at all for leading-@', (tester) async {
       await tester.pumpWidget(_wrap(_chat(username: '@john_doe')));
-      expect(find.text('@'), findsOneWidget);
+      expect(find.text('@'), findsNothing);
       expect(find.text('JD'), findsNothing);
+      expect(find.byType(ProfileAvatar), findsOneWidget);
     });
   });
 
@@ -267,10 +276,10 @@ void main() {
       const url = 'https://cdn.example.com/alice.jpg';
       final chat = _chat(username: 'alice', avatarUrl: url);
       expect(chat.participantAvatars[_otherUserId], url);
-      // ChatCard will use CircleAvatar with NetworkImage for this URL
-      // (verified via Chat data, not via NetworkImage load to avoid HTTP in test)
+      // ChatCard renders the canonical ProfileAvatar; the URL is verified
+      // via Chat data (no network pump, to avoid HTTP in test).
       await tester.pumpWidget(_wrap(_chat(username: 'alice')));
-      expect(find.byType(CircleAvatar), findsOneWidget);
+      expect(find.byType(ProfileAvatar), findsOneWidget);
     });
   });
 
@@ -284,15 +293,22 @@ void main() {
       );
       expect(find.text('@alice'), findsNothing);
       expect(find.text('alice'), findsNothing);
-      // ProfileAvatar is NOT used — degraded uses CircleAvatar with icon.
-      expect(find.byType(ProfileAvatar), findsNothing);
+      // Degraded keeps the canonical ProfileAvatar slot with no photo.
+      expect(find.byType(ProfileAvatar), findsOneWidget);
+      expect(
+        tester.widget<ProfileAvatar>(find.byType(ProfileAvatar)).imageUrl,
+        isNull,
+      );
     });
 
-    testWidgets('person_off icon is rendered', (tester) async {
+    testWidgets('canonical person icon is rendered (no person_off)', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         _wrap(_chat(username: 'alice', lifecycle: 'removed')),
       );
-      expect(find.byIcon(Icons.person_off_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.person), findsOneWidget);
+      expect(find.byIcon(Icons.person_off_outlined), findsNothing);
     });
 
     testWidgets('live avatar URL is not exposed', (tester) async {
@@ -300,8 +316,12 @@ void main() {
       await tester.pumpWidget(
         _wrap(_chat(username: 'alice', avatarUrl: url, lifecycle: 'removed')),
       );
-      // ProfileAvatar is not in the tree, so imageUrl can't be exposed.
-      expect(find.byType(ProfileAvatar), findsNothing);
+      // Slot persists but the live URL is never exposed while degraded.
+      expect(find.byType(ProfileAvatar), findsOneWidget);
+      expect(
+        tester.widget<ProfileAvatar>(find.byType(ProfileAvatar)).imageUrl,
+        isNull,
+      );
     });
 
     testWidgets('live username is absent', (tester) async {
@@ -403,22 +423,25 @@ void main() {
   // 8) Negative contracts — prevent reintroduction in widget tree
   // -------------------------------------------------------------------------
   group('C1B1 ChatCard — negative widget contracts', () {
-    testWidgets('CircleAvatar used, not raw NetworkImage widget', (tester) async {
+    testWidgets('ProfileAvatar used, not raw NetworkImage widget', (
+      tester,
+    ) async {
       const url = 'https://cdn.example.com/alice.jpg';
       final chat = _chat(username: 'alice', avatarUrl: url);
       expect(chat.participantAvatars[_otherUserId], url);
       await tester.pumpWidget(_wrap(_chat(username: 'alice')));
-      expect(find.byType(CircleAvatar), findsOneWidget);
+      expect(find.byType(ProfileAvatar), findsOneWidget);
       expect(find.byType(Image), findsNothing);
     });
 
-    testWidgets('single-letter initial J is rendered as text', (
+    testWidgets('no text initial inside the avatar slot', (
       tester,
     ) async {
       await tester.pumpWidget(_wrap(_chat(username: 'john_doe')));
-      // ChatCard _buildAvatar uses userName[0].toUpperCase() → 'J' inside CircleAvatar
-      expect(find.text('J'), findsOneWidget);
+      // Canonical avatar = photo or Icons.person; never a text initial.
+      expect(find.text('J'), findsNothing);
       expect(find.text('?'), findsNothing);
+      expect(find.byIcon(Icons.person), findsOneWidget);
     });
   });
 }

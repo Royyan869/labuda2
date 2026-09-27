@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 import 'app_bottom_sheet_base.dart';
 
 /// Bottom Sheet Action Styles
@@ -38,7 +37,7 @@ class AppBottomSheetActions {
     String cancelLabel = 'Cancel',
     bool isDismissible = true,
   }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return AppBottomSheetBase.show<T>(
       context: context,
@@ -56,9 +55,7 @@ class AppBottomSheetActions {
                 subtitle,
                 style: TextStyle(
                   fontSize: 14,
-                  color: isDark
-                      ? AppColors.neutralGray400
-                      : AppColors.neutralGray600,
+color: scheme.onSurfaceVariant,
                   height: 1.4,
                 ),
                 textAlign: TextAlign.center,
@@ -71,7 +68,7 @@ class AppBottomSheetActions {
             (action) => _buildActionItem(
               context: context,
               action: action,
-              isDark: isDark,
+              scheme: scheme,
             ),
           ),
 
@@ -81,7 +78,7 @@ class AppBottomSheetActions {
             Container(
               width: double.infinity,
               height: 1,
-              color: isDark ? AppColors.darkGray600 : AppColors.neutralGray200,
+              color: scheme.outlineVariant,
             ),
             const SizedBox(height: 8),
             _buildActionItem(
@@ -91,7 +88,7 @@ class AppBottomSheetActions {
                 onPressed: () => Navigator.of(context).pop(),
                 style: BottomSheetActionStyle.cancel,
               ),
-              isDark: isDark,
+              scheme: scheme,
             ),
           ],
         ],
@@ -103,7 +100,7 @@ class AppBottomSheetActions {
   static Widget _buildActionItem<T>({
     required BuildContext context,
     required BottomSheetAction<T> action,
-    required bool isDark,
+    required ColorScheme scheme,
   }) {
     return Material(
       color: Colors.transparent,
@@ -121,13 +118,13 @@ class AppBottomSheetActions {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: (action.iconColor ?? AppColors.primaryBlue)
+                    color: (action.iconColor ?? scheme.primary)
                         .withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(
                     action.icon,
-                    color: action.iconColor ?? AppColors.primaryBlue,
+                    color: action.iconColor ?? scheme.primary,
                     size: 20,
                   ),
                 ),
@@ -144,7 +141,7 @@ class AppBottomSheetActions {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
-                        color: _getTextColor(action.style, isDark),
+                        color: _getTextColor(action.style, scheme),
                       ),
                     ),
                     if (action.subtitle != null) ...[
@@ -153,9 +150,7 @@ class AppBottomSheetActions {
                         action.subtitle!,
                         style: TextStyle(
                           fontSize: 14,
-                          color: isDark
-                              ? AppColors.neutralGray400
-                              : AppColors.neutralGray600,
+color: scheme.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -171,16 +166,16 @@ class AppBottomSheetActions {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.primaryRed,
+                    color: scheme.primary,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     action.badge!,
-                    style: const TextStyle(
-                      color: AppColors.neutralWhite,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
+style: TextStyle(
+                       color: scheme.onPrimary,
+                       fontSize: 12,
+                       fontWeight: FontWeight.w600,
+                     ),
                   ),
                 ),
               ],
@@ -189,9 +184,7 @@ class AppBottomSheetActions {
               const SizedBox(width: 8),
               Icon(
                 Icons.chevron_right,
-                color: isDark
-                    ? AppColors.neutralGray500
-                    : AppColors.neutralGray400,
+                color: scheme.onSurfaceVariant,
                 size: 20,
               ),
             ],
@@ -202,14 +195,14 @@ class AppBottomSheetActions {
   }
 
   /// Get text color based on action style
-  static Color _getTextColor(BottomSheetActionStyle style, bool isDark) {
+  static Color _getTextColor(BottomSheetActionStyle style, ColorScheme scheme) {
     switch (style) {
       case BottomSheetActionStyle.destructive:
-        return AppColors.primaryRed;
+        return scheme.error;
       case BottomSheetActionStyle.cancel:
-        return isDark ? AppColors.neutralGray400 : AppColors.neutralGray600;
+        return scheme.onSurfaceVariant;
       case BottomSheetActionStyle.normal:
-        return isDark ? AppColors.neutralWhite : AppColors.neutralGray900;
+        return scheme.onSurface;
     }
   }
 }

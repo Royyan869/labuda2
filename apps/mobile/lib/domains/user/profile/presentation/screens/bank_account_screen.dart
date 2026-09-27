@@ -107,7 +107,6 @@ class _BankAccountScreenState extends ConsumerState<BankAccountScreen> {
                       onDelete: () =>
                           _deleteAccount(account, bankAccounts.length),
                       onSetPrimary: () => _setPrimaryAccount(account, userId),
-                      isDark: isDark,
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -120,10 +119,9 @@ class _BankAccountScreenState extends ConsumerState<BankAccountScreen> {
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(24),
-                child: BankAccountEmptyStateWidget(
-                  onAddAccount: () => _showAddAccountDialog(userId),
-                  isDark: isDark,
-                ),
+                 child: BankAccountEmptyStateWidget(
+                   onAddAccount: () => _showAddAccountDialog(userId),
+                 ),
               ),
             ),
           ],

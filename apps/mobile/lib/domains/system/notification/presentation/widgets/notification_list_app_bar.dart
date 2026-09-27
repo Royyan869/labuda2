@@ -33,6 +33,7 @@ class NotificationListAppBar extends ConsumerWidget
     final hasUnread = notifications.any((n) => !n.isRead);
     final hasRead = notifications.any((n) => n.isRead);
     final isEmpty = notifications.isEmpty;
+    final scheme = Theme.of(context).colorScheme;
 
     return AppBar(
       elevation: 0,
@@ -78,13 +79,13 @@ class NotificationListAppBar extends ConsumerWidget
                     ],
                   ),
                 ),
-              const PopupMenuItem(
+              PopupMenuItem<String>(
                 value: 'delete_all',
                 child: Row(
                   children: [
-                    Icon(Icons.delete_forever, size: 20, color: Colors.red),
+                      Icon(Icons.delete_forever, size: 20, color: scheme.error),
                     SizedBox(width: 12),
-                    Text('Delete All', style: TextStyle(color: Colors.red)),
+                      Text('Delete All', style: TextStyle(color: scheme.error)),
                   ],
                 ),
               ),

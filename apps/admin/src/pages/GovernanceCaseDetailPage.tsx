@@ -65,7 +65,7 @@ export function GovernanceCaseDetailPage() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
-          <p className="mt-4 text-gray-600">Loading case details...</p>
+          <p className="mt-4 text-muted-foreground">Loading case details...</p>
         </div>
       </div>
     )
@@ -80,7 +80,7 @@ export function GovernanceCaseDetailPage() {
         </Button>
         <Card>
           <CardContent className="p-6">
-            <div className="text-center text-red-600">
+            <div className="text-center text-destructive">
               <p className="font-medium">Error loading case</p>
               <p className="text-sm mt-1">{error.message}</p>
             </div>
@@ -99,7 +99,7 @@ export function GovernanceCaseDetailPage() {
         </Button>
         <Card>
           <CardContent className="p-6">
-            <div className="text-center text-gray-600">
+            <div className="text-center text-muted-foreground">
               <p>Case not found.</p>
             </div>
           </CardContent>
@@ -165,7 +165,7 @@ export function GovernanceCaseDetailPage() {
 
       {/* Read-only notice for admins without decision authority */}
       {isOpen && !canCreateDecision && (
-        <div className="bg-gray-50 border border-gray-200 text-gray-600 p-3 rounded-lg flex items-center gap-2">
+        <div className="bg-surface-muted border border-border text-muted-foreground p-3 rounded-lg flex items-center gap-2">
           <AlertTriangle className="h-4 w-4 flex-shrink-0" />
           <span className="text-sm">
             You can view this case but do not have permission to create decisions
@@ -176,7 +176,7 @@ export function GovernanceCaseDetailPage() {
 
       {/* Success banner */}
       {decisionSuccess && (
-        <div className="bg-green-50 border border-green-200 text-green-700 p-4 rounded-lg flex items-center gap-2">
+        <div className="bg-success-bg border border-success text-success p-4 rounded-lg flex items-center gap-2">
           <CheckCircle className="h-5 w-5" />
           <span className="font-medium">Decision created successfully. Case has been refreshed.</span>
         </div>
@@ -193,19 +193,19 @@ export function GovernanceCaseDetailPage() {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
-              <p className="text-sm text-gray-500">Case ID</p>
+              <p className="text-sm text-muted-foreground">Case ID</p>
               <p className="font-mono text-sm">{kase.id}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-500">Subject Type</p>
+              <p className="text-sm text-muted-foreground">Subject Type</p>
               <Badge variant="default">{targetTypeLabels[kase.subject_type]}</Badge>
             </div>
             <div>
-              <p className="text-sm text-gray-500">Subject ID</p>
+              <p className="text-sm text-muted-foreground">Subject ID</p>
               <p className="font-mono text-sm">{kase.subject_id}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-500">Status</p>
+              <p className="text-sm text-muted-foreground">Status</p>
               <Badge variant={caseStatusVariants[kase.status]}>
                 {caseStatusLabels[kase.status]}
               </Badge>
@@ -213,16 +213,16 @@ export function GovernanceCaseDetailPage() {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div>
-              <p className="text-sm text-gray-500">Created</p>
+              <p className="text-sm text-muted-foreground">Created</p>
               <p className="text-sm">{formatDate(kase.created_at)}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-500">Updated</p>
+              <p className="text-sm text-muted-foreground">Updated</p>
               <p className="text-sm">{formatDate(kase.updated_at)}</p>
             </div>
             {kase.closed_at && (
               <div>
-                <p className="text-sm text-gray-500">Closed</p>
+                <p className="text-sm text-muted-foreground">Closed</p>
                 <p className="text-sm">{formatDate(kase.closed_at)}</p>
               </div>
             )}
@@ -241,7 +241,7 @@ export function GovernanceCaseDetailPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {decisionError && (
-              <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg flex items-center gap-2">
+              <div className="bg-destructive-bg border border-destructive text-destructive p-3 rounded-lg flex items-center gap-2">
                 <AlertTriangle className="h-4 w-4" />
                 <span className="text-sm">{decisionError}</span>
               </div>
@@ -249,18 +249,18 @@ export function GovernanceCaseDetailPage() {
 
             {/* Outcome */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Outcome <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-foreground mb-1">
+                Outcome <span className="text-destructive">*</span>
               </label>
               <select
                 value={decisionOutcome}
                 onChange={(e) => setDecisionOutcome(e.target.value as DecisionOutcome)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 <option value="no_violation">No Violation</option>
                 <option value="violation">Violation</option>
               </select>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 {decisionOutcome === 'violation'
                   ? 'Policy was violated — enforcement will be created'
                   : 'Content complies with policy — no enforcement needed'}
@@ -271,13 +271,13 @@ export function GovernanceCaseDetailPage() {
             {decisionOutcome === 'violation' && (
               <>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Target Type <span className="text-red-500">*</span>
+                  <label className="block text-sm font-medium text-foreground mb-1">
+                    Target Type <span className="text-destructive">*</span>
                   </label>
                   <select
                     value={targetType}
                     onChange={(e) => setTargetType(e.target.value as GovernanceTargetType)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                   >
                     <option value="content">Content</option>
                     <option value="comment">Comment</option>
@@ -287,17 +287,17 @@ export function GovernanceCaseDetailPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Target ID <span className="text-red-500">*</span>
+                  <label className="block text-sm font-medium text-foreground mb-1">
+                    Target ID <span className="text-destructive">*</span>
                   </label>
                   <input
                     type="text"
                     value={targetId}
                     onChange={(e) => setTargetId(e.target.value)}
                     placeholder="UUID of the target to enforce against"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     The subject ID to apply enforcement to (often the Case's subject_id)
                   </p>
                 </div>
@@ -306,8 +306,8 @@ export function GovernanceCaseDetailPage() {
 
             {/* Decision Note */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Decision Note <span className="text-gray-400">(optional)</span>
+              <label className="block text-sm font-medium text-foreground mb-1">
+                Decision Note <span className="text-muted-foreground">(optional)</span>
               </label>
               <textarea
                 value={decisionNote}
@@ -315,9 +315,9 @@ export function GovernanceCaseDetailPage() {
                 placeholder="Reason or note for this decision..."
                 rows={3}
                 maxLength={2000}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none"
               />
-              <p className="text-xs text-gray-500 mt-1">{decisionNote.length}/2000 characters</p>
+              <p className="text-xs text-muted-foreground mt-1">{decisionNote.length}/2000 characters</p>
             </div>
 
             {/* Submit */}
@@ -354,37 +354,37 @@ export function GovernanceCaseDetailPage() {
         </CardHeader>
         <CardContent>
           {reports.length === 0 ? (
-            <p className="text-gray-500 text-sm">No reports associated with this case.</p>
+            <p className="text-muted-foreground text-sm">No reports associated with this case.</p>
           ) : (
             <div className="space-y-3">
               {reports.map((report) => (
-                <div key={report.id} className="border border-gray-200 rounded-lg p-4">
+                <div key={report.id} className="border border-border rounded-lg p-4">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <div>
-                      <p className="text-xs text-gray-500">Report ID</p>
+                      <p className="text-xs text-muted-foreground">Report ID</p>
                       <p className="font-mono text-xs">{report.id.slice(0, 8)}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500">Reporter</p>
+                      <p className="text-xs text-muted-foreground">Reporter</p>
                       <p className="font-mono text-xs">{report.reporter_id.slice(0, 8)}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500">Reason</p>
+                      <p className="text-xs text-muted-foreground">Reason</p>
                       <p className="text-xs font-medium">{report.reason_code}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500">Created</p>
+                      <p className="text-xs text-muted-foreground">Created</p>
                       <p className="text-xs">{formatDate(report.created_at)}</p>
                     </div>
                   </div>
                   {report.reason_note && (
                     <div className="mt-2">
-                      <p className="text-xs text-gray-500">Note</p>
-                      <p className="text-sm bg-gray-50 p-2 rounded">{report.reason_note}</p>
+                      <p className="text-xs text-muted-foreground">Note</p>
+                      <p className="text-sm bg-surface-muted p-2 rounded">{report.reason_note}</p>
                     </div>
                   )}
                   {report.evidence_snapshot && (
-                    <div className="mt-2 text-xs text-gray-500">
+                    <div className="mt-2 text-xs text-muted-foreground">
                       {report.evidence_snapshot.author_username && (
                         <span>Author: {report.evidence_snapshot.author_username} · </span>
                       )}
@@ -413,11 +413,11 @@ export function GovernanceCaseDetailPage() {
         </CardHeader>
         <CardContent>
           {decisions.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <Clock className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+            <div className="text-center py-8 text-muted-foreground">
+              <Clock className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
               <p className="text-sm">No decisions made yet.</p>
               {isOpen && (
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Click &quot;Create Decision&quot; to make a governance decision.
                 </p>
               )}
@@ -463,7 +463,7 @@ function AuditTimeline({
         <CardContent>
           <div className="flex items-center justify-center py-8">
             <div className="inline-block h-6 w-6 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
-            <span className="ml-3 text-sm text-gray-500">Loading audit events...</span>
+            <span className="ml-3 text-sm text-muted-foreground">Loading audit events...</span>
           </div>
         </CardContent>
       </Card>
@@ -481,7 +481,7 @@ function AuditTimeline({
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
-            <p className="text-sm text-red-600">Failed to load audit events: {error.message}</p>
+            <p className="text-sm text-destructive">Failed to load audit events: {error.message}</p>
           </div>
         </CardContent>
       </Card>
@@ -499,8 +499,8 @@ function AuditTimeline({
       <CardContent>
         {events.length === 0 ? (
           <div className="text-center py-8">
-            <Clock className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-            <p className="text-sm text-gray-500">No audit events recorded for this case.</p>
+            <Clock className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">No audit events recorded for this case.</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -519,7 +519,7 @@ function AuditEventRow({ event }: { event: GovernanceAuditEvent }) {
   const outcomeVariant = event.outcome === 'violation' ? 'warning' as const : 'success' as const
 
   return (
-    <div className="border border-gray-200 rounded-lg p-4">
+    <div className="border border-border rounded-lg p-4">
       <div className="flex items-start justify-between">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
@@ -528,7 +528,7 @@ function AuditEventRow({ event }: { event: GovernanceAuditEvent }) {
               <Badge variant={outcomeVariant}>{outcomeLabel}</Badge>
             )}
           </div>
-          <div className="flex items-center gap-2 text-xs text-gray-500">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <span className="font-medium capitalize">{event.actor_type}</span>
             {event.actor_name && (
               <span>({event.actor_name})</span>
@@ -538,7 +538,7 @@ function AuditEventRow({ event }: { event: GovernanceAuditEvent }) {
             )}
           </div>
           {event.target_type && (
-            <div className="text-xs text-gray-500">
+            <div className="text-xs text-muted-foreground">
               Target: {targetTypeLabels[event.target_type] || event.target_type}
               {event.target_id && (
                 <span className="font-mono ml-1">{event.target_id.slice(0, 8)}</span>
@@ -546,10 +546,10 @@ function AuditEventRow({ event }: { event: GovernanceAuditEvent }) {
             </div>
           )}
           {event.decision_note && (
-            <p className="text-sm bg-gray-50 p-2 rounded mt-1">{event.decision_note}</p>
+            <p className="text-sm bg-surface-muted p-2 rounded mt-1">{event.decision_note}</p>
           )}
         </div>
-        <span className="text-xs text-gray-400 whitespace-nowrap">
+        <span className="text-xs text-muted-foreground whitespace-nowrap">
           {formatDate(event.created_at)}
         </span>
       </div>
@@ -563,32 +563,32 @@ function AuditEventRow({ event }: { event: GovernanceAuditEvent }) {
 
 function DecisionCard({ decision }: { decision: GovernanceDecision }) {
   return (
-    <div className="border border-gray-200 rounded-lg p-4">
+    <div className="border border-border rounded-lg p-4">
       <div className="flex items-start justify-between">
         <div className="space-y-2">
           <div className="flex items-center gap-3">
             <Badge variant={decisionOutcomeVariants[decision.outcome]}>
               {decisionOutcomeLabels[decision.outcome]}
             </Badge>
-            <span className="text-xs text-gray-400 font-mono">{decision.id.slice(0, 8)}</span>
-            <span className="text-xs text-gray-400">·</span>
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-muted-foreground font-mono">{decision.id.slice(0, 8)}</span>
+            <span className="text-xs text-muted-foreground">·</span>
+            <span className="text-xs text-muted-foreground">
               by {decision.decided_by.slice(0, 8)}
             </span>
           </div>
-          <div className="text-xs text-gray-500">
+          <div className="text-xs text-muted-foreground">
             {formatDate(decision.created_at)}
           </div>
           {decision.decision_note && (
-            <p className="text-sm bg-gray-50 p-2 rounded">{decision.decision_note}</p>
+            <p className="text-sm bg-surface-muted p-2 rounded">{decision.decision_note}</p>
           )}
         </div>
       </div>
 
       {/* Enforcements for this Decision */}
       {decision.enforcements && decision.enforcements.length > 0 && (
-        <div className="mt-3 pt-3 border-t border-gray-100">
-          <p className="text-xs font-medium text-gray-500 mb-2">Enforcement</p>
+        <div className="mt-3 pt-3 border-t border-border">
+          <p className="text-xs font-medium text-muted-foreground mb-2">Enforcement</p>
           {decision.enforcements.map((enf) => (
             <EnforcementRow key={enf.id} enforcement={enf} />
           ))}
@@ -608,20 +608,20 @@ function EnforcementRow({ enforcement }: { enforcement: GovernanceEnforcement })
       <Badge variant={enforcementStatusVariants[enforcement.status]}>
         {enforcementStatusLabels[enforcement.status]}
       </Badge>
-      <span className="text-gray-500">
+      <span className="text-muted-foreground">
         {targetTypeLabels[enforcement.target_type]}
       </span>
-      <span className="font-mono text-xs text-gray-400">
+      <span className="font-mono text-xs text-muted-foreground">
         {enforcement.target_id.slice(0, 8)}
       </span>
-      <span className="text-gray-400">·</span>
-      <span className="text-xs text-gray-500">
+      <span className="text-muted-foreground">·</span>
+      <span className="text-xs text-muted-foreground">
         attempt {enforcement.attempt_count}
       </span>
       {enforcement.last_error && (
         <>
-          <span className="text-gray-400">·</span>
-          <span className="text-xs text-red-500" title={enforcement.last_error}>
+          <span className="text-muted-foreground">·</span>
+          <span className="text-xs text-destructive" title={enforcement.last_error}>
             Error: {enforcement.last_error.length > 50
               ? enforcement.last_error.slice(0, 50) + '...'
               : enforcement.last_error}

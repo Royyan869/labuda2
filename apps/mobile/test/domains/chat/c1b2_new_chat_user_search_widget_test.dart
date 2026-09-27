@@ -100,14 +100,17 @@ void main() {
       expect(source, contains('UserIdentityFormatter.formatHandle'));
     });
 
-    test('new_chat_user_list_widget.dart passes username to UserAvatar', () {
+    test('new_chat_user_list_widget.dart wires UserSearch id into avatar', () {
       final source = _readWidgetSource();
-      expect(source, contains('username: user.username'));
+      // Canonical avatar resolver: HybridAvatar binds the stable user id
+      // (UserAvatar/UserAvatarApiService were purged in R3.1).
+      expect(source, contains('userId: user.userId'));
     });
 
-    test('new_chat_user_list_widget.dart passes imageUrl', () {
+    test('new_chat_user_list_widget.dart passes search-result avatar URL', () {
       final source = _readWidgetSource();
-      expect(source, contains('imageUrl: user.avatarUrl'));
+      // The UserSearch projection's avatarUrl is the instant fallback slot.
+      expect(source, contains('savedAvatarUrl: user.avatarUrl'));
     });
 
     test(
@@ -137,9 +140,10 @@ void main() {
       expect(source, isNot(contains('Icons.verified')));
     });
 
-    test('UserAvatar size 40 is preserved', () {
+    test('canonical avatar size 40 is preserved', () {
       final source = _readWidgetSource();
-      expect(source, contains('UserAvatar('));
+      // Canonical resolver widget at size 40 (medium row size).
+      expect(source, contains('HybridAvatar('));
       expect(source, contains('size: 40'));
     });
 

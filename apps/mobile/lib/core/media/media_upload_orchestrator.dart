@@ -8,7 +8,8 @@ import 'media_upload_config.dart';
 
 /// Single canonical orchestrator for foto+video pick → validate → upload → URLs.
 ///
-/// Replaces duplicated logic in ContentMediaHandler + ForSaleMediaHandler.
+/// Replaces the duplicated pick → validate → upload logic of the old
+/// per-domain media handlers (for_sale now routes through MediaGridUploader).
 /// Exposes 2 modes:
 ///  - pickLocalFiles() — deferred upload (content: returns File, preview lokal)
 ///  - pickAndUpload() / showPickerAndUpload() — immediate upload (commerce/komentar/chat: returns List<String> URLs)

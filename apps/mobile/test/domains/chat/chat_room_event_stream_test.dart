@@ -300,25 +300,26 @@ void main() {
       repo.dispose();
     });
 
-    test('message events still reach the existing message handler', () async {
+    test('chat.message.sent signal never fabricates thread content', () async {
+      // KILLED DESIGN (P1-A): there is no message-level stream anymore.
+      // The minimal `chat.message.sent` envelope is room-broadcast and this
+      // connection never subscribes to rooms; the open-thread authority is
+      // `chat.room.updated` → REST re-fetch. The signal must surface
+      // nothing on the room-event gateway.
       final repo = _buildRepo();
-      const chatRoomId = 'room_messages_1';
-      final controller = repo.primeMessageControllerForTest(chatRoomId);
-      final messages = <Message>[];
-      final sub = controller.stream.listen(messages.add);
+      final events = <ChatRoomEventDto>[];
+      final sub = repo.watchChatRoomEvents().listen(events.add);
 
       repo.handleWebSocketEventForTest(
         _roomEnvelope(
           type: 'chat.message.sent',
-          payload: _messagePayload(chatRoomId),
+          payload: _messagePayload('room_messages_1'),
         ),
       );
 
       await Future<void>.delayed(Duration.zero);
 
-      expect(messages, hasLength(1));
-      expect(messages.single.chatId, chatRoomId);
-      expect(messages.single.content, 'hello');
+      expect(events, isEmpty);
 
       await sub.cancel();
       repo.dispose();

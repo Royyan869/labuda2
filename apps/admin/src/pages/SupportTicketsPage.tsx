@@ -117,10 +117,10 @@ export function SupportTicketsPage() {
 
   // STEP 2: Get border color based on escalation/priority/SLA
   const getBorderClass = (ticket: typeof tickets[0]): string => {
-    if (ticket.sla.is_overdue) return 'border-l-4 border-red-600 bg-red-50'
-    if (ticket.escalation === 'dispute') return 'border-l-4 border-red-500'
-    if (ticket.priority === 'urgent') return 'border-l-4 border-orange-500'
-    if (ticket.priority === 'high') return 'border-l-4 border-yellow-500'
+    if (ticket.sla.is_overdue) return 'border-l-4 border-destructive bg-destructive-bg'
+    if (ticket.escalation === 'dispute') return 'border-l-4 border-destructive'
+    if (ticket.priority === 'urgent') return 'border-l-4 border-warning'
+    if (ticket.priority === 'high') return 'border-l-4 border-warning'
     return ''
   }
 
@@ -229,7 +229,7 @@ export function SupportTicketsPage() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
-          <p className="mt-4 text-gray-600">Loading support tickets...</p>
+          <p className="mt-4 text-muted-foreground">Loading support tickets...</p>
         </div>
       </div>
     )
@@ -239,12 +239,12 @@ export function SupportTicketsPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Support Tickets</h1>
-          <p className="text-gray-600 mt-1">Manage customer support requests</p>
+          <h1 className="text-3xl font-bold text-foreground">Support Tickets</h1>
+          <p className="text-muted-foreground mt-1">Manage customer support requests</p>
         </div>
         <Card>
           <CardContent className="p-6">
-            <div className="text-center text-red-600">
+            <div className="text-center text-destructive">
               <p>Error loading tickets: {error.message}</p>
             </div>
           </CardContent>
@@ -261,8 +261,8 @@ export function SupportTicketsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Support Tickets</h1>
-          <p className="text-gray-600 mt-1">Manage customer support requests</p>
+          <h1 className="text-3xl font-bold text-foreground">Support Tickets</h1>
+          <p className="text-muted-foreground mt-1">Manage customer support requests</p>
         </div>
         <Button
           variant="secondary"
@@ -279,21 +279,21 @@ export function SupportTicketsPage() {
         <CardContent className="pt-6">
           <div className="flex items-center justify-between">
             <div className="flex-1">
-              <p className="text-sm font-medium text-gray-600">Total Tickets</p>
+              <p className="text-sm font-medium text-muted-foreground">Total Tickets</p>
               <p className="text-3xl font-bold text-primary mt-1">{total}</p>
-              <p className="text-xs text-gray-500 mt-1">{openCount} open tickets</p>
+              <p className="text-xs text-muted-foreground mt-1">{openCount} open tickets</p>
             </div>
             <div className="flex-1 text-center">
-              <p className="text-sm font-medium text-gray-600">SLA Overdue</p>
-              <p className={`text-3xl font-bold mt-1 ${overdueCount > 0 ? 'text-red-600' : 'text-green-600'}`}>
+              <p className="text-sm font-medium text-muted-foreground">SLA Overdue</p>
+              <p className={`text-3xl font-bold mt-1 ${overdueCount > 0 ? 'text-destructive' : 'text-success'}`}>
                 {overdueCount}
               </p>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 {overdueCount > 0 ? 'tickets overdue' : 'all on track'}
               </p>
             </div>
-            <div className="p-4 rounded-lg bg-blue-100">
-              <LifeBuoy className="h-8 w-8 text-blue-600" />
+            <div className="p-4 rounded-lg bg-info-bg">
+              <LifeBuoy className="h-8 w-8 text-info" />
             </div>
           </div>
         </CardContent>
@@ -304,15 +304,15 @@ export function SupportTicketsPage() {
         <CardContent className="pt-6">
           <div className="flex items-center gap-6 flex-wrap">
             <div className="flex items-center gap-4">
-              <Filter className="h-5 w-5 text-gray-500" />
-              <label htmlFor="status-filter" className="text-sm font-medium text-gray-700">
+              <Filter className="h-5 w-5 text-muted-foreground" />
+              <label htmlFor="status-filter" className="text-sm font-medium text-foreground">
                 Status:
               </label>
               <select
                 id="status-filter"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value as SupportTicketStatus | '')}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 {SUPPORT_STATUSES.map((status) => (
                   <option key={status.value} value={status.value}>
@@ -322,14 +322,14 @@ export function SupportTicketsPage() {
               </select>
             </div>
             <div className="flex items-center gap-4">
-              <label htmlFor="category-filter" className="text-sm font-medium text-gray-700">
+              <label htmlFor="category-filter" className="text-sm font-medium text-foreground">
                 Category:
               </label>
               <select
                 id="category-filter"
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value as SupportCategory | '')}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 {SUPPORT_CATEGORIES.map((category) => (
                   <option key={category.value} value={category.value}>
@@ -339,8 +339,8 @@ export function SupportTicketsPage() {
               </select>
             </div>
             <div className="flex items-center gap-4">
-              <AlertCircle className="h-5 w-5 text-gray-500" />
-              <label htmlFor="sla-filter" className="text-sm font-medium text-gray-700">
+              <AlertCircle className="h-5 w-5 text-muted-foreground" />
+              <label htmlFor="sla-filter" className="text-sm font-medium text-foreground">
                 SLA:
               </label>
               <select
@@ -350,7 +350,7 @@ export function SupportTicketsPage() {
                   const val = e.target.value
                   setIsOverdueFilter(val === 'undefined' ? undefined : val === 'true')
                 }}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 {SLA_FILTERS.map((filter) => (
                   <option key={filter.value?.toString() || 'undefined'} value={filter.value?.toString() || 'undefined'}>
@@ -360,7 +360,7 @@ export function SupportTicketsPage() {
               </select>
             </div>
             <div className="flex items-center gap-4">
-              <label htmlFor="assignment-filter" className="text-sm font-medium text-gray-700">
+              <label htmlFor="assignment-filter" className="text-sm font-medium text-foreground">
                 Assignment:
               </label>
               <select
@@ -370,7 +370,7 @@ export function SupportTicketsPage() {
                   const val = e.target.value
                   setIsUnassignedFilter(val === 'undefined' ? undefined : val === 'true')
                 }}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 {ASSIGNMENT_FILTERS.map((filter) => (
                   <option key={filter.value?.toString() || 'undefined'} value={filter.value?.toString() || 'undefined'}>
@@ -391,16 +391,16 @@ export function SupportTicketsPage() {
         <CardContent>
           {sortedTickets.length === 0 ? (
             <div className="text-center py-12">
-              <LifeBuoy className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Tickets Found</h3>
-              <p className="text-gray-600">
+              <LifeBuoy className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-foreground mb-2">No Tickets Found</h3>
+              <p className="text-muted-foreground">
                 {statusFilter || categoryFilter || isOverdueFilter !== undefined || isUnassignedFilter !== undefined
                   ? 'No tickets match the current filters.'
                   : 'No support tickets in the system.'}
               </p>
             </div>
           ) : (
-            <div className="border border-gray-200 rounded-lg overflow-hidden">
+            <div className="border border-border rounded-lg overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -438,14 +438,14 @@ export function SupportTicketsPage() {
                                 className="w-6 h-6 rounded-full object-cover"
                               />
                             ) : (
-                              <div className="w-6 h-6 rounded-full bg-gray-200" />
+                              <div className="w-6 h-6 rounded-full bg-border" />
                             )}
                             <div className="min-w-0">
                               <div className="text-sm truncate max-w-[140px] font-medium">
                                 {ticket.username ? `@${ticket.username}` : ticket.user_id.slice(0, 8)}
                               </div>
                               {ticket.username && ticket.seller_farm_name ? (
-                                <div className="text-xs text-gray-500 truncate max-w-[140px]">
+                                <div className="text-xs text-muted-foreground truncate max-w-[140px]">
                                   {ticket.seller_farm_name}
                                 </div>
                               ) : null}
@@ -485,10 +485,10 @@ export function SupportTicketsPage() {
                                     {slaDisplay.text}
                                   </Badge>
                                   {slaDisplay.firstResponseOverdue && (
-                                    <AlertCircle className="h-4 w-4 text-red-600" aria-label="First Response Overdue" />
+                                    <AlertCircle className="h-4 w-4 text-destructive" aria-label="First Response Overdue" />
                                   )}
                                   {slaDisplay.resolutionOverdue && !slaDisplay.firstResponseOverdue && (
-                                    <AlertCircle className="h-4 w-4 text-orange-600" aria-label="Resolution Overdue" />
+                                    <AlertCircle className="h-4 w-4 text-warning" aria-label="Resolution Overdue" />
                                   )}
                                 </>
                               )
@@ -508,7 +508,7 @@ export function SupportTicketsPage() {
                             )
                           })()}
                         </TableCell>
-                        <TableCell className="text-sm text-gray-600">
+                        <TableCell className="text-sm text-muted-foreground">
                           {formatDate(ticket.created_at)}
                         </TableCell>
                         <TableCell className="text-right">

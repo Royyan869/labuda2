@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 
 /// Base AppBottomSheet with standard content support
 class AppBottomSheetBase {
@@ -21,7 +20,7 @@ class AppBottomSheetBase {
     String saveButtonText = 'Save',
     bool showSaveButton = false,
   }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return showModalBottomSheet<T>(
       context: context,
@@ -42,11 +41,11 @@ class AppBottomSheetBase {
           decoration: BoxDecoration(
             color:
                 backgroundColor ??
-                (isDark ? AppColors.darkGray800 : AppColors.neutralWhite),
+                scheme.surface,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
             boxShadow: [
               BoxShadow(
-                color: AppColors.dark.withValues(alpha: isDark ? 0.5 : 0.15),
+                color: scheme.shadow.withValues(alpha: 0.2),
                 blurRadius: 20,
                 offset: const Offset(0, -5),
               ),
@@ -62,9 +61,7 @@ class AppBottomSheetBase {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: isDark
-                        ? AppColors.neutralGray600
-                        : AppColors.neutralGray400,
+color: scheme.outlineVariant,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -79,9 +76,7 @@ class AppBottomSheetBase {
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
-                      color: isDark
-                          ? AppColors.neutralWhite
-                          : AppColors.neutralGray900,
+color: scheme.onSurface,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -90,9 +85,7 @@ class AppBottomSheetBase {
                   height: 1,
                   margin: const EdgeInsets.symmetric(horizontal: 20),
                   decoration: BoxDecoration(
-                    color: isDark
-                        ? AppColors.darkGray600
-                        : AppColors.neutralGray200,
+color: scheme.outlineVariant,
                   ),
                 ),
               ],
@@ -116,7 +109,7 @@ class AppBottomSheetBase {
                   child: ElevatedButton(
                     onPressed: onSave,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryBlue,
+                      backgroundColor: scheme.primary,
                       minimumSize: const Size(double.infinity, 48),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -124,11 +117,11 @@ class AppBottomSheetBase {
                     ),
                     child: Text(
                       saveButtonText,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.neutralWhite,
-                      ),
+style: TextStyle(
+                         fontSize: 16,
+                         fontWeight: FontWeight.w600,
+                         color: scheme.onPrimary,
+                       ),
                     ),
                   ),
                 ),

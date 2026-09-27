@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/user/profile/profile.dart' show ProfileAboutData;
 import 'package:labuda/domains/user/profile/presentation/widgets/social_media_chip.dart';
 
@@ -16,7 +15,7 @@ class AboutSectionContact extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -27,7 +26,7 @@ class AboutSectionContact extends StatelessWidget {
             _buildContactRow(
               icon: Icons.email_outlined,
               text: data.maskedEmail!,
-              isDark: isDark,
+              scheme: scheme,
             ),
             const SizedBox(height: 12),
           ],
@@ -39,7 +38,7 @@ class AboutSectionContact extends StatelessWidget {
             _buildContactRow(
               icon: Icons.phone_outlined,
               text: data.maskedPhone!,
-              isDark: isDark,
+              scheme: scheme,
             ),
             const SizedBox(height: 12),
           ],
@@ -49,7 +48,7 @@ class AboutSectionContact extends StatelessWidget {
         if ((data.isSocialMediaPublic || isOwnProfile) &&
             data.hasSocialMedia) ...[
           Divider(
-            color: isDark ? AppColors.neutralGray600 : AppColors.neutralGray300,
+            color: scheme.onSurfaceVariant,
           ),
           const SizedBox(height: 8),
           Text(
@@ -57,13 +56,11 @@ class AboutSectionContact extends StatelessWidget {
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: isDark
-                  ? AppColors.neutralGray300
-                  : AppColors.neutralGray700,
+              color: scheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 12),
-          _buildSocialMediaLinks(isDark),
+          _buildSocialMediaLinks(),
         ],
       ],
     );
@@ -72,14 +69,14 @@ class AboutSectionContact extends StatelessWidget {
   Widget _buildContactRow({
     required IconData icon,
     required String text,
-    required bool isDark,
+    required ColorScheme scheme,
   }) {
     return Row(
       children: [
         Icon(
           icon,
           size: 18,
-          color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray600,
+          color: scheme.onSurfaceVariant,
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -87,9 +84,7 @@ class AboutSectionContact extends StatelessWidget {
             text,
             style: TextStyle(
               fontSize: 14,
-              color: isDark
-                  ? AppColors.neutralGray300
-                  : AppColors.neutralGray700,
+              color: scheme.onSurfaceVariant,
             ),
           ),
         ),
@@ -97,7 +92,7 @@ class AboutSectionContact extends StatelessWidget {
     );
   }
 
-  Widget _buildSocialMediaLinks(bool isDark) {
+  Widget _buildSocialMediaLinks() {
     return Wrap(
       spacing: 12,
       runSpacing: 12,

@@ -88,19 +88,15 @@ class AppDropdown<T> extends StatelessWidget {
     // Check if label ends with " *"
     if (label.endsWith(' *')) {
       final textWithoutAsterisk = label.substring(0, label.length - 2);
+      final scheme = Theme.of(context).colorScheme;
       return RichText(
         text: TextSpan(
           text: textWithoutAsterisk,
-          style: TextStyle(
-            color: Theme.of(context).brightness == Brightness.dark
-                ? AppColors.neutralGray300
-                : AppColors.neutralGray700,
-            fontSize: 16,
-          ),
-          children: const [
+          style: TextStyle(color: scheme.onSurface, fontSize: 16),
+          children: [
             TextSpan(
               text: ' *',
-              style: TextStyle(color: AppColors.error),
+              style: TextStyle(color: scheme.error),
             ),
           ],
         ),
@@ -112,7 +108,7 @@ class AppDropdown<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     final customLabel = _buildLabel(context);
 
     return DropdownButtonFormField<T>(
@@ -121,37 +117,28 @@ class AppDropdown<T> extends StatelessWidget {
         labelText: customLabel == null ? labelText : null,
         hintText: hintText,
         prefixIcon: prefixIcon != null
-            ? Icon(
-                prefixIcon,
-                color: isDark
-                    ? AppColors.neutralGray400
-                    : AppColors.neutralGray500,
-              )
+            ? Icon(prefixIcon, color: scheme.onSurfaceVariant)
             : null,
         // Consistent OutlineInputBorder with AppTextField
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: isDark ? AppColors.darkGray600 : AppColors.neutralGray300,
-          ),
+          borderSide: BorderSide(color: scheme.outlineVariant),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: isDark ? AppColors.darkGray600 : AppColors.neutralGray300,
-          ),
+          borderSide: BorderSide(color: scheme.outlineVariant),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.primaryRed, width: 2),
+          borderSide: BorderSide(color: scheme.primary, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.error),
+          borderSide: BorderSide(color: scheme.error),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.error, width: 2),
+          borderSide: BorderSide(color: scheme.error, width: 2),
         ),
       ),
       initialValue: value,
@@ -166,10 +153,7 @@ class AppDropdown<T> extends StatelessWidget {
         );
       }).toList(),
       onChanged: enabled ? onChanged : null,
-      icon: Icon(
-        Icons.arrow_drop_down,
-        color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray500,
-      ),
+      icon: Icon(Icons.arrow_drop_down, color: scheme.onSurfaceVariant),
       style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
       dropdownColor: Theme.of(context).colorScheme.surface,
     );

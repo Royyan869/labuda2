@@ -123,7 +123,7 @@ class _CustomImageCropperState extends State<CustomImageCropper> {
     final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
-      backgroundColor: AppColors.dark,
+      backgroundColor: Theme.of(context).colorScheme.scrim,
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : Stack(
@@ -148,7 +148,18 @@ class _CustomImageCropperState extends State<CustomImageCropper> {
                 ),
 
                 // Crop area overlay
-                CustomPaint(painter: CropOverlayPainter(cropRect: _cropRect)),
+                CustomPaint(
+                  painter: CropOverlayPainter(
+                    cropRect: _cropRect,
+                    dimColor: Theme.of(context).colorScheme.scrim.withValues(
+                      alpha: 0.54,
+                    ),
+                    borderColor: Theme.of(context).colorScheme.onPrimary,
+                    gridColor: Theme.of(
+                      context,
+                    ).colorScheme.onPrimary.withValues(alpha: 0.3),
+                  ),
+                ),
 
                 // Crop area handles
                 _buildCropHandle(_cropRect.topLeft, 'tl'),
@@ -162,7 +173,9 @@ class _CustomImageCropperState extends State<CustomImageCropper> {
                   left: 0,
                   right: 0,
                   child: Container(
-                    color: Colors.black87,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.scrim.withValues(alpha: 0.87),
                     padding: const EdgeInsets.symmetric(
                       horizontal: 8,
                       vertical: 8,
@@ -171,21 +184,24 @@ class _CustomImageCropperState extends State<CustomImageCropper> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.close, color: AppColors.light),
+                          icon: Icon(
+                            Icons.close,
+                            color: Theme.of(context).colorScheme.onPrimary,
+                          ),
                           onPressed: () => Navigator.of(context).pop(),
                         ),
-                        const Text(
+                        Text(
                           'Crop Image',
                           style: TextStyle(
-                            color: AppColors.light,
+                            color: Theme.of(context).colorScheme.onPrimary,
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                         IconButton(
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.check,
-                            color: AppColors.success,
+                            color: AppColors.statusSuccess,
                           ),
                           onPressed: _cropImage,
                         ),
@@ -200,7 +216,9 @@ class _CustomImageCropperState extends State<CustomImageCropper> {
                   left: 0,
                   right: 0,
                   child: Container(
-                    color: Colors.black87,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.scrim.withValues(alpha: 0.87),
                     padding: const EdgeInsets.symmetric(
                       horizontal: 20,
                       vertical: 16,
@@ -209,9 +227,9 @@ class _CustomImageCropperState extends State<CustomImageCropper> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         IconButton(
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.zoom_out,
-                            color: AppColors.light,
+                            color: Theme.of(context).colorScheme.onPrimary,
                           ),
                           onPressed: () {
                             setState(() {
@@ -222,13 +240,17 @@ class _CustomImageCropperState extends State<CustomImageCropper> {
                         const SizedBox(width: 8),
                         Text(
                           '${(_scale * 100).toInt()}%',
-                          style: const TextStyle(color: AppColors.light),
+                          style: TextStyle(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onPrimary,
+                          ),
                         ),
                         const SizedBox(width: 8),
                         IconButton(
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.zoom_in,
-                            color: AppColors.light,
+                            color: Theme.of(context).colorScheme.onPrimary,
                           ),
                           onPressed: () {
                             setState(() {
@@ -301,8 +323,11 @@ class _CustomImageCropperState extends State<CustomImageCropper> {
           width: 20,
           height: 20,
           decoration: BoxDecoration(
-            color: AppColors.light,
-            border: Border.all(color: AppColors.dark, width: 2),
+            color: Theme.of(context).colorScheme.onPrimary,
+            border: Border.all(
+              color: Theme.of(context).colorScheme.scrim,
+              width: 2,
+            ),
             shape: BoxShape.circle,
           ),
         ),
@@ -378,16 +403,27 @@ class ImageCropPainter extends CustomPainter {
   }
 }
 
-/// Painter for crop overlay
+/// Painter for crop overlay.
+///
+/// Overlay ink is injected from the scheme at the call site (canvas paint
+/// has no BuildContext): dim scrim fill, bright border + grid.
 class CropOverlayPainter extends CustomPainter {
   final Rect cropRect;
+  final Color dimColor;
+  final Color borderColor;
+  final Color gridColor;
 
-  CropOverlayPainter({required this.cropRect});
+  CropOverlayPainter({
+    required this.cropRect,
+    required this.dimColor,
+    required this.borderColor,
+    required this.gridColor,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.black54
+      ..color = dimColor
       ..style = PaintingStyle.fill;
 
     // Draw dark overlay except crop area
@@ -400,7 +436,7 @@ class CropOverlayPainter extends CustomPainter {
 
     // Draw crop border
     final borderPaint = Paint()
-      ..color = AppColors.light
+      ..color = borderColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2;
 
@@ -408,7 +444,7 @@ class CropOverlayPainter extends CustomPainter {
 
     // Draw grid
     final gridPaint = Paint()
-      ..color = Colors.white30
+      ..color = gridColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
 
@@ -442,6 +478,9 @@ class CropOverlayPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(CropOverlayPainter oldDelegate) {
-    return oldDelegate.cropRect != cropRect;
+    return oldDelegate.cropRect != cropRect ||
+        oldDelegate.dimColor != dimColor ||
+        oldDelegate.borderColor != borderColor ||
+        oldDelegate.gridColor != gridColor;
   }
 }

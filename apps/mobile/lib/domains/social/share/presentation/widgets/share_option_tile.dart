@@ -8,30 +8,21 @@ class ShareOptionTile extends StatelessWidget {
   final ShareDestination destination;
   final VoidCallback onTap;
   final bool showDivider;
-  final bool isDark;
 
   const ShareOptionTile({
     super.key,
     required this.destination,
     required this.onTap,
     this.showDivider = true,
-    this.isDark = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final textColor = isDark
-        ? AppColors.neutralGray100
-        : AppColors.neutralGray900;
-    final iconBgColor = isDark
-        ? AppColors.darkGray600
-        : AppColors.neutralGray100;
-    final iconColor = isDark
-        ? AppColors.neutralGray400
-        : AppColors.neutralGray600;
-    final dividerColor = isDark
-        ? AppColors.darkGray600
-        : AppColors.neutralGray200;
+    final scheme = Theme.of(context).colorScheme;
+    final textColor = scheme.onSurface;
+    final iconBgColor = scheme.surfaceContainerHighest;
+    final iconColor = scheme.onSurfaceVariant;
+    final dividerColor = scheme.outlineVariant;
     final destinationColor = destination.color;
 
     return Column(
@@ -67,7 +58,7 @@ class ShareOptionTile extends StatelessWidget {
           trailing: Icon(
             Icons.arrow_forward_ios,
             size: 16,
-            color: isDark ? AppColors.neutralGray500 : AppColors.neutralGray400,
+            color: scheme.onSurfaceVariant,
           ),
         ),
         if (showDivider)

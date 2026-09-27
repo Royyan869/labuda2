@@ -29,25 +29,23 @@ class StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     Color? bgColor = backgroundColor;
     Color? txtColor = textColor;
 
     if (bgColor == null) {
       switch (variant) {
         case StatusBadgeVariant.default_:
-          bgColor = isDark
-              ? AppColors.neutralGray700
-              : AppColors.neutralGray100;
+          bgColor = scheme.surfaceContainerHighest;
           break;
         case StatusBadgeVariant.outlined:
           bgColor = Colors.transparent;
           break;
         case StatusBadgeVariant.pill:
-          bgColor = AppColors.primaryRed.withValues(alpha: 0.1);
+          bgColor = scheme.primary.withValues(alpha: 0.12);
           break;
         case StatusBadgeVariant.dot:
-          bgColor = AppColors.primaryRed;
+          bgColor = scheme.primary;
           break;
       }
     }
@@ -55,15 +53,13 @@ class StatusBadge extends StatelessWidget {
     if (txtColor == null) {
       switch (variant) {
         case StatusBadgeVariant.default_:
-          txtColor = isDark ? AppColors.neutralWhite : AppColors.neutralGray900;
+          txtColor = scheme.onSurface;
           break;
         case StatusBadgeVariant.outlined:
-          txtColor = isDark
-              ? AppColors.neutralGray300
-              : AppColors.neutralGray700;
+          txtColor = scheme.onSurfaceVariant;
           break;
         case StatusBadgeVariant.pill:
-          txtColor = AppColors.primaryRed;
+          txtColor = scheme.primary;
           break;
         case StatusBadgeVariant.dot:
           // Dot variant doesn't show text
@@ -91,9 +87,7 @@ class StatusBadge extends StatelessWidget {
         borderRadius: _getBorderRadiusForVariant(variant),
         border: variant == StatusBadgeVariant.outlined
             ? Border.all(
-                color: isDark
-                    ? AppColors.neutralGray600
-                    : AppColors.neutralGray300,
+                color: Theme.of(context).colorScheme.outlineVariant,
               )
             : null,
       ),
@@ -184,11 +178,4 @@ class StatusBadge extends StatelessWidget {
     return StatusBadge(label: label, variant: StatusBadgeVariant.outlined);
   }
 
-  factory StatusBadge.dot({Color? color}) {
-    return StatusBadge(
-      label: '',
-      backgroundColor: color ?? AppColors.primaryRed,
-      variant: StatusBadgeVariant.dot,
-    );
-  }
 }

@@ -67,7 +67,7 @@ class SellerWizardPreviewWidget extends StatelessWidget {
             children: [
               _buildInfoRow(
                 'Fee',
-                'Rp ${AppFormatters.formatCurrency(packageFee)}',
+                AppFormatters.formatCurrency(packageFee),
                 isDark,
               ),
               _buildInfoRow('Duration', '$packageDurationDays days', isDark),

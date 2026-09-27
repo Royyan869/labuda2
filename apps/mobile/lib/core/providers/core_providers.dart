@@ -58,7 +58,6 @@ import 'package:labuda/core/api/api_client.dart';
 import 'package:labuda/core/src/interfaces/services/i_local_storage_service.dart';
 import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
 import 'package:labuda/core/src/interfaces/services/i_validation_service.dart';
-import 'package:labuda/core/src/websocket/chat_websocket_handler.dart';
 import 'package:labuda/core/websocket/websocket_service.dart';
 import 'package:labuda/core/src/interfaces/services/i_analytics_repository.dart';
 import 'package:labuda/core/interfaces/i_notification_trigger.dart';
@@ -71,7 +70,6 @@ export 'package:labuda/core/navigation/navigation_handler.dart';
 export 'package:labuda/core/src/interfaces/services/i_local_storage_service.dart';
 export 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
 export 'package:labuda/core/src/interfaces/services/i_validation_service.dart';
-export 'package:labuda/core/src/websocket/chat_websocket_handler.dart';
 export 'package:labuda/core/websocket/websocket_service.dart';
 export 'package:labuda/core/src/interfaces/services/i_analytics_repository.dart';
 export 'package:labuda/core/interfaces/i_notification_trigger.dart';
@@ -144,16 +142,6 @@ final webSocketServiceProvider = Provider<WebSocketService>((ref) {
   throw UnimplementedError(
     'WebSocketService must be provided externally. '
     'Override webSocketServiceProvider in main.dart.',
-  );
-});
-
-/// Provider for ChatWebSocketHandler
-///
-/// This must be overridden in main.dart with the actual chat WebSocket handler.
-final chatWebSocketHandlerProvider = Provider<ChatWebSocketHandler>((ref) {
-  throw UnimplementedError(
-    'ChatWebSocketHandler must be provided externally. '
-    'Override chatWebSocketHandlerProvider in main.dart.',
   );
 });
 

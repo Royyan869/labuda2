@@ -56,7 +56,7 @@ Widget _wrap({
             sellerAvatarUrl: sellerAvatarUrl,
           ),
           currentUserId: 'buyer-1',
-          isDark: false,
+          
         ),
       ),
     ),
@@ -107,7 +107,7 @@ void main() {
                 sellerFarmName: 'Farm Koi Nusantara',
               ),
               currentUserId: 'buyer-1',
-              isDark: false,
+              
             ),
           ),
         ),

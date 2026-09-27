@@ -46,9 +46,13 @@ class _CoinToggleSection extends ConsumerWidget {
                   gradient: AppColors.coinGradient,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
+                // Foreground over the coin brand gradient: onPrimary is white
+                // in both schemes, so pixels are identical — but the
+                // authority is now the scheme, keeping the migrated registry
+                // free of raw Material colours.
+                child: Icon(
                   Icons.monetization_on,
-                  color: Colors.white,
+                  color: colorScheme.onPrimary,
                   size: 22,
                 ),
               ),

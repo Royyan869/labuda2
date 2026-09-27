@@ -92,7 +92,7 @@ export function DisputeWorkspacePage() {
       <div className="flex items-center justify-center min-h-[500px]">
         <div className="text-center">
           <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
-          <p className="mt-4 text-gray-600">Loading dispute workspace...</p>
+          <p className="mt-4 text-muted-foreground">Loading dispute workspace...</p>
         </div>
       </div>
     )
@@ -103,9 +103,9 @@ export function DisputeWorkspacePage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dispute Workspace</h1>
+          <h1 className="text-3xl font-bold text-foreground">Dispute Workspace</h1>
         </div>
-        <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg flex items-center gap-2">
+        <div className="bg-destructive-bg border border-destructive text-destructive p-4 rounded-lg flex items-center gap-2">
           <AlertTriangle className="h-5 w-5 flex-shrink-0" />
           <span className="text-sm">Dispute not found. Please check the dispute ID and try again.</span>
         </div>
@@ -117,7 +117,7 @@ export function DisputeWorkspacePage() {
     <div className="space-y-6 pb-32">
       {/* Error Banner */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg flex items-center gap-2">
+        <div className="bg-destructive-bg border border-destructive text-destructive p-4 rounded-lg flex items-center gap-2">
           <AlertTriangle className="h-5 w-5 flex-shrink-0" />
           <span className="text-sm">{error}</span>
         </div>

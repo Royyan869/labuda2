@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 
 /// Base Card Widget
 ///
@@ -39,8 +38,7 @@ class BaseCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     final card = Container(
       width: width,
@@ -48,27 +46,15 @@ class BaseCard extends StatelessWidget {
       margin: margin,
       padding: padding ?? const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color:
-            backgroundColor ??
-            (isDark ? AppColors.neutralGray800 : AppColors.neutralWhite),
+        color: backgroundColor ?? scheme.surface,
         borderRadius: BorderRadius.circular(borderRadius ?? 12),
         border: showBorder
-            ? Border.all(
-                color:
-                    borderColor ??
-                    (isDark
-                        ? AppColors.neutralGray700
-                        : AppColors.neutralGray200),
-              )
+            ? Border.all(color: borderColor ?? scheme.outlineVariant)
             : null,
         boxShadow: showShadow
             ? [
                 BoxShadow(
-                  color:
-                      (isDark
-                              ? AppColors.neutralBlack
-                              : AppColors.neutralGray900)
-                          .withValues(alpha: 0.05),
+                  color: scheme.shadow.withValues(alpha: 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, 2),
                 ),

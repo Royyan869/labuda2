@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
+import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_detail_primitives.dart';
 
 /// Bid section widget for auction detail
 class AuctionBidSection extends StatelessWidget {
@@ -20,9 +21,10 @@ class AuctionBidSection extends StatelessWidget {
     final nextBid = currentBid + auction.bidIncrement;
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Container(
-      color: colorScheme.surface,
-      padding: const EdgeInsets.all(16),
+    // CANONICAL SECTION FRAME — the same 16-margin card language the ForSale
+    // detail uses, so both detail surfaces read as one design.
+    return CommerceDetailSectionCard(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

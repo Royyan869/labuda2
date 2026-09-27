@@ -52,6 +52,7 @@ func GetCategory(notifyType string) NotificationCategory {
 		notifyType == "auction.waiting_settlement",            // winner must always receive claim notification
 		notifyType == "auction.seller_has_winner",             // seller must know their auction has a winner pending claim
 		notifyType == "auction.ended_no_winner",               // seller must know their auction closed without a winner
+		notifyType == "auction.cancelled.seller",              // Scope B: seller must know their auction auto-cancelled (subscription expired)
 		notifyType == "auction.settlement_failed.buyer",       // buyer must know their settlement failed (violation/restriction)
 		notifyType == "auction.settlement_failed.seller_default", // seller must know their quote default caused DRAFT
 		notifyType == "auction.settlement_failed.relistable",  // seller must know the auction is back in DRAFT and relistable
@@ -213,6 +214,13 @@ func RequiresPushByType(notifyType string) bool {
 
 	// Priority: Auction ended without winner — seller must know so they can re-list.
 	if notifyType == "auction.ended_no_winner" {
+		return true
+	}
+
+	// Priority: Auction auto-cancelled (subscription expired) — seller must
+	// know their listing died with the subscription so they can renew.
+	// Scope B.
+	if notifyType == "auction.cancelled.seller" {
 		return true
 	}
 

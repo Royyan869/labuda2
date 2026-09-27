@@ -39,7 +39,7 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     final authState = ref.watch(authControllerProvider);
 
     if (authState is! AuthStateAuthenticated) {
@@ -58,15 +58,11 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
     final forSalesAsync = ref.watch(sellerForSalesProvider(params));
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkGray900 : AppColors.neutralGray50,
+      backgroundColor: scheme.surfaceContainerLowest,
       appBar: AppBar(
         title: const Text('For Sale Saya'),
-        backgroundColor: isDark
-            ? AppColors.darkGray800
-            : AppColors.neutralWhite,
-        foregroundColor: isDark
-            ? AppColors.neutralWhite
-            : AppColors.neutralGray900,
+        backgroundColor: scheme.surface,
+        foregroundColor: scheme.onSurface,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         scrolledUnderElevation: 0,
@@ -108,7 +104,7 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
               : forSales.where((l) => l.status == _statusFilter).toList();
 
           if (filteredForSales.isEmpty) {
-            return _buildEmptyState(context, isDark);
+            return _buildEmptyState(context);
           }
 
           return RefreshIndicator(
@@ -137,20 +133,26 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
+              Icon(
                 Icons.error_outline,
                 size: 48,
-                color: AppColors.primaryRed,
+                color: scheme.error,
               ),
               const SizedBox(height: 16),
               Text(
                 'Error loading For Sale',
-                style: TextStyle(fontSize: 16, color: AppColors.neutralGray600),
+                style: TextStyle(
+                  fontSize: 16,
+                  color: scheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 8),
               Text(
                 error.toString(),
-                style: TextStyle(fontSize: 12, color: AppColors.neutralGray400),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: scheme.onSurfaceVariant,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
@@ -166,11 +168,11 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _createNewForSale(context),
-        backgroundColor: AppColors.primaryRed,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text(
+        backgroundColor: scheme.primary,
+        icon: Icon(Icons.add, color: scheme.onPrimary),
+        label: Text(
           'Buat For Sale',
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: scheme.onPrimary),
         ),
       ),
     );
@@ -182,10 +184,10 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
+            Icon(
               Icons.lock_outline,
               size: 64,
-              color: AppColors.primaryRed,
+              color: Theme.of(context).colorScheme.primary,
             ),
             const SizedBox(height: 16),
             const Text(
@@ -200,7 +202,8 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
     );
   }
 
-  Widget _buildEmptyState(BuildContext context, bool isDark) {
+  Widget _buildEmptyState(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -208,21 +211,20 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
           Icon(
             Icons.inventory_2_outlined,
             size: 64,
-            color: AppColors.neutralGray400,
+            color: scheme.onSurfaceVariant,
           ),
           const SizedBox(height: 16),
-          Text(
+          const Text(
             'Belum Ada For Sale',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: isDark ? AppColors.neutralWhite : AppColors.neutralGray900,
-            ),
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           Text(
             'Mulai buat For Sale untuk menjual produk Anda',
-            style: TextStyle(fontSize: 14, color: AppColors.neutralGray600),
+            style: TextStyle(
+              fontSize: 14,
+              color: scheme.onSurfaceVariant,
+            ),
           ),
         ],
       ),
@@ -256,6 +258,7 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
     ForSale forSale,
     ForSaleStatus newStatus,
   ) async {
+    final scheme = Theme.of(context).colorScheme;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -271,7 +274,8 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryRed,
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
             ),
             child: const Text('Ya, Ubah'),
           ),
@@ -292,7 +296,7 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Status berhasil diubah'),
-            backgroundColor: AppColors.successGreen,
+            backgroundColor: AppColors.statusSuccess,
           ),
         );
         ref.invalidate(
@@ -355,8 +359,8 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
                   );
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryRed,
-                  foregroundColor: Colors.white,
+                  backgroundColor: scheme.primary,
+                  foregroundColor: scheme.onPrimary,
                 ),
                 child: const Text('Edit For Sale'),
               ),
@@ -369,7 +373,7 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Gagal mengubah status: ${result.error}'),
-          backgroundColor: AppColors.primaryRed,
+          backgroundColor: scheme.error,
         ),
       );
     }
@@ -391,7 +395,8 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryRed,
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
             ),
             child: const Text('Ya, Hapus'),
           ),
@@ -409,7 +414,7 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('Gagal menghapus For Sale: $error'),
-                backgroundColor: AppColors.primaryRed,
+                backgroundColor: Theme.of(context).colorScheme.error,
               ),
             );
           },
@@ -417,7 +422,7 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('For Sale berhasil dihapus'),
-                backgroundColor: AppColors.successGreen,
+                backgroundColor: AppColors.statusSuccess,
               ),
             );
             // Invalidate to refresh
@@ -451,16 +456,14 @@ class _SellerForSaleManagementCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
+        color: scheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDark ? AppColors.darkGray700 : AppColors.neutralGray200,
-        ),
+        border: Border.all(color: scheme.outlineVariant),
       ),
       child: InkWell(
         onTap: onTap,
@@ -479,9 +482,9 @@ class _SellerForSaleManagementCard extends StatelessWidget {
                         height: 80,
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) =>
-                            _buildPlaceholder(isDark),
+                            _buildPlaceholder(context),
                       )
-                    : _buildPlaceholder(isDark),
+                    : _buildPlaceholder(context),
               ),
               const SizedBox(width: 12),
               // Content
@@ -510,8 +513,8 @@ class _SellerForSaleManagementCard extends StatelessWidget {
                     // Price
                     Text(
                       forSale.formattedPrice,
-                      style: const TextStyle(
-                        color: AppColors.primaryRed,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
                       ),
@@ -522,7 +525,7 @@ class _SellerForSaleManagementCard extends StatelessWidget {
                       'Dibuat ${_formatDate(forSale.createdAt)}',
                       style: TextStyle(
                         fontSize: 12,
-                        color: AppColors.neutralGray600,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],
@@ -556,14 +559,14 @@ class _SellerForSaleManagementCard extends StatelessWidget {
                 itemBuilder: (context) => [
                   // Promote action (only for active forSales)
                   if (forSale.status == ForSaleStatus.active)
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'promote',
                       child: Row(
                         children: [
                           Icon(
                             Icons.campaign,
                             size: 18,
-                            color: AppColors.primaryRed,
+                            color: Theme.of(context).colorScheme.primary,
                           ),
                           SizedBox(width: 12),
                           Text('Promosikan'),
@@ -590,7 +593,7 @@ class _SellerForSaleManagementCard extends StatelessWidget {
                           Icon(
                             Icons.check_circle,
                             size: 18,
-                            color: AppColors.successGreen,
+                            color: AppColors.statusSuccess,
                           ),
                           SizedBox(width: 12),
                           Text('Aktifkan'),
@@ -619,19 +622,21 @@ class _SellerForSaleManagementCard extends StatelessWidget {
                         ],
                       ),
                     ),
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: 'delete',
                     child: Row(
                       children: [
                         Icon(
                           Icons.delete,
                           size: 18,
-                          color: AppColors.primaryRed,
+                          color: Theme.of(context).colorScheme.error,
                         ),
                         SizedBox(width: 12),
                         Text(
                           'Hapus',
-                          style: TextStyle(color: AppColors.primaryRed),
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.error,
+                          ),
                         ),
                       ],
                     ),
@@ -645,15 +650,20 @@ class _SellerForSaleManagementCard extends StatelessWidget {
     );
   }
 
-  Widget _buildPlaceholder(bool isDark) {
+  Widget _buildPlaceholder(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       width: 80,
       height: 80,
       decoration: BoxDecoration(
-        color: AppColors.neutralGray200,
+        color: scheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(8),
       ),
-      child: const Icon(Icons.image_not_supported, size: 24),
+      child: Icon(
+        Icons.image_not_supported,
+        size: 24,
+        color: scheme.onSurfaceVariant,
+      ),
     );
   }
 
@@ -694,21 +704,22 @@ class _StatusBadge extends StatelessWidget {
     Color color;
     String label;
 
+    final scheme = Theme.of(context).colorScheme;
     switch (status) {
       case ForSaleStatus.draft:
-        color = AppColors.neutralGray600;
+        color = scheme.onSurfaceVariant;
         label = 'Draft';
         break;
       case ForSaleStatus.active:
-        color = AppColors.successGreen;
+        color = AppColors.statusSuccess;
         label = 'Aktif';
         break;
       case ForSaleStatus.withdrawn:
-        color = AppColors.neutralGray600;
+        color = scheme.onSurfaceVariant;
         label = 'Ditarik';
         break;
       case ForSaleStatus.sold:
-        color = AppColors.primaryRed;
+        color = scheme.primary;
         label = 'Terjual';
         break;
     }

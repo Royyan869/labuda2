@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/widgets/mentions/mention_text_field.dart';
 
 /// Configuration for TextInputArea features
@@ -34,7 +33,6 @@ class TextInputArea extends StatelessWidget {
   final bool showQuickActions;
   final VoidCallback? onToggleQuickActions;
   final VoidCallback onSendMessage;
-  final bool isDark;
   final Function(List<String> mentionedUserIds)? onMentionsChanged;
 
   const TextInputArea({
@@ -47,12 +45,12 @@ class TextInputArea extends StatelessWidget {
     this.showQuickActions = false,
     this.onToggleQuickActions,
     required this.onSendMessage,
-    required this.isDark,
     this.onMentionsChanged,
   });
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final hasContent = hasTextContent || selectedMediaUrls.isNotEmpty;
 
     return Container(
@@ -64,9 +62,7 @@ class TextInputArea extends StatelessWidget {
           Expanded(
             child: Container(
               decoration: BoxDecoration(
-                color: isDark
-                    ? AppColors.darkGray700
-                    : AppColors.neutralGray100,
+                color: scheme.surfaceContainerHigh,
                 borderRadius: BorderRadius.circular(20),
               ),
               child: MentionTextField(
@@ -78,9 +74,7 @@ class TextInputArea extends StatelessWidget {
                 decoration: InputDecoration(
                   hintText: config.hintText,
                   hintStyle: TextStyle(
-                    color: isDark
-                        ? AppColors.neutralGray400
-                        : AppColors.neutralGray500,
+                    color: scheme.onSurfaceVariant,
                     fontSize: 16,
                   ),
                   border: OutlineInputBorder(
@@ -107,9 +101,7 @@ class TextInputArea extends StatelessWidget {
                             showQuickActions
                                 ? Icons.keyboard_arrow_up
                                 : Icons.add,
-                            color: isDark
-                                ? AppColors.neutralGray400
-                                : AppColors.neutralGray600,
+                            color: scheme.onSurfaceVariant,
                             size: 20,
                           ),
                           padding: const EdgeInsets.all(8),
@@ -117,9 +109,7 @@ class TextInputArea extends StatelessWidget {
                       : null,
                 ),
                 style: TextStyle(
-                  color: isDark
-                      ? AppColors.neutralWhite
-                      : AppColors.neutralGray900,
+                  color: scheme.onSurface,
                   fontSize: 16,
                 ),
                 onMentionsChanged: onMentionsChanged,
@@ -137,19 +127,15 @@ class TextInputArea extends StatelessWidget {
               height: 40,
               decoration: BoxDecoration(
                 color: hasContent
-                    ? AppColors.primaryRed
-                    : (isDark
-                          ? AppColors.darkGray600
-                          : AppColors.neutralGray300),
+                    ? scheme.primary
+                    : scheme.surfaceContainerHighest,
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 Icons.send,
                 color: hasContent
-                    ? AppColors.neutralWhite
-                    : (isDark
-                          ? AppColors.neutralGray500
-                          : AppColors.neutralGray400),
+                    ? scheme.onPrimary
+                    : scheme.onSurfaceVariant,
                 size: 20,
               ),
             ),

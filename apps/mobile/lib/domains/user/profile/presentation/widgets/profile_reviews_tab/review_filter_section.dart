@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/src/theme/app_colors.dart';
 
 /// Filter section for reviews
 class ReviewFilterSection extends StatelessWidget {
@@ -16,15 +15,15 @@ class ReviewFilterSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
+        color: scheme.surface,
         border: Border(
           bottom: BorderSide(
-            color: isDark ? AppColors.darkGray600 : AppColors.neutralGray200,
+            color: scheme.outlineVariant,
           ),
         ),
       ),
@@ -35,7 +34,7 @@ class ReviewFilterSection extends StatelessWidget {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
-              color: isDark ? AppColors.neutralWhite : AppColors.neutralGray900,
+              color: scheme.onSurface,
             ),
           ),
           const SizedBox(width: 12),
@@ -51,18 +50,16 @@ class ReviewFilterSection extends StatelessWidget {
                       label: Text(filter),
                       selected: isSelected,
                       onSelected: (selected) => onFilterChanged(filter),
-                      selectedColor: AppColors.primaryRed.withValues(
+                      selectedColor: scheme.primary.withValues(
                         alpha: 0.2,
                       ),
-                      checkmarkColor: AppColors.primaryRed,
+                      checkmarkColor: scheme.primary,
                       labelStyle: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
                         color: isSelected
-                            ? AppColors.primaryRed
-                            : (isDark
-                                  ? AppColors.neutralGray300
-                                  : AppColors.neutralGray600),
+                            ? scheme.primary
+                            : scheme.onSurfaceVariant,
                       ),
                     ),
                   );

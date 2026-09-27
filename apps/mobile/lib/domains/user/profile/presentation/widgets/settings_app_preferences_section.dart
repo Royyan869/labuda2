@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/generated/app_localizations.dart';
 
@@ -11,7 +10,7 @@ class SettingsAppPreferencesSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Column(
       children: [
@@ -19,7 +18,7 @@ class SettingsAppPreferencesSection extends StatelessWidget {
           context,
           Icons.tune,
           l10n.appPreferences,
-          isDark,
+          scheme,
         ),
         const ThemeSelectorTile(),
         const LanguageSelectorTile(),
@@ -29,7 +28,7 @@ class SettingsAppPreferencesSection extends StatelessWidget {
             title: 'Notification Settings',
             subtitle: 'Manage notification preferences',
             onTap: () => onNavigate!('notifications'),
-            isDark: isDark,
+            scheme: scheme,
           ),
       ],
     );
@@ -39,7 +38,7 @@ class SettingsAppPreferencesSection extends StatelessWidget {
     BuildContext context,
     IconData icon,
     String title,
-    bool isDark,
+    ColorScheme scheme,
   ) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
@@ -48,7 +47,7 @@ class SettingsAppPreferencesSection extends StatelessWidget {
           Icon(
             icon,
             size: 20,
-            color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray600,
+            color: scheme.onSurfaceVariant,
           ),
           const SizedBox(width: 8),
           Text(
@@ -56,9 +55,7 @@ class SettingsAppPreferencesSection extends StatelessWidget {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray600,
+color: scheme.onSurfaceVariant,
             ),
           ),
         ],
@@ -71,30 +68,30 @@ class SettingsAppPreferencesSection extends StatelessWidget {
     required String title,
     required String subtitle,
     required VoidCallback onTap,
-    required bool isDark,
+    required ColorScheme scheme,
   }) {
     return ListTile(
       leading: Icon(
         icon,
-        color: isDark ? AppColors.neutralGray300 : AppColors.neutralGray700,
+        color: scheme.onSurfaceVariant,
       ),
       title: Text(
         title,
         style: TextStyle(
-          color: isDark ? AppColors.neutralWhite : AppColors.neutralGray900,
+          color: scheme.onSurface,
         ),
       ),
       subtitle: Text(
         subtitle,
         style: TextStyle(
-          color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray600,
+          color: scheme.onSurfaceVariant,
           fontSize: 13,
         ),
       ),
       trailing: Icon(
         Icons.arrow_forward_ios,
         size: 16,
-        color: isDark ? AppColors.neutralGray500 : AppColors.neutralGray400,
+        color: scheme.onSurfaceVariant,
       ),
       onTap: onTap,
     );

@@ -30,6 +30,7 @@ class AppLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final logo = Container(
       width: size,
       height: size,
@@ -39,7 +40,7 @@ class AppLogo extends StatelessWidget {
         boxShadow: showShadow
             ? [
                 BoxShadow(
-                  color: AppColors.primaryRed.withValues(alpha: 0.3),
+                  color: scheme.primary.withValues(alpha: 0.3),
                   blurRadius: size * 0.2,
                   offset: Offset(0, size * 0.1),
                 ),
@@ -49,7 +50,7 @@ class AppLogo extends StatelessWidget {
       child: Icon(
         Icons.water_drop, // LABUDA icon
         size: size * 0.5, // 50% of container size
-        color: AppColors.neutralWhite,
+        color: scheme.onPrimary,
       ),
     );
 

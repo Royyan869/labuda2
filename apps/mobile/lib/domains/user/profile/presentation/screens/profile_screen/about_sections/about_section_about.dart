@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/user/profile/profile.dart' show ProfileAboutData;
 import 'package:intl/intl.dart';
 
@@ -11,7 +10,7 @@ class AboutSectionAbout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -23,9 +22,7 @@ class AboutSectionAbout extends StatelessWidget {
             style: TextStyle(
               fontSize: 14,
               height: 1.5,
-              color: isDark
-                  ? AppColors.neutralGray300
-                  : AppColors.neutralGray600,
+              color: scheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 16),
@@ -36,7 +33,7 @@ class AboutSectionAbout extends StatelessWidget {
           _buildInfoRow(
             icon: Icons.location_on_outlined,
             text: data.location!,
-            isDark: isDark,
+            scheme: scheme,
           ),
           const SizedBox(height: 8),
         ],
@@ -45,7 +42,7 @@ class AboutSectionAbout extends StatelessWidget {
         _buildInfoRow(
           icon: Icons.calendar_today_outlined,
           text: _formatJoinDate(data.joinedAt),
-          isDark: isDark,
+          scheme: scheme,
         ),
 
         // Last active
@@ -54,7 +51,7 @@ class AboutSectionAbout extends StatelessWidget {
           _buildInfoRow(
             icon: Icons.access_time,
             text: _formatLastActive(data.lastActiveAt!),
-            isDark: isDark,
+            scheme: scheme,
           ),
         ],
       ],
@@ -64,21 +61,21 @@ class AboutSectionAbout extends StatelessWidget {
   Widget _buildInfoRow({
     required IconData icon,
     required String text,
-    required bool isDark,
+    required ColorScheme scheme,
   }) {
     return Row(
       children: [
         Icon(
           icon,
           size: 16,
-          color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray500,
+          color: scheme.onSurfaceVariant,
         ),
         const SizedBox(width: 8),
         Text(
           text,
           style: TextStyle(
             fontSize: 14,
-            color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray500,
+            color: scheme.onSurfaceVariant,
           ),
         ),
       ],

@@ -55,16 +55,13 @@ class PopupMoreOptionsButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return PopupMenuButton<String>(
       icon: Icon(
         Icons.more_vert,
         size: iconSize,
-        color:
-            iconColor ??
-            (isDark ? AppColors.neutralGray400 : AppColors.neutralGray600),
+        color: iconColor ?? scheme.onSurfaceVariant,
       ),
       enabled: !isDeleting,
       onSelected: (value) => _handleMenuSelection(context, value),
@@ -72,7 +69,7 @@ class PopupMoreOptionsButton extends StatelessWidget {
       offset: const Offset(0, 8), // Offset popup slightly below icon
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       elevation: 8,
-      shadowColor: isDark ? Colors.black54 : Colors.black26,
+      shadowColor: scheme.shadow.withValues(alpha: 0.3),
     );
   }
 
@@ -186,15 +183,17 @@ class PopupMoreOptionsButton extends StatelessWidget {
                       height: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Icon(
+                  : Icon(
                       Icons.delete_outline,
                       size: 20,
-                      color: AppColors.error,
+                      color: Theme.of(context).colorScheme.error,
                     ),
               const SizedBox(width: 12),
               Text(
                 isDeleting ? 'Deleting...' : 'Delete',
-                style: const TextStyle(color: AppColors.error),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.error,
+                ),
               ),
             ],
           ),

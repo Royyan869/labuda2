@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 
 /// Reply message data for reply preview
 class ReplyData {
@@ -18,22 +17,21 @@ class ReplyData {
 class TextInputReplyPreview extends StatelessWidget {
   final ReplyData replyingTo;
   final VoidCallback? onCancelReply;
-  final bool isDark;
 
   const TextInputReplyPreview({
     super.key,
     required this.replyingTo,
     this.onCancelReply,
-    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray700 : AppColors.neutralGray100,
-        border: Border(left: BorderSide(color: AppColors.primaryRed, width: 4)),
+        color: scheme.surfaceContainerHigh,
+        border: Border(left: BorderSide(color: scheme.primary, width: 4)),
       ),
       child: Row(
         children: [
@@ -44,7 +42,7 @@ class TextInputReplyPreview extends StatelessWidget {
                 Text(
                   'Replying to ${replyingTo.senderName.isNotEmpty ? replyingTo.senderName : "User"}',
                   style: TextStyle(
-                    color: AppColors.primaryRed,
+                    color: scheme.primary,
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                   ),
@@ -57,9 +55,7 @@ class TextInputReplyPreview extends StatelessWidget {
                       ? '📷 Media'
                       : 'Message',
                   style: TextStyle(
-                    color: isDark
-                        ? AppColors.neutralGray300
-                        : AppColors.neutralGray600,
+                    color: scheme.onSurfaceVariant,
                     fontSize: 14,
                   ),
                   maxLines: 1,
@@ -75,9 +71,7 @@ class TextInputReplyPreview extends StatelessWidget {
                 padding: const EdgeInsets.all(4),
                 child: Icon(
                   Icons.close,
-                  color: isDark
-                      ? AppColors.neutralGray400
-                      : AppColors.neutralGray600,
+                  color: scheme.onSurfaceVariant,
                   size: 20,
                 ),
               ),

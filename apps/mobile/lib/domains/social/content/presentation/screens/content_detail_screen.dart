@@ -299,11 +299,16 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
   /// loaded — the [StableNetworkImage] contract keeps a single fallback for
   /// both states.
   Widget _buildMediaPlaceholder() {
-    return Container(
-      width: double.infinity,
-      height: 300,
-      color: AppColors.neutralGray200,
-      child: const Icon(Icons.image, size: 64, color: AppColors.neutralGray400),
+    return Builder(
+      builder: (context) {
+        final scheme = Theme.of(context).colorScheme;
+        return Container(
+          width: double.infinity,
+          height: 300,
+          color: scheme.surfaceContainerHighest,
+          child: Icon(Icons.image, size: 64, color: scheme.onSurfaceVariant),
+        );
+      },
     );
   }
 
@@ -350,6 +355,7 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
   }
 
   Widget _buildAuthorInfo(BuildContext context, Content content) {
+    final scheme = Theme.of(context).colorScheme;
     final authorDegraded = content.authorLifecycle.isDegraded;
     final authorPlaceholder = _authorRedactionLabel(content.authorLifecycle);
     final showAvatar = !authorDegraded && content.authorAvatarUrl != null;
@@ -384,11 +390,11 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
                         Flexible(
                           child: Text(
                             authorPlaceholder,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontWeight: FontWeight.w600,
                               fontSize: 14,
                               fontStyle: FontStyle.italic,
-                              color: AppColors.neutralGray500,
+                              color: scheme.onSurfaceVariant,
                             ),
                           ),
                         )
@@ -411,7 +417,7 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
                         Icon(
                           visibilityIcon,
                           size: 14,
-                          color: AppColors.neutralGray500,
+                          color: scheme.onSurfaceVariant,
                         ),
                       ],
                     ],
@@ -424,7 +430,7 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
         const SizedBox(width: 8),
         Text(
           _formatTime(content.createdAt),
-          style: const TextStyle(fontSize: 12, color: AppColors.neutralGray500),
+          style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
         ),
       ],
     );
@@ -454,19 +460,24 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
   }
 
   Widget _buildLocation(ContentLocation location) {
-    return Row(
-      children: [
-        const Icon(
-          Icons.location_on,
-          size: 16,
-          color: AppColors.neutralGray500,
-        ),
-        const SizedBox(width: 4),
-        Text(
-          location.displayLocation,
-          style: TextStyle(fontSize: 14, color: AppColors.neutralGray600),
-        ),
-      ],
+    return Builder(
+      builder: (context) {
+        final scheme = Theme.of(context).colorScheme;
+        return Row(
+          children: [
+            Icon(
+              Icons.location_on,
+              size: 16,
+              color: scheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              location.displayLocation,
+              style: TextStyle(fontSize: 14, color: scheme.onSurfaceVariant),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -488,6 +499,7 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
     String? currentUserId,
     String? currentUserName,
   }) {
+    final scheme = Theme.of(context).colorScheme;
     return Row(
       children: [
         _buildLikeEngagementItem(
@@ -530,12 +542,12 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
         InkWell(
           onTap: () => _handleShareContent(context, content),
           borderRadius: BorderRadius.circular(8),
-          child: const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
             child: Icon(
               Icons.share_outlined,
               size: 16,
-              color: AppColors.neutralGray400,
+              color: scheme.onSurfaceVariant,
             ),
           ),
         ),
@@ -556,9 +568,10 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
       required bool isActive,
       VoidCallback? onTap,
     }) {
+      final scheme = Theme.of(context).colorScheme;
       final color = isActive
-          ? AppColors.primaryRed
-          : (onTap != null ? AppColors.primaryRed : AppColors.neutralGray500);
+          ? scheme.primary
+          : (onTap != null ? scheme.primary : scheme.onSurfaceVariant);
       return InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(8),
@@ -696,17 +709,15 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
   /// content.lifecycle == unavailable so the user sees the governance
   /// state at the top of the detail surface.
   Widget _buildUnavailableBanner(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: isDark
-            ? AppColors.neutralGray800.withValues(alpha: 0.5)
-            : AppColors.neutralGray100,
+        color: scheme.surfaceContainerHigh,
         border: Border(
           bottom: BorderSide(
-            color: isDark ? AppColors.darkGray700 : AppColors.neutralGray200,
+            color: scheme.outlineVariant,
           ),
         ),
       ),
@@ -715,13 +726,13 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: AppColors.neutralGray400.withValues(alpha: 0.2),
+              color: scheme.onSurfaceVariant.withValues(alpha: 0.2),
               shape: BoxShape.circle,
             ),
-            child: const Icon(
+            child: Icon(
               Icons.visibility_off_outlined,
               size: 16,
-              color: AppColors.neutralGray500,
+              color: scheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(width: 8),
@@ -730,9 +741,7 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: isDark
-                  ? AppColors.neutralGray300
-                  : AppColors.neutralGray700,
+              color: scheme.onSurface,
             ),
           ),
         ],
@@ -746,16 +755,17 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
   /// belt-and-suspenders state — never observed today, never crashes
   /// tomorrow).
   Widget _buildRemovedTombstone(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
+            Icon(
               Icons.remove_circle_outline,
               size: 64,
-              color: AppColors.neutralGray400,
+              color: scheme.outline,
             ),
             const SizedBox(height: 16),
             const Text(
@@ -763,9 +773,9 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Konten ini sudah tidak tersedia.',
-              style: TextStyle(fontSize: 14, color: AppColors.neutralGray500),
+              style: TextStyle(fontSize: 14, color: scheme.onSurfaceVariant),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
@@ -780,14 +790,15 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
   }
 
   Widget _buildError(BuildContext context, String message) {
+    final scheme = Theme.of(context).colorScheme;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(
+          Icon(
             Icons.error_outline,
             size: 64,
-            color: AppColors.statusError,
+            color: scheme.error,
           ),
           const SizedBox(height: 16),
           const Text(
@@ -797,9 +808,9 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
           const SizedBox(height: 8),
           Text(
             message,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
-              color: AppColors.neutralGray500,
+              color: scheme.onSurfaceVariant,
             ),
             textAlign: TextAlign.center,
           ),

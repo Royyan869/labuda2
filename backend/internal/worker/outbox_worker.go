@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	negotiationConsumer "github.com/labuda/backend/internal/commerce/negotiation/consumer"
 	orderApp "github.com/labuda/backend/internal/commerce/order/application"
 	disputeApp "github.com/labuda/backend/internal/governance/dispute/application"
 	moderationRepo "github.com/labuda/backend/internal/governance/moderation/infrastructure/repository"
@@ -1015,7 +1016,17 @@ func (w *OutboxWorker) SetupNegotiationHandlers(
 		notificationHandler,
 	)
 
-	w.log.Info("Negotiation event handlers registered (chat + notification fanout)")
+	// for_sale.sold — WIRED (owner decision, negotiation closure scope):
+	// the negotiation ForSaleSoldEventHandler notifies other buyers in their
+	// negotiation chats and bulk-cancels accepted unordered negotiations when
+	// a sale sells out (first-come-first-served honesty contract). Previously
+	// this handler existed but was never registered (HandlerUnregistered).
+	// NOTE: chat notifications only — no push notification fanout. The winning
+	// buyer's order flow owns their notification surface.
+	forSaleSoldHandler := negotiationConsumer.NewForSaleSoldEventHandler(db, chatService, w.log)
+	w.dispatcher.Register(events.EventForSaleSold, forSaleSoldHandler)
+
+	w.log.Info("Negotiation event handlers registered (chat + notification fanout + for_sale.sold)")
 	return w
 }
 

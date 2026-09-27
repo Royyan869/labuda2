@@ -25,49 +25,46 @@ class LanguageSelector extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final l10n = AppLocalizations.of(context)!;
     final localizationState = ref.watch(localizationControllerProvider);
     final currentLocale = localizationState.currentLocale;
 
     if (isCompact) {
-      return _buildCompactSelector(context, ref, isDark, currentLocale);
+      return _buildCompactSelector(context, ref, currentLocale);
     }
 
-    return _buildFullSelector(context, ref, isDark, l10n, currentLocale);
+    return _buildFullSelector(context, ref, l10n, currentLocale);
   }
 
   Widget _buildFullSelector(
     BuildContext context,
     WidgetRef ref,
-    bool isDark,
     AppLocalizations l10n,
     SupportedLocale currentLocale,
   ) {
+    final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: padding ?? EdgeInsets.zero,
       child: ListTile(
         leading: showLeadingIcon
             ? Icon(
                 Icons.language,
-                color: isDark
-                    ? AppColors.neutralGray300
-                    : AppColors.neutralGray600,
+                color: scheme.onSurfaceVariant,
               )
             : null,
         title: Text(
           l10n.language,
           style: TextStyle(
-            color: isDark ? AppColors.neutralGray200 : AppColors.neutralGray800,
+            color: scheme.onSurface,
             fontWeight: FontWeight.w500,
           ),
         ),
         trailing: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: isDark ? AppColors.darkGray700 : AppColors.neutralGray100,
+            color: scheme.surfaceContainerHigh,
             border: Border.all(
-              color: isDark ? AppColors.darkGray600 : AppColors.neutralGray300,
+              color: scheme.outlineVariant,
             ),
             borderRadius: BorderRadius.circular(8),
           ),
@@ -77,9 +74,7 @@ class LanguageSelector extends ConsumerWidget {
               isDense: true,
               icon: Icon(
                 Icons.keyboard_arrow_down,
-                color: isDark
-                    ? AppColors.neutralGray400
-                    : AppColors.neutralGray600,
+                color: scheme.onSurfaceVariant,
                 size: 16,
               ),
               items: SupportedLocale.values.map((locale) {
@@ -88,9 +83,7 @@ class LanguageSelector extends ConsumerWidget {
                   child: Text(
                     '${locale.flagEmoji} ${locale.displayName}',
                     style: TextStyle(
-                      color: isDark
-                          ? AppColors.neutralGray200
-                          : AppColors.neutralGray800,
+                      color: scheme.onSurface,
                       fontSize: 14,
                     ),
                   ),
@@ -120,16 +113,16 @@ class LanguageSelector extends ConsumerWidget {
   Widget _buildCompactSelector(
     BuildContext context,
     WidgetRef ref,
-    bool isDark,
     SupportedLocale currentLocale,
   ) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding:
           padding ?? const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray700 : AppColors.neutralGray100,
+        color: scheme.surfaceContainerHigh,
         border: Border.all(
-          color: isDark ? AppColors.darkGray600 : AppColors.neutralGray300,
+          color: scheme.outlineVariant,
         ),
         borderRadius: BorderRadius.circular(8),
       ),
@@ -139,7 +132,7 @@ class LanguageSelector extends ConsumerWidget {
           isDense: true,
           icon: Icon(
             Icons.keyboard_arrow_down,
-            color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray600,
+            color: scheme.onSurfaceVariant,
             size: 16,
           ),
           items: SupportedLocale.values.map((locale) {
@@ -148,9 +141,7 @@ class LanguageSelector extends ConsumerWidget {
               child: Text(
                 '${locale.flagEmoji} ${locale.shortName}',
                 style: TextStyle(
-                  color: isDark
-                      ? AppColors.neutralGray200
-                      : AppColors.neutralGray800,
+                  color: scheme.onSurface,
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
                 ),
@@ -178,7 +169,7 @@ class LanguageSelectorTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context)!;
     final localizationState = ref.watch(localizationControllerProvider);
     final currentLocale = localizationState.currentLocale;
@@ -186,13 +177,13 @@ class LanguageSelectorTile extends ConsumerWidget {
     return ListTile(
       leading: Icon(
         Icons.language,
-        color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray600,
+        color: scheme.onSurfaceVariant,
         size: 24,
       ),
       title: Text(
         l10n.language,
         style: TextStyle(
-          color: isDark ? AppColors.neutralGray200 : AppColors.neutralGray900,
+          color: scheme.onSurface,
           fontSize: 16,
           fontWeight: FontWeight.w500,
         ),
@@ -200,13 +191,13 @@ class LanguageSelectorTile extends ConsumerWidget {
       subtitle: Text(
         '${currentLocale.flagEmoji} ${currentLocale.displayName}',
         style: TextStyle(
-          color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray600,
+          color: scheme.onSurfaceVariant,
           fontSize: 14,
         ),
       ),
       trailing: Icon(
         Icons.chevron_right,
-        color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray500,
+        color: scheme.onSurfaceVariant,
       ),
       contentPadding:
           contentPadding ??
@@ -216,7 +207,6 @@ class LanguageSelectorTile extends ConsumerWidget {
   }
 
   void _showLanguageBottomSheet(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final l10n = AppLocalizations.of(context)!;
     final currentLocale = ref
         .read(localizationControllerProvider)
@@ -224,11 +214,11 @@ class LanguageSelectorTile extends ConsumerWidget {
 
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (BuildContext context) {
+        final scheme = Theme.of(context).colorScheme;
         return Container(
           padding: const EdgeInsets.all(20),
           child: Column(
@@ -241,9 +231,7 @@ class LanguageSelectorTile extends ConsumerWidget {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: isDark
-                        ? AppColors.neutralGray600
-                        : AppColors.neutralGray300,
+                    color: scheme.outlineVariant,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -254,9 +242,7 @@ class LanguageSelectorTile extends ConsumerWidget {
               Text(
                 l10n.language,
                 style: TextStyle(
-                  color: isDark
-                      ? AppColors.neutralGray200
-                      : AppColors.neutralGray900,
+                  color: scheme.onSurface,
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                 ),
@@ -275,9 +261,7 @@ class LanguageSelectorTile extends ConsumerWidget {
                   title: Text(
                     locale.displayName,
                     style: TextStyle(
-                      color: isDark
-                          ? AppColors.neutralGray200
-                          : AppColors.neutralGray900,
+                      color: scheme.onSurface,
                       fontSize: 16,
                       fontWeight: isSelected
                           ? FontWeight.w600
@@ -287,7 +271,7 @@ class LanguageSelectorTile extends ConsumerWidget {
                   trailing: isSelected
                       ? Icon(
                           Icons.check_circle,
-                          color: AppColors.primaryRed,
+                          color: scheme.primary,
                           size: 20,
                         )
                       : null,

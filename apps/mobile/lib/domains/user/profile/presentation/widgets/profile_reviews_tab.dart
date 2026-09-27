@@ -116,7 +116,7 @@ class _ProfileReviewsTabState extends ConsumerState<ProfileReviewsTab>
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     final ratingsAsync = ref.watch(
       getUserRatingSummaryProvider(userId: widget.userId),
@@ -152,16 +152,12 @@ class _ProfileReviewsTabState extends ConsumerState<ProfileReviewsTab>
             if (widget.isSeller)
               SliverToBoxAdapter(
                 child: Container(
-                  color: isDark
-                      ? AppColors.darkGray800
-                      : AppColors.neutralWhite,
+                  color: scheme.surface,
                   child: TabBar(
                     controller: _subTabController,
-                    labelColor: AppColors.primaryRed,
-                    unselectedLabelColor: isDark
-                        ? AppColors.neutralGray400
-                        : AppColors.neutralGray500,
-                    indicatorColor: AppColors.primaryRed,
+                    labelColor: scheme.primary,
+                    unselectedLabelColor: scheme.onSurfaceVariant,
+                    indicatorColor: scheme.primary,
                     indicatorWeight: 2,
                     tabs: const [
                       Tab(text: 'Diterima'),
@@ -185,7 +181,7 @@ class _ProfileReviewsTabState extends ConsumerState<ProfileReviewsTab>
             if ((!widget.isSeller || _currentSubTab == 1)
                 ? ratings.isNotEmpty
                 : summary.totalRatings > 0)
-              SliverToBoxAdapter(child: _buildFilterSection(isDark)),
+              SliverToBoxAdapter(child: _buildFilterSection(context)),
 
             // Loading indicator
             if (isLoadingRatings)
@@ -209,7 +205,7 @@ class _ProfileReviewsTabState extends ConsumerState<ProfileReviewsTab>
                         Icon(
                           Icons.filter_list_off,
                           size: 64,
-                          color: Colors.grey[400],
+                          color: scheme.outline,
                         ),
                         const SizedBox(height: 16),
                         Text(
@@ -217,7 +213,7 @@ class _ProfileReviewsTabState extends ConsumerState<ProfileReviewsTab>
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 16,
-                            color: Colors.grey[600],
+                            color: scheme.onSurfaceVariant,
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -255,10 +251,11 @@ class _ProfileReviewsTabState extends ConsumerState<ProfileReviewsTab>
     );
   }
 
-  Widget _buildFilterSection(bool isDark) {
+  Widget _buildFilterSection(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      color: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
+      color: scheme.surface,
       child: Wrap(
         spacing: 8,
         runSpacing: 8,
@@ -272,13 +269,11 @@ class _ProfileReviewsTabState extends ConsumerState<ProfileReviewsTab>
                 _selectedFilter = filter;
               });
             },
-            backgroundColor: isDark
-                ? AppColors.darkGray700
-                : AppColors.neutralGray100,
-            selectedColor: AppColors.primaryRed.withValues(alpha: 0.2),
-            checkmarkColor: AppColors.primaryRed,
+            backgroundColor: scheme.surfaceContainerHigh,
+            selectedColor: scheme.primary.withValues(alpha: 0.2),
+            checkmarkColor: scheme.primary,
             labelStyle: TextStyle(
-              color: isSelected ? AppColors.primaryRed : Colors.grey,
+              color: isSelected ? scheme.primary : scheme.onSurfaceVariant,
               fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
             ),
           );
@@ -334,13 +329,13 @@ class _ProfileReviewsTabState extends ConsumerState<ProfileReviewsTab>
     dynamic author,
     required bool isReceived,
   }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
-      elevation: isDark ? 4 : 2,
+      elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      color: isDark ? AppColors.darkGray700 : AppColors.neutralWhite,
+      color: scheme.surface,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -364,9 +359,7 @@ class _ProfileReviewsTabState extends ConsumerState<ProfileReviewsTab>
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: isDark
-                              ? AppColors.neutralWhite
-                              : AppColors.neutralGray900,
+                          color: scheme.onSurface,
                         ),
                       ),
                       if (!isReceived) ...[
@@ -374,9 +367,7 @@ class _ProfileReviewsTabState extends ConsumerState<ProfileReviewsTab>
                           'Rated this seller',
                           style: TextStyle(
                             fontSize: 12,
-                            color: isDark
-                                ? AppColors.neutralGray400
-                                : AppColors.neutralGray500,
+                            color: scheme.onSurfaceVariant,
                           ),
                         ),
                       ],
@@ -387,13 +378,11 @@ class _ProfileReviewsTabState extends ConsumerState<ProfileReviewsTab>
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    _buildStarRating(rating.ratingValue, 14),
+                    _buildStarRating(context, rating.ratingValue, 14),
                     const SizedBox(height: 2),
                     TimeAgoWidget.compact(
                       dateTime: rating.createdAt,
-                      color: isDark
-                          ? AppColors.neutralGray400
-                          : AppColors.neutralGray500,
+                      color: scheme.onSurfaceVariant,
                       fontSize: 11,
                     ),
                   ],
@@ -407,9 +396,7 @@ class _ProfileReviewsTabState extends ConsumerState<ProfileReviewsTab>
                 style: TextStyle(
                   fontSize: 14,
                   height: 1.4,
-                  color: isDark
-                      ? AppColors.neutralGray200
-                      : AppColors.neutralGray700,
+                  color: scheme.onSurface,
                 ),
               ),
             ],
@@ -428,14 +415,14 @@ class _ProfileReviewsTabState extends ConsumerState<ProfileReviewsTab>
     );
   }
 
-  Widget _buildStarRating(int rating, double size) {
+  Widget _buildStarRating(BuildContext context, int rating, double size) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: List.generate(5, (index) {
         return Icon(
           index < rating ? Icons.star : Icons.star_border,
           size: size,
-          color: Colors.amber,
+          color: AppColors.koiGold,
         );
       }),
     );

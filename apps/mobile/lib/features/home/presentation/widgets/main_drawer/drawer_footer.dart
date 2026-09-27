@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 
 /// Drawer footer component dengan version info
 ///
@@ -9,14 +8,14 @@ class MainDrawerFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Container(
       padding: const EdgeInsets.all(16),
       child: Text(
         'Version 1.0.0',
         style: TextStyle(
-          color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray500,
+          color: scheme.onSurfaceVariant,
           fontSize: 12,
         ),
       ),

@@ -1,51 +1,44 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/shared.dart';
 
 /// Empty State Widget untuk Address List
 class AddressEmptyStateWidget extends StatelessWidget {
   final VoidCallback onAddAddress;
-  final bool isDark;
 
   const AddressEmptyStateWidget({
     super.key,
     required this.onAddAddress,
-    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Icon
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: AppColors.primaryRed.withValues(alpha: 0.1),
+              color: scheme.primary.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.location_on_outlined,
               size: 64,
-              color: AppColors.primaryRed,
+              color: scheme.primary,
             ),
           ),
           const SizedBox(height: 24),
-
-          // Title
           Text(
             'No Address Yet',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: isDark ? AppColors.neutralWhite : AppColors.neutralGray900,
+              color: scheme.onSurface,
             ),
           ),
           const SizedBox(height: 8),
-
-          // Description
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 48),
             child: Text(
@@ -53,15 +46,11 @@ class AddressEmptyStateWidget extends StatelessWidget {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
-                color: isDark
-                    ? AppColors.neutralGray400
-                    : AppColors.neutralGray600,
+                color: scheme.onSurfaceVariant,
               ),
             ),
           ),
           const SizedBox(height: 32),
-
-          // Add Button
           SizedBox(
             width: 200,
             child: AppButton.primary(

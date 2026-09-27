@@ -88,8 +88,12 @@ Dilarang rollback/restore dari GitHub — semua perbaikan maju.
    sesuai keputusan owner purge bio seller).
 4. Break lib lain: 7 warning `lib/` (unused import/element/field,
    hidden name RefundRequest/RefundStatus) — kecil, sekali jalan.
-5. Test debt pre-existing commerce (terverifikasi baseline):
-   `auction_detail_screen_runtime_test` x3, `auction_detail_header_media_test`.
+5. ~~Test debt pre-existing commerce~~ ✅ SELESAI (scope For Sale vs Auction,
+   laporan §11 di bawah): `auction_detail_screen_runtime_test` **6/6 hijau**
+   (akar: harness tidak menyediakan `savedItemRepositoryProvider` →
+   `apiClientProvider` error state → `CommerceDetailSellerCard` melempar
+   ProviderException saat `watch`; plus media shimmer vs fake-async),
+   `auction_detail_header_media_test` **2/2 hijau**.
 6. Test debt non-commerce dari daftar lama (perlu re-baseline dulu):
    promoted feed HTTP-mock, `/settings` toggle, `saved_item` backend contract.
 
@@ -757,3 +761,197 @@ Semua keputusan yang tertahan kini dieksekusi — hasil, bukan opsi:
 - **Temuan operasional:** ada `go.exe` yatim (PID15016, start12:08:08) dari
   run yang kena kill — kemungkinan ia yang memegang lock sehingga migrasi test
   DB macet. Tidak kubunuh karena kepemilikannya bisa jadi agen lain.
+
+## Scope — For Sale vs Auction Consistency (Scope C + A + B) — laporan §11
+
+### 1. Verdict
+SELESAI dan HIJAU. Satu Product = satu authority konten: wire auction (list +
+detail) kini membawa blok Product yang sama dengan for_sale dan parity-nya
+dikunci test backend. Presentasi kedua channel dikonvergensikan ke satu
+skeleton: grid/kartu discovery (2 kolom) dan detail (states + CustomScrollView +
+product section + seller card). Zombie `auction_list_screen.dart` dimatikan.
+Parkiran commerce (`auction_detail_screen_runtime_test` x3 +
+`auction_detail_header_media_test` x2) MATI — akarnya dipin, bukan diwarisi.
+Bukti akhir: mobile 271/271 hijau, `flutter analyze` 0 error; backend build +
+3 paket commerce hijau.
+
+### 2. Root cause
+1. **Konten dual authority.** `auctionToResponseWithSeller` hanya mengirim
+   ringkasan sementara for_sale mengirim Product penuh — satu Product, dua
+   kebenaran di wire (detail auction bahkan memakai projection signature
+   terpisah).
+2. **Presentasi tumbuh per channel.** Kartu: `return Card(` + badge manual +
+   deskripsi di kartu; grid: `ListView.builder`/`SliverList` yang berbeda di 4
+   surface; detail: for_sale memakai `SingleChildScrollView` + seller card lokal
+   + section prep lokal, auction memakai header media sendiri.
+3. **Zombie.** `auction_list_screen.dart` = browse surface tanpa route.
+4. **Parkiran test — akar sebenarnya (bukan "harness lama"):** harness
+   `auction_detail_screen_runtime_test` tidak menyediakan
+   `savedItemRepositoryProvider`; `CommerceSavedItemActionButton.initState`
+   membaca repository → `apiClientProvider` throw → provider masuk error state.
+   Setelah itu `CommerceDetailSellerCard` (membaca `profileStreamProvider` untuk
+   foto toko — perilaku ini SUDAH ADA di HEAD `auction_seller_card.dart:27`)
+   melempar `ProviderException: Tried to use a provider that is in error state`.
+   Ditambah: shimmer media (`CachedNetworkImage`) tidak settle di fake-async →
+   `pumpAndSettle` timeout. Harness for_sale hijau karena sudah menyediakan
+   `_FakeSavedItemRepository` — pola kanonik yang sama dipakai
+   `auction_detail_restriction_dispatch_test.dart`.
+
+### 3. Canonical behavior setelah perbaikan
+- **Product = 1 authority konten** di kedua channel; 14 key konten (media,
+  media_urls, variety, size_cm, age_months, gender, breeder, bloodline,
+  certificates, farm_address_id, preparation_time, preparation_note, …) di list
+  & detail; `viewer_capabilities` hanya di DETAIL.
+- **Discovery:** satu grid 2 kolom (`CommerceMarketplaceGrid`) di 4 surface;
+  satu shell kartu + satu seller block (`CommerceCardSellerMetadata`); tanpa
+  deskripsi di kartu (kartu = ringkasan, detail = kebenaran).
+- **Detail:** satu skeleton identik antar channel — `CommerceDetailStates`
+  (loading/error/notFound) + `AppBarCustom` + `CustomScrollView` + slot judul +
+  `CommerceCommonProductDetailSection` + `CommerceDetailSellerCard` + action bar
+  capability-driven; media `MediaCarouselWidget` rasio 4/3 di kedua channel.
+- **Seller identity detail = 1 authority** (`CommerceDetailSellerCard`):
+  @username line1, nama toko line2, degraded → label redaksi + tap mati, tier
+  badge digate lifecycle; channel hanya menyuplai fakta entity.
+- Auction: bottom bar `Chat` + `Pasang Bid`; ForSale: Chat/Ajukan
+  Penawaran/Beli Sekarang; Promote = IconButton AppBar (owner + status active).
+- Uang kanonik `formatGroupedAmount` (`Rp 50.000`) di semua permukaan.
+
+### 4. File yang berubah (file inti scope; working tree multi-agen)
+- **Backend (5):** `auction/delivery/http/auction_handler.go`,
+  `auction/delivery/http/auction_detail_response_projection.go` (signature
+  `(a, sellerCard, sellerInfo, product, viewerID)`),
+  `commerce/shared/product_content_wire.go` (BARU, 14 key),
+  `auction/…/auction_list_content_parity_test.go` (BARU),
+  `forsale/…/for_sale_list_content_parity_test.go` (BARU).
+- **Mobile lib (17):** auction → `auction.dart`, `data/dto/auction_dto.dart`
+  (+`farmAddressId`), `data/mappers/auction_mapper.dart`,
+  `presentation/presentation.dart`, `screens/auction_detail_screen.dart`,
+  `screens/create_auction_screen.dart`, `widgets/auction_card.dart`,
+  `widgets/detail/{auction_detail_header,auction_detail_info,auction_seller_card,
+  auction_bid_section,auction_bid_history}.dart`; `screens/auction_list_screen.dart`
+  (DIHAPUS); for_sale → `domain/entities/for_sale.dart`,
+  `presentation/providers/for_sale_providers.dart`,
+  `screens/create_for_sale_screen.dart`, `screens/for_sale_detail_screen.dart`
+  (tulis ulang), `screens/for_sale_list_screen.dart`, `widgets/for_sale_card.dart`;
+  shared → `presentation/sender_address_provider.dart` (BARU),
+  `presentation/widgets/commerce_card_seller_metadata.dart` (BARU),
+  `commerce_detail_seller_card.dart` (BARU), `commerce_detail_states.dart` (BARU),
+  `commerce_marketplace_primitives.dart`; `shared/governance/seller_tier_badge.dart`.
+- **Mobile test (9):** `for_sale/for_sale_detail_screen_runtime_test.dart`,
+  `shared/commerce_detail_negative_contracts_test.dart` (kontrak paritas detail),
+  `auction/…/auction_detail_header_media_test.dart`,
+  `auction/auction_media_source_contract_test.dart`,
+  `auction/auction_response_dto_shipping_origin_test.dart`,
+  `auction/auction_detail_screen_runtime_test.dart` (parkiran dimatikan),
+  `test/features/commerce/marketplace_surface_contract_test.dart`,
+  `test/core/theme/theme_authority_contract_test.dart` (BARU),
+  `test/shared/governance/seller_tier_stage2_test.dart`.
+
+### 5. Residue yang dihapus
+- `auction_list_screen.dart` + 2 export barrel (dengan komentar penanda).
+- Kartu: `return Card(`, badge manual, deskripsi di kartu, `Positioned(`.
+- Discovery: `ListView.builder(`/`SliverList(` di 4 surface.
+- Detail for_sale: `_ForSaleSellerCard`, `_PromoteButton`, section prep lokal,
+  `SingleChildScrollView`; detail auction: header PageView lokal, seller card
+  lokal, section bid lokal → semua ke widget kanonik shared.
+- Sapuan sisa: `SingleChildScrollView` hanya di dialog
+  `auction_claim_shipping_modal.dart` (dialog, bukan detail — sengaja);
+  "Fixed-Price" hanya di doc comment use case harga tetap (istilah benar).
+
+### 6. Commands dan hasil (bukti akhir)
+- `go build ./...` (backend) → exit 0.
+- `go test ./internal/commerce/shared/... ./internal/commerce/auction/delivery/http/... ./internal/commerce/forsale/delivery/http/...` → ok (3 paket).
+- `flutter analyze` (mobile) → **187 issues, 0 error**.
+- `flutter test test/domains/commerce/catalog test/features/commerce test/core/theme test/shared/governance` → **+271, 0 gagal** (sebelum parkiran dimatikan: +268 −3; total test sama = 271, jadi nol degradasi).
+- `flutter test …/auction_detail_screen_runtime_test.dart` → **6/6**.
+- `flutter test …/auction_detail_header_media_test.dart …/for_sale_detail_screen_runtime_test.dart` → **9/9**.
+
+### 7. Temuan di luar scope (tidak disentuh)
+- Working tree multi-agen: 465 file berubah/untracked; scope ini ±31 file.
+  File commerce lain (negotiation, order, checkout, subscription) milik sesi/agen
+  paralel — jangan ikut di-stage.
+- Parkiran lain di luar scope ini:
+  - `saved_item_runtime_authority_test` — **diverifikasi ulang sesi ini: 4 gagal / 2 lulus**,
+    semua asersi (judul item `For Sale Item`/`Saved ForSale`/`Saved Auction` tidak
+    render). Domain `user/preference/saved_item` tidak tersentuh (git status =
+    HEAD) dan nol referensi ke widget scope ini → baseline, bukan regresi scope.
+  - harness feed/promoted, dsb. — statusnya masih seperti catatan sesi sebelumnya,
+    tidak dijalankan ulang sesi ini.
+
+### 8. Risiko / belum terbukti
+- Verifikasi visual device belum (owner retest): kartu 2 kolom di kedua tab
+  discovery dan urutan section detail di kedua channel.
+- Test dengan fixture media + `pumpAndSettle` akan timeout (shimmer): pakai
+  bounded pumps (pola sudah ditulis di dua file detail runtime).
+- `CommerceDetailSellerCard` membaca `profileStreamProvider` (poller 30 detik)
+  untuk foto toko — benar di produksi (authority FarmInfo), tapi harness yang
+  merender kartu ini WAJIB menyediakan `savedItemRepositoryProvider`; kalau
+  tidak, kegagalannya menyesatkan (ProviderException, bukan asersi).
+
+### 9. Git status
+Belum di-commit (owner belum minta). 1 file terhapus
+(`auction_list_screen.dart`), 4 file baru di lib commerce shared, 3 test baru
+(2 parity backend + 1 theme authority mobile).
+
+### 10. Owner retest
+Perlu — sekali lihat: (a) tab For Sale & Lelang di marketplace (grid 2 kolom,
+kartu identik), (b) detail satu for_sale dan satu auction (urutan section sama,
+harga tergrup, seller card sama), (c) Promote hanya muncul untuk owner listing
+aktif.
+
+## Sapuan bunuh tambahan — For Sale vs Auction (sesi sama, setelah laporan §11)
+
+Klaim "bersih" sebelumnya TIDAK cukup bukti. Sapuan ulang dengan standar §4
+(clean = total clean), §11 (zombie) dan §16 (decision rule) menemukan 5 sisa;
+semuanya sudah DIEKSEKUSI, bukan dilaporkan:
+
+1. **ZOMBIE — `for_sale_media_handler.dart` (335 baris) + test pemelihara
+   `listing_media_handler_validation_test.dart`.** Authority faktual =
+   `MediaGridUploader` (dipakai create_auction, create_for_sale, edit_for_sale)
+   dan komentar orchestrator sudah menyatakan "Replaces duplicated logic".
+   Kedua file DIHAPUS; roster theme di-align (entry file terhapus = dead, bukan
+   migration — preseden auction_list_screen); komentar orchestrator dibetulkan
+   (nama kelas mati dibuang); komentar "FACTUAL BLOCKER" di restriction_dispatch
+   test dibetulkan (mekanisme kini MediaGridUploader, kesimpulan blocker tetap).
+   **Catatan jujur:** file membawa 1 edit worktree milik sesi lain (warna icon
+   `AppColors.primaryRed` → `colorScheme.primary`) yang ikut hilang bersama
+   file; tidak ada fitur/klaim lain yang terbuang.
+2. **PROXY — `_buildLoadingScaffold()` di auction_detail_screen** (forwarder 1
+   baris) → inline ke `CommerceDetailStates.loading`; kontrak paritas ditulis
+   ulang: kedua channel kini di-assert memanggil `CommerceDetailStates.` +
+   negative proof (channel tidak boleh menggambar spinner/error icon sendiri;
+   spinner tunggal auction = busy dialog aksi, bukan state halaman).
+3. **TERMINOLOGI — `get_for_sale_share_reference_usecase.dart`**: "Fixed-Price-
+   Sale" → "For Sale" (2 baris) → `lib/` bebas `Fixed-Price`.
+4. **DUPLIKAT + INKONSISTENSI CHANNEL — dua `_buildAccessGate` private**
+   (for_sale vs auction) dengan chrome sudah menyimpang (icon lock 56 vs
+   storefront 64, spacing beda, appbar beda, wiring tombol beda), gate
+   unauthenticated auction = teks telanjang tanpa judul/tombol, gate loading
+   hanya di for_sale → authority baru **`CommerceAccessGate`**; kedua screen
+   memakainya; auction kini hydrate → `CommerceDetailStates.loading('Buat
+   Lelang')`, restricted → `AccountRestrictedScreen`, unauthenticated → gate
+   penuh (paritas for_sale). 2 pin test di-align (loading → spinner; restricted
+   → AccountRestrictedScreen); copy login TIDAK berubah (masih dipin dua channel).
+5. **DIAGNOSTIK — helper `_block` mati** di `auction_media_source_contract_test`.
+
+### Hasil setelah sapuan ini
+- `flutter analyze` → **186 issue, 0 error**, nol issue di file yang disentuh.
+- Suite scoped (catalog + features/commerce + core/theme + shared/governance) →
+  **264/264 hijau** (271 − 7 test pemelihara zombie yang ikut dihapus; nol gagal).
+- Sweep akhir: `ForSaleMediaHandler` lib=0, `_buildAccessGate` 0/0,
+  `_buildLoadingScaffold` 0/0, `Fixed-Price` lib=0, `listing_media_handler_validation` 0/0.
+
+### Sisa yang TIDAK dibunuh — dengan alasan, bukan alibi
+- `seller_auctions_screen.dart:273 return Card(` — surface manajemen seller,
+  bukan 4 surface discovery yang di-ratchet; di luar scope (§13).
+- `auction_claim_shipping_modal.dart:306 SingleChildScrollView` — badan modal,
+  bukan scroll detail.
+- `_buildErrorScaffold` / `_buildNotFoundScaffold` (auction_detail_screen) —
+  punya tanggung jawab nyata (peta pola error → copy user; sumber tunggal copy
+  "tidak ditemukan" untuk 2 pemanggil) → bukan proxy; inline justru menduplikasi copy.
+- `Fixed-Price|fixed-price-sale` di **test** domain lain (10: 2 judul + 8 literal
+  fixture) — bukan authority; domain lain (§13).
+- Anti-hidup-lagi terkunci ratchet: `marketplace_surface_contract_test` (grid
+  wajib; `ListView.builder(`/`SliverList(`/`return Card(`/`Positioned(` dilarang
+  di 4 surface + 2 kartu) dan `commerce_detail_negative_contracts_test` (kedua
+  channel wajib `CommerceDetailStates.`, dilarang spinner/icon sendiri).

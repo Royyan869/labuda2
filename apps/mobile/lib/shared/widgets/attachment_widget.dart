@@ -63,13 +63,11 @@ class AttachmentWidget extends ConsumerWidget {
     }
 
     // Fallback for unknown attachment types
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isDark
-            ? AppColors.darkGray700.withValues(alpha: 0.5)
-            : AppColors.neutralGray200.withValues(alpha: 0.5),
+        color: scheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
@@ -77,7 +75,7 @@ class AttachmentWidget extends ConsumerWidget {
         style: TextStyle(
           fontSize: 12,
           fontStyle: FontStyle.italic,
-          color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray600,
+          color: scheme.onSurfaceVariant,
         ),
       ),
     );
@@ -98,7 +96,7 @@ class AttachmentWidget extends ConsumerWidget {
     BuildContext context,
     NegotiationProposalAttachment proposal,
   ) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     final statusColor = AppColors.coinPrimary;
     final headerLabel = proposal.isInitialProposal
         ? 'Penawaran Awal'
@@ -107,7 +105,7 @@ class AttachmentWidget extends ConsumerWidget {
     return Container(
       constraints: const BoxConstraints(maxWidth: 280),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
+        color: scheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: statusColor.withValues(alpha: 0.4),
@@ -152,7 +150,7 @@ class AttachmentWidget extends ConsumerWidget {
                   'Harga Penawaran',
                   style: TextStyle(
                     fontSize: 11,
-                    color: AppColors.neutralGray500,
+                    color: scheme.onSurfaceVariant,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -161,9 +159,7 @@ class AttachmentWidget extends ConsumerWidget {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: isDark
-                        ? AppColors.neutralWhite
-                        : AppColors.neutralGray900,
+                    color: scheme.onSurface,
                   ),
                 ),
                 if (proposal.note != null && proposal.note!.isNotEmpty) ...[
@@ -172,9 +168,7 @@ class AttachmentWidget extends ConsumerWidget {
                     proposal.note!,
                     style: TextStyle(
                       fontSize: 12,
-                      color: isDark
-                          ? AppColors.neutralGray300
-                          : AppColors.neutralGray700,
+                      color: scheme.onSurface,
                     ),
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
@@ -196,7 +190,7 @@ class AttachmentWidget extends ConsumerWidget {
     ShippingQuoteAttachment shipping, {
     bool isActiveQuote = false,
   }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     final itemName = shipping.linkedItemName.trim().isEmpty
         ? 'Penawaran Ongkir'
         : shipping.linkedItemName;
@@ -231,8 +225,8 @@ class AttachmentWidget extends ConsumerWidget {
         break;
       case 'USED':
         statusLabel = 'Sudah digunakan';
-        statusColor = AppColors.neutralGray500;
-        statusBgColor = AppColors.neutralGray500.withValues(alpha: 0.15);
+        statusColor = scheme.onSurfaceVariant;
+        statusBgColor = scheme.onSurfaceVariant.withValues(alpha: 0.15);
         canInteract = false;
         break;
       case 'INVALID':
@@ -243,15 +237,15 @@ class AttachmentWidget extends ConsumerWidget {
         break;
       default:
         statusLabel = 'Status Tidak Diketahui';
-        statusColor = AppColors.neutralGray500;
-        statusBgColor = AppColors.neutralGray500.withValues(alpha: 0.15);
+        statusColor = scheme.onSurfaceVariant;
+        statusBgColor = scheme.onSurfaceVariant.withValues(alpha: 0.15);
         canInteract = false;
     }
 
     return Container(
       constraints: const BoxConstraints(maxWidth: 280),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
+        color: scheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: canInteract
@@ -326,9 +320,7 @@ class AttachmentWidget extends ConsumerWidget {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
-                    color: isDark
-                        ? AppColors.neutralWhite
-                        : AppColors.neutralGray900,
+                    color: scheme.onSurface,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -344,9 +336,7 @@ class AttachmentWidget extends ConsumerWidget {
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
-                        color: isDark
-                            ? AppColors.neutralWhite
-                            : AppColors.neutralGray900,
+                        color: scheme.onSurface,
                       ),
                     ),
                   ],
@@ -362,7 +352,7 @@ class AttachmentWidget extends ConsumerWidget {
                       'Ongkir + Packing',
                       style: TextStyle(
                         fontSize: 12,
-                        color: AppColors.neutralGray500,
+                        color: scheme.onSurfaceVariant,
                       ),
                     ),
                     Text(
@@ -370,7 +360,7 @@ class AttachmentWidget extends ConsumerWidget {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.primaryRed,
+                        color: scheme.primary,
                       ),
                     ),
                   ],
@@ -382,14 +372,14 @@ class AttachmentWidget extends ConsumerWidget {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppColors.neutralGray100,
+                      color: scheme.surfaceContainerHigh,
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
                       shipping.notes!,
                       style: TextStyle(
                         fontSize: 11,
-                        color: AppColors.neutralGray600,
+                        color: scheme.onSurfaceVariant,
                       ),
                     ),
                   ),
@@ -402,14 +392,14 @@ class AttachmentWidget extends ConsumerWidget {
                     Icon(
                       Icons.access_time,
                       size: 11,
-                      color: AppColors.neutralGray500,
+                      color: scheme.onSurfaceVariant,
                     ),
                     const SizedBox(width: 4),
                     Text(
                       'Berlaku sampai ${_formatDate(shipping.validUntil)}',
                       style: TextStyle(
                         fontSize: 10,
-                        color: AppColors.neutralGray500,
+                        color: scheme.onSurfaceVariant,
                       ),
                     ),
                   ],
@@ -431,11 +421,11 @@ class AttachmentWidget extends ConsumerWidget {
                               ),
                               foregroundColor: canInteract
                                   ? null
-                                  : AppColors.neutralGray400,
+                                  : scheme.onSurfaceVariant,
                               side: BorderSide(
                                 color: canInteract
-                                    ? AppColors.statusError
-                                    : AppColors.neutralGray300,
+                                    ? scheme.error
+                                    : scheme.outlineVariant,
                               ),
                             ),
                             child: const Text(
@@ -452,9 +442,11 @@ class AttachmentWidget extends ConsumerWidget {
                             onPressed: canInteract ? onPurchase : null,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: canInteract
-                                  ? AppColors.primaryRed
-                                  : AppColors.neutralGray300,
-                              foregroundColor: Colors.white,
+                                  ? scheme.primary
+                                  : scheme.surfaceContainerHighest,
+                              foregroundColor: canInteract
+                                  ? scheme.onPrimary
+                                  : scheme.onSurfaceVariant,
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 8,
                                 vertical: 6,

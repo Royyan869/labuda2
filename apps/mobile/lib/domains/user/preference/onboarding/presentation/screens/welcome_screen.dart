@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/shared/shared.dart';
 
 /// Welcome screen dengan professional branding dan smooth animations.
 ///
@@ -65,7 +66,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return PopScope(
       canPop: false,
@@ -91,19 +92,14 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
         }
       },
       child: Scaffold(
+        backgroundColor: scheme.surfaceContainerLowest,
         body: Container(
           decoration: BoxDecoration(
-            gradient: isDark
-                ? const LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [AppColors.darkGray900, AppColors.darkGray800],
-                  )
-                : const LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [AppColors.neutralGray50, AppColors.neutralWhite],
-                  ),
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [scheme.surfaceContainerLowest, scheme.surface],
+            ),
           ),
           child: SafeArea(
             child: Padding(
@@ -181,32 +177,29 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
   }
 
   Widget _buildHomeIcon() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final iconColor = isDark
-        ? AppColors.neutralGray300
-        : AppColors.neutralGray600;
-
     return IconButton(
       onPressed: _navigateToHome,
-      icon: Icon(Icons.home_outlined, color: iconColor),
+      icon: Icon(
+        Icons.home_outlined,
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+      ),
       tooltip: 'Home',
     );
   }
 
+  /// Theme toggle delegates to the canonical shared picker sheet
+  /// ([showThemeSelectionSheet]) — the local copy is purged.
   Widget _buildThemeToggle() {
     return Consumer(
       builder: (context, ref, child) {
         final themeState = ref.watch(themeControllerProvider);
-        final isDark = themeState.isDarkMode(context);
-        final iconColor = isDark
-            ? AppColors.neutralGray300
-            : AppColors.neutralGray600;
+        final scheme = Theme.of(context).colorScheme;
 
         return IconButton(
-          onPressed: () => _showThemeBottomSheet(context, ref),
+          onPressed: () => showThemeSelectionSheet(context, ref),
           icon: Icon(
-            _getThemeIcon(themeState.themeMode, isDark),
-            color: iconColor,
+            themeState.themeMode.icon,
+            color: scheme.onSurfaceVariant,
           ),
           tooltip: 'Change Theme',
         );
@@ -214,138 +207,10 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
     );
   }
 
-  IconData _getThemeIcon(ThemeMode themeMode, bool isDark) {
-    switch (themeMode) {
-      case ThemeMode.light:
-        return Icons.light_mode;
-      case ThemeMode.dark:
-        return Icons.dark_mode;
-      case ThemeMode.system:
-        return Icons.brightness_auto;
-    }
-  }
-
-  String _getThemeDisplayName(ThemeMode themeMode) {
-    switch (themeMode) {
-      case ThemeMode.light:
-        return 'Light';
-      case ThemeMode.dark:
-        return 'Dark';
-      case ThemeMode.system:
-        return 'System';
-    }
-  }
-
-  void _showThemeBottomSheet(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final currentTheme = ref.read(themeControllerProvider).themeMode;
-
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (BuildContext context) {
-        return Container(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Handle bar
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? AppColors.neutralGray600
-                        : AppColors.neutralGray300,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Title
-              Text(
-                'Theme',
-                style: TextStyle(
-                  color: isDark
-                      ? AppColors.neutralGray200
-                      : AppColors.neutralGray900,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Theme options
-              ...ThemeMode.values.map((themeMode) {
-                final isSelected = themeMode == currentTheme;
-                return ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: Icon(
-                    _getThemeIcon(themeMode, isDark),
-                    color: isSelected
-                        ? AppColors.primaryRed
-                        : (isDark
-                              ? AppColors.neutralGray400
-                              : AppColors.neutralGray600),
-                    size: 24,
-                  ),
-                  title: Text(
-                    _getThemeDisplayName(themeMode),
-                    style: TextStyle(
-                      color: isDark
-                          ? AppColors.neutralGray200
-                          : AppColors.neutralGray900,
-                      fontSize: 16,
-                      fontWeight: isSelected
-                          ? FontWeight.w600
-                          : FontWeight.w500,
-                    ),
-                  ),
-                  subtitle: themeMode == ThemeMode.system
-                      ? Text(
-                          'Follow system setting',
-                          style: TextStyle(
-                            color: isDark
-                                ? AppColors.neutralGray500
-                                : AppColors.neutralGray500,
-                            fontSize: 12,
-                          ),
-                        )
-                      : null,
-                  trailing: isSelected
-                      ? Icon(
-                          Icons.check_circle,
-                          color: AppColors.primaryRed,
-                          size: 20,
-                        )
-                      : null,
-                  onTap: () {
-                    if (themeMode != currentTheme) {
-                      ref
-                          .read(themeControllerProvider.notifier)
-                          .setThemeMode(themeMode);
-                    }
-                    Navigator.of(context).pop();
-                  },
-                );
-              }),
-
-              const SizedBox(height: 20),
-            ],
-          ),
-        );
-      },
-    );
-  }
+  // _showThemeBottomSheet: PURGED — canonical shared showThemeSelectionSheet.
 
   Widget _buildLogo() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     return Column(
       children: [
         // LABUDA app logo
@@ -356,9 +221,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: isDark
-                    ? Colors.black.withValues(alpha: 0.3)
-                    : Colors.grey.withValues(alpha: 0.2),
+                color: scheme.shadow.withValues(alpha: 0.25),
                 blurRadius: 16,
                 offset: const Offset(0, 6),
               ),
@@ -383,9 +246,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
           style: Theme.of(context).textTheme.headlineLarge?.copyWith(
             fontWeight: FontWeight.bold,
             letterSpacing: 2.0,
-            color: Theme.of(context).brightness == Brightness.dark
-                ? AppColors.neutralWhite
-                : AppColors.neutralGray900,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
       ],
@@ -401,9 +262,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
             fontWeight: FontWeight.w600,
             height: 1.2,
-            color: Theme.of(context).brightness == Brightness.dark
-                ? AppColors.neutralGray100
-                : AppColors.neutralGray800,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
 
@@ -413,9 +272,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
           'Social commerce platform for\nkoi enthusiasts in Indonesia',
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-            color: Theme.of(context).brightness == Brightness.dark
-                ? AppColors.neutralGray400
-                : AppColors.neutralGray600,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
             height: 1.5,
           ),
         ),
@@ -433,8 +290,11 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
           child: OutlinedButton(
             onPressed: _navigateToSignUp,
             style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.primaryRed,
-              side: const BorderSide(color: AppColors.primaryRed, width: 2),
+              foregroundColor: Theme.of(context).colorScheme.primary,
+              side: BorderSide(
+                color: Theme.of(context).colorScheme.primary,
+                width: 2,
+              ),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -455,13 +315,9 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
           child: OutlinedButton(
             onPressed: _navigateToSignIn,
             style: OutlinedButton.styleFrom(
-              foregroundColor: Theme.of(context).brightness == Brightness.dark
-                  ? AppColors.neutralWhite
-                  : AppColors.neutralGray800,
+              foregroundColor: Theme.of(context).colorScheme.onSurface,
               side: BorderSide(
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? AppColors.darkGray600
-                    : AppColors.neutralGray300,
+                color: Theme.of(context).colorScheme.outline,
                 width: 1.5,
               ),
               shape: RoundedRectangleBorder(
@@ -482,9 +338,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
     return Text(
       'From koi lovers, for koi lovers',
       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-        color: Theme.of(context).brightness == Brightness.dark
-            ? AppColors.neutralGray500
-            : AppColors.neutralGray500,
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
         fontStyle: FontStyle.italic,
       ),
     );

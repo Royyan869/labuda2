@@ -13,6 +13,7 @@ class SellerActionRequiredBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -55,7 +56,7 @@ class SellerActionRequiredBanner extends StatelessWidget {
                 Text(
                   _getActionMessage(),
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: Colors.grey,
+                    color: colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -101,27 +102,24 @@ class _TimelineStep {
 
 class OrderStatusTimeline extends StatelessWidget {
   final Order order;
-  final bool isDark;
 
   const OrderStatusTimeline({
     super.key,
     required this.order,
-    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final steps = _buildTimelineSteps();
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDark ? const Color(0xFF333333) : const Color(0xFFE0E0E0),
-        ),
+        border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -136,7 +134,6 @@ class OrderStatusTimeline extends StatelessWidget {
           ...steps.map(
             (step) => _TimelineStepTile(
               step: step,
-              isDark: isDark,
               isLast: steps.last == step,
             ),
           ),
@@ -297,18 +294,17 @@ class OrderStatusTimeline extends StatelessWidget {
 /// Timeline step tile widget
 class _TimelineStepTile extends StatelessWidget {
   final _TimelineStep step;
-  final bool isDark;
   final bool isLast;
 
   const _TimelineStepTile({
     required this.step,
-    required this.isDark,
     required this.isLast,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     // Determine colors based on state
     Color iconColor;
@@ -316,19 +312,17 @@ class _TimelineStepTile extends StatelessWidget {
     Color lineColor;
 
     if (step.isActive) {
-      iconColor = core.AppColors.primaryRed;
-      iconBgColor = core.AppColors.primaryRed.withValues(alpha: 0.1);
-      lineColor = core.AppColors.primaryRed;
+      iconColor = colorScheme.primary;
+      iconBgColor = colorScheme.primary.withValues(alpha: 0.1);
+      lineColor = colorScheme.primary;
     } else if (step.isCompleted) {
       iconColor = core.AppColors.statusSuccess;
       iconBgColor = core.AppColors.statusSuccess.withValues(alpha: 0.1);
       lineColor = core.AppColors.statusSuccess;
     } else {
-      iconColor = isDark ? Colors.grey.shade600 : Colors.grey.shade400;
-      iconBgColor = isDark
-          ? Colors.grey.shade800.withValues(alpha: 0.3)
-          : Colors.grey.shade200;
-      lineColor = isDark ? Colors.grey.shade700 : Colors.grey.shade300;
+      iconColor = colorScheme.onSurfaceVariant;
+      iconBgColor = colorScheme.surfaceContainerHighest;
+      lineColor = colorScheme.outlineVariant;
     }
 
     return Row(
@@ -368,16 +362,14 @@ class _TimelineStepTile extends StatelessWidget {
                     fontWeight: step.isActive
                         ? FontWeight.w600
                         : FontWeight.normal,
-                    color: step.isActive
-                        ? iconColor
-                        : (isDark ? Colors.white : Colors.black87),
+                    color: step.isActive ? iconColor : colorScheme.onSurface,
                   ),
                 ),
                 if (step.sublabel != null)
                   Text(
                     step.sublabel!,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: Colors.grey,
+                      color: colorScheme.onSurfaceVariant,
                     ),
                   ),
               ],

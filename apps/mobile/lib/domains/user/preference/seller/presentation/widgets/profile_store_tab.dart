@@ -15,6 +15,7 @@ import 'package:labuda/domains/commerce/catalog/auction/auction.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/widgets/auction_card.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/for_sale.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/widgets/for_sale_card.dart';
+import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_marketplace_primitives.dart';
 import 'package:labuda/shared/shared.dart';
 
 /// Main store tab with sub-tabs for commerce items
@@ -64,24 +65,22 @@ class _ForSaleTab extends ConsumerWidget {
 
     final forSalesAsync = ref.watch(sellerForSalesProvider(params));
 
-    return forSalesAsync.when(
-      data: (forSales) {
-        // Filter to show only active forSales (public view)
-        final activeForSales = forSales
-            .where((forSale) => forSale.status == ForSaleStatus.active)
-            .toList();
+    // CANONICAL LAYOUT: shared 2-column grid (public commerce surface).
+    final activeForSales = (forSalesAsync.asData?.value ?? const <ForSale>[])
+        .where((forSale) => forSale.status == ForSaleStatus.active)
+        .toList();
 
-        if (activeForSales.isEmpty) {
-          return _buildEmptyState(context);
-        }
-
-        return RefreshIndicator(
-          onRefresh: () async {
-            ref.invalidate(sellerForSalesProvider(params));
-          },
-          child: ListView.builder(
-            padding: const EdgeInsets.all(16),
+    return RefreshIndicator(
+      onRefresh: () async {
+        ref.invalidate(sellerForSalesProvider(params));
+      },
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          CommerceMarketplaceGrid(
             itemCount: activeForSales.length,
+            isLoading: forSalesAsync.isLoading,
+            error: forSalesAsync.hasError ? forSalesAsync.error : null,
             itemBuilder: (context, index) {
               final forSale = activeForSales[index];
               return ForSaleCard(
@@ -89,42 +88,19 @@ class _ForSaleTab extends ConsumerWidget {
                 onTap: () => _navigateToForSaleDetail(ref, forSale.forSaleId),
               );
             },
-          ),
-        );
-      },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, _) => Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error_outline, size: 48, color: AppColors.statusError),
-            const SizedBox(height: 16),
-            Text('Gagal memuat forSale', style: AppTypography.bodyLarge),
-            const SizedBox(height: 8),
-            Text(
-              error.toString(),
-              style: AppTypography.bodySmall.copyWith(
-                color: AppColors.neutralGray600,
-              ),
-              textAlign: TextAlign.center,
+            emptyBuilder: (context) => const EmptyState(
+              icon: Icons.storefront_outlined,
+              title: 'Belum ada for sale',
+              subtitle: 'Seller ini belum memiliki for sale aktif',
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEmptyState(BuildContext context) {
-    return ListView(
-      children: [
-        SizedBox(
-          height: MediaQuery.of(context).size.height * 0.5,
-          child: EmptyStateWidget.list(
-            title: 'Belum ada forSale',
-            subtitle: 'Seller ini belum memiliki forSale aktif',
+            errorBuilder: (context, error, stackTrace) => EmptyState.error(
+              title: 'Data belum bisa dimuat.',
+              subtitle: 'Periksa koneksi kamu lalu coba lagi.',
+              onRetry: () => ref.invalidate(sellerForSalesProvider(params)),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -148,27 +124,27 @@ class _AuctionTab extends ConsumerWidget {
     // One engine with For Sale: FutureProvider, not Stream
     final auctionsAsync = ref.watch(sellerAuctionsProvider(userId));
 
-    return auctionsAsync.when(
-      data: (auctions) {
-        // Canonical discoverable = scheduled (upcoming) + active; hide ended/cancelled/draft.
-        final activeAuctions = auctions
-            .where((a) =>
-                (a.status == AuctionStatus.scheduled ||
-                    a.status == AuctionStatus.active) &&
-                !a.hasEnded)
-            .toList();
+    // CANONICAL LAYOUT: shared 2-column grid (public commerce surface).
+    final activeAuctions = (auctionsAsync.asData?.value ?? const <Auction>[])
+        .where(
+          (a) =>
+              (a.status == AuctionStatus.scheduled ||
+                  a.status == AuctionStatus.active) &&
+              !a.hasEnded,
+        )
+        .toList();
 
-        if (activeAuctions.isEmpty) {
-          return _buildEmptyState(context);
-        }
-
-        return RefreshIndicator(
-          onRefresh: () async {
-            ref.invalidate(sellerAuctionsProvider(userId));
-          },
-          child: ListView.builder(
-            padding: const EdgeInsets.all(16),
+    return RefreshIndicator(
+      onRefresh: () async {
+        ref.invalidate(sellerAuctionsProvider(userId));
+      },
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          CommerceMarketplaceGrid(
             itemCount: activeAuctions.length,
+            isLoading: auctionsAsync.isLoading,
+            error: auctionsAsync.hasError ? auctionsAsync.error : null,
             itemBuilder: (context, index) {
               final auction = activeAuctions[index];
               return AuctionCard(
@@ -176,39 +152,19 @@ class _AuctionTab extends ConsumerWidget {
                 onTap: () => _navigateToAuctionDetail(ref, auction.id),
               );
             },
+            emptyBuilder: (context) => const EmptyState(
+              icon: Icons.gavel_outlined,
+              title: 'Belum ada lelang',
+              subtitle: 'Seller ini belum memiliki lelang aktif',
+            ),
+            errorBuilder: (context, error, stackTrace) => EmptyState.error(
+              title: 'Data belum bisa dimuat.',
+              subtitle: 'Periksa koneksi kamu lalu coba lagi.',
+              onRetry: () => ref.invalidate(sellerAuctionsProvider(userId)),
+            ),
           ),
-        );
-      },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, _) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.error_outline, size: 48, color: AppColors.statusError),
-              const SizedBox(height: 16),
-              Text('Gagal memuat lelang', style: AppTypography.bodyLarge),
-              const SizedBox(height: 8),
-              Text(error.toString(), textAlign: TextAlign.center, style: AppTypography.bodySmall),
-            ],
-          ),
-        ),
+        ],
       ),
-    );
-  }
-
-  Widget _buildEmptyState(BuildContext context) {
-    return ListView(
-      children: [
-        SizedBox(
-          height: MediaQuery.of(context).size.height * 0.5,
-          child: EmptyStateWidget.list(
-            title: 'Belum ada lelang',
-            subtitle: 'Seller ini belum memiliki lelang aktif',
-          ),
-        ),
-      ],
     );
   }
 

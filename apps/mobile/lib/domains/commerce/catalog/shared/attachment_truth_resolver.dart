@@ -18,8 +18,7 @@
 ///    - Content (via ShareReference): No live status needed (social content)
 ///
 /// 3. WORKFLOW PAYLOAD (domain-specific state - NO live status providers):
-///    - NegotiationOfferAttachment: Embedded status for display only (may be stale)
-///    - NegotiationResultAttachment: Embedded status for display only (may be stale)
+///    - NegotiationProposalAttachment: Backend-authoritative via session (Negotiation domain)
 ///    - ShippingQuoteAttachment: Embedded status for display only (may be stale)
 ///    - BidAttachment: Embedded bid for display only (may be stale)
 ///    - **R1.1 HONEST:** Use negotiationId/offerId for all business actions
@@ -357,8 +356,6 @@ final auctionAttachmentStatusProvider = FutureProvider.autoDispose
 Object? attachmentStatusProviderFor(Attachment attachment) {
   switch (attachment) {
     case LocationAttachment():
-    case NegotiationOfferAttachment():
-    case NegotiationResultAttachment():
     case ShippingQuoteAttachment():
     case BidAttachment():
       // **R1.1 HONEST:** These attachment types have no live status providers

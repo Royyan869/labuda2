@@ -9,7 +9,6 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/shared.dart';
 import '../../domain/entities/payment.dart';
 
@@ -34,7 +33,7 @@ class PaymentMethodPickerSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return SafeArea(
       child: Container(
@@ -42,7 +41,7 @@ class PaymentMethodPickerSheet extends StatelessWidget {
           maxHeight: MediaQuery.of(context).size.height * 0.75,
         ),
         decoration: BoxDecoration(
-          color: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
+          color: colorScheme.surface,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(
@@ -53,9 +52,7 @@ class PaymentMethodPickerSheet extends StatelessWidget {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: isDark
-                    ? AppColors.neutralGray600
-                    : AppColors.neutralGray300,
+                color: colorScheme.outlineVariant,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -66,9 +63,7 @@ class PaymentMethodPickerSheet extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: isDark
-                      ? AppColors.neutralWhite
-                      : AppColors.neutralGray900,
+                  color: colorScheme.onSurface,
                 ),
               ),
             ),

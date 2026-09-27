@@ -37,17 +37,26 @@ class ImageCountBadgeConfig {
 }
 
 /// Status badge configuration for overlays (SOLD, LIVE, etc.)
+/// Photo-overlay status config.
+///
+/// Overlays sit on photos (not theme surfaces), so their ink resolves at
+/// render time from the scheme: [backgroundColor]/[textColor] bind only
+/// semantic palette roles; a null background falls back to the neutral
+/// variant tone with surface ink, and [darkInk] selects scrim ink for
+/// light-amber fills. No raw white/hex, no brightness branch anywhere.
 class StatusOverlayConfig {
   final String label;
-  final Color backgroundColor;
-  final Color textColor;
+  final Color? backgroundColor;
+  final Color? textColor;
+  final bool darkInk;
   final IconData? icon;
   final BadgePosition position;
 
   const StatusOverlayConfig({
     required this.label,
-    required this.backgroundColor,
-    this.textColor = Colors.white,
+    this.backgroundColor,
+    this.textColor,
+    this.darkInk = false,
     this.icon,
     this.position = BadgePosition.topLeft,
   });
@@ -63,7 +72,7 @@ class StatusOverlayConfig {
   factory StatusOverlayConfig.reserved() => StatusOverlayConfig(
     label: 'RESERVED',
     backgroundColor: AppColors.statusWarning,
-    textColor: AppColors.neutralGray900,
+    darkInk: true,
     icon: Icons.bookmark,
   );
 
@@ -77,21 +86,20 @@ class StatusOverlayConfig {
   /// Factory for LIVE status
   factory StatusOverlayConfig.live() => StatusOverlayConfig(
     label: 'LIVE',
-    backgroundColor: AppColors.primaryRed,
+    backgroundColor: AppColors.error,
     icon: Icons.fiber_manual_record,
   );
 
   /// Factory for OUT OF STOCK status
   factory StatusOverlayConfig.outOfStock() => StatusOverlayConfig(
     label: 'HABIS',
-    backgroundColor: AppColors.neutralGray600,
     icon: Icons.do_not_disturb,
   );
 
   /// Factory for FEATURED status
   factory StatusOverlayConfig.featured() => StatusOverlayConfig(
     label: 'FEATURED',
-    backgroundColor: AppColors.primaryRed,
+    backgroundColor: AppColors.error,
     position: BadgePosition.topRight,
     icon: Icons.star,
   );
@@ -182,7 +190,7 @@ class ImageWithBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     Widget content = AspectRatio(
       aspectRatio: aspectRatio,
@@ -192,22 +200,24 @@ class ImageWithBadge extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             // Base image
-            _buildImage(isDark),
+            _buildImage(scheme),
 
-            // Dark overlay (optional)
+            // Dark overlay (optional, photo-bound: scheme scrim)
             if (showDarkOverlay)
               Container(
-                color: Colors.black.withValues(alpha: darkOverlayOpacity),
+                color: scheme.scrim.withValues(alpha: darkOverlayOpacity),
               ),
 
             // Video badge
-            if (videoBadge?.show == true) _buildVideoBadge(videoBadge!),
+            if (videoBadge?.show == true) _buildVideoBadge(videoBadge!, scheme),
 
             // Status overlay
-            if (statusOverlay != null) _buildStatusOverlay(statusOverlay!),
+            if (statusOverlay != null)
+              _buildStatusOverlay(statusOverlay!, scheme),
 
             // Image count badge
-            if (imageCount?.show == true) _buildImageCountBadge(imageCount!),
+            if (imageCount?.show == true)
+              _buildImageCountBadge(imageCount!, scheme),
 
             // Custom badges
             if (customBadges != null) ...customBadges!,
@@ -223,15 +233,15 @@ class ImageWithBadge extends StatelessWidget {
     return content;
   }
 
-  Widget _buildImage(bool isDark) {
+  Widget _buildImage(ColorScheme scheme) {
     if (imageUrl == null || imageUrl!.isEmpty) {
       return Container(
-        color: isDark ? AppColors.neutralGray800 : AppColors.neutralGray200,
+        color: scheme.surfaceContainerHighest,
         child: Center(
           child: Icon(
             Icons.image_outlined,
             size: 32,
-            color: isDark ? AppColors.neutralGray600 : AppColors.neutralGray400,
+            color: scheme.onSurfaceVariant,
           ),
         ),
       );
@@ -245,7 +255,7 @@ class ImageWithBadge extends StatelessWidget {
     );
   }
 
-  Widget _buildVideoBadge(VideoBadgeConfig config) {
+  Widget _buildVideoBadge(VideoBadgeConfig config, ColorScheme scheme) {
     return Positioned(
       top:
           config.position == BadgePosition.topLeft ||
@@ -270,18 +280,24 @@ class ImageWithBadge extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.7),
+          color: scheme.scrim.withValues(alpha: 0.7),
           borderRadius: BorderRadius.circular(4),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.play_circle_filled, color: Colors.white, size: 16),
+            Icon(
+              Icons.play_circle_filled,
+              color: scheme.onPrimary,
+              size: 16,
+            ),
             if (config.label != null) ...[
               const SizedBox(width: 4),
               Text(
                 config.label!,
-                style: AppTypography.labelSmall.copyWith(color: Colors.white),
+                style: AppTypography.labelSmall.copyWith(
+                  color: scheme.onPrimary,
+                ),
               ),
             ],
           ],
@@ -290,7 +306,12 @@ class ImageWithBadge extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusOverlay(StatusOverlayConfig config) {
+  Widget _buildStatusOverlay(StatusOverlayConfig config, ColorScheme scheme) {
+    final bg = config.backgroundColor ?? scheme.onSurfaceVariant;
+    final ink = config.textColor ??
+        (config.backgroundColor == null
+            ? scheme.surface
+            : (config.darkInk ? scheme.scrim : scheme.onPrimary));
     return Positioned(
       top:
           config.position == BadgePosition.topLeft ||
@@ -315,20 +336,20 @@ class ImageWithBadge extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
         decoration: BoxDecoration(
-          color: config.backgroundColor,
+          color: bg,
           borderRadius: BorderRadius.circular(4),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             if (config.icon != null) ...[
-              Icon(config.icon, size: 12, color: config.textColor),
+              Icon(config.icon, size: 12, color: ink),
               const SizedBox(width: 2),
             ],
             Text(
               config.label,
               style: AppTypography.labelSmall.copyWith(
-                color: config.textColor,
+                color: ink,
                 fontWeight: FontWeight.bold,
                 fontSize: 10,
               ),
@@ -339,7 +360,7 @@ class ImageWithBadge extends StatelessWidget {
     );
   }
 
-  Widget _buildImageCountBadge(ImageCountBadgeConfig config) {
+  Widget _buildImageCountBadge(ImageCountBadgeConfig config, ColorScheme scheme) {
     return Positioned(
       top:
           config.position == BadgePosition.topLeft ||
@@ -364,18 +385,18 @@ class ImageWithBadge extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.7),
+          color: scheme.scrim.withValues(alpha: 0.7),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.photo_library, size: 14, color: Colors.white),
+            Icon(Icons.photo_library, size: 14, color: scheme.onPrimary),
             const SizedBox(width: 4),
             Text(
               '${config.count}',
               style: AppTypography.labelSmall.copyWith(
-                color: Colors.white,
+                color: scheme.onPrimary,
                 fontWeight: FontWeight.w600,
               ),
             ),

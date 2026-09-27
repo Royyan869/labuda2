@@ -1,25 +1,23 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:labuda/core/core.dart';
 
 /// Text Input Media Preview Widget - Generic media preview for text inputs
 class TextInputMediaPreview extends StatelessWidget {
   final List<String> selectedMediaUrls;
   final Function(int index)? onRemoveMedia;
   final Function(int index)? onMediaTap;
-  final bool isDark;
 
   const TextInputMediaPreview({
     super.key,
     required this.selectedMediaUrls,
     this.onRemoveMedia,
     this.onMediaTap,
-    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       height: 80,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -40,9 +38,7 @@ class TextInputMediaPreview extends StatelessWidget {
                   margin: const EdgeInsets.only(right: 8),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(8),
-                    color: isDark
-                        ? AppColors.darkGray700
-                        : AppColors.neutralGray100,
+                    color: scheme.surfaceContainerHighest,
                   ),
                   child: Stack(
                     children: [
@@ -56,12 +52,10 @@ class TextInputMediaPreview extends StatelessWidget {
                             height: 64,
                             child: isVideo
                                 ? Container(
-                                    color: isDark
-                                        ? AppColors.darkGray600
-                                        : AppColors.neutralGray200,
+                                    color: scheme.surfaceContainerHighest,
                                     child: Icon(
                                       Icons.play_circle_filled,
-                                      color: AppColors.neutralWhite,
+                                      color: scheme.onSurfaceVariant,
                                       size: 32,
                                     ),
                                   )
@@ -72,7 +66,7 @@ class TextInputMediaPreview extends StatelessWidget {
                                     height: 64,
                                     fit: BoxFit.cover,
                                     placeholder: (context, url) => Container(
-                                      color: AppColors.neutralGray100,
+                                      color: scheme.surfaceContainerHighest,
                                       child: const Center(
                                         child:
                                             CircularProgressIndicator.adaptive(),
@@ -80,11 +74,11 @@ class TextInputMediaPreview extends StatelessWidget {
                                     ),
                                     errorWidget: (context, url, error) =>
                                         Container(
-                                          color: AppColors.neutralGray100,
+                                          color: scheme.surfaceContainerHighest,
                                           child: Icon(
                                             Icons.broken_image_outlined,
                                             size: 24,
-                                            color: AppColors.neutralGray600,
+                                            color: scheme.onSurfaceVariant,
                                           ),
                                         ),
                                   )
@@ -108,14 +102,14 @@ class TextInputMediaPreview extends StatelessWidget {
                             child: Container(
                               width: 20,
                               height: 20,
-                              decoration: const BoxDecoration(
-                                color: AppColors.primaryRed,
+                              decoration: BoxDecoration(
+                                color: scheme.primary,
                                 shape: BoxShape.circle,
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 Icons.close,
                                 size: 12,
-                                color: AppColors.neutralWhite,
+                                color: scheme.onPrimary,
                               ),
                             ),
                           ),

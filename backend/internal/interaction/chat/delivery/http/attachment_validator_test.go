@@ -34,20 +34,6 @@ func TestValidateAttachmentJSON_AcceptsCanonicalTypes(t *testing.T) {
 			},
 		},
 		{
-			name: "negotiation_offer",
-			att: map[string]interface{}{
-				"type": "negotiation_offer",
-				"data": map[string]interface{}{
-					"negotiation_id": "n1",
-					"for_sale_id": "fps1",
-					"status":         "active",
-					"preview": map[string]interface{}{
-						"title": "Offer",
-					},
-				},
-			},
-		},
-		{
 			name: "negotiation_proposal",
 			att: map[string]interface{}{
 				"type": "negotiation_proposal",
@@ -55,20 +41,6 @@ func TestValidateAttachmentJSON_AcceptsCanonicalTypes(t *testing.T) {
 					"session_id":        "s1",
 					"proposal_sequence": float64(1),
 					"price":             float64(100000),
-				},
-			},
-		},
-		{
-			name: "negotiation_result",
-			att: map[string]interface{}{
-				"type": "negotiation_result",
-				"data": map[string]interface{}{
-					"negotiation_id": "n1",
-					"for_sale_id": "fps1",
-					"status":         "accepted",
-					"preview": map[string]interface{}{
-						"title": "Result",
-					},
 				},
 			},
 		},
@@ -135,7 +107,10 @@ func TestValidateAttachmentJSON_AcceptsCanonicalTypes(t *testing.T) {
 }
 
 func TestValidateAttachmentJSON_RejectsLegacyWireTypes(t *testing.T) {
-	legacyTypes := []string{"listing", "auction", "post", "request", "content"}
+	// NEGOTIATION ATTACHMENT PURGE (Z3): negotiation_offer and negotiation_result
+	// are forbidden legacy types — no backend or mobile producer ever emits them.
+	// Only negotiation_proposal is canonical. Must be rejected at the wire.
+	legacyTypes := []string{"listing", "auction", "post", "request", "content", "negotiation_offer", "negotiation_result"}
 	for _, legacyType := range legacyTypes {
 		t.Run(legacyType, func(t *testing.T) {
 			errs := ValidateAttachmentJSON(map[string]interface{}{

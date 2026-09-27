@@ -8,20 +8,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
-import 'package:labuda/core/common/types/preparation_time.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/domain/entities/for_sale.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart';
 import 'package:labuda/domains/chat/chat/presentation/utils/commerce_chat_navigation.dart';
-import 'package:labuda/domains/user/profile/profile.dart'
-    show userDataProvider, profileStreamProvider;
-import 'package:labuda/shared/governance/content_lifecycle.dart';
-import 'package:labuda/shared/governance/seller_tier_badge.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/domains/social/share/share.dart';
-import 'package:labuda/shared/utils/commerce_seller_identity.dart';
 import 'package:labuda/domains/system/report/domain/entities/entities.dart';
 import 'package:labuda/domains/system/report/presentation/dialogs/report_submission_dialog.dart';
+import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_common_product_detail_section.dart';
+import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_detail_primitives.dart';
+import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_detail_seller_card.dart';
+import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_detail_states.dart';
 import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_saved_item_action_button.dart';
+import 'package:labuda/shared/utils/media_extensions.dart';
 
 /// ForSale Detail Screen
 ///
@@ -38,20 +37,51 @@ class ForSaleDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _ForSaleDetailScreenState extends ConsumerState<ForSaleDetailScreen> {
+  static const String _title = 'Detail ForSale';
+
   @override
   Widget build(BuildContext context) {
     final forSaleAsync = ref.watch(forSaleDetailProvider(widget.forSaleId));
 
+    // CANONICAL STATE SURFACE — the same loading / error / not-found
+    // vocabulary the Auction detail renders. CommerceDetailStates is the
+    // single authority for both sale channels; raw errors never reach the
+    // screen, they stay in the provider/log.
+    return forSaleAsync.when(
+      loading: () => CommerceDetailStates.loading(title: _title),
+      error: (_, _) => CommerceDetailStates.error(
+        title: _title,
+        headline: 'Gagal Memuat For Sale',
+        message: 'Data belum bisa dimuat. Coba lagi nanti.',
+        actionLabel: 'Coba Lagi',
+        onAction: () => ref.invalidate(forSaleDetailProvider(widget.forSaleId)),
+      ),
+      data: (forSale) {
+        if (forSale == null) {
+          return CommerceDetailStates.notFound(
+            title: _title,
+            headline: 'For Sale Tidak Ditemukan',
+            message: 'For sale ini mungkin telah dihapus atau ID tidak valid.',
+            actionLabel: 'Kembali',
+            onAction: () => Navigator.pop(context),
+          );
+        }
+        return _buildDetail(context, forSale);
+      },
+    );
+  }
+
+  Widget _buildDetail(BuildContext context, ForSale forSale) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Detail ForSale'),
+      appBar: AppBarCustom(
+        title: _title,
+        showBackButton: true,
         actions: [
           Builder(
             builder: (context) {
               final authState = ref.watch(authControllerProvider);
-              final forSale = forSaleAsync.value;
 
-              if (forSale == null || authState is! AuthStateAuthenticated) {
+              if (authState is! AuthStateAuthenticated) {
                 return const SizedBox.shrink();
               }
 
@@ -59,6 +89,16 @@ class _ForSaleDetailScreenState extends ConsumerState<ForSaleDetailScreen> {
               return Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  // Promotion is contract-based; the seller entry point is the
+                  // canonical promotion management list (owner-only — mirrors
+                  // the Auction action bar).
+                  if (isOwner && forSale.status == ForSaleStatus.active)
+                    IconButton(
+                      onPressed: () =>
+                          context.push(RoutePaths.sellerCanonicalPromotions),
+                      icon: const Icon(Icons.campaign_outlined),
+                      tooltip: 'Promote',
+                    ),
                   // Save button — non-owners only.
                   if (!isOwner)
                     CommerceSavedItemActionButton(
@@ -89,16 +129,13 @@ class _ForSaleDetailScreenState extends ConsumerState<ForSaleDetailScreen> {
           ),
         ],
       ),
-      body: forSaleAsync.when(
-        data: (forSale) {
-          if (forSale == null) {
-            return const Center(child: Text('ForSale not found'));
-          }
-          return _buildForSaleContent(context, forSale);
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) =>
-            const Center(child: Text('Data belum bisa dimuat.')),
+      body: SafeArea(
+        bottom: false,
+        child: RefreshIndicator(
+          onRefresh: () async =>
+              ref.invalidate(forSaleDetailProvider(widget.forSaleId)),
+          child: _buildForSaleContent(context, forSale),
+        ),
       ),
       bottomNavigationBar: _ForSaleDetailActionBar(forSaleId: widget.forSaleId),
     );
@@ -146,7 +183,7 @@ class _ForSaleDetailScreenState extends ConsumerState<ForSaleDetailScreen> {
       id: forSale.forSaleId,
       type: ExternalShareType.forSale,
       title: forSale.title,
-      description: 'Rp ${forSale.price.toStringAsFixed(0)}',
+      description: forSale.formattedPrice,
       imageUrl: forSale.media.isNotEmpty
           ? forSale.media.first.originalUrl
           : null,
@@ -159,501 +196,157 @@ class _ForSaleDetailScreenState extends ConsumerState<ForSaleDetailScreen> {
     );
   }
 
-  Widget _buildPreparationTimeSection(
-    BuildContext context,
-    PreparationTime preparationTime,
-    String? preparationNote,
-  ) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final note = preparationNote;
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: preparationTime.isImmediate
-            ? (isDark
-                  ? AppColors.successGreen.withValues(alpha: 0.1)
-                  : AppColors.successGreen.withValues(alpha: 0.08))
-            : (isDark
-                  ? AppColors.warning.withValues(alpha: 0.1)
-                  : AppColors.warning.withValues(alpha: 0.08)),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: preparationTime.isImmediate
-              ? AppColors.successGreen.withValues(alpha: 0.3)
-              : AppColors.warning.withValues(alpha: 0.3),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                preparationTime.isImmediate
-                    ? Icons.flash_on
-                    : Icons.access_time,
-                size: 16,
-                color: preparationTime.isImmediate
-                    ? AppColors.successGreen
-                    : AppColors.warning,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Waktu Persiapan',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: isDark
-                      ? AppColors.neutralGray300
-                      : AppColors.neutralGray700,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            preparationTime.isImmediate
-                ? 'Siap kirim langsung'
-                : 'Estimasi siap kirim: ${preparationTime.displayName.toLowerCase()}',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: preparationTime.isImmediate
-                  ? AppColors.successGreen
-                  : AppColors.warning,
-            ),
-          ),
-          if (!preparationTime.isImmediate) ...[
-            const SizedBox(height: 6),
-            Text(
-              preparationTime.description,
-              style: TextStyle(
-                fontSize: 12,
-                color: isDark
-                    ? AppColors.neutralGray400
-                    : AppColors.neutralGray600,
-                height: 1.4,
-              ),
-            ),
-          ],
-          if (note != null && note.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: isDark
-                    ? AppColors.darkGray700.withValues(alpha: 0.5)
-                    : AppColors.neutralGray100,
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(
-                    Icons.info_outline,
-                    size: 14,
-                    color: preparationTime.isImmediate
-                        ? AppColors.successGreen
-                        : AppColors.warning,
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      note,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: isDark
-                            ? AppColors.neutralGray400
-                            : AppColors.neutralGray600,
-                        height: 1.4,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-          const SizedBox(height: 6),
-          Text(
-            'Estimasi maksimal, penjual bisa kirim lebih cepat',
-            style: TextStyle(
-              fontSize: 11,
-              color: isDark
-                  ? AppColors.neutralGray500
-                  : AppColors.neutralGray500,
-              fontStyle: FontStyle.italic,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildForSaleContent(BuildContext context, ForSale forSale) {
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ForSale media — images and videos with canonical type rendering
-          if (forSale.media.isNotEmpty)
-            MediaCarouselWidget(
-              media: forSale.media,
-              aspectRatio: 4 / 3,
-              borderRadius: BorderRadius.zero,
-            ),
-          // ForSale details
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  forSale.title,
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Rp ${forSale.price.toStringAsFixed(0)}',
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // ═══════════════════════════════════════════════════════════════════════
-                // WAKTU PERSIAPAN (PREPARATION TIME)
-                // ═══════════════════════════════════════════════════════════════════════
-                // Buyer expectation: Show this BEFORE purchase so buyers know what to expect
-                // Uses shared preparation time mapping for consistency across all screens
-                _buildPreparationTimeSection(
-                  context,
-                  forSale.preparationTime,
-                  forSale.preparationNote,
-                ),
-
-                const SizedBox(height: 16),
-                Text(
-                  forSale.description,
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-                const SizedBox(height: 16),
-                _ForSaleSellerCard(forSale: forSale),
-                const SizedBox(height: 16),
-                // Promote button (only for forSale owner)
-                const _PromoteButton(),
-              ],
+    // CANONICAL DETAIL SKELETON (identical to Auction): media block →
+    // title → section cards in the shared 16-margin frame → seller card.
+    return CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(child: _ForSaleDetailMedia(forSale: forSale)),
+        SliverToBoxAdapter(child: _ForSaleDetailTitle(forSale: forSale)),
+        SliverToBoxAdapter(child: _ForSalePriceSection(forSale: forSale)),
+        // Shared Product content — the SAME card the Auction sibling
+        // renders, fed through the canonical fromForSale mapping
+        // (attributes, shipping readiness and description live here).
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: CommerceCommonProductDetailSection(
+              title: 'Detail Produk',
+              data: CommerceCommonProductDetailsData.fromForSale(forSale),
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Promote Button Widget
-///
-/// Canonical era: promotion is contract-based. The seller entry point is the
-/// canonical promotion management list (create contract + queue targets).
-/// The legacy per-forSale promotion instance lookup and the legacy
-/// activation route are purged.
-class _PromoteButton extends ConsumerWidget {
-  const _PromoteButton();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final authState = ref.watch(authControllerProvider);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    // Only show promote button to authenticated users
-    if (authState is! AuthStateAuthenticated) {
-      return const SizedBox.shrink();
-    }
-
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        onPressed: () => context.push(RoutePaths.sellerCanonicalPromotions),
-        icon: const Icon(Icons.campaign, size: 18),
-        label: const Text('Promosikan Fixed-Price Sale'),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: isDark
-              ? AppColors.darkGray700
-              : AppColors.neutralGray100,
-          foregroundColor: isDark
-              ? AppColors.neutralWhite
-              : AppColors.neutralGray900,
-          elevation: 0,
         ),
-      ),
+        // Seller block — single render authority for both sale channels.
+        SliverToBoxAdapter(
+          child: CommerceDetailSellerCard(
+            sellerId: forSale.sellerId,
+            username: forSale.sellerUsername,
+            storeName: forSale.sellerFarmName,
+            avatarUrl: forSale.sellerAvatar,
+            sellerUserLifecycle: forSale.sellerUserLifecycle,
+            sellerTrustLifecycle: forSale.sellerTrustLifecycle,
+            tier: forSale.sellerTier,
+          ),
+        ),
+      ],
     );
   }
 }
 
-/// ForSale Seller Card
-///
-/// Bounded commerce trust surface: shows seller identity to the buyer.
-///
-/// Owner Truth: farmName (ForSale.sellerFarmName) is the public seller
-/// identity; @username (ForSale.sellerUsername) is the public user handle;
-/// fullName is private/KYC and is NEVER read here.
-///
-/// Identity SOURCE PRIORITY:
-///   1. ForSale entity owner-truth fields (populated by mapper from backend
-///      identity scalars: seller_farm_name / seller_username /
-///      seller_avatar_url).
-///   2. `userDataProvider(sellerId)` is consulted ONLY for username/avatar
-///      when the entity carries neither. `user.fullName` is NEVER read.
-///
-/// MISSING-TRUTH POLICY:
-///   - No fake fallback labels ('Penjual', 'Unknown', 'Seller', etc.).
-///   - When neither farmName nor any username is known, the card renders
-///     `SizedBox.shrink()` — hide rather than fabricate.
-///   - Loading: a non-identity placeholder ("Memuat...") is shown.
-///   - Error: hidden.
-class _ForSaleSellerCard extends ConsumerWidget {
+/// Canonical DETAIL MEDIA BLOCK — identical to the Auction header: the
+/// shared `MediaCarouselWidget` at 4/3, edge to edge, no raw
+/// `Image.network`, no local `PageView` controller. When the payload
+/// carries no usable URL the same neutral placeholder renders instead.
+class _ForSaleDetailMedia extends StatelessWidget {
   final ForSale forSale;
 
-  const _ForSaleSellerCard({required this.forSale});
+  const _ForSaleDetailMedia({required this.forSale});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
 
-    // Stage 2 — Seller tier badge. Visible only when:
-    //   1. User-identity axis is active (not degraded — checked by outer guard).
-    //   2. Seller-trust axis is active (subscription not expired).
-    //   3. Tier is "pro" or "elite" (SellerTierBadge hides null/basic/unknown).
-    // The badge is computed once here so both the data and loading branches
-    // can reference it; only the data branch renders it.
-    final tierBadgeVisible =
-        !forSale.sellerUserLifecycle.isDegraded &&
-        forSale.sellerTrustLifecycle == ContentLifecycle.active &&
-        forSale.sellerTier != null;
-
-    // E8.2 — Seller user-identity lifecycle redaction. When the seller's
-    // user identity is degraded (banned/deleted), render an italic
-    // placeholder + neutral avatar + tap disabled. The forSale itself is
-    // controlled by `forSale.status` and stays visible — seller-user
-    // lifecycle MUST NOT hide the item.
-    //
-    // AXIS BOUNDARY: user-axis gate fires here. Seller-trust axis
-    // (sellerTrustLifecycle) is now also consumed for the tier badge
-    // gate only — no other UI behaviour changes on trust-axis state here.
-    if (forSale.sellerUserLifecycle.isDegraded) {
-      return _buildDegradedRow(
-        context,
-        placeholder: forSale.sellerUserLifecycle.publicRedactionLabel,
-        isDark: isDark,
+    if (forSale.media.isNotEmptyUrls) {
+      return MediaCarouselWidget(
+        media: forSale.media,
+        aspectRatio: 4 / 3,
+        borderRadius: BorderRadius.zero,
       );
     }
 
-    final userAsync = ref.watch(userDataProvider(forSale.sellerId));
-
-    return userAsync.when(
-      data: (user) {
-        // Owner-truth identity from the forSale entity.
-        final farmName = forSale.sellerFarmName;
-        final hasFarm = farmName != null && farmName.isNotEmpty;
-        final entityUsername = forSale.sellerUsername;
-        final hasEntityUsername =
-            entityUsername != null && entityUsername.isNotEmpty;
-        final entityAvatar = forSale.sellerAvatar;
-        final hasEntityAvatar = entityAvatar != null && entityAvatar.isNotEmpty;
-
-        // user-lookup fills username/avatar when the entity lacks them
-        // (never user.fullName which is KYC).
-        final fallbackUsername = user?.username;
-        final fallbackAvatarUrl = user?.avatarUrl;
-
-        final username = hasEntityUsername
-            ? entityUsername
-            : ((fallbackUsername != null && fallbackUsername.isNotEmpty)
-                  ? fallbackUsername
-                  : null);
-        final hasUsername = username != null;
-
-        final avatarUrl = hasEntityAvatar
-            ? entityAvatar
-            : ((fallbackAvatarUrl != null && fallbackAvatarUrl.isNotEmpty)
-                  ? fallbackAvatarUrl
-                  : null);
-
-        // Store truth for the dual avatar comes from the seller's profile
-        // stream (canonical FarmInfo), never fabricated.
-        final profileAsync = ref.watch(profileStreamProvider(forSale.sellerId));
-        final farmInfo = profileAsync.value?.farmInfo;
-        // BUSINESS TRUTH: the author of a for-sale listing is a seller by
-        // definition (only sellers can publish listings) — the dual avatar
-        // gate never depends on a user-lookup race.
-        const isSeller = true;
-        final storeImageUrl = farmInfo?.farmPhotoUrl;
-
-        // Hide rather than fabricate when no truth is available.
-        if (!hasFarm && !hasUsername) {
-          return const SizedBox.shrink();
-        }
-
-        final identity = buildCommerceSellerIdentity(
-          username: username,
-          storeName: farmName,
-        );
-        if (identity == null) {
-          return const SizedBox.shrink();
-        }
-
-        final row = _buildRow(
-          context,
-          avatar: SellerAvatar(
-            userId: forSale.sellerId,
-            avatarUrl: avatarUrl,
-            storeImageUrl: storeImageUrl,
-            isSeller: isSeller,
-            size: 48,
-            onTap: () => ref
-                .read(navigationHandlerProvider)
-                .navigateToUserProfile(forSale.sellerId),
-          ),
-          displayName: identity.line1,
-          username: identity.line2,
-          onTap: () => ref
-              .read(navigationHandlerProvider)
-              .navigateToUserProfile(forSale.sellerId),
-          isDark: isDark,
-        );
-
-        if (!tierBadgeVisible) return row;
-
-        // Stage 2 — tier badge placed below identity row as a subtle
-        // secondary trust signal. Lifecycle dominates visually (row shows
-        // first); badge is a soft reputation hint, NOT a primary trust seal.
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            row,
-            const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: SellerTierBadge(tier: forSale.sellerTier),
-            ),
-          ],
-        );
-      },
-      loading: () => _buildRow(
-        context,
-        avatar: ProfileAvatar(userId: forSale.sellerId, size: 48),
-        // Non-identity loading hint — does not assert any seller identity.
-        displayName: 'Memuat...',
-        username: null,
-        onTap: null,
-        isDark: isDark,
+    return Container(
+      height: 225,
+      color: colorScheme.surfaceContainerHighest,
+      child: Center(
+        child: Icon(
+          Icons.image_outlined,
+          size: 64,
+          color: colorScheme.onSurfaceVariant,
+        ),
       ),
-      error: (_, _) => const SizedBox.shrink(),
     );
   }
+}
 
-  Widget _buildRow(
-    BuildContext context, {
-    required Widget avatar,
-    required String displayName,
-    required String? username,
-    required VoidCallback? onTap,
-    required bool isDark,
-  }) {
-    final content = Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray700 : AppColors.neutralGray100,
-        borderRadius: BorderRadius.circular(8),
+/// Canonical detail title block — the same slot, style and spacing the
+/// Auction detail uses right under the media gallery.
+class _ForSaleDetailTitle extends StatelessWidget {
+  final ForSale forSale;
+
+  const _ForSaleDetailTitle({required this.forSale});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+      child: Text(
+        forSale.title,
+        style: Theme.of(context).textTheme.headlineSmall,
       ),
-      child: Row(
+    );
+  }
+}
+
+/// ForSale channel value block — the price/stock card that mirrors the
+/// Auction countdown block: the headline transaction value first, then the
+/// channel facts, in the canonical 16-margin [CommerceDetailSectionCard]
+/// frame.
+class _ForSalePriceSection extends StatelessWidget {
+  final ForSale forSale;
+
+  const _ForSalePriceSection({required this.forSale});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return CommerceDetailSectionCard(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          avatar,
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          Text(
+            forSale.formattedPrice,
+            style: theme.textTheme.headlineMedium?.copyWith(
+              color: colorScheme.primary,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
               children: [
-                Text(
-                  displayName,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                Icon(
+                  Icons.info_outline,
+                  size: 16,
+                  color: colorScheme.onSurfaceVariant,
                 ),
-                if (username != null)
-                  Text(
-                    '@$username',
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    forSale.isNegotiable
+                        ? 'Beli langsung — penawaran bisa diajukan lewat chat'
+                        : 'Beli langsung — harga pas tanpa tawar',
                     style: TextStyle(
-                      fontSize: 12,
-                      color: isDark
-                          ? AppColors.neutralGray400
-                          : AppColors.neutralGray600,
+                      fontSize: 13,
+                      color: colorScheme.onSurfaceVariant,
+                      fontStyle: FontStyle.italic,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                   ),
+                ),
               ],
             ),
           ),
-          if (onTap != null)
-            Icon(
-              Icons.chevron_right,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray600,
-            ),
-        ],
-      ),
-    );
-
-    if (onTap == null) return content;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: content,
-    );
-  }
-
-  /// E8.2 — Render a degraded seller identity row.
-  ///
-  /// Italic placeholder label + neutral avatar + tap disabled +
-  /// chevron suppressed + username subtitle suppressed. Matches the
-  /// redaction vocabulary used by feed (E2.1), comments (E3.1), chat
-  /// (E4.3), profile (E5.2/E5.3), and content detail (E6).
-  Widget _buildDegradedRow(
-    BuildContext context, {
-    required String placeholder,
-    required bool isDark,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray700 : AppColors.neutralGray100,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: [
-          ProfileAvatar(userId: '', size: 48),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              placeholder,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                fontStyle: FontStyle.italic,
-                color: isDark
-                    ? AppColors.neutralGray400
-                    : AppColors.neutralGray500,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
+          const SizedBox(height: 12),
+          CommerceDetailLabelValue(
+            label: 'Stok',
+            value: forSale.stock > 0 ? '${forSale.stock} tersedia' : 'Habis',
           ),
         ],
       ),
@@ -852,7 +545,9 @@ class _ForSaleActionBar extends ConsumerWidget {
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
       decoration: BoxDecoration(
         color: theme.scaffoldBackgroundColor,
-        border: Border(top: BorderSide(color: AppColors.neutralGray200)),
+        border: Border(
+          top: BorderSide(color: theme.colorScheme.outlineVariant),
+        ),
       ),
       child: SafeArea(
         child: Column(
@@ -908,8 +603,8 @@ class _ForSaleActionBar extends ConsumerWidget {
                 child: ElevatedButton(
                   onPressed: () => _buyNow(context),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryRed,
-                    foregroundColor: Colors.white,
+                    backgroundColor: theme.colorScheme.primary,
+                    foregroundColor: theme.colorScheme.onPrimary,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),

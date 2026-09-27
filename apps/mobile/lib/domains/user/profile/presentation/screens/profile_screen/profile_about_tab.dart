@@ -25,20 +25,21 @@ class ProfileAboutTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
+    
     final dataAsync = ref.watch(profileAboutDataProvider(userId));
 
     return dataAsync.when(
-      data: (data) => _buildContent(context, data, isDark, ref),
+      data: (data) => _buildContent(context, data, scheme, ref),
       loading: () => _buildLoading(),
-      error: (error, stack) => _buildError(context, error.toString(), isDark),
+      error: (error, stack) => _buildError(context, error.toString(), scheme),
     );
   }
 
   Widget _buildContent(
     BuildContext context,
     ProfileAboutData data,
-    bool isDark,
+    ColorScheme scheme,
     WidgetRef ref,
   ) {
     // E5.3 — When the target's identity lifecycle is degraded
@@ -50,7 +51,7 @@ class ProfileAboutTab extends ConsumerWidget {
     // tombstoned. Own-profile is never degraded from the viewer's POV.
     if (!isOwnProfile &&
         profileLifecycleSuppressesSensitiveSections(data.user.lifecycle)) {
-      return _buildDegradedPlaceholder(isDark, data.user.lifecycle);
+      return _buildDegradedPlaceholder(scheme, data.user.lifecycle);
     }
 
     // Get seller state for the current profile.
@@ -67,11 +68,11 @@ class ProfileAboutTab extends ConsumerWidget {
             delegate: SliverChildListDelegate([
               // Section 0: Seller Status Badge (for own profile or seller profiles)
               if (isOwnProfile && sellerState == null) ...[
-                _buildPendingSellerStatusCard(isDark: isDark),
+                _buildPendingSellerStatusCard(scheme: scheme),
                 const SizedBox(height: 16),
               ] else if (sellerState != null &&
                   (isOwnProfile || sellerState.isSeller)) ...[
-                _SellerStatusBadge(sellerState: sellerState, isDark: isDark),
+                _SellerStatusBadge(sellerState: sellerState, scheme: scheme),
                 const SizedBox(height: 16),
               ],
 
@@ -80,7 +81,7 @@ class ProfileAboutTab extends ConsumerWidget {
                 _ProfileSectionCard(
                   title: 'About',
                   icon: Icons.person_outline,
-                  child: _buildAboutSection(data, isDark),
+                  child: _buildAboutSection(data, scheme),
                 ),
                 const SizedBox(height: 16),
               ],
@@ -90,7 +91,7 @@ class ProfileAboutTab extends ConsumerWidget {
                 _ProfileSectionCard(
                   title: 'Informasi Farm',
                   icon: Icons.store_outlined,
-                  child: _buildFarmInfoSection(data, isDark),
+                  child: _buildFarmInfoSection(data, scheme),
                 ),
                 const SizedBox(height: 16),
               ],
@@ -101,7 +102,7 @@ class ProfileAboutTab extends ConsumerWidget {
                 _ProfileSectionCard(
                   title: 'Verification',
                   icon: Icons.verified_outlined,
-                  child: _buildVerificationSection(data, isDark),
+                  child: _buildVerificationSection(data, scheme),
                 ),
                 const SizedBox(height: 16),
               ],
@@ -112,7 +113,7 @@ class ProfileAboutTab extends ConsumerWidget {
                 _ProfileSectionCard(
                   title: 'Rating & Reviews',
                   icon: Icons.star_outline,
-                  child: _buildRatingSection(isDark, ref),
+                  child: _buildRatingSection(scheme, ref),
                 ),
                 const SizedBox(height: 16),
               ],
@@ -122,7 +123,7 @@ class ProfileAboutTab extends ConsumerWidget {
                 _ProfileSectionCard(
                   title: 'Contact Information',
                   icon: Icons.contact_phone_outlined,
-                  child: _buildContactSection(data, isDark),
+                  child: _buildContactSection(data, scheme),
                 ),
               ],
             ]),
@@ -149,12 +150,10 @@ class ProfileAboutTab extends ConsumerWidget {
     return SellerState.fromAuthUser(user);
   }
 
-  Widget _buildPendingSellerStatusCard({required bool isDark}) {
-    final background = isDark ? AppColors.darkGray700 : AppColors.neutralGray50;
-    final border = isDark ? AppColors.neutralGray700 : AppColors.neutralGray200;
-    final textPrimary = isDark
-        ? AppColors.neutralGray200
-        : AppColors.neutralGray700;
+  Widget _buildPendingSellerStatusCard({required ColorScheme scheme}) {
+    final background = scheme.surfaceContainerHighest;
+    final border = scheme.outlineVariant;
+    final textPrimary = scheme.onSurfaceVariant;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -169,7 +168,7 @@ class ProfileAboutTab extends ConsumerWidget {
           Icon(
             Icons.hourglass_top_outlined,
             size: 20,
-            color: AppColors.primaryBlue,
+            color: scheme.secondary,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -188,7 +187,7 @@ class ProfileAboutTab extends ConsumerWidget {
   }
 
   // Section 1: About
-  Widget _buildAboutSection(ProfileAboutData data, bool isDark) {
+  Widget _buildAboutSection(ProfileAboutData data, ColorScheme scheme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -199,9 +198,7 @@ class ProfileAboutTab extends ConsumerWidget {
             style: TextStyle(
               fontSize: 14,
               height: 1.5,
-              color: isDark
-                  ? AppColors.neutralGray300
-                  : AppColors.neutralGray600,
+              color: scheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 16),
@@ -214,18 +211,14 @@ class ProfileAboutTab extends ConsumerWidget {
               Icon(
                 Icons.location_on_outlined,
                 size: 16,
-                color: isDark
-                    ? AppColors.neutralGray400
-                    : AppColors.neutralGray500,
+                color: scheme.onSurfaceVariant,
               ),
               const SizedBox(width: 8),
               Text(
                 data.location!,
                 style: TextStyle(
                   fontSize: 14,
-                  color: isDark
-                      ? AppColors.neutralGray400
-                      : AppColors.neutralGray500,
+                  color: scheme.onSurfaceVariant,
                 ),
               ),
             ],
@@ -239,18 +232,14 @@ class ProfileAboutTab extends ConsumerWidget {
             Icon(
               Icons.calendar_today_outlined,
               size: 16,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray500,
+              color: scheme.onSurfaceVariant,
             ),
             const SizedBox(width: 8),
             Text(
               _formatJoinDate(data.joinedAt),
               style: TextStyle(
                 fontSize: 14,
-                color: isDark
-                    ? AppColors.neutralGray400
-                    : AppColors.neutralGray500,
+                color: scheme.onSurfaceVariant,
               ),
             ),
           ],
@@ -264,18 +253,14 @@ class ProfileAboutTab extends ConsumerWidget {
               Icon(
                 Icons.access_time,
                 size: 16,
-                color: isDark
-                    ? AppColors.neutralGray400
-                    : AppColors.neutralGray500,
+                color: scheme.onSurfaceVariant,
               ),
               const SizedBox(width: 8),
               Text(
                 _formatLastActive(data.lastActiveAt!),
                 style: TextStyle(
                   fontSize: 14,
-                  color: isDark
-                      ? AppColors.neutralGray400
-                      : AppColors.neutralGray500,
+                  color: scheme.onSurfaceVariant,
                 ),
               ),
             ],
@@ -286,7 +271,7 @@ class ProfileAboutTab extends ConsumerWidget {
   }
 
   // Section 2: Farm Info
-  Widget _buildFarmInfoSection(ProfileAboutData data, bool isDark) {
+  Widget _buildFarmInfoSection(ProfileAboutData data, ColorScheme scheme) {
     final farmInfo = data.farmInfo!;
 
     return Column(
@@ -315,9 +300,7 @@ class ProfileAboutTab extends ConsumerWidget {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: isDark
-                  ? AppColors.neutralGray300
-                  : AppColors.neutralGray700,
+              color: scheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 4),
@@ -326,9 +309,7 @@ class ProfileAboutTab extends ConsumerWidget {
             style: TextStyle(
               fontSize: 13,
               height: 1.5,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray600,
+              color: scheme.onSurfaceVariant,
             ),
           ),
         ],
@@ -341,14 +322,14 @@ class ProfileAboutTab extends ConsumerWidget {
             onTap: () => _launchUrl(farmInfo.farmWebsite!),
             child: Row(
               children: [
-                const Icon(Icons.language, size: 16, color: AppColors.primary),
+                Icon(Icons.language, size: 16, color: scheme.primary),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     farmInfo.farmWebsite!,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: AppColors.primary,
+style: TextStyle(
+                       fontSize: 14,
+                       color: scheme.primary,
                       decoration: TextDecoration.underline,
                     ),
                   ),
@@ -363,7 +344,7 @@ class ProfileAboutTab extends ConsumerWidget {
 
   // Section 3: Verification Badges (REAL data only)
   // REMOVED: Achievements section - NO backend support, deleted in PROFILE PURGE
-  Widget _buildVerificationSection(ProfileAboutData data, bool isDark) {
+  Widget _buildVerificationSection(ProfileAboutData data, ColorScheme scheme) {
     final badges = <Widget>[];
 
     final verification = data.verification;
@@ -392,7 +373,7 @@ class ProfileAboutTab extends ConsumerWidget {
 
   // Section 4: Rating & Reviews (uses REAL data from rating module)
   // REMOVED: Fake metrics (Total Penjualan, Completion Rate) - NO backend support
-  Widget _buildRatingSection(bool isDark, WidgetRef ref) {
+  Widget _buildRatingSection(ColorScheme scheme, WidgetRef ref) {
     // Fetch real rating data from rating module
     final ratingSummaryAsync = ref.watch(
       getUserRatingSummaryProvider(userId: userId),
@@ -417,7 +398,7 @@ class ProfileAboutTab extends ConsumerWidget {
                     ? averageRating.toStringAsFixed(1)
                     : '0.0',
                 icon: Icons.star,
-                isDark: isDark,
+                scheme: scheme,
               ),
             ),
             const SizedBox(width: 12),
@@ -426,7 +407,7 @@ class ProfileAboutTab extends ConsumerWidget {
                 label: 'Total Reviews',
                 value: totalReviews.toString(),
                 icon: Icons.rate_review_outlined,
-                isDark: isDark,
+                scheme: scheme,
               ),
             ),
           ],
@@ -439,7 +420,7 @@ class ProfileAboutTab extends ConsumerWidget {
               label: 'Rating',
               value: '...',
               icon: Icons.star,
-              isDark: isDark,
+              scheme: scheme,
             ),
           ),
           const SizedBox(width: 12),
@@ -448,7 +429,7 @@ class ProfileAboutTab extends ConsumerWidget {
               label: 'Total Reviews',
               value: '...',
               icon: Icons.rate_review_outlined,
-              isDark: isDark,
+              scheme: scheme,
             ),
           ),
         ],
@@ -460,7 +441,7 @@ class ProfileAboutTab extends ConsumerWidget {
               label: 'Rating',
               value: '0.0',
               icon: Icons.star,
-              isDark: isDark,
+              scheme: scheme,
             ),
           ),
           const SizedBox(width: 12),
@@ -469,7 +450,7 @@ class ProfileAboutTab extends ConsumerWidget {
               label: 'Total Reviews',
               value: '0',
               icon: Icons.rate_review_outlined,
-              isDark: isDark,
+              scheme: scheme,
             ),
           ),
         ],
@@ -478,7 +459,7 @@ class ProfileAboutTab extends ConsumerWidget {
   }
 
   // Section 5: Contact Information
-  Widget _buildContactSection(ProfileAboutData data, bool isDark) {
+  Widget _buildContactSection(ProfileAboutData data, ColorScheme scheme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -490,9 +471,7 @@ class ProfileAboutTab extends ConsumerWidget {
                 Icon(
                   Icons.email_outlined,
                   size: 18,
-                  color: isDark
-                      ? AppColors.neutralGray400
-                      : AppColors.neutralGray600,
+                  color: scheme.onSurfaceVariant,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -500,9 +479,7 @@ class ProfileAboutTab extends ConsumerWidget {
                     data.maskedEmail!,
                     style: TextStyle(
                       fontSize: 14,
-                      color: isDark
-                          ? AppColors.neutralGray300
-                          : AppColors.neutralGray700,
+                      color: scheme.onSurfaceVariant,
                     ),
                   ),
                 ),
@@ -520,9 +497,7 @@ class ProfileAboutTab extends ConsumerWidget {
                 Icon(
                   Icons.phone_outlined,
                   size: 18,
-                  color: isDark
-                      ? AppColors.neutralGray400
-                      : AppColors.neutralGray600,
+                  color: scheme.onSurfaceVariant,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -530,9 +505,7 @@ class ProfileAboutTab extends ConsumerWidget {
                     data.maskedPhone!,
                     style: TextStyle(
                       fontSize: 14,
-                      color: isDark
-                          ? AppColors.neutralGray300
-                          : AppColors.neutralGray700,
+                      color: scheme.onSurfaceVariant,
                     ),
                   ),
                 ),
@@ -546,7 +519,7 @@ class ProfileAboutTab extends ConsumerWidget {
         if ((data.isSocialMediaPublic || isOwnProfile) &&
             data.hasSocialMedia) ...[
           Divider(
-            color: isDark ? AppColors.neutralGray600 : AppColors.neutralGray300,
+            color: scheme.outlineVariant,
           ),
           const SizedBox(height: 8),
           Text(
@@ -554,9 +527,7 @@ class ProfileAboutTab extends ConsumerWidget {
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: isDark
-                  ? AppColors.neutralGray300
-                  : AppColors.neutralGray700,
+              color: scheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 12),
@@ -569,28 +540,28 @@ class ProfileAboutTab extends ConsumerWidget {
                   icon: Icons.camera_alt,
                   label: data.instagramHandle!,
                   url: _getInstagramUrl(data.instagramHandle!),
-                  isDark: isDark,
+                  scheme: scheme,
                 ),
               if (data.facebookHandle != null)
                 _SocialMediaChip(
                   icon: Icons.facebook,
                   label: data.facebookHandle!,
                   url: _getFacebookUrl(data.facebookHandle!),
-                  isDark: isDark,
+                  scheme: scheme,
                 ),
               if (data.tiktokHandle != null)
                 _SocialMediaChip(
                   icon: Icons.play_circle_outline,
                   label: data.tiktokHandle!,
                   url: _getTiktokUrl(data.tiktokHandle!),
-                  isDark: isDark,
+                  scheme: scheme,
                 ),
               if (data.twitterHandle != null)
                 _SocialMediaChip(
                   icon: Icons.chat_bubble_outline,
                   label: data.twitterHandle!,
                   url: _getTwitterUrl(data.twitterHandle!),
-                  isDark: isDark,
+                  scheme: scheme,
                 ),
             ],
           ),
@@ -602,7 +573,7 @@ class ProfileAboutTab extends ConsumerWidget {
   // E5.3 — Degraded-lifecycle tombstone for the About tab. Branches per
   // canonical 2-string vocabulary (removed/unavailable) via
   // ContentLifecycleParse.publicRedactionLabel. Never reached for own profile.
-  Widget _buildDegradedPlaceholder(bool isDark, ContentLifecycle lifecycle) {
+  Widget _buildDegradedPlaceholder(ColorScheme scheme, ContentLifecycle lifecycle) {
     final label = lifecycle.publicRedactionLabel;
     return Center(
       child: Padding(
@@ -613,9 +584,7 @@ class ProfileAboutTab extends ConsumerWidget {
             Icon(
               Icons.lock_outline,
               size: 48,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray500,
+              color: scheme.onSurfaceVariant,
             ),
             const SizedBox(height: 16),
             Text(
@@ -623,9 +592,7 @@ class ProfileAboutTab extends ConsumerWidget {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: isDark
-                    ? AppColors.neutralGray300
-                    : AppColors.neutralGray700,
+                color: scheme.onSurfaceVariant,
               ),
               textAlign: TextAlign.center,
             ),
@@ -646,7 +613,7 @@ class ProfileAboutTab extends ConsumerWidget {
   }
 
   // Error state
-  Widget _buildError(BuildContext context, String error, bool isDark) {
+  Widget _buildError(BuildContext context, String error, ColorScheme scheme) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -656,9 +623,7 @@ class ProfileAboutTab extends ConsumerWidget {
             Icon(
               Icons.error_outline,
               size: 48,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray600,
+              color: scheme.onSurfaceVariant,
             ),
             const SizedBox(height: 16),
             Text(
@@ -666,9 +631,7 @@ class ProfileAboutTab extends ConsumerWidget {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: isDark
-                    ? AppColors.neutralGray300
-                    : AppColors.neutralGray700,
+                color: scheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 8),
@@ -676,9 +639,7 @@ class ProfileAboutTab extends ConsumerWidget {
               error,
               style: TextStyle(
                 fontSize: 14,
-                color: isDark
-                    ? AppColors.neutralGray400
-                    : AppColors.neutralGray600,
+                color: scheme.onSurfaceVariant,
               ),
               textAlign: TextAlign.center,
             ),
@@ -798,11 +759,11 @@ class _ProfileSectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Card(
       margin: EdgeInsets.zero,
-      color: isDark ? AppColors.darkGray700 : AppColors.neutralWhite,
+      color: scheme.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -811,16 +772,14 @@ class _ProfileSectionCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(icon, size: 20, color: AppColors.primaryRed),
+                Icon(icon, size: 20, color: scheme.primary),
                 const SizedBox(width: 8),
                 Text(
                   title,
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: isDark
-                        ? AppColors.neutralWhite
-                        : AppColors.neutralGray900,
+color: scheme.onSurface,
                   ),
                 ),
               ],
@@ -843,7 +802,7 @@ class _ProfileInfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -856,9 +815,7 @@ class _ProfileInfoRow extends StatelessWidget {
               label,
               style: TextStyle(
                 fontSize: 14,
-                color: isDark
-                    ? AppColors.neutralGray400
-                    : AppColors.neutralGray500,
+                color: scheme.onSurfaceVariant,
               ),
             ),
           ),
@@ -868,9 +825,7 @@ class _ProfileInfoRow extends StatelessWidget {
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
-                color: isDark
-                    ? AppColors.neutralGray200
-                    : AppColors.neutralGray800,
+                color: scheme.onSurfaceVariant,
               ),
             ),
           ),
@@ -889,17 +844,15 @@ class _VerificationBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: isDark
-            ? AppColors.darkGray600.withValues(alpha: 0.5)
-            : AppColors.neutralGray100,
+        color: scheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? AppColors.darkGray500 : AppColors.neutralGray200,
+          color: scheme.outlineVariant,
         ),
       ),
       child: Text(
@@ -907,7 +860,7 @@ class _VerificationBadge extends StatelessWidget {
         style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w500,
-          color: isDark ? AppColors.neutralGray300 : AppColors.neutralGray700,
+          color: scheme.onSurfaceVariant,
         ),
       ),
     );
@@ -919,13 +872,13 @@ class _StatCard extends StatelessWidget {
   final String label;
   final String value;
   final IconData icon;
-  final bool isDark;
+  final ColorScheme scheme;
 
   const _StatCard({
     required this.label,
     required this.value,
     required this.icon,
-    required this.isDark,
+    required this.scheme,
   });
 
   @override
@@ -933,14 +886,10 @@ class _StatCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isDark
-            ? AppColors.darkGray600.withValues(alpha: 0.3)
-            : AppColors.neutralGray50,
+        color: scheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: isDark
-              ? AppColors.darkGray500.withValues(alpha: 0.5)
-              : AppColors.neutralGray200,
+          color: scheme.outlineVariant,
         ),
       ),
       child: Column(
@@ -953,7 +902,7 @@ class _StatCard extends StatelessWidget {
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: isDark ? AppColors.neutralWhite : AppColors.neutralGray900,
+              color: scheme.onSurface,
             ),
           ),
           const SizedBox(height: 2),
@@ -961,9 +910,7 @@ class _StatCard extends StatelessWidget {
             label,
             style: TextStyle(
               fontSize: 11,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray600,
+              color: scheme.onSurfaceVariant,
             ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
@@ -979,13 +926,13 @@ class _SocialMediaChip extends StatelessWidget {
   final IconData icon;
   final String label;
   final String url;
-  final bool isDark;
+  final ColorScheme scheme;
 
   const _SocialMediaChip({
     required this.icon,
     required this.label,
     required this.url,
-    required this.isDark,
+    required this.scheme,
   });
 
   @override
@@ -1005,14 +952,10 @@ class _SocialMediaChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: isDark
-              ? AppColors.darkGray600.withValues(alpha: 0.3)
-              : AppColors.neutralGray50,
+color: scheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: isDark
-                ? AppColors.darkGray500.withValues(alpha: 0.5)
-                : AppColors.neutralGray200,
+color: scheme.outlineVariant,
           ),
         ),
         child: Row(
@@ -1024,9 +967,7 @@ class _SocialMediaChip extends StatelessWidget {
               label,
               style: TextStyle(
                 fontSize: 13,
-                color: isDark
-                    ? AppColors.neutralGray300
-                    : AppColors.neutralGray700,
+                color: scheme.onSurfaceVariant,
               ),
             ),
           ],
@@ -1046,16 +987,16 @@ class _SocialMediaChip extends StatelessWidget {
 ///   == 'expired'`); capability `hasMarketAuthority == false` is never expiry
 class _SellerStatusBadge extends ConsumerWidget {
   final SellerState sellerState;
-  final bool isDark;
+  final ColorScheme scheme;
 
-  const _SellerStatusBadge({required this.sellerState, required this.isDark});
+  const _SellerStatusBadge({required this.sellerState, required this.scheme});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray700 : AppColors.neutralWhite,
+        color: scheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: _getStatusColor().withValues(alpha: 0.3),
@@ -1074,9 +1015,7 @@ class _SellerStatusBadge extends ConsumerWidget {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
-                  color: isDark
-                      ? AppColors.neutralGray400
-                      : AppColors.neutralGray600,
+                  color: scheme.onSurfaceVariant,
                 ),
               ),
               const Spacer(),
@@ -1107,9 +1046,7 @@ class _SellerStatusBadge extends ConsumerWidget {
                       sellerState.bannerMessage!,
                       style: TextStyle(
                         fontSize: 13,
-                        color: isDark
-                            ? AppColors.neutralGray300
-                            : AppColors.neutralGray800,
+                        color: scheme.onSurfaceVariant,
                       ),
                     ),
                   ),

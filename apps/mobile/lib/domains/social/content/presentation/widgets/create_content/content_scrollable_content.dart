@@ -8,7 +8,6 @@ import 'package:labuda/domains/social/content/presentation/widgets/create_conten
 /// Scrollable content section for create post screen
 class ContentScrollableContent extends StatelessWidget {
   final TextEditingController contentController;
-  final bool isDark;
   final List<File> selectedImages;
   final List<File> selectedVideos;
   final loc.PostLocation? selectedLocation;
@@ -26,7 +25,6 @@ class ContentScrollableContent extends StatelessWidget {
   const ContentScrollableContent({
     super.key,
     required this.contentController,
-    required this.isDark,
     required this.selectedImages,
     required this.selectedVideos,
     required this.selectedLocation,
@@ -52,7 +50,6 @@ class ContentScrollableContent extends StatelessWidget {
           // Text input area
           ContentContentInput(
             controller: contentController,
-            isDark: isDark,
             onChanged: onContentChanged,
             onMentionsChanged: onMentionsChanged,
           ),
@@ -66,23 +63,22 @@ class ContentScrollableContent extends StatelessWidget {
             onImageReorder: onImageReorder,
             onImageRemove: onImageRemove,
             onVideoRemove: onVideoRemove,
-            isDark: isDark,
           ),
 
           // Metadata Sections
           ContentMetadataSections.buildLocationSection(
+            context: context,
             location: selectedLocation?.address,
             onEdit: onLocationEdit,
             onRemove: onLocationRemove,
-            isDark: isDark,
           ),
           ContentMetadataSections.buildHashtagsSection(
+            context: context,
             hashtags: hashtags
                 .map((tag) => tag.startsWith('#') ? tag : '#$tag')
                 .toList(),
             onEdit: onHashtagEdit,
             onRemove: onHashtagRemove,
-            isDark: isDark,
           ),
 
           // Bottom spacing for better UX

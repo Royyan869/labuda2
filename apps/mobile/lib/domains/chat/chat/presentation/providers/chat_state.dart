@@ -48,7 +48,6 @@ class ChatDetailState extends Equatable {
   final List<Message> messages;
   final bool hasMoreMessages;
   final String? nextMessageCursor;
-  final Map<String, bool> typingUsers;
   final int unreadCount;
   final bool isLoading;
   final String? error;
@@ -59,7 +58,6 @@ class ChatDetailState extends Equatable {
     this.messages = const [],
     this.hasMoreMessages = false,
     this.nextMessageCursor,
-    this.typingUsers = const {},
     this.unreadCount = 0,
     this.isLoading = false,
     this.error,
@@ -72,7 +70,6 @@ class ChatDetailState extends Equatable {
     messages,
     hasMoreMessages,
     nextMessageCursor,
-    typingUsers,
     unreadCount,
     isLoading,
     error,
@@ -84,7 +81,6 @@ class ChatDetailState extends Equatable {
     List<Message>? messages,
     bool? hasMoreMessages,
     String? nextMessageCursor,
-    Map<String, bool>? typingUsers,
     int? unreadCount,
     bool? isLoading,
     String? error,
@@ -95,7 +91,6 @@ class ChatDetailState extends Equatable {
       messages: messages ?? this.messages,
       hasMoreMessages: hasMoreMessages ?? this.hasMoreMessages,
       nextMessageCursor: nextMessageCursor ?? this.nextMessageCursor,
-      typingUsers: typingUsers ?? this.typingUsers,
       unreadCount: unreadCount ?? this.unreadCount,
       isLoading: isLoading ?? this.isLoading,
       error: error ?? this.error,

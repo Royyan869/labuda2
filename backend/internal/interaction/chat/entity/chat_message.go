@@ -120,12 +120,22 @@ func ComputeCommandFingerprint(
 	return hex.EncodeToString(sum[:])
 }
 
-// NewSystemMessage creates a new system-generated message.
-func NewSystemMessage(roomID uuid.UUID, body string, idempotencyKey string) *ChatMessage {
-	// System messages don't have a sender - use nil UUID
+// NewSystemMessage creates a system-generated message attributed to a REAL
+// actor. chat_messages.sender_id is NOT NULL with an FK to users — uuid.Nil
+// violates the constraint, so the historical "system messages don't have a
+// sender" contract was unwritable and every call failed at FK enforcement.
+//
+// The actor is the participant on whose behalf the system speaks (e.g. the
+// seller for for_sale.sold notifications in the seller↔buyer room).
+// Renderers must treat message_type='system' as the authoritative signal for
+// system-authored content, never sender_id.
+func NewSystemMessage(roomID uuid.UUID, actorID uuid.UUID, body string, idempotencyKey string) *ChatMessage {
+	if actorID == uuid.Nil {
+		panic("chat: NewSystemMessage requires a real actor id (sender_id is NOT NULL + FK to users)")
+	}
 	return NewChatMessage(
 		roomID,
-		uuid.Nil,
+		actorID,
 		MessageTypeSystem,
 		&body,
 		nil,

@@ -67,7 +67,6 @@ class _MainScreenState extends ConsumerState<MainScreen>
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final l10n = AppLocalizations.of(context)!;
 
     // Get navigation registry from provider
@@ -172,17 +171,17 @@ class _MainScreenState extends ConsumerState<MainScreen>
       },
       child: Scaffold(
         appBar: MainAppBar(currentTab: currentTab),
-        drawer: _buildDrawer(context, isDark),
+        drawer: _buildDrawer(context),
         body: IndexedStack(
           index: _currentIndex,
           children: tabs.map((tab) => tab.page).toList(),
         ),
-        bottomNavigationBar: _buildBottomNavigation(context, isDark, tabs),
+        bottomNavigationBar: _buildBottomNavigation(context, tabs),
       ),
     );
   }
 
-  Widget _buildDrawer(BuildContext context, bool isDark) {
+  Widget _buildDrawer(BuildContext context) {
     final handler = MainScreenNavigationHandler(ref: ref, context: context);
     final navigation = ref.read(navigationHandlerProvider);
 
@@ -201,7 +200,6 @@ class _MainScreenState extends ConsumerState<MainScreen>
 
   Widget _buildBottomNavigation(
     BuildContext context,
-    bool isDark,
     List<MainTab> tabs,
   ) {
     return MainBottomNavigation(

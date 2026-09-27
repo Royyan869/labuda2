@@ -1,35 +1,35 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 
 /// Dialog showing address information and rules
 class AddressInfoDialog extends StatelessWidget {
-  final bool isDark;
+  final ColorScheme scheme;
 
-  const AddressInfoDialog({super.key, required this.isDark});
+  const AddressInfoDialog({super.key, required this.scheme});
 
   /// Show the address info dialog
-  static void show(BuildContext context, bool isDark) {
+  static void show(BuildContext context, ColorScheme scheme) {
     showDialog(
       context: context,
-      builder: (context) => AddressInfoDialog(isDark: isDark),
+      builder: (context) => AddressInfoDialog(scheme: scheme),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return AlertDialog(
-      backgroundColor: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
+      backgroundColor: scheme.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       title: Row(
         children: [
-          Icon(Icons.info_outline, color: AppColors.primaryRed, size: 24),
+          Icon(Icons.info_outline, color: scheme.primary, size: 24),
           const SizedBox(width: 12),
           Text(
             'Address Information',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: isDark ? AppColors.neutralWhite : AppColors.neutralGray900,
+              color: scheme.onSurface,
             ),
           ),
         ],
@@ -38,19 +38,21 @@ class AddressInfoDialog extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildInfoRow(
-            Icons.home,
+_buildInfoRow(
+             scheme,
+             Icons.home,
             'Shipping Address',
             'Address for receiving packages/shipments',
           ),
           const SizedBox(height: 12),
-          _buildInfoRow(
-            Icons.agriculture,
+_buildInfoRow(
+             scheme,
+             Icons.agriculture,
             'Sender Address',
             'Origin address for goods (for seller)',
           ),
           const SizedBox(height: 16),
-          _buildRulesBox(),
+          _buildRulesBox(scheme),
         ],
       ),
       actions: [
@@ -59,7 +61,7 @@ class AddressInfoDialog extends StatelessWidget {
           child: Text(
             'Got it',
             style: TextStyle(
-              color: AppColors.primaryRed,
+              color: scheme.primary,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -68,14 +70,14 @@ class AddressInfoDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String title, String desc) {
+  Widget _buildInfoRow(ColorScheme scheme, IconData icon, String title, String desc) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Icon(
           icon,
           size: 20,
-          color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray600,
+          color: scheme.onSurfaceVariant,
         ),
         const SizedBox(width: 10),
         Expanded(
@@ -87,18 +89,14 @@ class AddressInfoDialog extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: isDark
-                      ? AppColors.neutralWhite
-                      : AppColors.neutralGray900,
+                  color: scheme.onSurfaceVariant,
                 ),
               ),
               Text(
                 desc,
                 style: TextStyle(
                   fontSize: 12,
-                  color: isDark
-                      ? AppColors.neutralGray400
-                      : AppColors.neutralGray600,
+                  color: scheme.onSurfaceVariant,
                 ),
               ),
             ],
@@ -108,25 +106,23 @@ class AddressInfoDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildRulesBox() {
+  Widget _buildRulesBox(ColorScheme scheme) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.primaryRed.withValues(alpha: 0.1),
+        color: scheme.primary.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
         children: [
-          Icon(Icons.rule, color: AppColors.primaryRed, size: 20),
+          Icon(Icons.rule, color: scheme.primary, size: 20),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               'Min. 1 address per category\nMax. 10 addresses per category',
               style: TextStyle(
                 fontSize: 13,
-                color: isDark
-                    ? AppColors.neutralGray200
-                    : AppColors.neutralGray800,
+                color: scheme.onSurfaceVariant,
               ),
             ),
           ),

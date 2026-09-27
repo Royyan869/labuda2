@@ -9,6 +9,7 @@
 //   6) Seller identity row still visible when badge is suppressed.
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:labuda/domains/commerce/catalog/auction/domain/domain.dart';
@@ -58,8 +59,12 @@ Auction _auction({
 }
 
 Widget _wrapCard(Auction auction) {
-  return MaterialApp(
-    home: Scaffold(body: AuctionSellerCard(auction: auction)),
+  // The card is a ConsumerWidget (profile-stream lookup for the store photo),
+  // so the harness must own a scope.
+  return ProviderScope(
+    child: MaterialApp(
+      home: Scaffold(body: AuctionSellerCard(auction: auction)),
+    ),
   );
 }
 

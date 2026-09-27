@@ -54,16 +54,15 @@ class AuthGuard extends ConsumerWidget {
     final currentUser = ref.watch(authenticatedUserProvider);
     final isSyncing = ref.watch(isSyncingWithBackendProvider);
     final authError = ref.watch(authErrorProvider);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // Backend sync in progress - show loading screen
     if (isSyncing) {
-      return _buildSyncingScreen(isDark);
+      return _buildSyncingScreen(context);
     }
 
     // Auth error occurred - show error screen with retry
     if (authError != null) {
-      return _buildErrorScreen(context, ref, authError, isDark);
+      return _buildErrorScreen(context, ref, authError);
     }
 
     // User authenticated with valid backend data
@@ -73,24 +72,22 @@ class AuthGuard extends ConsumerWidget {
 
     // User not authenticated
     if (showLoadingForUnauthenticated) {
-      return _buildLoadingScreen(isDark);
+      return _buildLoadingScreen();
     }
 
-    return _buildAuthRequiredScreen(context, ref, isDark);
+    return _buildAuthRequiredScreen(context, ref);
   }
 
-  Widget _buildLoadingScreen(bool isDark) {
-    return Scaffold(
-      backgroundColor: isDark ? AppColors.darkGray900 : AppColors.neutralWhite,
-      body: const Center(child: CircularProgressIndicator()),
+  Widget _buildLoadingScreen() {
+    return const Scaffold(
+      body: Center(child: CircularProgressIndicator()),
     );
   }
 
   /// Backend syncing screen - shown while fetching data from backend API
   /// SOURCE OF TRUTH: PostgreSQL (Backend API /users/me)
-  Widget _buildSyncingScreen(bool isDark) {
+  Widget _buildSyncingScreen(BuildContext context) {
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkGray900 : AppColors.neutralWhite,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -100,9 +97,7 @@ class AuthGuard extends ConsumerWidget {
             Text(
               'Loading profile...',
               style: TextStyle(
-                color: isDark
-                    ? AppColors.neutralGray400
-                    : AppColors.neutralGray600,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 fontSize: 14,
               ),
             ),
@@ -118,20 +113,13 @@ class AuthGuard extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     String error,
-    bool isDark,
   ) {
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkGray900 : AppColors.neutralWhite,
       appBar: AppBar(
         title: const Text('Connection Error'),
         surfaceTintColor: Colors.transparent,
         scrolledUnderElevation: 0,
-        backgroundColor: isDark
-            ? AppColors.darkGray800
-            : AppColors.neutralWhite,
-        foregroundColor: isDark
-            ? AppColors.neutralWhite
-            : AppColors.darkGray800,
         elevation: 0,
       ),
       body: Center(
@@ -143,13 +131,13 @@ class AuthGuard extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: AppColors.statusError.withValues(alpha: 0.1),
+                  color: scheme.error.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   Icons.cloud_off,
                   size: 64,
-                  color: AppColors.statusError,
+                  color: scheme.error,
                 ),
               ),
               const SizedBox(height: 32),
@@ -157,18 +145,14 @@ class AuthGuard extends ConsumerWidget {
                 'Unable to Load Profile',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: isDark
-                      ? AppColors.neutralWhite
-                      : AppColors.darkGray800,
+                  color: scheme.onSurface,
                 ),
               ),
               const SizedBox(height: 16),
               Text(
                 'Please check your internet connection and try again.',
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: isDark
-                      ? AppColors.neutralGray300
-                      : AppColors.neutralGray600,
+                  color: scheme.onSurfaceVariant,
                   height: 1.5,
                 ),
                 textAlign: TextAlign.center,
@@ -177,9 +161,7 @@ class AuthGuard extends ConsumerWidget {
               Text(
                 error,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: isDark
-                      ? AppColors.neutralGray500
-                      : AppColors.neutralGray500,
+                  color: scheme.onSurfaceVariant,
                 ),
                 textAlign: TextAlign.center,
                 maxLines: 2,
@@ -196,8 +178,8 @@ class AuthGuard extends ConsumerWidget {
                 icon: const Icon(Icons.refresh),
                 label: const Text('Retry'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryRed,
-                  foregroundColor: AppColors.light,
+                  backgroundColor: scheme.primary,
+                  foregroundColor: scheme.onPrimary,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 32,
                     vertical: 12,
@@ -210,9 +192,7 @@ class AuthGuard extends ConsumerWidget {
                 icon: const Icon(Icons.arrow_back),
                 label: const Text('Back'),
                 style: TextButton.styleFrom(
-                  foregroundColor: isDark
-                      ? AppColors.neutralGray400
-                      : AppColors.neutralGray600,
+                  foregroundColor: scheme.onSurfaceVariant,
                 ),
               ),
             ],
@@ -225,20 +205,13 @@ class AuthGuard extends ConsumerWidget {
   Widget _buildAuthRequiredScreen(
     BuildContext context,
     WidgetRef ref,
-    bool isDark,
   ) {
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkGray900 : AppColors.neutralWhite,
       appBar: AppBar(
         title: const Text('Access Limited'),
         surfaceTintColor: Colors.transparent,
         scrolledUnderElevation: 0,
-        backgroundColor: isDark
-            ? AppColors.darkGray800
-            : AppColors.neutralWhite,
-        foregroundColor: isDark
-            ? AppColors.neutralWhite
-            : AppColors.darkGray800,
         elevation: 0,
       ),
       body: Center(
@@ -250,13 +223,13 @@ class AuthGuard extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryRed.withValues(alpha: 0.1),
+                  color: scheme.primary.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   Icons.lock_outline,
                   size: 64,
-                  color: AppColors.primaryRed,
+                  color: scheme.primary,
                 ),
               ),
               const SizedBox(height: 32),
@@ -264,9 +237,7 @@ class AuthGuard extends ConsumerWidget {
                 'Login Required',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: isDark
-                      ? AppColors.neutralWhite
-                      : AppColors.darkGray800,
+                  color: scheme.onSurface,
                 ),
               ),
               const SizedBox(height: 16),
@@ -275,9 +246,7 @@ class AuthGuard extends ConsumerWidget {
                     'You must login first to access this feature. '
                         'Please login or register to continue.',
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: isDark
-                      ? AppColors.neutralGray300
-                      : AppColors.neutralGray600,
+                  color: scheme.onSurfaceVariant,
                   height: 1.5,
                 ),
                 textAlign: TextAlign.center,
@@ -293,8 +262,8 @@ class AuthGuard extends ConsumerWidget {
                       icon: const Icon(Icons.person_add),
                       label: const Text('Register'),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.primaryRed,
-                        side: BorderSide(color: AppColors.primaryRed),
+                        foregroundColor: scheme.primary,
+                        side: BorderSide(color: scheme.primary),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                     ),
@@ -308,8 +277,8 @@ class AuthGuard extends ConsumerWidget {
                       icon: const Icon(Icons.login),
                       label: const Text('Login'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryRed,
-                        foregroundColor: AppColors.light,
+                        backgroundColor: scheme.primary,
+                        foregroundColor: scheme.onPrimary,
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                     ),
@@ -322,9 +291,7 @@ class AuthGuard extends ConsumerWidget {
                 icon: const Icon(Icons.arrow_back),
                 label: const Text('Back'),
                 style: TextButton.styleFrom(
-                  foregroundColor: isDark
-                      ? AppColors.neutralGray400
-                      : AppColors.neutralGray600,
+                  foregroundColor: scheme.onSurfaceVariant,
                 ),
               ),
             ],
@@ -359,7 +326,6 @@ class RoleGuard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authenticatedUser = ref.watch(authenticatedUserProvider);
     final isAuthenticated = ref.watch(isAuthenticatedProvider);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // Not authenticated or syncing - let AuthGuard handle
     if (authenticatedUser == null || !isAuthenticated) {
@@ -375,22 +341,16 @@ class RoleGuard extends ConsumerWidget {
     }
 
     // Authenticated but doesn't have required role
-    return _buildAccessDeniedScreen(context, isDark);
+    return _buildAccessDeniedScreen(context);
   }
 
-  Widget _buildAccessDeniedScreen(BuildContext context, bool isDark) {
+  Widget _buildAccessDeniedScreen(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkGray900 : AppColors.neutralWhite,
       appBar: AppBar(
         title: const Text('Access Denied'),
         surfaceTintColor: Colors.transparent,
         scrolledUnderElevation: 0,
-        backgroundColor: isDark
-            ? AppColors.darkGray800
-            : AppColors.neutralWhite,
-        foregroundColor: isDark
-            ? AppColors.neutralWhite
-            : AppColors.darkGray800,
         elevation: 0,
       ),
       body: Center(
@@ -405,7 +365,7 @@ class RoleGuard extends ConsumerWidget {
                   color: AppColors.statusWarning.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
+                child: const Icon(
                   Icons.block,
                   size: 64,
                   color: AppColors.statusWarning,
@@ -416,9 +376,7 @@ class RoleGuard extends ConsumerWidget {
                 'Access Denied',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: isDark
-                      ? AppColors.neutralWhite
-                      : AppColors.darkGray800,
+                  color: scheme.onSurface,
                 ),
               ),
               const SizedBox(height: 16),
@@ -427,9 +385,7 @@ class RoleGuard extends ConsumerWidget {
                     'You do not have permission to access this feature. '
                         'Contact administrator if you think this is an error.',
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: isDark
-                      ? AppColors.neutralGray300
-                      : AppColors.neutralGray600,
+                  color: scheme.onSurfaceVariant,
                   height: 1.5,
                 ),
                 textAlign: TextAlign.center,
@@ -440,8 +396,8 @@ class RoleGuard extends ConsumerWidget {
                 icon: const Icon(Icons.arrow_back),
                 label: const Text('Back'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryRed,
-                  foregroundColor: AppColors.light,
+                  backgroundColor: scheme.primary,
+                  foregroundColor: scheme.onPrimary,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 32,
                     vertical: 12,
@@ -511,18 +467,16 @@ class SellerGuard extends ConsumerWidget {
     // interval right now" — claiming expiry from it told freshly onboarded
     // sellers their subscription had ended (RF-02).
     final isSubscriptionExpired = ref.watch(isSellerSubscriptionExpiredProvider);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // Backend sync in progress - show loading screen
     if (isSyncing) {
-      return _buildSyncingScreen(isDark);
+      return _buildSyncingScreen();
     }
 
     // No authenticated user
     if (authenticatedUser == null) {
       return _buildAccessDeniedScreen(
         context,
-        isDark,
         'Login required to access seller features.',
       );
     }
@@ -531,7 +485,7 @@ class SellerGuard extends ConsumerWidget {
       final message =
           accessDeniedMessage ??
           'This page can only be accessed by Sellers with an active profile.';
-      return _buildAccessDeniedScreen(context, isDark, message);
+      return _buildAccessDeniedScreen(context, message);
     }
 
     if (sellerCapabilityStatus != SellerCapabilityStatus.active) {
@@ -542,37 +496,29 @@ class SellerGuard extends ConsumerWidget {
               : sellerCapabilityStatus == SellerCapabilityStatus.inactive
               ? 'Your seller subscription is not active yet. Complete your subscription to access seller features.'
               : 'This page can only be accessed by Sellers with an active subscription.');
-      return _buildAccessDeniedScreen(context, isDark, message);
+      return _buildAccessDeniedScreen(context, message);
     }
 
     // Seller is active - allow access
     return child;
   }
 
-  Widget _buildSyncingScreen(bool isDark) {
-    return Scaffold(
-      backgroundColor: isDark ? AppColors.darkGray900 : AppColors.neutralWhite,
-      body: const Center(child: CircularProgressIndicator()),
+  Widget _buildSyncingScreen() {
+    return const Scaffold(
+      body: Center(child: CircularProgressIndicator()),
     );
   }
 
   Widget _buildAccessDeniedScreen(
     BuildContext context,
-    bool isDark,
     String message,
   ) {
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkGray900 : AppColors.neutralWhite,
       appBar: AppBar(
         title: const Text('Seller Access Required'),
         surfaceTintColor: Colors.transparent,
         scrolledUnderElevation: 0,
-        backgroundColor: isDark
-            ? AppColors.darkGray800
-            : AppColors.neutralWhite,
-        foregroundColor: isDark
-            ? AppColors.neutralWhite
-            : AppColors.darkGray800,
         elevation: 0,
       ),
       body: Center(
@@ -587,7 +533,7 @@ class SellerGuard extends ConsumerWidget {
                   color: AppColors.statusWarning.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
+                child: const Icon(
                   Icons.store_outlined,
                   size: 64,
                   color: AppColors.statusWarning,
@@ -598,18 +544,14 @@ class SellerGuard extends ConsumerWidget {
                 'Seller Feature',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: isDark
-                      ? AppColors.neutralWhite
-                      : AppColors.darkGray800,
+                  color: scheme.onSurface,
                 ),
               ),
               const SizedBox(height: 16),
               Text(
                 message,
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: isDark
-                      ? AppColors.neutralGray300
-                      : AppColors.neutralGray600,
+                  color: scheme.onSurfaceVariant,
                   height: 1.5,
                 ),
                 textAlign: TextAlign.center,
@@ -620,8 +562,8 @@ class SellerGuard extends ConsumerWidget {
                 icon: const Icon(Icons.arrow_back),
                 label: const Text('Back'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryRed,
-                  foregroundColor: AppColors.light,
+                  backgroundColor: scheme.primary,
+                  foregroundColor: scheme.onPrimary,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 32,
                     vertical: 12,
@@ -666,7 +608,7 @@ class AuthAware extends ConsumerWidget {
   }
 
   Widget _buildSyncingWidget(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -676,9 +618,7 @@ class AuthAware extends ConsumerWidget {
           Text(
             'Syncing...',
             style: TextStyle(
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray600,
+              color: scheme.onSurfaceVariant,
             ),
           ),
         ],

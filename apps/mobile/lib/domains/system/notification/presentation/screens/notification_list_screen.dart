@@ -137,7 +137,7 @@ class NotificationListScreen extends ConsumerWidget {
                         fontWeight: FontWeight.w600,
                         color: isSelected
                             ? Theme.of(context).colorScheme.primary
-                            : Colors.grey[700],
+                            : Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],
@@ -149,7 +149,7 @@ class NotificationListScreen extends ConsumerWidget {
                     .read(selectedFilterNotifierProvider.notifier)
                     .setFilter(filter);
               },
-              backgroundColor: Colors.grey[200],
+              backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
               selectedColor: Theme.of(context).colorScheme.primaryContainer,
               checkmarkColor: Theme.of(context).colorScheme.primary,
             ),
@@ -195,7 +195,7 @@ class NotificationListScreen extends ConsumerWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, size: 64, color: Colors.red),
+            Icon(Icons.error_outline, size: 64, color: Theme.of(context).colorScheme.error),
             const SizedBox(height: 16),
             const Text(
               'Failed to Load Notifications',
@@ -205,7 +205,7 @@ class NotificationListScreen extends ConsumerWidget {
             Text(
               error.toString(),
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+              style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(

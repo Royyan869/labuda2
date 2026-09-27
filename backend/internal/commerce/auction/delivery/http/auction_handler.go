@@ -19,6 +19,7 @@ import (
 	orderEntity "github.com/labuda/backend/internal/commerce/order/entity"
 	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
 	productRepo "github.com/labuda/backend/internal/commerce/product/repository"
+	commerceshared "github.com/labuda/backend/internal/commerce/shared"
 	shippingApp "github.com/labuda/backend/internal/commerce/shipping/application"
 	"github.com/labuda/backend/internal/governance/viewercontext"
 	addressEntity "github.com/labuda/backend/internal/identity/address/entity"
@@ -1308,7 +1309,6 @@ func (h *AuctionHandler) auctionDetailResponse(
 		a,
 		*buildAuctionSellerCard(a, seller),
 		seller,
-		nil, // media list is read from the Product (product.MediaURLs)
 		a.Product,
 		viewerIDPtr,
 	)
@@ -1367,8 +1367,12 @@ func auctionToResponse(a *entity.Auction, product *productEntity.Product, ownerI
 // canonical superset auctionToDetailResponseWithSeller via
 // (*AuctionHandler).auctionDetailResponse.
 //
-// Product content (title, description, media) is read from the Product
-// entity — the auction entity no longer carries duplicate content fields.
+// Product content (title, description, media, fish attributes, farm address,
+// preparation) is read from the Product entity — the auction entity no longer
+// carries duplicate content fields. The SAME content block is emitted on list
+// and detail payloads and matches for_saleToResponseWithSeller key-for-key
+// (for_sale parity: discovery cards must render media from the same wire slot
+// regardless of sale channel).
 //
 // Scope 3 — status boundary: `status` carries the coarsened public phase
 // vocabulary ({scheduled, active, waiting_settlement, ended, cancelled};
@@ -1386,11 +1390,18 @@ func auctionToResponseWithSeller(
 	title := ""
 	description := ""
 	var thumbnail *string
+	// PRODUCT CONTENT BLOCK — one authority (Product), one shape, both sale
+	// channels, both list and detail. Kept non-nil so the wire never emits a
+	// null media slot (cards treat null and [] differently).
+	mediaURLs := []string{}
 	if product != nil {
 		title = product.Title
 		description = product.Description
-		if len(product.MediaURLs) > 0 {
-			t := product.MediaURLs[0]
+		if product.MediaURLs != nil {
+			mediaURLs = product.MediaURLs
+		}
+		if len(mediaURLs) > 0 {
+			t := mediaURLs[0]
 			thumbnail = &t
 		}
 	}
@@ -1433,7 +1444,23 @@ func auctionToResponseWithSeller(
 		"seller_username":   seller.Username,
 		"seller_farm_name":  seller.FarmName,
 		"seller_avatar_url": seller.AvatarURL,
-		"auction":           auctionCard,
+		// Product content block (see doc comment). Identical key set to
+		// for_saleToResponseWithSeller — proven by the parity contract test.
+		"media":      commerceshared.MediaWireItems(mediaURLs, a.CreatedAt),
+		"media_urls": mediaURLs,
+		"auction":    auctionCard,
+	}
+	if product != nil {
+		resp["variety"] = product.Variety
+		resp["size_cm"] = product.SizeCm
+		resp["age_months"] = product.AgeMonths
+		resp["gender"] = product.Gender
+		resp["breeder"] = product.Breeder
+		resp["bloodline"] = product.Bloodline
+		resp["certificates"] = product.Certificates
+		resp["farm_address_id"] = product.FarmAddressID
+		resp["preparation_time"] = product.PreparationTime
+		resp["preparation_note"] = product.PreparationNote
 	}
 	return resp
 }

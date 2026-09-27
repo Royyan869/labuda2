@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 
 class MediaImageItem extends StatelessWidget {
   final File image;
@@ -22,7 +21,7 @@ class MediaImageItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Container(
       width: width,
@@ -30,7 +29,7 @@ class MediaImageItem extends StatelessWidget {
       margin: const EdgeInsets.only(right: 8),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        color: isDark ? AppColors.darkGray600 : AppColors.neutralGray100,
+        color: scheme.surfaceContainerHighest,
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
@@ -44,35 +43,35 @@ class MediaImageItem extends StatelessWidget {
                 image,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) =>
-                    _buildErrorImage(isDark),
+                    _buildErrorImage(scheme),
               ),
             ),
 
             // Cover badge
-            if (showCoverBadge && index == 0) _buildCoverBadge(),
+            if (showCoverBadge && index == 0) _buildCoverBadge(scheme),
 
             // Remove button
-            if (onRemove != null) _buildRemoveButton(),
+            if (onRemove != null) _buildRemoveButton(scheme),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildCoverBadge() {
+  Widget _buildCoverBadge(ColorScheme scheme) {
     return Positioned(
       top: 8,
       left: 8,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-          color: AppColors.primaryRed,
+          color: scheme.primary,
           borderRadius: BorderRadius.circular(4),
         ),
         child: Text(
           'Cover',
           style: TextStyle(
-            color: AppColors.neutralWhite,
+            color: scheme.onPrimary,
             fontSize: 10,
             fontWeight: FontWeight.w600,
           ),
@@ -81,7 +80,7 @@ class MediaImageItem extends StatelessWidget {
     );
   }
 
-  Widget _buildRemoveButton() {
+  Widget _buildRemoveButton(ColorScheme scheme) {
     return Positioned(
       top: 4,
       right: 4,
@@ -91,26 +90,26 @@ class MediaImageItem extends StatelessWidget {
           width: 24,
           height: 24,
           decoration: BoxDecoration(
-            color: AppColors.error.withValues(alpha: 0.9),
+            color: scheme.error.withValues(alpha: 0.9),
             shape: BoxShape.circle,
           ),
-          child: Icon(Icons.close, color: AppColors.neutralWhite, size: 16),
+          child: Icon(Icons.close, color: scheme.onPrimary, size: 16),
         ),
       ),
     );
   }
 
-  Widget _buildErrorImage(bool isDark) {
+  Widget _buildErrorImage(ColorScheme scheme) {
     return Container(
       width: double.infinity,
       height: double.infinity,
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray500 : AppColors.neutralGray200,
+        color: scheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Icon(
         Icons.broken_image_outlined,
-        color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray500,
+        color: scheme.onSurfaceVariant,
         size: 32,
       ),
     );

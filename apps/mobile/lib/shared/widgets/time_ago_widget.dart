@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/system/shared/domain/services/time_format_service.dart';
 
 /// Shared Time Ago Widget untuk menampilkan relative time dengan konsisten
@@ -70,10 +69,10 @@ class TimeAgoWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final scheme = theme.colorScheme;
 
     final defaultColor =
-        color ?? (isDark ? AppColors.neutralGray400 : AppColors.neutralGray600);
+        color ?? scheme.onSurfaceVariant;
 
     final textStyle =
         style ??

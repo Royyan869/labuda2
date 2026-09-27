@@ -408,8 +408,8 @@ mixin OrderDetailHandlersMixin on ConsumerState<OrderDetailScreen> {
               context.push('/orders');
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: core.AppColors.primaryRed,
-              foregroundColor: Colors.white,
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
             ),
             child: const Text('Lihat Pesanan Saya'),
           ),

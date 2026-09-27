@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/entities/post_location.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -67,7 +66,7 @@ class ClickableLocationWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     if (compact) {
       // Compact mode - inline dengan icon
@@ -79,14 +78,14 @@ class ClickableLocationWidget extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.location_on, size: 16, color: AppColors.primaryRed),
+              Icon(Icons.location_on, size: 16, color: scheme.primary),
               const SizedBox(width: 4),
               Flexible(
                 child: Text(
                   location.address,
                   style: TextStyle(
                     fontSize: 13,
-                    color: AppColors.primaryBlue,
+                    color: scheme.secondary,
                     decoration: TextDecoration.underline,
                   ),
                   maxLines: 1,
@@ -94,7 +93,7 @@ class ClickableLocationWidget extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 4),
-              Icon(Icons.open_in_new, size: 12, color: AppColors.primaryBlue),
+              Icon(Icons.open_in_new, size: 12, color: scheme.secondary),
             ],
           ),
         ),
@@ -108,12 +107,10 @@ class ClickableLocationWidget extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isDark
-              ? AppColors.primaryBlue.withValues(alpha: 0.1)
-              : AppColors.primaryBlue.withValues(alpha: 0.05),
+          color: scheme.secondary.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: AppColors.primaryBlue.withValues(alpha: 0.3),
+            color: scheme.secondary.withValues(alpha: 0.3),
           ),
         ),
         child: Row(
@@ -121,12 +118,12 @@ class ClickableLocationWidget extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppColors.primaryRed.withValues(alpha: 0.1),
+                color: scheme.primary.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
                 Icons.location_on,
-                color: AppColors.primaryRed,
+                color: scheme.primary,
                 size: 20,
               ),
             ),
@@ -140,9 +137,7 @@ class ClickableLocationWidget extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: isDark
-                          ? AppColors.neutralWhite
-                          : AppColors.neutralBlack,
+                      color: scheme.onSurface,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -154,9 +149,7 @@ class ClickableLocationWidget extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 11,
                         fontFamily: 'monospace',
-                        color: isDark
-                            ? AppColors.neutralGray400
-                            : AppColors.neutralGray600,
+                        color: scheme.onSurfaceVariant,
                       ),
                     ),
                   ],
@@ -164,7 +157,7 @@ class ClickableLocationWidget extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            Icon(Icons.open_in_new, color: AppColors.primaryBlue, size: 18),
+            Icon(Icons.open_in_new, color: scheme.secondary, size: 18),
           ],
         ),
       ),

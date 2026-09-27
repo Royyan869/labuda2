@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/shared.dart';
 
 /// Reusable Action Buttons untuk Cancel & Save/Submit actions
@@ -121,8 +120,6 @@ class ActionButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     Widget buttonsWidget;
 
     if (cancelText != null && onCancel != null) {
@@ -130,13 +127,13 @@ class ActionButtons extends StatelessWidget {
       buttonsWidget = Row(
         children: [
           if (isFullWidth) ...[
-            Expanded(child: _buildCancelButton(context, isDark)),
+            Expanded(child: _buildCancelButton(context)),
             const SizedBox(width: 16),
-            Expanded(child: _buildSaveButton(context, isDark)),
+            Expanded(child: _buildSaveButton(context)),
           ] else ...[
-            _buildCancelButton(context, isDark),
+            _buildCancelButton(context),
             const SizedBox(width: 16),
-            _buildSaveButton(context, isDark),
+            _buildSaveButton(context),
           ],
         ],
       );
@@ -145,15 +142,16 @@ class ActionButtons extends StatelessWidget {
       buttonsWidget = isFullWidth
           ? SizedBox(
               width: double.infinity,
-              child: _buildSaveButton(context, isDark),
+              child: _buildSaveButton(context),
             )
-          : _buildSaveButton(context, isDark);
+          : _buildSaveButton(context);
     }
 
     return Padding(padding: padding ?? EdgeInsets.zero, child: buttonsWidget);
   }
 
-  Widget _buildCancelButton(BuildContext context, bool isDark) {
+  Widget _buildCancelButton(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return SizedBox(
       height: 48,
       child: OutlinedButton(
@@ -161,7 +159,7 @@ class ActionButtons extends StatelessWidget {
         style: OutlinedButton.styleFrom(
           backgroundColor: Colors.transparent,
           side: BorderSide(
-            color: isDark ? AppColors.neutralGray500 : AppColors.neutralGray400,
+            color: scheme.outline,
             width: 1.5,
           ),
           shape: RoundedRectangleBorder(
@@ -171,7 +169,7 @@ class ActionButtons extends StatelessWidget {
         child: Text(
           cancelText!,
           style: TextStyle(
-            color: isDark ? AppColors.neutralGray300 : AppColors.neutralGray700,
+            color: scheme.onSurface,
             fontSize: 16,
             fontWeight: FontWeight.w600,
           ),
@@ -180,17 +178,19 @@ class ActionButtons extends StatelessWidget {
     );
   }
 
-  Widget _buildSaveButton(BuildContext context, bool isDark) {
+  Widget _buildSaveButton(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final disabled = isLoading || onSave == null;
     return SizedBox(
       height: 48,
       child: OutlinedButton(
-        onPressed: (isLoading || onSave == null) ? null : onSave,
+        onPressed: disabled ? null : onSave,
         style: OutlinedButton.styleFrom(
           backgroundColor: Colors.transparent,
           side: BorderSide(
-            color: (isLoading || onSave == null)
-                ? (isDark ? AppColors.neutralGray600 : AppColors.neutralGray300)
-                : AppColors.primaryRed,
+            color: disabled
+                ? scheme.outlineVariant
+                : scheme.primary,
             width: 1.5,
           ),
           shape: RoundedRectangleBorder(
@@ -204,18 +204,16 @@ class ActionButtons extends StatelessWidget {
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    AppColors.primaryRed,
+                    scheme.primary,
                   ),
                 ),
               )
             : Text(
                 saveText,
                 style: TextStyle(
-                  color: (isLoading || onSave == null)
-                      ? (isDark
-                            ? AppColors.neutralGray500
-                            : AppColors.neutralGray400)
-                      : AppColors.primaryRed,
+                  color: disabled
+                      ? scheme.onSurfaceVariant
+                      : scheme.primary,
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                 ),
@@ -249,8 +247,6 @@ class ActionButtonsFilled extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     Widget buttonsWidget;
 
     if (cancelText != null && onCancel != null) {
@@ -258,13 +254,13 @@ class ActionButtonsFilled extends StatelessWidget {
       buttonsWidget = Row(
         children: [
           if (isFullWidth) ...[
-            Expanded(child: _buildCancelButton(context, isDark)),
+            Expanded(child: _buildCancelButton(context)),
             const SizedBox(width: 16),
-            Expanded(child: _buildSaveButton(context, isDark)),
+            Expanded(child: _buildSaveButton(context)),
           ] else ...[
-            _buildCancelButton(context, isDark),
+            _buildCancelButton(context),
             const SizedBox(width: 16),
-            _buildSaveButton(context, isDark),
+            _buildSaveButton(context),
           ],
         ],
       );
@@ -273,22 +269,22 @@ class ActionButtonsFilled extends StatelessWidget {
       buttonsWidget = isFullWidth
           ? SizedBox(
               width: double.infinity,
-              child: _buildSaveButton(context, isDark),
+              child: _buildSaveButton(context),
             )
-          : _buildSaveButton(context, isDark);
+          : _buildSaveButton(context);
     }
 
     return Padding(padding: padding ?? EdgeInsets.zero, child: buttonsWidget);
   }
 
-  Widget _buildCancelButton(BuildContext context, bool isDark) {
+  Widget _buildCancelButton(BuildContext context) {
     return AppButton.secondary(
       text: cancelText!,
       onPressed: isLoading ? null : onCancel,
     );
   }
 
-  Widget _buildSaveButton(BuildContext context, bool isDark) {
+  Widget _buildSaveButton(BuildContext context) {
     return AppButton.primary(
       text: saveText,
       onPressed: onSave,

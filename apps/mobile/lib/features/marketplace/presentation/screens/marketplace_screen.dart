@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/features/home/home.dart';
 import 'package:labuda/features/marketplace/marketplace.dart';
 
@@ -65,32 +64,25 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen>
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Container(
-      color: isDark ? AppColors.darkGray900 : AppColors.neutralGray50,
+      color: scheme.surfaceContainerLowest,
       child: Column(
         children: [
           // Clean Tab Bar Header (no redundant buttons)
           Container(
             decoration: BoxDecoration(
-              color: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
+              color: scheme.surface,
               border: Border(
-                bottom: BorderSide(
-                  color: isDark
-                      ? AppColors.neutralGray700
-                      : AppColors.neutralGray200,
-                  width: 1,
-                ),
+                bottom: BorderSide(color: scheme.outlineVariant, width: 1),
               ),
             ),
             child: TabBar(
               controller: _tabController,
-              indicatorColor: AppColors.primaryRed,
-              labelColor: AppColors.primaryRed,
-              unselectedLabelColor: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray600,
+              indicatorColor: scheme.primary,
+              labelColor: scheme.primary,
+              unselectedLabelColor: scheme.onSurfaceVariant,
               labelStyle: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,

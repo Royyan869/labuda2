@@ -27,23 +27,19 @@ class ProvinceDropdown extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final provincesAsync = ref.watch(provincesProvider);
 
     return BaseDropdownContainer(
       labelText: labelText,
-      isDark: isDark,
       child: provincesAsync.when(
-        data: (provinces) => _buildDropdown(context, isDark, provinces),
+        data: (provinces) => _buildDropdown(context, provinces),
         loading: () => DropdownStateBuilders.buildLoading(
           context: context,
-          isDark: isDark,
           text: 'Loading provinsi...',
           prefixIcon: prefixIcon,
         ),
         error: (error, stack) => DropdownStateBuilders.buildError(
           context: context,
-          isDark: isDark,
           text: 'Error loading provinsi',
           prefixIcon: prefixIcon,
         ),
@@ -53,21 +49,21 @@ class ProvinceDropdown extends ConsumerWidget {
 
   Widget _buildDropdown(
     BuildContext context,
-    bool isDark,
     List<Province> provinces,
   ) {
+    final scheme = Theme.of(context).colorScheme;
     return DropdownButtonFormField<Province>(
       initialValue: selectedProvince,
       onChanged: onChanged,
       validator: validator,
       isExpanded: true,
       decoration: DropdownDecorationHelper.createInputDecoration(
-        isDark: isDark,
+        scheme: scheme,
         hintText: hintText ?? 'Pilih Provinsi',
         prefixIcon: prefixIcon,
       ),
-      dropdownColor: DropdownDecorationHelper.getDropdownColor(isDark),
-      style: DropdownDecorationHelper.getTextStyle(isDark),
+      dropdownColor: DropdownDecorationHelper.getDropdownColor(scheme),
+      style: DropdownDecorationHelper.getTextStyle(scheme),
       selectedItemBuilder: (context) {
         return DropdownDecorationHelper.buildSelectedItems<Province>(
           provinces,

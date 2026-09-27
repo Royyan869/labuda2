@@ -12,40 +12,33 @@ part of 'order_widgets_impl.dart';
 /// money model (PD = P - D) and coins are not an Order snapshot authority.
 class OrderBuyerPricingCard extends StatelessWidget {
   final Order order;
-  final bool isDark;
 
-  const OrderBuyerPricingCard({
-    super.key,
-    required this.order,
-    required this.isDark,
-  });
+  const OrderBuyerPricingCard({super.key, required this.order});
 
   @override
   Widget build(BuildContext context) {
-    return _CommercePricingCard(order: order, isDark: isDark);
+    return _CommercePricingCard(order: order);
   }
 }
 
 /// Commerce pricing card for product / auction / offer orders
 class _CommercePricingCard extends StatelessWidget {
   final Order order;
-  final bool isDark;
 
-  const _CommercePricingCard({required this.order, required this.isDark});
+  const _CommercePricingCard({required this.order});
 
   @override
   Widget build(BuildContext context) {
     final pricing = order.pricing;
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDark ? const Color(0xFF333333) : const Color(0xFFE0E0E0),
-        ),
+        border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -74,10 +67,10 @@ class _CommercePricingCard extends StatelessWidget {
               value: AppFormatters.formatCurrency(pricing.serviceFeeAmount!),
             )
           else
-            const _PricingRow(
+            _PricingRow(
               label: 'Biaya Layanan Pembayaran',
               value: 'Akan dihitung server',
-              valueColor: Colors.grey,
+              valueColor: colorScheme.onSurfaceVariant,
             ),
           // NOTE: Discount display removed. Backend does not emit
           // discount_amount, discount_code, or discount_description
@@ -90,7 +83,7 @@ class _CommercePricingCard extends StatelessWidget {
                 ? AppFormatters.formatCurrency(pricing.totalPayableAmount!)
                 : 'Akan dihitung server',
             isBold: true,
-            valueColor: isDark ? Colors.white : const Color(0xFF1E1E1E),
+            valueColor: colorScheme.onSurface,
           ),
         ],
       ),
@@ -103,27 +96,21 @@ class _CommercePricingCard extends StatelessWidget {
 /// Shows seller commission and earnings
 class OrderSellerPricingCard extends StatelessWidget {
   final Order order;
-  final bool isDark;
 
-  const OrderSellerPricingCard({
-    super.key,
-    required this.order,
-    required this.isDark,
-  });
+  const OrderSellerPricingCard({super.key, required this.order});
 
   @override
   Widget build(BuildContext context) {
     final pricing = order.pricing;
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDark ? const Color(0xFF333333) : const Color(0xFFE0E0E0),
-        ),
+        border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -147,10 +134,10 @@ class OrderSellerPricingCard extends StatelessWidget {
           // FINANCIAL OWNERSHIP BOUNDARY (Wave 3.1B):
           // sellerCommission and sellerEarnings are finance-domain data
           // Access via SellerEarnings/SellerDashboard entities, not Order
-          const _PricingRow(
+          _PricingRow(
             label: 'Pendapatan Bersih',
             value: 'Lihat di Dashboard Penjual',
-            valueColor: Colors.grey,
+            valueColor: colorScheme.onSurfaceVariant,
           ),
         ],
       ),
@@ -175,6 +162,7 @@ class _PricingRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -184,14 +172,14 @@ class _PricingRow extends StatelessWidget {
           Text(
             label,
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: Colors.grey,
+              color: colorScheme.onSurfaceVariant,
               fontWeight: isBold ? FontWeight.w600 : FontWeight.normal,
             ),
           ),
           Text(
             value,
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: valueColor ?? (isBold ? null : Colors.grey),
+              color: valueColor ?? (isBold ? null : colorScheme.onSurfaceVariant),
               fontWeight: isBold ? FontWeight.w600 : FontWeight.normal,
             ),
           ),

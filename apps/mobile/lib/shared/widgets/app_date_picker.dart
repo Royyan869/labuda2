@@ -1,6 +1,4 @@
-import 'package:labuda/core/src/theme/app_colors.dart';
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 
 /// Reusable Date/DateTime Picker widget dengan styling konsisten sesuai LABUDA design
 ///
@@ -66,7 +64,7 @@ class AppDatePicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return GestureDetector(
       onTap: enabled ? () => _selectDateTime(context) : null,
@@ -83,41 +81,35 @@ class AppDatePicker extends StatelessWidget {
             prefixIcon: prefixIcon != null
                 ? Icon(
                     prefixIcon,
-                    color: isDark
-                        ? AppColors.neutralGray400
-                        : AppColors.neutralGray500,
+                    color: scheme.onSurfaceVariant,
                   )
                 : null,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                color: isDark
-                    ? AppColors.darkGray600
-                    : AppColors.neutralGray300,
+                color: scheme.outlineVariant,
               ),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                color: isDark
-                    ? AppColors.darkGray600
-                    : AppColors.neutralGray300,
+                color: scheme.outlineVariant,
               ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(
-                color: AppColors.primaryRed,
+              borderSide: BorderSide(
+                color: scheme.primary,
                 width: 2,
               ),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.error),
+              borderSide: BorderSide(color: scheme.error),
             ),
             focusedErrorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.error, width: 2),
+              borderSide: BorderSide(color: scheme.error, width: 2),
             ),
           ),
           validator: validator != null
@@ -164,22 +156,20 @@ class AppDatePicker extends StatelessWidget {
   }
 
   Future<TimeOfDay?> _showCustomTimePicker(BuildContext context) async {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     TimeOfDay selectedTime = TimeOfDay.now();
 
     return showDialog<TimeOfDay>(
       context: context,
       builder: (BuildContext context) {
+        final scheme = Theme.of(context).colorScheme;
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              backgroundColor: isDark ? AppColors.darkGray800 : AppColors.light,
+              backgroundColor: scheme.surfaceContainerHigh,
               title: Text(
                 'Select Time',
                 style: TextStyle(
-                  color: isDark
-                      ? AppColors.neutralWhite
-                      : AppColors.neutralGray900,
+                  color: scheme.onSurface,
                 ),
               ),
               content: Row(
@@ -192,9 +182,7 @@ class AppDatePicker extends StatelessWidget {
                       Text(
                         'Hour',
                         style: TextStyle(
-                          color: isDark
-                              ? AppColors.neutralGray300
-                              : AppColors.neutralGray700,
+                          color: scheme.onSurface,
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -220,9 +208,7 @@ class AppDatePicker extends StatelessWidget {
                                   index.toString().padLeft(2, '0'),
                                   style: TextStyle(
                                     fontSize: 18,
-                                    color: isDark
-                                        ? AppColors.neutralWhite
-                                        : AppColors.neutralGray900,
+                                    color: scheme.onSurface,
                                   ),
                                 ),
                               );
@@ -236,9 +222,7 @@ class AppDatePicker extends StatelessWidget {
                     ':',
                     style: TextStyle(
                       fontSize: 24,
-                      color: isDark
-                          ? AppColors.neutralWhite
-                          : AppColors.neutralGray900,
+                      color: scheme.onSurface,
                     ),
                   ),
                   // Minute picker
@@ -248,9 +232,7 @@ class AppDatePicker extends StatelessWidget {
                       Text(
                         'Minute',
                         style: TextStyle(
-                          color: isDark
-                              ? AppColors.neutralGray300
-                              : AppColors.neutralGray700,
+                          color: scheme.onSurface,
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -277,9 +259,7 @@ class AppDatePicker extends StatelessWidget {
                                   minute.toString().padLeft(2, '0'),
                                   style: TextStyle(
                                     fontSize: 18,
-                                    color: isDark
-                                        ? AppColors.neutralWhite
-                                        : AppColors.neutralGray900,
+                                    color: scheme.onSurface,
                                   ),
                                 ),
                               );
@@ -297,17 +277,15 @@ class AppDatePicker extends StatelessWidget {
                   child: Text(
                     'Cancel',
                     style: TextStyle(
-                      color: isDark
-                          ? AppColors.neutralGray400
-                          : AppColors.neutralGray600,
+                      color: scheme.onSurfaceVariant,
                     ),
                   ),
                 ),
                 ElevatedButton(
                   onPressed: () => Navigator.of(context).pop(selectedTime),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryRed,
-                    foregroundColor: AppColors.light,
+                    backgroundColor: scheme.primary,
+                    foregroundColor: scheme.onPrimary,
                   ),
                   child: const Text('OK'),
                 ),

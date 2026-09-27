@@ -263,10 +263,10 @@ class NegotiationOffer extends Equatable {
 /// - `cancelled`: maps to backend `cancelled` (buyer cancelled)
 /// - `expired`: maps to backend `expired` (timed out)
 ///
-/// **DEPRECATED STATES (removed for honesty):**
-/// - `pending`: was mapping to backend `active`, caused confusion
-/// - `countered`: was FAKE state, doesn't exist in backend
-/// - `rejected`: no backend equivalent, never properly implemented
+/// **DEPRECATED STATES (forbidden legacy — status mapping purge, T3):**
+/// `pending`, `countered`, `rejected`, and `completed` never existed in the
+/// backend status authority. They must NOT be re-mapped here; unknown wire
+/// values must fail loudly, not silently collapse into `active`.
 ///
 /// **UI CONSIDERATIONS:**
 /// To show "who made last offer" in UI, use `lastOfferBy` field and `currentOfferPrice`.
@@ -305,29 +305,30 @@ extension NegotiationStatusExtension on NegotiationStatus {
     }
   }
 
+  /// Parses a backend status string into the mobile enum.
+  ///
+  /// FAIL-FAST CONTRACT (status mapping purge, T3): only the four canonical
+  /// backend states are accepted. Unknown / legacy values (`pending`,
+  /// `countered`, `rejected`, `completed`, typos, future states) throw
+  /// [ArgumentError] instead of silently collapsing into `active` — a silent
+  /// `active` fallback would let a buyer attempt actions on a state the
+  /// backend never authorized.
   static NegotiationStatus fromString(String value) {
     switch (value) {
       case 'active':
         return NegotiationStatus.active;
       case 'accepted':
-      case 'completed': // Legacy API response, treat as accepted
         return NegotiationStatus.accepted;
       case 'cancelled':
         return NegotiationStatus.cancelled;
       case 'expired':
         return NegotiationStatus.expired;
-      // Legacy mappings for data migration
-      case 'pending':
-        // Old 'pending' state maps to 'active'
-        return NegotiationStatus.active;
-      case 'countered':
-        // Old 'countered' state was fake, map to 'active'
-        return NegotiationStatus.active;
-      case 'rejected':
-        // Old 'rejected' state, map to 'cancelled' for backward compatibility
-        return NegotiationStatus.cancelled;
       default:
-        return NegotiationStatus.active;
+        throw ArgumentError.value(
+          value,
+          'status',
+          'Unknown negotiation status from backend',
+        );
     }
   }
 

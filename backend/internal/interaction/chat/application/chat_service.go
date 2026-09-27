@@ -318,21 +318,30 @@ func (s *Service) CreateSupportTicketRoom(ctx context.Context, ownerID uuid.UUID
 	return room, nil
 }
 
-// SendSystemMessage sends a system message to a room.
+// SendSystemMessage sends a system message to a room on behalf of a REAL
+// actor.
+//
+// ROOT-CAUSE FIX (for_sale.sold wiring): the previous contract used
+// sender_id = uuid.Nil for system messages, but chat_messages.sender_id is
+// NOT NULL with an FK to users — every call failed at FK enforcement, which
+// is why the sole caller (the never-wired negotiation ForSaleSoldEventHandler)
+// never worked end to end.
 //
 // Transaction flow:
 // 1. BEGIN
 // 2. Verify room exists
-// 3. Create system message (sender_id = Nil, message_type = 'system')
+// 3. Create system message (message_type = 'system', sender = actor)
 // 4. Update room's last_message_at
 // 5. COMMIT
 //
 // Business rules:
 // - No rate limit (system messages)
 // - No block checking (system messages)
-// - sender_id is always Nil (system)
+// - senderID is the real participant the system speaks for (message
+//   attribution for the reader); message_type='system' is the authoritative
+//   system-authored signal for renderers, never sender_id.
 // - message_type is always 'system'
-func (s *Service) SendSystemMessage(ctx context.Context, roomID uuid.UUID, body string) error {
+func (s *Service) SendSystemMessage(ctx context.Context, roomID uuid.UUID, senderID uuid.UUID, body string) error {
 	// Validate body
 	if body == "" {
 		return fmt.Errorf("system message body cannot be empty")
@@ -349,9 +358,12 @@ func (s *Service) SendSystemMessage(ctx context.Context, roomID uuid.UUID, body 
 		}
 
 		// Create system message
-		// Use a deterministic idempotency key for system messages
+		// Idempotency key is actor-scoped per the 000032 contract; the
+		// nanosecond component makes retries produce a distinct key, which is
+		// acceptable here because re-delivery of the owning outbox event only
+		// re-notifies in dev/test (zero production data, zero-to-one).
 		idempotencyKey := fmt.Sprintf("system:%s:%d", roomID.String(), time.Now().UnixNano())
-		systemMessage := chatEntity.NewSystemMessage(roomID, body, idempotencyKey)
+		systemMessage := chatEntity.NewSystemMessage(roomID, senderID, body, idempotencyKey)
 
 		if err := s.repo.CreateMessage(ctx, tx, systemMessage); err != nil {
 			return fmt.Errorf("failed to create system message: %w", err)

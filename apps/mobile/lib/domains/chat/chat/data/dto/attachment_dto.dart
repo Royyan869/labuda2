@@ -222,41 +222,6 @@ class SharePreviewDto extends Equatable {
 /// WORKFLOW PAYLOADS (Domain-specific business state)
 /// ============================================================================
 
-/// Negotiation Offer Attachment DTO
-class NegotiationOfferAttachmentDto extends AttachmentDto {
-  NegotiationOfferAttachmentDto({
-    required String negotiationId,
-    required String forSaleId,
-    required String status,
-    required SharePreviewDto preview,
-  }) : super(
-         type: 'negotiation_offer',
-         data: {
-           'negotiation_id': negotiationId,
-           'for_sale_id': forSaleId,
-           'status': status,
-           'preview': preview.toJson(),
-         },
-       );
-
-  factory NegotiationOfferAttachmentDto.fromJson(Map<String, dynamic> json) {
-    return NegotiationOfferAttachmentDto(
-      negotiationId: json['data']['negotiation_id'] as String,
-      forSaleId: json['data']['for_sale_id'] as String,
-      status: json['data']['status'] as String,
-      preview: SharePreviewDto.fromJson(
-        json['data']['preview'] as Map<String, dynamic>? ?? {},
-      ),
-    );
-  }
-
-  String get negotiationId => data['negotiation_id'] as String;
-  String get forSaleId => data['for_sale_id'] as String;
-  String get status => data['status'] as String;
-  SharePreviewDto get preview =>
-      SharePreviewDto.fromJson(data['preview'] as Map<String, dynamic>? ?? {});
-}
-
 /// Negotiation Proposal Attachment DTO
 ///
 /// Wire format emitted by backend `negotiation_event_handler.go`.
@@ -305,41 +270,6 @@ class NegotiationProposalAttachmentDto extends AttachmentDto {
   String? get resourceType => data['resource_type'] as String?;
   String? get resourceId => data['resource_id'] as String?;
   String? get note => data['note'] as String?;
-}
-
-/// Negotiation Result Attachment DTO
-class NegotiationResultAttachmentDto extends AttachmentDto {
-  NegotiationResultAttachmentDto({
-    required String negotiationId,
-    required String forSaleId,
-    required String status,
-    required SharePreviewDto preview,
-  }) : super(
-         type: 'negotiation_result',
-         data: {
-           'negotiation_id': negotiationId,
-           'for_sale_id': forSaleId,
-           'status': status,
-           'preview': preview.toJson(),
-         },
-       );
-
-  factory NegotiationResultAttachmentDto.fromJson(Map<String, dynamic> json) {
-    return NegotiationResultAttachmentDto(
-      negotiationId: json['data']['negotiation_id'] as String,
-      forSaleId: json['data']['for_sale_id'] as String,
-      status: json['data']['status'] as String,
-      preview: SharePreviewDto.fromJson(
-        json['data']['preview'] as Map<String, dynamic>? ?? {},
-      ),
-    );
-  }
-
-  String get negotiationId => data['negotiation_id'] as String;
-  String get forSaleId => data['for_sale_id'] as String;
-  String get status => data['status'] as String;
-  SharePreviewDto get preview =>
-      SharePreviewDto.fromJson(data['preview'] as Map<String, dynamic>? ?? {});
 }
 
 /// Shipping Quote Attachment DTO
@@ -465,12 +395,8 @@ AttachmentDto parseAttachmentDto(Map<String, dynamic> json) {
     case 'reference':
       return ShareReferenceAttachmentDto.fromJson(json);
     // Workflow payloads
-    case 'negotiation_offer':
-      return NegotiationOfferAttachmentDto.fromJson(json);
     case 'negotiation_proposal':
       return NegotiationProposalAttachmentDto.fromJson(json);
-    case 'negotiation_result':
-      return NegotiationResultAttachmentDto.fromJson(json);
     case 'shipping_quote':
       return ShippingQuoteAttachmentDto.fromJson(json);
     // True attachments

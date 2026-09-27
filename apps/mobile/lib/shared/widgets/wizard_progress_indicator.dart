@@ -15,14 +15,12 @@ class WizardProgressIndicator extends StatelessWidget {
   final int currentStep;
   final int totalSteps;
   final List<String> stepLabels;
-  final bool isDark;
 
   const WizardProgressIndicator({
     super.key,
     required this.currentStep,
     required this.totalSteps,
     required this.stepLabels,
-    required this.isDark,
   }) : assert(
          stepLabels.length == totalSteps,
          'stepLabels must match totalSteps',
@@ -72,6 +70,7 @@ class WizardProgressIndicator extends StatelessWidget {
                 final stepIndex = index ~/ 2;
                 final isCompleted = stepIndex < currentStep;
                 return _buildConnectorLine(
+                  context,
                   isCompleted,
                   connectorWidth,
                   stepSize,
@@ -82,6 +81,7 @@ class WizardProgressIndicator extends StatelessWidget {
                 final isActive = stepIndex == currentStep;
                 final isCompleted = stepIndex < currentStep;
                 return _buildStepWithLabel(
+                  context,
                   stepIndex,
                   isActive,
                   isCompleted,
@@ -97,12 +97,14 @@ class WizardProgressIndicator extends StatelessWidget {
   }
 
   Widget _buildStepWithLabel(
+    BuildContext context,
     int index,
     bool isActive,
     bool isCompleted,
     double stepSize,
     double labelWidth,
   ) {
+    final scheme = Theme.of(context).colorScheme;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -112,33 +114,29 @@ class WizardProgressIndicator extends StatelessWidget {
           height: stepSize,
           decoration: BoxDecoration(
             color: isActive
-                ? AppColors.primaryRed
+                ? scheme.primary
                 : isCompleted
                 ? AppColors.successGreen
                 : Colors.transparent,
             shape: BoxShape.circle,
             border: Border.all(
               color: isActive
-                  ? AppColors.primaryRed
+                  ? scheme.primary
                   : isCompleted
                   ? AppColors.successGreen
-                  : (isDark
-                        ? AppColors.neutralGray600
-                        : AppColors.neutralGray400),
+                  : scheme.outline,
               width: 1.5,
             ),
           ),
           child: Center(
             child: isCompleted
-                ? Icon(Icons.check, color: Colors.white, size: stepSize * 0.5)
+                ? Icon(Icons.check, color: scheme.onPrimary, size: stepSize * 0.5)
                 : Text(
                     '${index + 1}',
                     style: TextStyle(
                       color: isActive
-                          ? Colors.white
-                          : (isDark
-                                ? AppColors.neutralGray400
-                                : AppColors.neutralGray600),
+                          ? scheme.onPrimary
+                          : scheme.onSurfaceVariant,
                       fontWeight: FontWeight.bold,
                       fontSize: stepSize * 0.42,
                     ),
@@ -154,12 +152,8 @@ class WizardProgressIndicator extends StatelessWidget {
             style: TextStyle(
               fontSize: isActive ? 10 : 8.5,
               color: isActive
-                  ? (isDark
-                        ? AppColors.neutralGray200
-                        : AppColors.neutralGray900)
-                  : (isDark
-                        ? AppColors.neutralGray500
-                        : AppColors.neutralGray500),
+                  ? scheme.onSurface
+                  : scheme.onSurfaceVariant,
               fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
               height: 1.1,
             ),
@@ -172,7 +166,8 @@ class WizardProgressIndicator extends StatelessWidget {
     );
   }
 
-  Widget _buildConnectorLine(bool isCompleted, double width, double stepSize) {
+  Widget _buildConnectorLine(BuildContext context, bool isCompleted, double width, double stepSize) {
+    final scheme = Theme.of(context).colorScheme;
     // Position connector in the middle (vertically aligned with circle center)
     final verticalOffset =
         stepSize / 2 - 0.75; // Center of circle minus half of line height
@@ -186,7 +181,7 @@ class WizardProgressIndicator extends StatelessWidget {
       decoration: BoxDecoration(
         color: isCompleted
             ? AppColors.successGreen
-            : (isDark ? AppColors.neutralGray700 : AppColors.neutralGray300),
+            : scheme.outlineVariant,
       ),
     );
   }

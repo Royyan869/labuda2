@@ -86,11 +86,11 @@ export function DecisionPanel({ dispute, onSubmit, submitting }: DecisionPanelPr
     }
 
     return (
-      <div className="fixed bottom-0 left-0 right-0 bg-gray-50 border-t border-gray-200 shadow-lg p-4 z-10">
+      <div className="fixed bottom-0 left-0 right-0 bg-muted border-t border-border shadow-lg p-4 z-10">
         <div className="max-w-7xl mx-auto flex items-center justify-center gap-3">
-          <Lock className="h-5 w-5 text-gray-500" />
+          <Lock className="h-5 w-5 text-muted-foreground" />
           <Badge variant={config.variant}>{config.label}</Badge>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-muted-foreground">
             This dispute was resolved on{' '}
             {dispute.resolved_at
               ? new Date(dispute.resolved_at).toLocaleDateString('id-ID')
@@ -98,9 +98,9 @@ export function DecisionPanel({ dispute, onSubmit, submitting }: DecisionPanelPr
             . No further actions can be taken.
           </p>
           {dispute.resolution_notes && (
-            <div className="ml-4 px-3 py-2 bg-white rounded border border-gray-200 max-w-md">
-              <p className="text-xs text-gray-500 mb-1">Admin Notes:</p>
-              <p className="text-sm text-gray-900">{dispute.resolution_notes}</p>
+            <div className="ml-4 px-3 py-2 bg-background rounded border border-border max-w-md">
+              <p className="text-xs text-muted-foreground mb-1">Admin Notes:</p>
+              <p className="text-sm text-foreground">{dispute.resolution_notes}</p>
             </div>
           )}
         </div>
@@ -116,7 +116,7 @@ export function DecisionPanel({ dispute, onSubmit, submitting }: DecisionPanelPr
           return {
             title: 'Full Refund to Buyer',
             variant: 'warning' as const,
-            icon: <CheckCircle className="h-5 w-5 text-amber-600" />,
+            icon: <CheckCircle className="h-5 w-5 text-warning" />,
             description: 'Buyer receives the full order amount (subtotal + shipping). Seller receives nothing.',
             warning: 'The seller will not receive any payment from this order.',
           }
@@ -124,7 +124,7 @@ export function DecisionPanel({ dispute, onSubmit, submitting }: DecisionPanelPr
           return {
             title: 'Product-Only Refund',
             variant: 'warning' as const,
-            icon: <DollarSign className="h-5 w-5 text-amber-600" />,
+            icon: <DollarSign className="h-5 w-5 text-warning" />,
             description: 'Buyer receives the item price (subtotal) only. Shipping fee is released to the seller.',
             warning: 'The split amount is calculated from the order. Buyer gets subtotal, seller keeps shipping.',
           }
@@ -132,7 +132,7 @@ export function DecisionPanel({ dispute, onSubmit, submitting }: DecisionPanelPr
           return {
             title: 'Release to Seller',
             variant: 'danger' as const,
-            icon: <XCircle className="h-5 w-5 text-red-600" />,
+            icon: <XCircle className="h-5 w-5 text-destructive" />,
             description: 'All funds are released to the seller. Buyer receives no refund.',
             warning: 'The buyer will not receive a refund. Full payment goes to the seller.',
           }
@@ -142,33 +142,33 @@ export function DecisionPanel({ dispute, onSubmit, submitting }: DecisionPanelPr
     const summary = getDecisionSummary()
 
     return (
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg p-4 z-10">
+      <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border shadow-lg p-4 z-10">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center gap-6">
             <div className="flex items-start gap-3 flex-1">
               <div className={`p-2 rounded-lg ${
-                summary.variant === 'danger' ? 'bg-red-50' : 'bg-amber-50'
+                summary.variant === 'danger' ? 'bg-destructive-bg' : 'bg-warning-bg'
               }`}>
                 {summary.icon}
               </div>
 
               <div className="flex-1">
                 <p className={`font-semibold ${
-                  summary.variant === 'danger' ? 'text-red-700' : 'text-amber-700'
+                  summary.variant === 'danger' ? 'text-destructive' : 'text-warning'
                 }`}>
                   {summary.title}
                 </p>
-                <p className="text-sm text-gray-600 mt-1">{summary.description}</p>
+                <p className="text-sm text-muted-foreground mt-1">{summary.description}</p>
                 <div className={`flex items-start gap-2 mt-2 text-sm ${
-                  summary.variant === 'danger' ? 'text-red-600' : 'text-amber-600'
+                  summary.variant === 'danger' ? 'text-destructive' : 'text-warning'
                 }`}>
                   <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
                   <span>{summary.warning}</span>
                 </div>
                 {notes && (
-                  <div className="mt-3 p-2 bg-gray-50 rounded border border-gray-200">
-                    <p className="text-xs text-gray-500 mb-1">Your notes:</p>
-                    <p className="text-sm text-gray-900 line-clamp-2">{notes}</p>
+                  <div className="mt-3 p-2 bg-muted rounded border border-border">
+                    <p className="text-xs text-muted-foreground mb-1">Your notes:</p>
+                    <p className="text-sm text-foreground line-clamp-2">{notes}</p>
                   </div>
                 )}
               </div>
@@ -196,14 +196,14 @@ export function DecisionPanel({ dispute, onSubmit, submitting }: DecisionPanelPr
 
   // Selection step
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg p-4 z-10">
+    <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border shadow-lg p-4 z-10">
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between gap-6">
           {/* Mandatory notes */}
           <div className="flex-1 max-w-lg">
-            <label className="text-sm font-medium text-gray-700 flex items-center gap-1 mb-1">
+            <label className="text-sm font-medium text-foreground flex items-center gap-1 mb-1">
               Resolution Notes
-              <span className="text-red-500">*</span>
+              <span className="text-destructive">*</span>
             </label>
             <textarea
               value={notes}
@@ -213,22 +213,22 @@ export function DecisionPanel({ dispute, onSubmit, submitting }: DecisionPanelPr
               maxLength={MAX_NOTES_LENGTH}
               className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 resize-none ${
                 notesError
-                  ? 'border-red-300 focus:ring-red-500'
-                  : 'border-gray-300 focus:ring-primary'
+                  ? 'border-destructive focus:ring-ring'
+                  : 'border-border focus:ring-ring'
               }`}
             />
             <div className="flex items-center justify-between mt-1">
               {notesError ? (
-                <div className="flex items-center gap-1 text-red-600 text-xs">
+                <div className="flex items-center gap-1 text-destructive text-xs">
                   <AlertCircle className="h-3 w-3" />
                   <span>{notesError}</span>
                 </div>
               ) : (
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted-foreground">
                   Minimum {MIN_NOTES_LENGTH} characters required
                 </p>
               )}
-              <p className={`text-xs ${notes.length < MIN_NOTES_LENGTH ? 'text-red-500' : 'text-gray-500'}`}>
+              <p className={`text-xs ${notes.length < MIN_NOTES_LENGTH ? 'text-destructive' : 'text-muted-foreground'}`}>
                 {notes.length}/{MAX_NOTES_LENGTH}
               </p>
             </div>
@@ -241,7 +241,7 @@ export function DecisionPanel({ dispute, onSubmit, submitting }: DecisionPanelPr
               variant="secondary"
               onClick={() => handleDecisionClick('reject')}
               disabled={submitting || notes.trim().length < MIN_NOTES_LENGTH || !canResolveDisputes}
-              className="border-orange-200 text-orange-700 hover:bg-orange-50"
+              className="border-warning text-warning hover:bg-warning-bg"
               title={!canResolveDisputes ? `Requires: ${requiredCapability}` : 'Funds released to seller. Buyer gets no refund.'}
             >
               <XCircle className="h-4 w-4 mr-2" />
@@ -253,7 +253,7 @@ export function DecisionPanel({ dispute, onSubmit, submitting }: DecisionPanelPr
               variant="secondary"
               onClick={() => handleDecisionClick('refund_partial')}
               disabled={submitting || notes.trim().length < MIN_NOTES_LENGTH || !canResolveDisputes}
-              className="border-amber-200 text-amber-700 hover:bg-amber-50"
+              className="border-warning text-warning hover:bg-warning-bg"
               title={!canResolveDisputes ? `Requires: ${requiredCapability}` : 'Buyer gets item price; shipping stays with seller.'}
             >
               <DollarSign className="h-4 w-4 mr-2" />

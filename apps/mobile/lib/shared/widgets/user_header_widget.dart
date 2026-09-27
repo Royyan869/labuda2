@@ -33,13 +33,13 @@ class UserHeaderWidget extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final scheme = theme.colorScheme;
 
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         // User Avatar - Only this is tappable
-        GestureDetector(onTap: onTap, child: _buildAvatar(ref)),
+        GestureDetector(onTap: onTap, child: _buildAvatar(context, ref)),
         SizedBox(width: _getSpacing()),
 
         // User Info - NOT tappable
@@ -67,12 +67,12 @@ class UserHeaderWidget extends ConsumerWidget {
                       Flexible(
                         child: Text(
                           '@$username',
-                          style: _getSecondaryStyle(theme, isDark),
+                          style: _getSecondaryStyle(theme),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       if (showTimeAgo) ...[
-                        Text(' • ', style: _getSecondaryStyle(theme, isDark)),
+                        Text(' • ', style: _getSecondaryStyle(theme)),
                       ],
                     ],
 
@@ -80,9 +80,7 @@ class UserHeaderWidget extends ConsumerWidget {
                     if (showTimeAgo)
                       TimeAgoWidget.compact(
                         dateTime: createdAt,
-                        color: isDark
-                            ? AppColors.neutralGray400
-                            : AppColors.neutralGray600,
+                        color: scheme.onSurfaceVariant,
                       ),
                   ],
                 ),
@@ -94,7 +92,7 @@ class UserHeaderWidget extends ConsumerWidget {
     );
   }
 
-  Widget _buildAvatar(WidgetRef ref) {
+  Widget _buildAvatar(BuildContext context, WidgetRef ref) {
     final avatarSize = switch (size) {
       UserHeaderSize.small => 24.0,
       UserHeaderSize.medium => 40.0,
@@ -128,9 +126,12 @@ class UserHeaderWidget extends ConsumerWidget {
               width: dotSize,
               height: dotSize,
               decoration: BoxDecoration(
-                color: AppColors.primaryGreen,
+                color: AppColors.success,
                 shape: BoxShape.circle,
-                border: Border.all(color: AppColors.neutralWhite, width: 1.5),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.surface,
+                  width: 1.5,
+                ),
               ),
             ),
           ),
@@ -180,7 +181,7 @@ class UserHeaderWidget extends ConsumerWidget {
     }
   }
 
-  TextStyle _getSecondaryStyle(ThemeData theme, bool isDark) {
+  TextStyle _getSecondaryStyle(ThemeData theme) {
     final baseStyle = switch (size) {
       UserHeaderSize.small => theme.textTheme.bodySmall,
       UserHeaderSize.medium => theme.textTheme.bodySmall,
@@ -188,7 +189,7 @@ class UserHeaderWidget extends ConsumerWidget {
     };
 
     return baseStyle?.copyWith(
-          color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray600,
+          color: theme.colorScheme.onSurfaceVariant,
         ) ??
         const TextStyle();
   }

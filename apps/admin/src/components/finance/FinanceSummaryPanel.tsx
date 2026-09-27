@@ -20,12 +20,12 @@ function formatIdr(amount: number): string {
 /** Read-only balance card for one system account. */
 function AccountBalanceCard({ accountType, balance, highlight }: { accountType: string; balance: number; highlight?: string }) {
   return (
-    <div className="border border-gray-200 rounded-lg p-4">
-      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+    <div className="border border-border rounded-lg p-4">
+      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
         {ACCOUNT_LABELS[accountType] ?? accountType}
       </p>
-      <p className="text-xl font-mono font-semibold text-gray-900 mt-1">{formatIdr(balance)}</p>
-      {highlight && <p className="text-xs text-gray-500 mt-1">{highlight}</p>}
+      <p className="text-xl font-mono font-semibold text-foreground mt-1">{formatIdr(balance)}</p>
+      {highlight && <p className="text-xs text-muted-foreground mt-1">{highlight}</p>}
     </div>
   )
 }
@@ -56,8 +56,8 @@ export function FinanceSummaryPanel() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-gray-900">Finance Summary</h2>
-          <p className="text-sm text-gray-600 mt-0.5">
+          <h2 className="text-xl font-bold text-foreground">Finance Summary</h2>
+          <p className="text-sm text-muted-foreground mt-0.5">
             Aggregate ledger balances and revenue — answers "how much is where"
             without a DB query.
           </p>
@@ -71,9 +71,9 @@ export function FinanceSummaryPanel() {
       {error && (
         <Card>
           <CardContent className="p-6 text-center">
-            <AlertTriangle className="h-8 w-8 text-red-400 mx-auto mb-2" />
-            <p className="text-gray-900 font-medium">Failed to load finance summary</p>
-            <p className="text-gray-600 text-sm mt-1">{error}</p>
+            <AlertTriangle className="h-8 w-8 text-destructive mx-auto mb-2" />
+            <p className="text-foreground font-medium">Failed to load finance summary</p>
+            <p className="text-muted-foreground text-sm mt-1">{error}</p>
             <Button variant="secondary" size="sm" onClick={fetchSummary} className="mt-3">
               Retry
             </Button>
@@ -86,7 +86,7 @@ export function FinanceSummaryPanel() {
           <CardContent className="p-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="animate-pulse h-20 bg-gray-100 rounded-lg" />
+                <div key={i} className="animate-pulse h-20 bg-surface-muted rounded-lg" />
               ))}
             </div>
           </CardContent>
@@ -96,9 +96,9 @@ export function FinanceSummaryPanel() {
       {summary && (
         <>
           {/* Honesty banner: internal vs external reconciliation */}
-          <div className="flex items-start gap-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-            <ShieldAlert className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
-            <div className="text-sm text-amber-800 space-y-1">
+          <div className="flex items-start gap-3 p-3 bg-warning-bg border border-warning rounded-lg">
+            <ShieldAlert className="h-5 w-5 text-warning mt-0.5 flex-shrink-0" />
+            <div className="text-sm text-warning space-y-1">
               <p className="font-semibold">Internal ledger consistency only.</p>
               <p>Midtrans settlement/bank reconciliation is not implemented yet.</p>
               <p>Non-zero Gateway Clearing can be normal for paid orders not yet released.</p>
@@ -133,7 +133,7 @@ export function FinanceSummaryPanel() {
                   />
                 ))}
               </div>
-              <p className="text-xs text-gray-500 mt-3">{summary.gateway_clearing.note}</p>
+              <p className="text-xs text-muted-foreground mt-3">{summary.gateway_clearing.note}</p>
             </CardContent>
           </Card>
 
@@ -154,18 +154,18 @@ export function FinanceSummaryPanel() {
                     <AccountBalanceCard accountType="Total Platform Revenue" balance={summary.revenue_breakdown.total_platform_revenue_rupiah} />
                   </div>
                   {summary.revenue_breakdown.other_revenue_reference_types && summary.revenue_breakdown.other_revenue_reference_types.length > 0 && (
-                    <p className="text-xs text-gray-500 mt-2">
+                    <p className="text-xs text-muted-foreground mt-2">
                       Other revenue sources: {summary.revenue_breakdown.other_revenue_reference_types.join(', ')}
                     </p>
                   )}
                 </>
               ) : (
-                <div className="flex items-center gap-2 text-sm text-gray-600">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Info className="h-4 w-4" />
                   Breakdown not distinguishable from current ledger data.
                 </div>
               )}
-              <p className="text-xs text-gray-500 mt-3">{summary.revenue_breakdown.note}</p>
+              <p className="text-xs text-muted-foreground mt-3">{summary.revenue_breakdown.note}</p>
             </CardContent>
           </Card>
 
@@ -189,9 +189,9 @@ export function FinanceSummaryPanel() {
                 </Badge>
               </div>
               {summary.finance_alerts.unresolved_by_type && Object.keys(summary.finance_alerts.unresolved_by_type).length > 0 && (
-                <ul className="mt-3 text-sm text-gray-700 space-y-1">
+                <ul className="mt-3 text-sm text-foreground space-y-1">
                   {Object.entries(summary.finance_alerts.unresolved_by_type).map(([type, count]) => (
-                    <li key={type} className="flex justify-between border-b border-gray-100 py-1">
+                    <li key={type} className="flex justify-between border-b border-border py-1">
                       <span className="font-mono text-xs">{type}</span>
                       <span className="font-medium">{count}</span>
                     </li>
@@ -209,7 +209,7 @@ export function FinanceSummaryPanel() {
             <CardContent className="space-y-4">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-gray-700">Internal ledger consistency:</span>
+                  <span className="text-sm font-medium text-foreground">Internal ledger consistency:</span>
                   {summary.internal_reconciliation.available ? (
                     <Badge variant={summary.internal_reconciliation.severity === 'passed' ? 'success' : 'warning'}>
                       {summary.internal_reconciliation.severity}
@@ -221,28 +221,28 @@ export function FinanceSummaryPanel() {
                   )}
                 </div>
                 {summary.internal_reconciliation.available && summary.internal_reconciliation.last_checked_at && (
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     Last checked: {new Date(summary.internal_reconciliation.last_checked_at).toLocaleString()}
                   </p>
                 )}
-                <p className="text-xs text-gray-500 mt-1">{summary.internal_reconciliation.note}</p>
+                <p className="text-xs text-muted-foreground mt-1">{summary.internal_reconciliation.note}</p>
               </div>
 
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm font-medium text-gray-700">External Midtrans settlement reconciliation:</span>
+                  <span className="text-sm font-medium text-foreground">External Midtrans settlement reconciliation:</span>
                   <Badge variant="default">Not Implemented</Badge>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap mt-1">
-                  <span className="text-sm font-medium text-gray-700">Bank statement reconciliation:</span>
+                  <span className="text-sm font-medium text-foreground">Bank statement reconciliation:</span>
                   <Badge variant="default">Not Implemented</Badge>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">{summary.external_reconciliation.note}</p>
+                <p className="text-xs text-muted-foreground mt-1">{summary.external_reconciliation.note}</p>
               </div>
             </CardContent>
           </Card>
 
-          <p className="text-xs text-gray-400 text-right">
+          <p className="text-xs text-muted-foreground text-right">
             Generated at {new Date(summary.generated_at).toLocaleString()}
           </p>
         </>

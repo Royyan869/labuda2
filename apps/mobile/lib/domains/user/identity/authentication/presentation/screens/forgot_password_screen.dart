@@ -115,22 +115,16 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen>
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
-          gradient: isDark
-              ? const LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [AppColors.darkGray900, AppColors.darkGray800],
-                )
-              : const LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [AppColors.neutralGray50, AppColors.neutralWhite],
-                ),
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [scheme.surfaceContainerLow, scheme.surface],
+          ),
         ),
         child: SafeArea(
           child: ListenableBuilder(
@@ -219,23 +213,22 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen>
 
   /// Navigation link - always shown
   Widget _buildNavigation() {
+    final scheme = Theme.of(context).colorScheme;
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
           'Back to ',
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: Theme.of(context).brightness == Brightness.dark
-                ? AppColors.neutralGray400
-                : AppColors.neutralGray600,
+            color: scheme.onSurfaceVariant,
           ),
         ),
         TextButton(
           onPressed: _navigateToSignIn,
-          child: const Text(
+          child: Text(
             'Sign In',
             style: TextStyle(
-              color: AppColors.primaryBlue,
+              color: scheme.secondary,
               fontWeight: FontWeight.w600,
             ),
           ),

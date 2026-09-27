@@ -162,38 +162,43 @@ class AuctionDetailBottomBar extends StatelessWidget {
     return _isTerminalState && onBrowseOtherAuctions != null;
   }
 
-  /// Get the main action button color
-  Color get _mainActionColor {
-    // Winner checkout - use orange for urgency (waiting settlement)
+  /// Get the main action button color.
+  ///
+  /// Urgency/success have no scheme role (palette authority); error and
+  /// info map to scheme roles. Terminal states render disabled via the
+  /// button theme, so this only needs a non-null fallback there.
+  Color _mainActionColor(ColorScheme scheme) {
+    // Winner checkout - urgency tone for waiting settlement.
     if (_shouldShowWinnerCheckout && onWinnerCheckout != null) {
       if (auction.status == AuctionStatus.waitingSettlement) {
-        return Colors.orange; // Urgent - deadline approaching
+        return AppColors.statusWarning; // Urgent - deadline approaching
       }
-      return const Color(0xFFE53935); // Red for regular ended checkout
+      return scheme.error; // Regular ended checkout
     }
 
-    // Terminal states - gray
+    // Terminal states render disabled — fallback only.
     if (_isTerminalState) {
-      return Colors.grey;
+      return scheme.surfaceContainerHighest;
     }
 
-    // Scheduled - blue
+    // Scheduled - info tone.
     if (auction.status == AuctionStatus.scheduled) {
-      return Colors.blue.shade300;
+      return scheme.secondary;
     }
 
-    // Active auction - green
-    return Colors.green;
+    // Active auction - success tone.
+    return AppColors.statusSuccess;
   }
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: scheme.surface,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: scheme.shadow.withValues(alpha: 0.05),
             blurRadius: 4,
             offset: const Offset(0, -2),
           ),
@@ -203,20 +208,22 @@ class AuctionDetailBottomBar extends StatelessWidget {
       child: SafeArea(
         top: false,
         child: _showSecondaryAction
-            ? _buildTerminalStateLayout()
-            : _buildNormalLayout(),
+            ? _buildTerminalStateLayout(context)
+            : _buildNormalLayout(context),
       ),
     );
   }
 
   /// Build layout for terminal states with secondary action
   /// TRANSACTION CLARITY: No dead-end - provide "Lihat Lelang Lain" button
-  Widget _buildTerminalStateLayout() {
+  Widget _buildTerminalStateLayout(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Row(
       children: [
         // Chat button — canonical viewer capability (can_chat) when present.
         if (_showChat) ...[
           _buildActionButton(
+            context,
             icon: Icons.chat_bubble_outline,
             label: 'Chat',
             onTap: onChat,
@@ -228,9 +235,10 @@ class AuctionDetailBottomBar extends StatelessWidget {
           child: ElevatedButton(
             onPressed: null,
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.grey.shade300,
-              foregroundColor: Colors.grey.shade600,
-              disabledBackgroundColor: Colors.grey.shade300,
+              backgroundColor: scheme.surfaceContainerHighest,
+              foregroundColor: scheme.onSurfaceVariant,
+              disabledBackgroundColor: scheme.surfaceContainerHighest,
+              disabledForegroundColor: scheme.onSurfaceVariant,
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -247,8 +255,8 @@ class AuctionDetailBottomBar extends StatelessWidget {
         ElevatedButton(
           onPressed: onBrowseOtherAuctions,
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primaryBlue,
-            foregroundColor: Colors.white,
+            backgroundColor: scheme.secondary,
+            foregroundColor: scheme.onSecondary,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
@@ -264,12 +272,14 @@ class AuctionDetailBottomBar extends StatelessWidget {
   }
 
   /// Build normal layout with single action button
-  Widget _buildNormalLayout() {
+  Widget _buildNormalLayout(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Row(
       children: [
         // Chat button — canonical viewer capability (can_chat) when present.
         if (_showChat) ...[
           _buildActionButton(
+            context,
             icon: Icons.chat_bubble_outline,
             label: 'Chat',
             onTap: onChat,
@@ -281,8 +291,10 @@ class AuctionDetailBottomBar extends StatelessWidget {
           child: ElevatedButton(
             onPressed: _mainActionCallback,
             style: ElevatedButton.styleFrom(
-              backgroundColor: _mainActionColor,
-              foregroundColor: Colors.white,
+              backgroundColor: _mainActionColor(scheme),
+              foregroundColor: scheme.onPrimary,
+              disabledBackgroundColor: scheme.surfaceContainerHighest,
+              disabledForegroundColor: scheme.onSurfaceVariant,
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -298,7 +310,8 @@ class AuctionDetailBottomBar extends StatelessWidget {
     );
   }
 
-  Widget _buildActionButton({
+  Widget _buildActionButton(
+    BuildContext context, {
     required IconData icon,
     required String label,
     required VoidCallback onTap,
@@ -309,7 +322,11 @@ class AuctionDetailBottomBar extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: color ?? Colors.grey, size: 20),
+          Icon(
+            icon,
+            color: color ?? Theme.of(context).colorScheme.onSurfaceVariant,
+            size: 20,
+          ),
           const SizedBox(height: 2),
           Text(label, style: const TextStyle(fontSize: 10)),
         ],

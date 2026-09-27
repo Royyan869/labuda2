@@ -307,14 +307,14 @@ class _UnifiedEditProfileScreenState
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     final profileAsync = ref.watch(profileStreamProvider(_actualUserId));
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkGray900 : AppColors.neutralGray50,
+      backgroundColor: scheme.surfaceContainerLowest,
       appBar: AppBar(
         title: const Text('Edit Profile'),
-        backgroundColor: isDark ? AppColors.darkGray800 : AppColors.light,
+        backgroundColor: scheme.surface,
         surfaceTintColor: Colors.transparent,
         scrolledUnderElevation: 0,
       ),
@@ -362,7 +362,7 @@ class _UnifiedEditProfileScreenState
                     child: _buildSectionHeader(
                       'Informasi Profile',
                       Icons.person_outline,
-                      isDark,
+                      scheme,
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -379,7 +379,7 @@ class _UnifiedEditProfileScreenState
                       child: _buildSectionHeader(
                         'Farm Information',
                         Icons.store_outlined,
-                        isDark,
+                        scheme,
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -397,7 +397,7 @@ class _UnifiedEditProfileScreenState
                   _buildSectionHeader(
                     'Contact & Social Media',
                     Icons.contact_phone_outlined,
-                    isDark,
+                    scheme,
                   ),
                   const SizedBox(height: 16),
                   EditProfileContactSection(
@@ -424,9 +424,7 @@ class _UnifiedEditProfileScreenState
           // Loading overlay
           if (profileAsync.isLoading && _cachedProfile == null)
             Container(
-              color: isDark
-                  ? AppColors.darkGray900.withValues(alpha: 0.7)
-                  : AppColors.neutralGray50.withValues(alpha: 0.7),
+color: scheme.scrim.withValues(alpha: 0.7),
               child: const Center(child: CircularProgressIndicator()),
             ),
         ],
@@ -461,17 +459,17 @@ class _UnifiedEditProfileScreenState
     });
   }
 
-  Widget _buildSectionHeader(String title, IconData icon, bool isDark) {
+  Widget _buildSectionHeader(String title, IconData icon, ColorScheme scheme) {
     return Row(
       children: [
-        Icon(icon, size: 20, color: AppColors.primaryRed),
+        Icon(icon, size: 20, color: scheme.primary),
         const SizedBox(width: 8),
         Text(
           title,
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
-            color: isDark ? AppColors.light : AppColors.dark,
+            color: scheme.onSurface,
           ),
         ),
       ],

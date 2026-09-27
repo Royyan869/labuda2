@@ -2,11 +2,16 @@ package worker
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"os"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	orderentity "github.com/labuda/backend/internal/commerce/order/entity"
 	refundapp "github.com/labuda/backend/internal/finance/refund/application"
 	refundentity "github.com/labuda/backend/internal/finance/refund/entity"
@@ -54,6 +59,10 @@ type GatewayTransactionStatuser interface {
 	QueryProviderState(orderID string) (*midtrans.ProviderStatus, error)
 }
 
+// ErrPaymentNotFound reports that the requested payment row does not exist.
+// Returned by SyncPaymentByID so the HTTP boundary can map it to 404.
+var ErrPaymentNotFound = errors.New("payment not found")
+
 // PaymentDiscoveryConfig holds worker configuration.
 type PaymentDiscoveryConfig struct {
 	PollInterval          time.Duration
@@ -63,13 +72,35 @@ type PaymentDiscoveryConfig struct {
 }
 
 // DefaultPaymentDiscoveryConfig returns the canonical REC-5 configuration.
+//
+// PAYMENT_SYNC_ON_DEMAND: the on-demand sync endpoint (POST /payments/:id/sync)
+// reuses this exact config so an operator-triggered inquiry and the scan loop
+// share one authority. Override the eligibility age with
+// DISCOVERY_INQUIRY_ELIGIBILITY_AGE (whole seconds); a value of 0 or less
+// falls back to DefaultDiscoveryInquiryEligibilityAge. Development/sandbox
+// environments should set a short age (e.g. "15") so a settled payment is
+// discovered quickly without a public webhook endpoint.
 func DefaultPaymentDiscoveryConfig() PaymentDiscoveryConfig {
 	return PaymentDiscoveryConfig{
 		PollInterval:          DefaultDiscoveryPollInterval,
 		BatchSize:             DefaultDiscoveryBatchSize,
-		InquiryEligibilityAge: DefaultDiscoveryInquiryEligibilityAge,
+		InquiryEligibilityAge: discoveryInquiryEligibilityAgeFromEnv(),
 		GatewayTimeout:        DefaultDiscoveryGatewayTimeout,
 	}
+}
+
+// discoveryInquiryEligibilityAgeFromEnv reads DISCOVERY_INQUIRY_ELIGIBILITY_AGE
+// (seconds). Invalid or unset values fall back to the canonical default.
+func discoveryInquiryEligibilityAgeFromEnv() time.Duration {
+	raw := strings.TrimSpace(os.Getenv("DISCOVERY_INQUIRY_ELIGIBILITY_AGE"))
+	if raw == "" {
+		return DefaultDiscoveryInquiryEligibilityAge
+	}
+	seconds, err := strconv.Atoi(raw)
+	if err != nil || seconds <= 0 {
+		return DefaultDiscoveryInquiryEligibilityAge
+	}
+	return time.Duration(seconds) * time.Second
 }
 
 // Rec6RefundIntentCreator abstracts the REC-6 canonical refund-intent authority.
@@ -337,6 +368,98 @@ func (w *PaymentDiscoveryWorker) findCandidates(ctx context.Context) ([]uuid.UUI
 	})
 
 	return ids, err
+}
+
+// SyncPaymentByID performs one full discovery→inquiry→finalization cycle for a
+// single payment, on demand. This is the SAME canonical pipeline the scan loop
+// runs (processCandidate); the eligibility age is deliberately NOT applied to
+// the on-demand path — an authenticated owner explicitly asked for a status
+// check, so we query the gateway immediately.
+//
+// Returns the provider state observed by the gateway inquiry plus whether the
+// canonical pipeline produced a mutation (settlement/capture finalization).
+// Not-found / already-processed / expired payments return their state without
+// error so the HTTP surface can report them accurately.
+func (w *PaymentDiscoveryWorker) SyncPaymentByID(
+	ctx context.Context,
+	paymentID uuid.UUID,
+) (midtrans.ProviderState, bool, error) {
+	if w.midtransClient == nil {
+		return "", false, fmt.Errorf("CRITICAL: gateway client not wired")
+	}
+
+	// Read the payment to validate existence and ownership inputs (read-only).
+	var payment *paymentRepo.Payment
+	err := w.db.WithTx(ctx, func(tx db.Tx) error {
+		var err error
+		payment, err = w.paymentRepo.GetByID(ctx, tx, paymentID)
+		if err != nil {
+			return fmt.Errorf("load payment: %w", err)
+		}
+		return nil
+	})
+	if err != nil {
+		// pgx QueryRow surfaces a missing row as ErrNoRows; normalize it to the
+		// canonical sentinel so the HTTP boundary can map it to 404.
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", false, ErrPaymentNotFound
+		}
+		return "", false, err
+	}
+	if payment == nil {
+		return "", false, ErrPaymentNotFound
+	}
+	if payment.MidtransOrderID == "" {
+		return "", false, fmt.Errorf("payment %s has no midtrans_order_id", paymentID)
+	}
+
+	// Already terminal: nothing to discover. Report the authoritative state
+	// without error and without a mutation — the caller can simply re-read the
+	// row.
+	if payment.Status != paymentRepo.PaymentStatusPending {
+		if payment.IsSettled() {
+			return midtrans.ProviderStateSettled, false, nil
+		}
+		return midtrans.ProviderStateFailed, false, nil
+	}
+	if payment.ExpiredAt.Before(time.Now()) {
+		// Expired while still pending: REC-6 territory (the expiry worker and
+		// refund path own it). No gateway inquiry and no settlement here —
+		// report unknown/not-settled and let the canonical recovery own it.
+		return midtrans.ProviderStateUnknown, false, nil
+	}
+
+	// Same cycle as the scan loop (shared authority). processCandidate's
+	// initial pending re-check always passes here because we just read it.
+	if err := w.processCandidate(ctx, paymentID); err != nil {
+		return "", false, err
+	}
+
+	// Re-read the row the canonical pipeline just (possibly) mutated.
+	err = w.db.WithTx(ctx, func(tx db.Tx) error {
+		var err error
+		payment, err = w.paymentRepo.GetByID(ctx, tx, paymentID)
+		if err != nil {
+			return fmt.Errorf("reload payment: %w", err)
+		}
+		return nil
+	})
+	if err != nil {
+		return "", false, err
+	}
+	if payment == nil {
+		return "", false, ErrPaymentNotFound
+	}
+
+	switch payment.Status {
+	case paymentRepo.PaymentStatusSettlement, paymentRepo.PaymentStatusCapture:
+		return midtrans.ProviderStateSettled, true, nil
+	case paymentRepo.PaymentStatusDeny, paymentRepo.PaymentStatusCancel, paymentRepo.PaymentStatusExpire:
+		return midtrans.ProviderStateFailed, false, nil
+	default:
+		// Still pending: gateway has not confirmed the money yet.
+		return midtrans.ProviderStatePending, false, nil
+	}
 }
 
 // processCandidate handles one payment through the full discovery→inquiry→finalization cycle.

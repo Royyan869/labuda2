@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/core/src/config/google_config.dart';
 import 'package:labuda/shared/entities/post_location.dart';
 import 'package:labuda/shared/shared.dart';
@@ -96,11 +95,11 @@ class CoordinatePreviewModal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
+        color: scheme.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Column(
@@ -113,9 +112,7 @@ class CoordinatePreviewModal extends StatelessWidget {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: isDark
-                    ? AppColors.neutralGray600
-                    : AppColors.neutralGray300,
+                color: scheme.onSurfaceVariant,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -126,7 +123,7 @@ class CoordinatePreviewModal extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
               children: [
-                Icon(Icons.location_on, color: AppColors.primaryRed, size: 24),
+                Icon(Icons.location_on, color: scheme.primary, size: 24),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
@@ -134,9 +131,7 @@ class CoordinatePreviewModal extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: isDark
-                          ? AppColors.neutralWhite
-                          : AppColors.neutralGray900,
+                      color: scheme.onSurfaceVariant,
                     ),
                   ),
                 ),
@@ -144,9 +139,7 @@ class CoordinatePreviewModal extends StatelessWidget {
                   onPressed: () => Navigator.pop(context),
                   icon: Icon(
                     Icons.close,
-                    color: isDark
-                        ? AppColors.neutralGray400
-                        : AppColors.neutralGray600,
+                    color: scheme.onSurfaceVariant,
                   ),
                   constraints: const BoxConstraints(),
                   padding: EdgeInsets.zero,
@@ -162,7 +155,7 @@ class CoordinatePreviewModal extends StatelessWidget {
             margin: const EdgeInsets.symmetric(horizontal: 16),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
-              color: isDark ? AppColors.darkGray700 : AppColors.neutralGray100,
+              color: scheme.surfaceContainerHighest,
             ),
             clipBehavior: Clip.antiAlias,
             child: GoogleConfig.isConfigured
@@ -181,10 +174,10 @@ class CoordinatePreviewModal extends StatelessWidget {
                       );
                     },
                     errorBuilder: (context, error, stackTrace) {
-                      return _buildMapPlaceholder(isDark);
+                      return _buildMapPlaceholder(scheme);
                     },
                   )
-                : _buildMapPlaceholder(isDark),
+                : _buildMapPlaceholder(scheme),
           ),
 
           // Coordinates Display
@@ -193,17 +186,15 @@ class CoordinatePreviewModal extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: isDark ? AppColors.darkGray700 : AppColors.neutralGray50,
+                color: scheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: isDark
-                      ? AppColors.darkGray600
-                      : AppColors.neutralGray200,
+                  color: scheme.onSurfaceVariant,
                 ),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.pin_drop, size: 18, color: AppColors.primaryRed),
+                  Icon(Icons.pin_drop, size: 18, color: scheme.primary),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
@@ -213,9 +204,7 @@ class CoordinatePreviewModal extends StatelessWidget {
                           'Coordinates',
                           style: TextStyle(
                             fontSize: 12,
-                            color: isDark
-                                ? AppColors.neutralGray400
-                                : AppColors.neutralGray600,
+                            color: scheme.onSurfaceVariant,
                           ),
                         ),
                         const SizedBox(height: 2),
@@ -225,9 +214,7 @@ class CoordinatePreviewModal extends StatelessWidget {
                             fontSize: 14,
                             fontFamily: 'monospace',
                             fontWeight: FontWeight.w500,
-                            color: isDark
-                                ? AppColors.neutralGray200
-                                : AppColors.neutralGray800,
+                            color: scheme.onSurfaceVariant,
                           ),
                         ),
                       ],
@@ -246,9 +233,7 @@ class CoordinatePreviewModal extends StatelessWidget {
                 address!,
                 style: TextStyle(
                   fontSize: 13,
-                  color: isDark
-                      ? AppColors.neutralGray400
-                      : AppColors.neutralGray600,
+                  color: scheme.onSurfaceVariant,
                 ),
                 textAlign: TextAlign.center,
                 maxLines: 2,
@@ -269,8 +254,8 @@ class CoordinatePreviewModal extends StatelessWidget {
                       icon: const Icon(Icons.edit_location, size: 18),
                       label: const Text('Edit'),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.primaryRed,
-                        side: BorderSide(color: AppColors.primaryRed),
+                        foregroundColor: scheme.primary,
+                        side: BorderSide(color: scheme.primary),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
@@ -288,8 +273,8 @@ class CoordinatePreviewModal extends StatelessWidget {
                     icon: const Icon(Icons.map_outlined, size: 18),
                     label: const Text('View Maps'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryRed,
-                      foregroundColor: AppColors.neutralWhite,
+                      backgroundColor: scheme.primary,
+                      foregroundColor: scheme.onPrimary,
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
@@ -308,7 +293,7 @@ class CoordinatePreviewModal extends StatelessWidget {
     );
   }
 
-  Widget _buildMapPlaceholder(bool isDark) {
+  Widget _buildMapPlaceholder(ColorScheme scheme) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -316,16 +301,14 @@ class CoordinatePreviewModal extends StatelessWidget {
           Icon(
             Icons.map_outlined,
             size: 48,
-            color: isDark ? AppColors.neutralGray500 : AppColors.neutralGray400,
+            color: scheme.onSurfaceVariant,
           ),
           const SizedBox(height: 8),
           Text(
             'Preview not available',
             style: TextStyle(
               fontSize: 12,
-              color: isDark
-                  ? AppColors.neutralGray500
-                  : AppColors.neutralGray500,
+              color: scheme.onSurfaceVariant,
             ),
           ),
         ],

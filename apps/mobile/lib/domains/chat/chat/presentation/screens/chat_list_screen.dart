@@ -98,8 +98,8 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
                 ),
                 child: Text(
                   totalUnread > 99 ? '99+' : totalUnread.toString(),
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onPrimary,
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
                   ),
@@ -196,7 +196,11 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.error_outline, size: 64, color: Colors.red),
+          Icon(
+            Icons.error_outline,
+            size: 64,
+            color: Theme.of(context).colorScheme.error,
+          ),
           const SizedBox(height: 16),
           Text(
             'Failed to load chats',
@@ -216,7 +220,6 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
   }
 
   Widget _buildEmptyView(bool hasNoChats) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Center(
       child: Padding(
@@ -229,17 +232,15 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color:
-                    (hasNoChats
-                            ? AppColors.neutralGray400
-                            : Colors.grey[400] ?? AppColors.neutralGray400)
-                        .withValues(alpha: 0.1),
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurfaceVariant.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 hasNoChats ? Icons.message_outlined : Icons.search_off,
                 size: 40,
-                color: hasNoChats ? AppColors.neutralGray400 : Colors.grey[400],
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 24),
@@ -250,9 +251,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: isDark
-                    ? AppColors.neutralWhite
-                    : AppColors.neutralGray900,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
               textAlign: TextAlign.center,
             ),
@@ -263,7 +262,10 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
               hasNoChats
                   ? 'Hubungi penjual untuk menanyakan produk'
                   : 'Coba kata kunci pencarian lain',
-              style: TextStyle(fontSize: 14, color: AppColors.neutralGray600),
+              style: TextStyle(
+                fontSize: 14,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
               textAlign: TextAlign.center,
             ),
 
@@ -277,8 +279,8 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
                   label: const Text('Mulai Chat'),
                   onPressed: () => _showNewChatDialog(context),
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primaryRed,
-                    foregroundColor: Colors.white,
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    foregroundColor: Theme.of(context).colorScheme.onPrimary,
                     padding: const EdgeInsets.symmetric(
                       vertical: 14,
                       horizontal: 24,
@@ -292,7 +294,10 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
               const SizedBox(height: 16),
               Text(
                 'atau jelajahi marketplace untuk menemukan penjual',
-                style: TextStyle(fontSize: 12, color: AppColors.neutralGray500),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
             ],
           ],

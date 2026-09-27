@@ -1,5 +1,3 @@
-import 'package:flutter/material.dart';
-
 /// Order Source - aligned with backend OrderSourceType
 /// Backend values: "for_sale", "negotiation", "auction"
 enum OrderSource {
@@ -23,17 +21,6 @@ extension OrderSourceExtension on OrderSource {
         return 'Negotiation';
       case OrderSource.auction:
         return 'Auction';
-    }
-  }
-
-  Color get badgeColor {
-    switch (this) {
-      case OrderSource.forSale:
-        return const Color(0xFF2196F3); // Blue
-      case OrderSource.negotiation:
-        return const Color(0xFF9C27B0); // Purple
-      case OrderSource.auction:
-        return const Color(0xFFF44336); // Red
     }
   }
 

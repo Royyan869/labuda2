@@ -8,6 +8,8 @@ import 'package:labuda/core/config/seller_upgrade_config_provider.dart'
 import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/finance/transaction/payment/domain/entities/payment.dart'
     show PaymentMethodOption;
+import 'package:labuda/domains/finance/transaction/payment/presentation/providers/payment_providers.dart'
+    show paymentRemoteDatasourceProvider;
 import 'package:labuda/domains/finance/transaction/payment/presentation/widgets/payment_method_picker_sheet.dart';
 import 'package:labuda/domains/user/preference/seller/data/dto/seller_dto.dart';
 import 'package:labuda/domains/user/preference/seller/data/seller_providers.dart'
@@ -47,11 +49,23 @@ enum _SellerUpgradeWizardMode {
 class _SellerPaymentOperationContext {
   final String initiatingUserId;
   final int requestEpoch;
+  /// Payment id returned by the initiate call (POST /seller/subscription/initiate).
+  /// Non-null once the Snap session exists; drives the on-demand status sync.
+  final String? paymentId;
 
   const _SellerPaymentOperationContext({
     required this.initiatingUserId,
     required this.requestEpoch,
+    this.paymentId,
   });
+
+  _SellerPaymentOperationContext withPaymentId(String paymentId) {
+    return _SellerPaymentOperationContext(
+      initiatingUserId: initiatingUserId,
+      requestEpoch: requestEpoch,
+      paymentId: paymentId,
+    );
+  }
 }
 
 class SellerUpgradeWizardScreen extends ConsumerStatefulWidget {
@@ -767,7 +781,6 @@ class _SellerUpgradeWizardScreenState
                       'Preview',
                       'Pembayaran',
                     ],
-                    isDark: isDark,
                   ),
                   Expanded(
                     child: PageView(
@@ -1431,7 +1444,7 @@ class _SellerUpgradeWizardScreenState
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                'Rp ${AppFormatters.formatCurrency(upgradeConfig.yearlyFee)}',
+                AppFormatters.formatCurrency(upgradeConfig.yearlyFee),
                 style: const TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
@@ -1597,7 +1610,7 @@ class _SellerUpgradeWizardScreenState
             'Total',
             selectedMethod == null
                 ? 'Belum dipilih'
-                : 'Rp ${AppFormatters.formatCurrency(selectedMethod.grossAmount.toDouble())}',
+                : AppFormatters.formatCurrency(selectedMethod.grossAmount.toDouble()),
             isDark,
             isBold: true,
           ),
@@ -1753,7 +1766,7 @@ class _SellerUpgradeWizardScreenState
   }) {
     return _buildPaymentRowText(
       label,
-      'Rp ${AppFormatters.formatCurrency(amount)}',
+      AppFormatters.formatCurrency(amount),
       isDark,
       isBold: isBold,
     );
@@ -2115,6 +2128,13 @@ class _SellerUpgradeWizardScreenState
         _showError('Gagal mendapatkan URL pembayaran');
         return;
       }
+      // Thread the canonical payment id into the awaiting flow so every
+      // subsequent "Cek status" actively syncs gateway truth instead of only
+      // re-reading the local auth snapshot.
+      final paymentId = paymentData['payment_id']?.toString();
+      final paymentOperationContext = paymentId == null || paymentId.isEmpty
+          ? operationContext
+          : operationContext.withPaymentId(paymentId);
 
       if (!mounted) return;
       // Payment URLs are presented exclusively inside Labuda's internal WebView.
@@ -2125,7 +2145,7 @@ class _SellerUpgradeWizardScreenState
 
       if (!mounted) return;
       await _showPaymentPendingDialog(
-        operationContext: operationContext,
+        operationContext: paymentOperationContext,
       );
     } on ApiException catch (e) {
       if (mounted && Navigator.of(context).canPop()) {
@@ -2330,6 +2350,16 @@ class _SellerUpgradeWizardScreenState
   Future<bool> _checkRegistrationPaymentConfirmed(
     _SellerPaymentOperationContext operationContext,
   ) async {
+    // PAYMENT_SYNC_ON_DEMAND: "Cek status" must CHECK — sync the gateway
+    // truth for the tracked payment first, then read the resulting snapshot.
+    final paymentId = operationContext.paymentId;
+    if (paymentId != null && paymentId.isNotEmpty) {
+      try {
+        await ref.read(paymentRemoteDatasourceProvider).syncPayment(paymentId);
+      } catch (_) {
+        // Best-effort; the auth re-read below remains the fallback truth.
+      }
+    }
     await ref.read(authControllerProvider.notifier).forceRefreshAuthState();
     if (!mounted) return false;
     if (!_isCurrentPrincipalRequest(
@@ -2502,6 +2532,21 @@ class _PaymentPendingDialogState extends ConsumerState<_PaymentPendingDialog>
     ref.read(authControllerProvider.notifier).forceRefreshAuthState();
   }
 
+  /// PAYMENT_SYNC_ON_DEMAND: fire the backend sync for the tracked payment
+  /// (POST /payments/:id/sync). Best-effort — every failure mode (unknown id,
+  /// gateway timeout, network) leaves the following auth re-read as the
+  /// fallback truth source, exactly like the pre-sync behavior.
+  Future<void> _syncPaymentIfTracked() async {
+    final paymentId = widget.operationContext.paymentId;
+    if (paymentId == null || paymentId.isEmpty) return;
+    try {
+      await ref.read(paymentRemoteDatasourceProvider).syncPayment(paymentId);
+    } catch (_) {
+      // Swallowed on purpose: the polling loop and the manual re-check both
+      // re-read the authoritative auth state afterwards.
+    }
+  }
+
   Future<void> _startPolling() async {
     _timer = Timer.periodic(const Duration(seconds: 3), (timer) async {
       if (!mounted) {
@@ -2524,6 +2569,11 @@ class _PaymentPendingDialogState extends ConsumerState<_PaymentPendingDialog>
       }
 
       _attempts++;
+      // PAYMENT_SYNC_ON_DEMAND: actively ask the backend to sync gateway truth
+      // for THIS payment before re-reading the auth snapshot. A webhook cannot
+      // reach a non-public backend and the discovery worker enforces an inquiry
+      // eligibility age, so without this the settled payment stays invisible.
+      await _syncPaymentIfTracked();
       await ref.read(authControllerProvider.notifier).forceRefreshAuthState();
       if (!mounted) {
         timer.cancel();

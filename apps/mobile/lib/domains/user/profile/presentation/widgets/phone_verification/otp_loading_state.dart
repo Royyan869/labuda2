@@ -1,21 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 
 /// Loading state while sending OTP
 class OTPLoadingState extends StatelessWidget {
-  final bool isDark;
-
-  const OTPLoadingState({super.key, required this.isDark});
+  const OTPLoadingState({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Column(
       children: [
-        const SizedBox(
+        SizedBox(
           width: 32,
           height: 32,
           child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryRed),
+            valueColor: AlwaysStoppedAnimation<Color>(scheme.primary),
             strokeWidth: 3,
           ),
         ),
@@ -24,7 +22,7 @@ class OTPLoadingState extends StatelessWidget {
           'Sending OTP code...',
           style: TextStyle(
             fontSize: 13,
-            color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray600,
+            color: scheme.onSurfaceVariant,
           ),
         ),
       ],

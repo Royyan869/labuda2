@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'chat_state.dart';
 import 'package:labuda/domains/chat/chat/data/dto/chat_dto.dart';
+import 'package:labuda/domains/chat/chat/data/dto/chat_resource_occurrence_request.dart';
 import 'package:labuda/domains/chat/chat/data/dto/chat_room_event_dto.dart';
+import 'package:labuda/domains/chat/chat/data/dto/message_dto.dart' show WebSocketEventType;
 import 'package:labuda/domains/chat/chat/data/mappers/chat_mapper.dart';
 import 'package:labuda/domains/chat/chat/data/chat_providers.dart';
 import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart';
@@ -11,6 +15,8 @@ import 'package:labuda/domains/chat/chat/domain/usecases/chat_usecases.dart';
 import 'package:labuda/shared/attachment/entities/share_reference.dart';
 import 'package:labuda/domains/system/notification/data/notification_providers.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/data/dto/shipping_quote_dto.dart';
+import 'package:labuda/shared/providers/auth_status_providers.dart'
+    show currentUserIdProvider;
 
 part 'chat_notifier.g.dart';
 
@@ -307,9 +313,118 @@ class ChatDetail extends _$ChatDetail {
   bool _isLoadingMessages = false;
   bool _isLoadingMore = false;
   bool _isSending = false;
+  bool _isRefreshingFromEvent = false;
+
   @override
   ChatDetailState build(String chatId) {
+    // CANONICAL REALTIME AUTHORITY FOR AN OPEN THREAD.
+    //
+    // The backend emits `chat.room.updated` (user-targeted, viewer-scoped)
+    // for every message sent to this room, for moderation hide/restore, for
+    // read-state changes and for order linking. The WS frame intentionally
+    // carries no message body (ADR-005), so the thread re-fetches over REST —
+    // one authority, one refresh path. Message-level WS signals
+    // (`chat.message.sent` minimal envelope) require a room subscription and
+    // are NOT this authority.
+    ref.listen(chatRoomEventsProvider, (_, next) {
+      next.when(
+        data: _handleRoomEvent,
+        loading: () {},
+        error: (Object? error, StackTrace? stackTrace) {
+          // Room-event transport failures are non-fatal: REST reload on
+          // next open remains the recovery path.
+        },
+      );
+    });
     return const ChatDetailState();
+  }
+
+  void _handleRoomEvent(ChatRoomEventDto event) {
+    if (event.roomId != chatId ||
+        event.eventType != WebSocketEventType.roomUpdated) {
+      return;
+    }
+    unawaited(_refreshFromRoomEvent(event));
+  }
+
+  /// Refreshes the open thread from REST after a `chat.room.updated` signal.
+  ///
+  /// Always re-fetches (never trusts the event body as message content):
+  /// a moderation tombstone for a mid-thread message produces no distinct
+  /// payload, so an id-based short-circuit would silently keep hidden
+  /// content on screen.
+  Future<void> _refreshFromRoomEvent(ChatRoomEventDto event) async {
+    if (_isRefreshingFromEvent) return;
+    _isRefreshingFromEvent = true;
+    try {
+      final userId = ref.read(currentUserIdProvider);
+      try {
+        await _refreshThread(event, userId);
+      } catch (_) {
+        // A realtime refresh is best-effort: the thread keeps its last known
+        // good state and REST reload on next open/event remains the recovery
+        // path. Never let a transport/decode failure break the open screen.
+      }
+    } finally {
+      _isRefreshingFromEvent = false;
+    }
+  }
+
+  Future<void> _refreshThread(ChatRoomEventDto event, String userId) async {
+    final result = await _getMessagesUseCase(
+      chatId: chatId,
+      userId: userId,
+      limit: 50,
+    );
+    // Same client-side filter as the canonical initial load.
+    final active = <Message>[
+      if (result.isSuccess && result.data != null)
+        ...result.data!.where((message) => !message.isDeletedBy(userId)),
+    ];
+    if (active.isNotEmpty) {
+      _mergeRefreshedMessages(active);
+    }
+
+    // Room summary drift that changes a canonical chat field (order link)
+    // needs the room read as well; anything else is already loaded.
+    if (event.linkedOrderId != null &&
+        event.linkedOrderId != state.chat?.linkedOrderId) {
+      await loadChat(userId);
+    }
+
+    // A message that arrived while the user is looking at this thread must
+    // clear its own unread count through the canonical read authority.
+    final incoming = active.isEmpty ? null : active.first;
+    if (event.unreadCount > 0 &&
+        userId.isNotEmpty &&
+        incoming != null &&
+        incoming.senderId != userId) {
+      await markAsRead(userId);
+    }
+  }
+
+  /// Merges the canonical latest page into local state.
+  ///
+  /// [fetched] is newest-first. Local messages older than the fetched page
+  /// (already paginated in) are kept below it, deduplicated by id, so a live
+  /// refresh never collapses read history.
+  void _mergeRefreshedMessages(List<Message> fetched) {
+    final fetchedIds = fetched.map((message) => message.id).toSet();
+    final olderLocal = state.messages
+        .where((message) => !fetchedIds.contains(message.id))
+        .toList();
+    final keepOlder = olderLocal.isNotEmpty;
+
+    state = state.copyWith(
+      messages: [...fetched, ...olderLocal],
+      hasMoreMessages: keepOlder
+          ? state.hasMoreMessages
+          : fetched.length >= 50,
+      nextMessageCursor: keepOlder
+          ? state.nextMessageCursor
+          : _encodeMessageCursorFromMessages(fetched),
+      error: null,
+    );
   }
 
   // UseCases injected via providers
@@ -405,6 +520,7 @@ class ChatDetail extends _$ChatDetail {
     String? replyToId,
     List<String> mentionedUserIds = const [],
     ShareReference? objectReference,
+    ChatResourceOccurrenceRequest? resourceOccurrence,
     Map<String, dynamic>? workflowAttachment,
   }) async {
     // Guard against concurrent sends
@@ -419,6 +535,7 @@ class ChatDetail extends _$ChatDetail {
         content: content,
         type: type,
         objectReference: objectReference,
+        resourceOccurrence: resourceOccurrence,
         workflowAttachment: workflowAttachment,
       );
 
@@ -455,10 +572,6 @@ class ChatDetail extends _$ChatDetail {
       // Non-fatal error - chat read sync should not break chat functionality
       // If notification sync fails, the chat read action still succeeds
     }
-  }
-
-  void updateTypingUsers(Map<String, bool> typingUsers) {
-    state = state.copyWith(typingUsers: typingUsers);
   }
 
   void addMessage(Message message) {

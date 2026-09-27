@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 
 /// Cover photo section untuk Profile V2
 ///
@@ -23,8 +22,6 @@ class ProfileCover extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return SizedBox(
       height: height,
       width: double.infinity,
@@ -32,35 +29,36 @@ class ProfileCover extends StatelessWidget {
         fit: StackFit.expand,
         children: [
           // Cover photo atau gradient fallback
-          _buildCoverImage(isDark),
+          _buildCoverImage(context),
 
           // Gradient overlay di bottom untuk readability
-          _buildGradientOverlay(isDark),
+          _buildGradientOverlay(context),
 
           // Collapse overlay - fades in saat scroll collapse untuk readability
-          _buildCollapseOverlay(isDark),
+          _buildCollapseOverlay(context),
         ],
       ),
     );
   }
 
-  Widget _buildCoverImage(bool isDark) {
+  Widget _buildCoverImage(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     if (coverPhotoUrl != null && coverPhotoUrl!.isNotEmpty) {
       return Image.network(
         coverPhotoUrl!,
         fit: BoxFit.cover,
         errorBuilder: (context, error, stackTrace) =>
-            _buildGradientFallback(isDark),
+            _buildGradientFallback(context),
         loadingBuilder: (context, child, loadingProgress) {
           if (loadingProgress == null) return child;
           return Stack(
             fit: StackFit.expand,
             children: [
-              _buildGradientFallback(isDark),
+              _buildGradientFallback(context),
               Center(
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: AppColors.neutralWhite.withValues(alpha: 0.7),
+                  color: scheme.onPrimary.withValues(alpha: 0.7),
                 ),
               ),
             ],
@@ -68,36 +66,29 @@ class ProfileCover extends StatelessWidget {
         },
       );
     }
-    return _buildGradientFallback(isDark);
+    return _buildGradientFallback(context);
   }
 
-  Widget _buildGradientFallback(bool isDark) {
+  Widget _buildGradientFallback(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: isDark
-              ? [
-                  AppColors.darkGray700,
-                  AppColors.darkGray800,
-                  AppColors.darkGray900,
-                ]
-              : [
-                  AppColors.primaryRed.withValues(alpha: 0.8),
-                  AppColors.primaryRed.withValues(alpha: 0.6),
-                  AppColors.primaryRed.withValues(alpha: 0.4),
-                ],
+          colors: [
+            scheme.primary.withValues(alpha: 0.8),
+            scheme.primary.withValues(alpha: 0.6),
+            scheme.primary.withValues(alpha: 0.4),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildGradientOverlay(bool isDark) {
+  Widget _buildGradientOverlay(BuildContext context) {
     // Background color based on theme (matches ProfileScreen container)
-    final backgroundColor = isDark
-        ? AppColors.darkGray800
-        : AppColors.neutralWhite;
+    final backgroundColor = Theme.of(context).colorScheme.surface;
 
     return Positioned(
       left: 0,
@@ -123,11 +114,9 @@ class ProfileCover extends StatelessWidget {
   }
 
   /// Overlay yang fade in saat AppBar collapse untuk readability
-  Widget _buildCollapseOverlay(bool isDark) {
+  Widget _buildCollapseOverlay(BuildContext context) {
     // Background color matches AppBar backgroundColor
-    final backgroundColor = isDark
-        ? AppColors.darkGray800
-        : AppColors.neutralWhite;
+    final backgroundColor = Theme.of(context).colorScheme.surface;
 
     return Opacity(
       opacity: collapseProgress,

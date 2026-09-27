@@ -9,6 +9,5 @@
 /// ```
 library;
 
-// ===== LIVE STATUS RESOLUTION =====
-export 'live_status_provider.dart';
+// ===== TRUTH RESOLUTION =====
 export 'attachment_truth_resolver.dart';

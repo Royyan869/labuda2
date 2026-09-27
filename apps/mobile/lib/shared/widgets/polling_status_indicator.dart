@@ -71,26 +71,28 @@ class PollingStatusData {
   }
 
   /// Get background color based on status
-  Color? get backgroundColor {
+  Color? backgroundColor(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     switch (status) {
       case PollingStatus.healthy:
         return null;
       case PollingStatus.degraded:
-        return const Color(0xFFFFF8E1); // Light yellow
+        return scheme.tertiaryContainer;
       case PollingStatus.failed:
-        return const Color(0xFFFFEBEE); // Light red
+        return scheme.errorContainer;
     }
   }
 
   /// Get text color based on status
-  Color? get textColor {
+  Color? textColor(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     switch (status) {
       case PollingStatus.healthy:
         return null;
       case PollingStatus.degraded:
-        return const Color(0xFF8D6E63); // Brown
+        return scheme.onTertiaryContainer;
       case PollingStatus.failed:
-        return const Color(0xFFD32F2F); // Red
+        return scheme.onErrorContainer;
     }
   }
 
@@ -168,7 +170,7 @@ class PollingStatusIndicator extends StatelessWidget {
     }
 
     return Material(
-      color: status.backgroundColor,
+      color: status.backgroundColor(context),
       child: InkWell(
         onTap: onTap,
         child: Padding(
@@ -176,13 +178,13 @@ class PollingStatusIndicator extends StatelessWidget {
           child: Row(
             children: [
               if (status.icon != null) ...[
-                Icon(status.icon, size: 16, color: status.textColor),
+                Icon(status.icon, size: 16, color: status.textColor(context)),
                 const SizedBox(width: 8),
               ],
               Expanded(
                 child: Text(
                   message,
-                  style: TextStyle(color: status.textColor, fontSize: 12),
+                  style: TextStyle(color: status.textColor(context), fontSize: 12),
                 ),
               ),
             ],
@@ -210,6 +212,7 @@ class PollingStatusBadge extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    final scheme = Theme.of(context).colorScheme;
     Color color;
     IconData icon;
 
@@ -217,11 +220,11 @@ class PollingStatusBadge extends StatelessWidget {
       case PollingStatus.healthy:
         return const SizedBox.shrink();
       case PollingStatus.degraded:
-        color = Colors.orange;
+        color = scheme.tertiary;
         icon = Icons.warning_amber_rounded;
         break;
       case PollingStatus.failed:
-        color = Colors.red;
+        color = scheme.error;
         icon = Icons.error_outline;
         break;
     }

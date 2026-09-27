@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 
 /// Reusable Button dengan styling konsisten
 ///
@@ -69,16 +68,16 @@ class AppButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     final isActive = isEnabled && !isLoading;
 
     Widget child = isLoading
-        ? const SizedBox(
+        ? SizedBox(
             height: 20,
             width: 20,
             child: CircularProgressIndicator(
               strokeWidth: 2,
-              valueColor: AlwaysStoppedAnimation<Color>(AppColors.neutralWhite),
+              valueColor: AlwaysStoppedAnimation<Color>(scheme.onPrimary),
             ),
           )
         : Row(
@@ -101,13 +100,13 @@ class AppButton extends StatelessWidget {
     return SizedBox(
       width: width,
       height: height,
-      child: _buildButton(context, isDark, isActive, child),
+      child: _buildButton(context, scheme, isActive, child),
     );
   }
 
   Widget _buildButton(
     BuildContext context,
-    bool isDark,
+    ColorScheme scheme,
     bool isActive,
     Widget child,
   ) {
@@ -117,19 +116,19 @@ class AppButton extends StatelessWidget {
           onPressed: isActive ? onPressed : null,
           style: ElevatedButton.styleFrom(
             backgroundColor: isActive
-                ? AppColors.primaryRed
-                : (isDark ? AppColors.darkGray600 : AppColors.neutralGray300),
+                ? scheme.primary
+                : scheme.surfaceContainerHighest,
             foregroundColor: isActive
-                ? AppColors.neutralWhite
-                : (isDark
-                      ? AppColors.neutralGray500
-                      : AppColors.neutralGray500),
+                ? scheme.onPrimary
+                : scheme.onSurfaceVariant,
+            disabledBackgroundColor: scheme.surfaceContainerHighest,
+            disabledForegroundColor: scheme.onSurfaceVariant,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
             elevation: isActive ? 4 : 0,
             shadowColor: isActive
-                ? AppColors.primaryRed.withValues(alpha: 0.3)
+                ? scheme.primary.withValues(alpha: 0.3)
                 : Colors.transparent,
           ),
           child: child,
@@ -140,14 +139,10 @@ class AppButton extends StatelessWidget {
           onPressed: isActive ? onPressed : null,
           style: OutlinedButton.styleFrom(
             foregroundColor: isActive
-                ? AppColors.primaryRed
-                : (isDark
-                      ? AppColors.neutralGray500
-                      : AppColors.neutralGray400),
+                ? scheme.primary
+                : scheme.onSurfaceVariant,
             side: BorderSide(
-              color: isActive
-                  ? AppColors.primaryRed
-                  : (isDark ? AppColors.darkGray600 : AppColors.neutralGray300),
+              color: isActive ? scheme.primary : scheme.outline,
               width: 1.5,
             ),
             shape: RoundedRectangleBorder(
@@ -162,10 +157,8 @@ class AppButton extends StatelessWidget {
           onPressed: isActive ? onPressed : null,
           style: TextButton.styleFrom(
             foregroundColor: isActive
-                ? AppColors.primaryRed
-                : (isDark
-                      ? AppColors.neutralGray500
-                      : AppColors.neutralGray400),
+                ? scheme.primary
+                : scheme.onSurfaceVariant,
           ),
           child: child,
         );

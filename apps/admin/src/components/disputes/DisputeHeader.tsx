@@ -80,8 +80,8 @@ export function DisputeHeader({ dispute, onRefresh, refreshing, onBack }: Disput
             </Button>
           )}
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Dispute Workspace</h1>
-            <p className="text-sm text-gray-500 mt-0.5">
+            <h1 className="text-2xl font-bold text-foreground">Dispute Workspace</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">
               Dispute ID: <span className="font-mono">{dispute.id}</span>
             </p>
           </div>
@@ -94,7 +94,7 @@ export function DisputeHeader({ dispute, onRefresh, refreshing, onBack }: Disput
           <button
             onClick={onRefresh}
             disabled={refreshing}
-            className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
+            className="text-muted-foreground hover:text-muted-foreground transition-colors disabled:opacity-50"
             title="Refresh dispute data"
           >
             <RefreshCw className={`h-5 w-5 ${refreshing ? 'animate-spin' : ''}`} />
@@ -104,7 +104,7 @@ export function DisputeHeader({ dispute, onRefresh, refreshing, onBack }: Disput
 
       {/* Warning if not opened */}
       {!isOpened && (
-        <div className="bg-amber-50 border border-amber-200 text-amber-800 p-3 rounded-lg flex items-start gap-2">
+        <div className="bg-warning-bg border border-warning text-warning p-3 rounded-lg flex items-start gap-2">
           <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
           <div className="flex-1">
             <p className="font-medium text-sm">Dispute Already Resolved</p>
@@ -119,14 +119,14 @@ export function DisputeHeader({ dispute, onRefresh, refreshing, onBack }: Disput
       {/* Dispute Info Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {/* Order ID */}
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <p className="text-xs text-gray-500 uppercase tracking-wide">Order ID</p>
+        <div className="bg-background rounded-lg border border-border p-4">
+          <p className="text-xs text-muted-foreground uppercase tracking-wide">Order ID</p>
           <p className="font-mono text-sm mt-1">{dispute.order_id.slice(0, 12)}...</p>
         </div>
 
         {/* Reason */}
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <p className="text-xs text-gray-500 uppercase tracking-wide">Reason</p>
+        <div className="bg-background rounded-lg border border-border p-4">
+          <p className="text-xs text-muted-foreground uppercase tracking-wide">Reason</p>
           <p className="font-medium text-sm mt-1">
             {disputeReasonLabels[dispute.reason] || dispute.reason}
           </p>
@@ -134,43 +134,43 @@ export function DisputeHeader({ dispute, onRefresh, refreshing, onBack }: Disput
 
         {/* Escrow Amount (money at risk) — canonical total_before_coins_amount */}
         {dispute.total_before_coins_amount != null && (
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <p className="text-xs text-gray-500 uppercase tracking-wide">Escrow at Risk</p>
+          <div className="bg-background rounded-lg border border-border p-4">
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">Escrow at Risk</p>
             <p className="font-semibold text-sm mt-1">{formatRupiah(dispute.total_before_coins_amount)}</p>
           </div>
         )}
 
         {/* Opened Date */}
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <p className="text-xs text-gray-500 uppercase tracking-wide">Opened</p>
+        <div className="bg-background rounded-lg border border-border p-4">
+          <p className="text-xs text-muted-foreground uppercase tracking-wide">Opened</p>
           <p className="text-sm mt-1">{formatDate(dispute.opened_at)}</p>
         </div>
       </div>
 
       {/* Description */}
       {dispute.description && (
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Description</p>
-          <p className="text-sm text-gray-900 whitespace-pre-wrap">{dispute.description}</p>
+        <div className="bg-background rounded-lg border border-border p-4">
+          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">Description</p>
+          <p className="text-sm text-foreground whitespace-pre-wrap">{dispute.description}</p>
         </div>
       )}
 
       {/* SLA Metrics Panel */}
       <div className={`rounded-lg border p-4 ${
         dispute.resolution_overdue
-          ? 'bg-red-50 border-red-200'
+          ? 'bg-destructive-bg border-destructive'
           : dispute.admin_response_overdue
-          ? 'bg-orange-50 border-orange-200'
-          : 'bg-white border-gray-200'
+          ? 'bg-warning-bg border-warning'
+          : 'bg-background border-border'
       }`}>
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Clock className={`h-4 w-4 ${
               dispute.resolution_overdue
-                ? 'text-red-600'
+                ? 'text-destructive'
                 : dispute.admin_response_overdue
-                ? 'text-orange-600'
-                : 'text-gray-600'
+                ? 'text-warning'
+                : 'text-muted-foreground'
             }`} />
             <p className="text-xs font-semibold uppercase tracking-wide">
               SLA Status
@@ -184,7 +184,7 @@ export function DisputeHeader({ dispute, onRefresh, refreshing, onBack }: Disput
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Next Action */}
           <div>
-            <p className="text-xs text-gray-600 mb-1">Next Action</p>
+            <p className="text-xs text-muted-foreground mb-1">Next Action</p>
             <Badge variant={getNextActionVariant(dispute.next_action)} className="text-xs">
               {getNextActionLabel(dispute.next_action)}
             </Badge>
@@ -193,10 +193,10 @@ export function DisputeHeader({ dispute, onRefresh, refreshing, onBack }: Disput
           {/* Admin Response Time */}
           {dispute.admin_response_time && (
             <div>
-              <p className="text-xs text-gray-600 mb-1">Admin Response</p>
+              <p className="text-xs text-muted-foreground mb-1">Admin Response</p>
               <p className="text-sm font-medium">{dispute.admin_response_time}</p>
               {dispute.admin_response_overdue && dispute.admin_response_overdue_duration && (
-                <p className="text-xs text-red-600 mt-0.5">
+                <p className="text-xs text-destructive mt-0.5">
                   Overdue by {dispute.admin_response_overdue_duration}
                 </p>
               )}
@@ -206,10 +206,10 @@ export function DisputeHeader({ dispute, onRefresh, refreshing, onBack }: Disput
           {/* Resolution Time */}
           {dispute.resolution_time && (
             <div>
-              <p className="text-xs text-gray-600 mb-1">Resolution Time</p>
+              <p className="text-xs text-muted-foreground mb-1">Resolution Time</p>
               <p className="text-sm font-medium">{dispute.resolution_time}</p>
               {dispute.resolution_overdue && dispute.resolution_overdue_duration && (
-                <p className="text-xs text-red-600 mt-0.5">
+                <p className="text-xs text-destructive mt-0.5">
                   Overdue by {dispute.resolution_overdue_duration}
                 </p>
               )}
@@ -219,7 +219,7 @@ export function DisputeHeader({ dispute, onRefresh, refreshing, onBack }: Disput
           {/* Active Time */}
           {dispute.active_time && (
             <div>
-              <p className="text-xs text-gray-600 mb-1">Active Time</p>
+              <p className="text-xs text-muted-foreground mb-1">Active Time</p>
               <p className="text-sm font-medium flex items-center gap-1">
                 <Activity className="h-3 w-3" />
                 {dispute.active_time}
@@ -230,12 +230,12 @@ export function DisputeHeader({ dispute, onRefresh, refreshing, onBack }: Disput
 
         {/* Warning for overdue disputes */}
         {dispute.resolution_overdue && (
-          <div className="mt-3 pt-3 border-t border-red-200">
+          <div className="mt-3 pt-3 border-t border-destructive">
             <div className="flex items-start gap-2">
-              <AlertTriangle className="h-4 w-4 text-red-600 flex-shrink-0 mt-0.5" />
+              <AlertTriangle className="h-4 w-4 text-destructive flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-medium text-red-800">Resolution SLA Breached</p>
-                <p className="text-xs text-red-700 mt-0.5">
+                <p className="text-sm font-medium text-destructive">Resolution SLA Breached</p>
+                <p className="text-xs text-destructive mt-0.5">
                   This dispute has exceeded the 48-hour resolution SLA.
                   {dispute.resolution_overdue_duration && ` Overdue by ${dispute.resolution_overdue_duration}.`}
                 </p>
@@ -246,12 +246,12 @@ export function DisputeHeader({ dispute, onRefresh, refreshing, onBack }: Disput
 
         {/* Warning for admin response overdue */}
         {dispute.admin_response_overdue && !dispute.resolution_overdue && (
-          <div className="mt-3 pt-3 border-t border-orange-200">
+          <div className="mt-3 pt-3 border-t border-warning">
             <div className="flex items-start gap-2">
-              <AlertTriangle className="h-4 w-4 text-orange-600 flex-shrink-0 mt-0.5" />
+              <AlertTriangle className="h-4 w-4 text-warning flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-medium text-orange-800">Admin Response SLA Breached</p>
-                <p className="text-xs text-orange-700 mt-0.5">
+                <p className="text-sm font-medium text-warning">Admin Response SLA Breached</p>
+                <p className="text-xs text-warning mt-0.5">
                   This dispute has exceeded the 2-hour admin response SLA.
                   {dispute.admin_response_overdue_duration && ` Overdue by ${dispute.admin_response_overdue_duration}.`}
                 </p>

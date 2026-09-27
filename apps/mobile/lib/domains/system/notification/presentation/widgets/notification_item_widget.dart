@@ -14,6 +14,7 @@ import 'package:labuda/domains/system/notification/domain/services/notification_
 
 // Flutter
 import 'package:flutter/material.dart';
+import 'package:labuda/core/core.dart' hide NotificationEntity;
 
 class NotificationItemWidget extends StatelessWidget {
   final NotificationEntity notification;
@@ -30,7 +31,6 @@ class NotificationItemWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     // Get display metadata from domain service
     final displayService = const NotificationDisplayService();
@@ -41,9 +41,7 @@ class NotificationItemWidget extends StatelessWidget {
     return Material(
       color: notification.isRead
           ? theme.colorScheme.surface
-          : (isDark
-                ? theme.colorScheme.primaryContainer.withValues(alpha: 0.3)
-                : theme.colorScheme.primaryContainer.withValues(alpha: 0.5)),
+          : theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
       child: InkWell(
         onTap: onTap,
         child: Container(
@@ -58,12 +56,13 @@ class NotificationItemWidget extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: _mapColor(
                     displayMetadata.color,
+                    theme.colorScheme,
                   ).withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   _mapIcon(displayMetadata.icon),
-                  color: _mapColor(displayMetadata.color),
+                  color: _mapColor(displayMetadata.color, theme.colorScheme),
                   size: 24,
                 ),
               ),
@@ -147,22 +146,22 @@ class NotificationItemWidget extends StatelessWidget {
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.red.withValues(alpha: 0.15),
+                              color: theme.colorScheme.error.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(4),
                               border: Border.all(
-                                color: Colors.red.withValues(alpha: 0.3),
+                                color: theme.colorScheme.error.withValues(alpha: 0.3),
                                 width: 1,
                               ),
                             ),
-                            child: const Text(
-                              'Perlu tindakan',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.red,
-                                letterSpacing: 0.3,
-                              ),
-                            ),
+child: Text(
+                               'Perlu tindakan',
+                               style: TextStyle(
+                                 fontSize: 10,
+                                 fontWeight: FontWeight.w700,
+                                 color: theme.colorScheme.error,
+                                 letterSpacing: 0.3,
+                               ),
+                             ),
                           ),
                         ],
                         if (notification.isRecent &&
@@ -174,7 +173,7 @@ class NotificationItemWidget extends StatelessWidget {
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.orange.withValues(alpha: 0.2),
+                              color: AppColors.statusWarning.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: const Text(
@@ -182,7 +181,7 @@ class NotificationItemWidget extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w700,
-                                color: Colors.orange,
+                                color: AppColors.statusWarning,
                                 letterSpacing: 0.5,
                               ),
                             ),
@@ -247,30 +246,25 @@ class NotificationItemWidget extends StatelessWidget {
   }
 
   /// Map domain color enum to Flutter Color
-  Color _mapColor(NotificationDisplayColor color) {
+  Color _mapColor(NotificationDisplayColor color, ColorScheme scheme) {
     switch (color) {
       case NotificationDisplayColor.green:
-        return Colors.green[700]!;
-      case NotificationDisplayColor.red:
-        return Colors.red[700]!;
-      case NotificationDisplayColor.orange:
-        return Colors.orange[700]!;
-      case NotificationDisplayColor.blue:
-        return Colors.blue[700]!;
-      case NotificationDisplayColor.pink:
-        return Colors.pink[700]!;
-      case NotificationDisplayColor.indigo:
-        return Colors.indigo[700]!;
-      case NotificationDisplayColor.deepOrange:
-        return Colors.deepOrange[700]!;
       case NotificationDisplayColor.teal:
-        return Colors.teal[700]!;
+        return AppColors.statusSuccess;
+      case NotificationDisplayColor.red:
+      case NotificationDisplayColor.deepOrange:
+        return scheme.error;
+      case NotificationDisplayColor.orange:
+        return AppColors.statusWarning;
+      case NotificationDisplayColor.blue:
+      case NotificationDisplayColor.indigo:
       case NotificationDisplayColor.cyan:
-        return Colors.cyan[700]!;
-      case NotificationDisplayColor.grey:
-        return Colors.grey[700]!;
+        return scheme.secondary;
+      case NotificationDisplayColor.pink:
       case NotificationDisplayColor.purple:
-        return Colors.purple[700]!;
+        return scheme.primary;
+      case NotificationDisplayColor.grey:
+        return scheme.onSurfaceVariant;
     }
   }
 }

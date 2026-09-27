@@ -93,7 +93,6 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          typingIndicatorEnabledProvider.overrideWith((ref) => false),
           isUserBlockedProvider(_otherUserId).overrideWith((ref) => false),
           authControllerProvider.overrideWith(_FakeAuthController.new),
           negotiationNotifierProvider.overrideWith(

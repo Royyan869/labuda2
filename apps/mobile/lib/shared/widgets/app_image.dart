@@ -52,15 +52,13 @@ class AppImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     Widget imageWidget = Container(
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color:
-            backgroundColor ??
-            (isDark ? AppColors.darkGray600 : AppColors.neutralGray100),
+        color: backgroundColor ?? scheme.surfaceContainerHighest,
         borderRadius: isCircle ? null : borderRadius,
         shape: isCircle ? BoxShape.circle : BoxShape.rectangle,
       ),
@@ -68,7 +66,7 @@ class AppImage extends StatelessWidget {
         borderRadius: isCircle
             ? BorderRadius.circular((width ?? height ?? 100) / 2)
             : (borderRadius ?? BorderRadius.zero),
-        child: _buildImageContent(context, isDark),
+        child: _buildImageContent(context),
       ),
     );
 
@@ -79,19 +77,19 @@ class AppImage extends StatelessWidget {
     return imageWidget;
   }
 
-  Widget _buildImageContent(BuildContext context, bool isDark) {
+  Widget _buildImageContent(BuildContext context) {
     if (imageUrl == null || imageUrl!.isEmpty) {
-      return _buildPlaceholder(context, isDark);
+      return _buildPlaceholder(context);
     }
 
     if (kIsWeb) {
-      return _buildWebImage(context, isDark);
+      return _buildWebImage(context);
     } else {
-      return _buildMobileImage(context, isDark);
+      return _buildMobileImage(context);
     }
   }
 
-  Widget _buildWebImage(BuildContext context, bool isDark) {
+  Widget _buildWebImage(BuildContext context) {
     final optimizedUrl = _getOptimizedImageUrl(imageUrl!);
 
     return CachedNetworkImage(
@@ -99,16 +97,16 @@ class AppImage extends StatelessWidget {
       width: width,
       height: height,
       fit: fit,
-      placeholder: (context, url) => _buildBlurhashPlaceholder(context, isDark),
+      placeholder: (context, url) => _buildBlurhashPlaceholder(context),
       errorWidget: (context, url, error) {
         if (url.contains('firebasestorage.googleapis.com')) {
-          return _buildFirebaseImageFallback(context, isDark);
+          return _buildFirebaseImageFallback(context);
         }
         if (url.contains('s3.ap-southeast-1.amazonaws.com') ||
             url.contains('cloudfront.net')) {
-          return _buildAwsS3ImageFallback(context, isDark, url);
+          return _buildAwsS3ImageFallback(context, url);
         }
-        return _buildErrorState(context, isDark, error);
+        return _buildErrorState(context, error);
       },
       imageBuilder: (context, imageProvider) {
         return Container(
@@ -127,7 +125,7 @@ class AppImage extends StatelessWidget {
     );
   }
 
-  Widget _buildMobileImage(BuildContext context, bool isDark) {
+  Widget _buildMobileImage(BuildContext context) {
     final optimizedUrl = _getOptimizedImageUrl(imageUrl!);
 
     return CachedNetworkImage(
@@ -135,9 +133,9 @@ class AppImage extends StatelessWidget {
       width: width,
       height: height,
       fit: fit,
-      placeholder: (context, url) => _buildBlurhashPlaceholder(context, isDark),
+      placeholder: (context, url) => _buildBlurhashPlaceholder(context),
       errorWidget: (context, url, error) {
-        return _buildErrorState(context, isDark, error);
+        return _buildErrorState(context, error);
       },
       imageBuilder: (context, imageProvider) {
         return Container(
@@ -156,7 +154,7 @@ class AppImage extends StatelessWidget {
     );
   }
 
-  Widget _buildFirebaseImageFallback(BuildContext context, bool isDark) {
+  Widget _buildFirebaseImageFallback(BuildContext context) {
     String fallbackUrl = imageUrl!;
     if (fallbackUrl.contains('?alt=media&token=')) {
       fallbackUrl = '${fallbackUrl.split('?alt=media&token=').first}?alt=media';
@@ -169,35 +167,36 @@ class AppImage extends StatelessWidget {
       fit: fit,
       loadingBuilder: (context, child, loadingProgress) {
         if (loadingProgress == null) return child;
-        return _buildLoadingState(context, isDark);
+        return _buildLoadingState(context);
       },
       errorBuilder: (context, error, stackTrace) {
-        return _buildErrorState(context, isDark, error);
+        return _buildErrorState(context, error);
       },
     );
   }
 
-  Widget _buildPlaceholder(BuildContext context, bool isDark) {
+  Widget _buildPlaceholder(BuildContext context) {
     if (placeholder != null) return placeholder!;
+    final scheme = Theme.of(context).colorScheme;
 
     return Container(
       width: width,
       height: height,
-      color: isDark ? AppColors.darkGray600 : AppColors.neutralGray100,
+      color: scheme.surfaceContainerHighest,
       child: Icon(
         Icons.image_outlined,
         size: (width != null && height != null)
             ? (width! < height! ? width! : height!) * 0.4
             : 32,
-        color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray500,
+        color: scheme.onSurfaceVariant,
       ),
     );
   }
 
-  Widget _buildBlurhashPlaceholder(BuildContext context, bool isDark) {
+  Widget _buildBlurhashPlaceholder(BuildContext context) {
     // Check for explicit blurhash parameter first
     if (blurhash != null && blurhash!.isNotEmpty && imageUrl != null) {
-      return _buildBlurhashWidget(blurhash!, context, isDark);
+      return _buildBlurhashWidget(blurhash!, context);
     }
 
     // Try to get from cache asynchronously
@@ -208,20 +207,20 @@ class AppImage extends StatelessWidget {
           if (snapshot.hasData &&
               snapshot.data != null &&
               snapshot.data!.isNotEmpty) {
-            return _buildBlurhashWidget(snapshot.data!, context, isDark);
+            return _buildBlurhashWidget(snapshot.data!, context);
           }
 
           // Fallback to shimmer loading state
-          return _buildShimmerPlaceholder(context, isDark);
+          return _buildShimmerPlaceholder(context);
         },
       );
     }
 
     // Default shimmer placeholder
-    return _buildShimmerPlaceholder(context, isDark);
+    return _buildShimmerPlaceholder(context);
   }
 
-  Widget _buildBlurhashWidget(String hash, BuildContext context, bool isDark) {
+  Widget _buildBlurhashWidget(String hash, BuildContext context) {
     return ClipRRect(
       borderRadius: isCircle
           ? BorderRadius.circular((width ?? height ?? 100) / 2)
@@ -236,15 +235,16 @@ class AppImage extends StatelessWidget {
     );
   }
 
-  Widget _buildShimmerPlaceholder(BuildContext context, bool isDark) {
+  Widget _buildShimmerPlaceholder(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Shimmer.fromColors(
-      baseColor: isDark ? AppColors.darkGray600 : AppColors.neutralGray100,
-      highlightColor: isDark ? AppColors.darkGray500 : AppColors.neutralGray200,
+      baseColor: scheme.surfaceContainerLow,
+      highlightColor: scheme.surfaceContainerHighest,
       child: Container(
         width: width,
         height: height,
         decoration: BoxDecoration(
-          color: isDark ? AppColors.darkGray600 : AppColors.neutralGray100,
+          color: scheme.surfaceContainerLow,
           borderRadius: isCircle
               ? BorderRadius.circular((width ?? height ?? 100) / 2)
               : (borderRadius ?? BorderRadius.zero),
@@ -290,17 +290,18 @@ class AppImage extends StatelessWidget {
     return url;
   }
 
-  Widget _buildLoadingState(BuildContext context, bool isDark) {
-    return _buildBlurhashPlaceholder(context, isDark);
+  Widget _buildLoadingState(BuildContext context) {
+    return _buildBlurhashPlaceholder(context);
   }
 
-  Widget _buildErrorState(BuildContext context, bool isDark, [Object? error]) {
+  Widget _buildErrorState(BuildContext context, [Object? error]) {
     if (errorWidget != null) return errorWidget!;
+    final scheme = Theme.of(context).colorScheme;
 
     return Container(
       width: width,
       height: height,
-      color: isDark ? AppColors.darkGray600 : AppColors.neutralGray100,
+      color: scheme.surfaceContainerHighest,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -309,7 +310,7 @@ class AppImage extends StatelessWidget {
             size: (width != null && height != null)
                 ? (width! < height! ? width! : height!) * 0.4
                 : 32,
-            color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray500,
+            color: scheme.onSurfaceVariant,
           ),
           if (error != null && (width == null || width! > 100)) ...[
             const SizedBox(height: 4),
@@ -317,9 +318,7 @@ class AppImage extends StatelessWidget {
               'Image Error',
               style: TextStyle(
                 fontSize: 10,
-                color: isDark
-                    ? AppColors.neutralGray400
-                    : AppColors.neutralGray500,
+                color: scheme.onSurfaceVariant,
               ),
               textAlign: TextAlign.center,
             ),
@@ -331,13 +330,13 @@ class AppImage extends StatelessWidget {
 
   Widget _buildAwsS3ImageFallback(
     BuildContext context,
-    bool isDark,
     String url,
   ) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       width: width,
       height: height,
-      color: isDark ? AppColors.darkGray600 : AppColors.neutralGray100,
+      color: scheme.surfaceContainerHighest,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -364,9 +363,7 @@ class AppImage extends StatelessWidget {
               'Configure CORS\nin S3 bucket',
               style: TextStyle(
                 fontSize: 7,
-                color: isDark
-                    ? AppColors.neutralGray400
-                    : AppColors.neutralGray500,
+                color: scheme.onSurfaceVariant,
               ),
               textAlign: TextAlign.center,
             ),

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/widgets/hybrid_avatar.dart';
 import 'package:labuda/features/search/search/search.dart'; // R3.1: Import mention providers from search domain
 
@@ -25,7 +24,7 @@ class MentionSuggestionOverlay extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     // Search users
     final searchParams = MentionSearchParams(
@@ -37,7 +36,7 @@ class MentionSuggestionOverlay extends ConsumerWidget {
     return Material(
       elevation: 8,
       borderRadius: BorderRadius.circular(12),
-      color: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
+      color: scheme.surfaceContainerHigh,
       child: Container(
         constraints: const BoxConstraints(maxHeight: 250, minHeight: 60),
         child: usersAsync.when(
@@ -53,9 +52,7 @@ class MentionSuggestionOverlay extends ConsumerWidget {
               child: Text(
                 'Error loading users',
                 style: TextStyle(
-                  color: isDark
-                      ? AppColors.neutralGray400
-                      : AppColors.neutralGray600,
+                  color: scheme.onSurfaceVariant,
                 ),
               ),
             ),
@@ -68,9 +65,7 @@ class MentionSuggestionOverlay extends ConsumerWidget {
                   child: Text(
                     'No users found',
                     style: TextStyle(
-                      color: isDark
-                          ? AppColors.neutralGray400
-                          : AppColors.neutralGray600,
+                      color: scheme.onSurfaceVariant,
                     ),
                   ),
                 ),
@@ -97,14 +92,11 @@ class MentionSuggestionOverlay extends ConsumerWidget {
                       );
                       onUserSelected(everyoneUser);
                     },
-                    isDark: isDark,
                   ),
                   if (users.isNotEmpty)
                     Divider(
                       height: 1,
-                      color: isDark
-                          ? AppColors.darkGray700
-                          : AppColors.neutralGray200,
+                      color: scheme.outlineVariant,
                     ),
                 ],
 
@@ -114,7 +106,6 @@ class MentionSuggestionOverlay extends ConsumerWidget {
                     context,
                     user: user,
                     onTap: () => onUserSelected(user),
-                    isDark: isDark,
                   ),
                 ),
               ],
@@ -131,26 +122,26 @@ class MentionSuggestionOverlay extends ConsumerWidget {
     required String username,
     required String subtitle,
     required VoidCallback onTap,
-    required bool isDark,
   }) {
+    final scheme = Theme.of(context).colorScheme;
     return ListTile(
       dense: true,
       leading: CircleAvatar(
-        backgroundColor: AppColors.primaryRed.withValues(alpha: 0.1),
-        child: Icon(icon, color: AppColors.primaryRed, size: 20),
+        backgroundColor: scheme.primary.withValues(alpha: 0.1),
+        child: Icon(icon, color: scheme.primary, size: 20),
       ),
       title: Text(
         username,
-        style: const TextStyle(
+        style: TextStyle(
           fontWeight: FontWeight.w600,
-          color: AppColors.primaryRed,
+          color: scheme.primary,
         ),
       ),
       subtitle: Text(
         subtitle,
         style: TextStyle(
           fontSize: 12,
-          color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray600,
+          color: scheme.onSurfaceVariant,
         ),
       ),
       onTap: onTap,
@@ -161,8 +152,8 @@ class MentionSuggestionOverlay extends ConsumerWidget {
     BuildContext context, {
     required UserSearch user,
     required VoidCallback onTap,
-    required bool isDark,
   }) {
+    final scheme = Theme.of(context).colorScheme;
     return ListTile(
       dense: true,
       leading: HybridAvatar(
@@ -175,9 +166,9 @@ class MentionSuggestionOverlay extends ConsumerWidget {
           Flexible(
             child: Text(
               '@${user.username}',
-              style: const TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.w600,
-                color: AppColors.primaryBlue,
+                color: scheme.secondary,
               ),
               overflow: TextOverflow.ellipsis,
             ),
@@ -188,7 +179,7 @@ class MentionSuggestionOverlay extends ConsumerWidget {
         '@${user.username}',
         style: TextStyle(
           fontSize: 12,
-          color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray600,
+          color: scheme.onSurfaceVariant,
         ),
         overflow: TextOverflow.ellipsis,
       ),

@@ -37,17 +37,6 @@ class ChatApiDatasource extends BaseApiRepository {
     );
   }
 
-  /// Get chat room by linked order ID for commerce continuity.
-  ///
-  /// This retrieves the chat room associated with an order, including last 50 messages.
-  /// Used for dispute dashboard to show chat context.
-  Future<Result<Map<String, dynamic>>> getRoomByOrderId(String orderId) async {
-    return executeRequest(
-      () => apiClient.get('/chat/rooms/by-order/$orderId'),
-      parser: (data) => data as Map<String, dynamic>,
-    );
-  }
-
   /// List all chat rooms for the authenticated user.
   ///
   /// Uses cursor-based pagination.
@@ -84,16 +73,6 @@ class ChatApiDatasource extends BaseApiRepository {
     return executeRequest(
       () => apiClient.get('/chat/rooms/$roomId'),
       parser: (data) => ChatDto.fromJson(data as Map<String, dynamic>),
-    );
-  }
-
-  /// Get unread count for a specific chat room.
-  ///
-  /// Returns the number of unread messages for the authenticated user.
-  Future<Result<int>> getUnreadCount(String roomId) async {
-    return executeRequest(
-      () => apiClient.get('/chat/rooms/$roomId/unread'),
-      parser: (data) => data['unread_count'] as int,
     );
   }
 

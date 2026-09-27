@@ -11,10 +11,10 @@ export function MainLayout() {
   // Show loading state
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gray-50">
+      <div className="flex h-screen items-center justify-center bg-[hsl(var(--background))]">
         <div className="text-center">
           <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
+          <p className="mt-4 text-[hsl(var(--muted-foreground))]">Loading...</p>
         </div>
       </div>
     )
@@ -28,11 +28,11 @@ export function MainLayout() {
   // Show access denied if not admin
   if (!isAdmin) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gray-50">
+      <div className="flex h-screen items-center justify-center bg-[hsl(var(--background))]">
         <div className="text-center max-w-md">
-          <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-red-100 flex items-center justify-center">
+          <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-[hsl(var(--destructive-bg))] flex items-center justify-center">
             <svg
-              className="h-8 w-8 text-red-600"
+              className="h-8 w-8 text-[hsl(var(--destructive))]"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -45,8 +45,8 @@ export function MainLayout() {
               />
             </svg>
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
-          <p className="text-gray-600 mb-6">
+          <h2 className="text-2xl font-bold text-[hsl(var(--foreground))] mb-2">Access Denied</h2>
+          <p className="text-[hsl(var(--muted-foreground))] mb-6">
             You don't have admin privileges to access this dashboard.
           </p>
           <button
@@ -61,7 +61,7 @@ export function MainLayout() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-[hsl(var(--background))]">
       {/* Sidebar */}
       <Sidebar />
 

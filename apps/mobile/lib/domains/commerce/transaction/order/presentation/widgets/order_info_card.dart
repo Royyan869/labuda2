@@ -2,22 +2,20 @@ part of 'order_widgets_impl.dart';
 
 class OrderInfoCard extends StatelessWidget {
   final Order order;
-  final bool isDark;
 
-  const OrderInfoCard({super.key, required this.order, required this.isDark});
+  const OrderInfoCard({super.key, required this.order});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDark ? const Color(0xFF333333) : const Color(0xFFE0E0E0),
-        ),
+        border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -32,25 +30,22 @@ class OrderInfoCard extends StatelessWidget {
           _InfoRow(
             label: 'Order ID',
             value: order.orderNumber ?? order.id.substring(0, 8).toUpperCase(),
-            isDark: isDark,
             isMonospace: true,
           ),
           const SizedBox(height: 8),
           _InfoRow(
             label: 'Tanggal',
             value: AppFormatters.formatDateTime(order.createdAt),
-            isDark: isDark,
           ),
           const SizedBox(height: 8),
           _InfoRow(
             label: 'Status',
             value: _getStatusDisplay(order.status),
-            isDark: isDark,
-            valueColor: _getStatusColor(order.status),
+            valueColor: _getStatusColor(order.status, colorScheme),
           ),
           if (order.notes != null && order.notes!.isNotEmpty) ...[
             const SizedBox(height: 8),
-            _InfoRow(label: 'Catatan', value: order.notes!, isDark: isDark),
+            _InfoRow(label: 'Catatan', value: order.notes!),
           ],
         ],
       ),
@@ -83,12 +78,12 @@ class OrderInfoCard extends StatelessWidget {
     }
   }
 
-  Color _getStatusColor(OrderStatus status) {
+  Color _getStatusColor(OrderStatus status, ColorScheme colorScheme) {
     switch (status) {
       case OrderStatus.pending:
         return core.AppColors.statusWarning;
       case OrderStatus.paid:
-        return core.AppColors.primaryBlue;
+        return colorScheme.secondary;
       case OrderStatus.shipped:
         return core.AppColors.statusInfo;
       case OrderStatus.delivered:
@@ -103,7 +98,7 @@ class OrderInfoCard extends StatelessWidget {
       case OrderStatus.partiallyRefunded:
         return core.AppColors.statusInfo;
       case OrderStatus.expired:
-        return Colors.grey;
+        return colorScheme.onSurfaceVariant;
     }
   }
 }
@@ -112,14 +107,12 @@ class OrderInfoCard extends StatelessWidget {
 class _InfoRow extends StatelessWidget {
   final String label;
   final String value;
-  final bool isDark;
   final bool isMonospace;
   final Color? valueColor;
 
   const _InfoRow({
     required this.label,
     required this.value,
-    required this.isDark,
     this.isMonospace = false,
     this.valueColor,
   });
@@ -127,6 +120,7 @@ class _InfoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -135,14 +129,16 @@ class _InfoRow extends StatelessWidget {
           width: 100,
           child: Text(
             label,
-            style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
           ),
         ),
         Expanded(
           child: Text(
             value,
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: valueColor ?? (isDark ? Colors.white : Colors.black87),
+              color: valueColor ?? colorScheme.onSurface,
               fontFamily: isMonospace ? 'monospace' : null,
               fontWeight: valueColor != null ? FontWeight.w600 : null,
             ),

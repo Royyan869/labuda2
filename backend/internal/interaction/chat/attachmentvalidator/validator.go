@@ -8,9 +8,7 @@ var validAttachmentTypes = map[string]bool{
 	"reference": true,
 
 	// Workflow Payloads
-	"negotiation_offer":    true,
 	"negotiation_proposal": true,
-	"negotiation_result":   true,
 	"shipping_quote":       true,
 
 	// True Attachments
@@ -71,12 +69,8 @@ func ValidateAttachmentJSON(attachmentJSON map[string]interface{}) []ValidationE
 	switch attachmentType {
 	case "reference":
 		validationErrors = append(validationErrors, validateReferenceAttachmentV2(data)...)
-	case "negotiation_offer":
-		validationErrors = append(validationErrors, validateNegotiationOfferAttachmentV2(data)...)
 	case "negotiation_proposal":
 		validationErrors = append(validationErrors, validateNegotiationProposalAttachmentV2(data)...)
-	case "negotiation_result":
-		validationErrors = append(validationErrors, validateNegotiationResultAttachmentV2(data)...)
 	case "shipping_quote":
 		validationErrors = append(validationErrors, validateShippingQuoteAttachmentV2(data)...)
 	case "location":
@@ -139,45 +133,6 @@ func validateReferenceAttachmentV2(data map[string]interface{}) []ValidationErro
 	return errs
 }
 
-func validateNegotiationOfferAttachmentV2(data map[string]interface{}) []ValidationError {
-	var errs []ValidationError
-	allowedFields := map[string]bool{"negotiation_id": true, "for_sale_id": true, "status": true, "preview": true}
-	for key := range data {
-		if !allowedFields[key] {
-			errs = append(errs, ValidationError{Field: fmt.Sprintf("data.%s", key), Message: fmt.Sprintf("Unknown field: %s", key)})
-		}
-	}
-	if _, ok := data["negotiation_id"]; !ok {
-		errs = append(errs, ValidationError{Field: "data.negotiation_id", Message: "negotiation_id is required"})
-	}
-	if _, ok := data["for_sale_id"]; !ok {
-		errs = append(errs, ValidationError{Field: "data.for_sale_id", Message: "for_sale_id is required"})
-	}
-	if _, ok := data["status"]; !ok {
-		errs = append(errs, ValidationError{Field: "data.status", Message: "status is required"})
-	}
-	previewRaw, hasPreview := data["preview"]
-	if !hasPreview {
-		errs = append(errs, ValidationError{Field: "data.preview", Message: "preview is required"})
-		return errs
-	}
-	preview, ok := previewRaw.(map[string]interface{})
-	if !ok {
-		errs = append(errs, ValidationError{Field: "data.preview", Message: "preview must be an object"})
-		return errs
-	}
-	previewAllowedFields := map[string]bool{"title": true, "imageUrl": true}
-	for key := range preview {
-		if !previewAllowedFields[key] {
-			errs = append(errs, ValidationError{Field: fmt.Sprintf("data.preview.%s", key), Message: fmt.Sprintf("Unknown field: %s", key)})
-		}
-	}
-	if _, hasTitle := preview["title"]; !hasTitle {
-		errs = append(errs, ValidationError{Field: "data.preview.title", Message: "preview.title is required"})
-	}
-	return errs
-}
-
 func validateNegotiationProposalAttachmentV2(data map[string]interface{}) []ValidationError {
 	var errs []ValidationError
 	allowedFields := map[string]bool{
@@ -196,45 +151,6 @@ func validateNegotiationProposalAttachmentV2(data map[string]interface{}) []Vali
 	}
 	if _, ok := data["price"]; !ok {
 		errs = append(errs, ValidationError{Field: "data.price", Message: "price is required"})
-	}
-	return errs
-}
-
-func validateNegotiationResultAttachmentV2(data map[string]interface{}) []ValidationError {
-	var errs []ValidationError
-	allowedFields := map[string]bool{"negotiation_id": true, "for_sale_id": true, "status": true, "preview": true}
-	for key := range data {
-		if !allowedFields[key] {
-			errs = append(errs, ValidationError{Field: fmt.Sprintf("data.%s", key), Message: fmt.Sprintf("Unknown field: %s", key)})
-		}
-	}
-	if _, ok := data["negotiation_id"]; !ok {
-		errs = append(errs, ValidationError{Field: "data.negotiation_id", Message: "negotiation_id is required"})
-	}
-	if _, ok := data["for_sale_id"]; !ok {
-		errs = append(errs, ValidationError{Field: "data.for_sale_id", Message: "for_sale_id is required"})
-	}
-	if _, ok := data["status"]; !ok {
-		errs = append(errs, ValidationError{Field: "data.status", Message: "status is required"})
-	}
-	previewRaw, hasPreview := data["preview"]
-	if !hasPreview {
-		errs = append(errs, ValidationError{Field: "data.preview", Message: "preview is required"})
-		return errs
-	}
-	preview, ok := previewRaw.(map[string]interface{})
-	if !ok {
-		errs = append(errs, ValidationError{Field: "data.preview", Message: "preview must be an object"})
-		return errs
-	}
-	previewAllowedFields := map[string]bool{"title": true, "imageUrl": true}
-	for key := range preview {
-		if !previewAllowedFields[key] {
-			errs = append(errs, ValidationError{Field: fmt.Sprintf("data.preview.%s", key), Message: fmt.Sprintf("Unknown field: %s", key)})
-		}
-	}
-	if _, hasTitle := preview["title"]; !hasTitle {
-		errs = append(errs, ValidationError{Field: "data.preview.title", Message: "preview.title is required"})
 	}
 	return errs
 }

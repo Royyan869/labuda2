@@ -47,8 +47,8 @@ export function PayoutWhitelistAuditPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Payout Whitelist Audit</h1>
-          <p className="text-gray-600 mt-1">Payout pilot whitelist change log (read-only)</p>
+          <h1 className="text-3xl font-bold text-foreground">Payout Whitelist Audit</h1>
+          <p className="text-muted-foreground mt-1">Payout pilot whitelist change log (read-only)</p>
         </div>
         <Button variant="ghost" size="sm" onClick={fetchAudit} disabled={loading}>
           <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
@@ -61,11 +61,11 @@ export function PayoutWhitelistAuditPage() {
         <CardContent className="p-4">
           <div className="flex items-center gap-4 flex-wrap">
             <div>
-              <label className="text-xs font-medium text-gray-600 block mb-1">Seller ID</label>
+              <label className="text-xs font-medium text-muted-foreground block mb-1">Seller ID</label>
               <input
                 type="text"
                 placeholder="UUID"
-                className="border border-gray-300 rounded-md px-3 py-1.5 text-sm w-72 font-mono"
+                className="border border-border rounded-md px-3 py-1.5 text-sm w-72 font-mono"
                 value={sellerIdFilter}
                 onChange={(e) => { setSellerIdFilter(e.target.value); setOffset(0) }}
               />
@@ -77,7 +77,7 @@ export function PayoutWhitelistAuditPage() {
                 </Button>
               </div>
             )}
-            <div className="ml-auto text-sm text-gray-500">
+            <div className="ml-auto text-sm text-muted-foreground">
               {count} record{count !== 1 ? 's' : ''} on this page
             </div>
           </div>
@@ -88,9 +88,9 @@ export function PayoutWhitelistAuditPage() {
       {error && (
         <Card>
           <CardContent className="p-8 text-center">
-            <AlertTriangle className="h-10 w-10 text-red-400 mx-auto mb-3" />
-            <p className="text-gray-900 font-medium">Failed to load whitelist audit</p>
-            <p className="text-gray-600 text-sm mt-1">{error}</p>
+            <AlertTriangle className="h-10 w-10 text-destructive mx-auto mb-3" />
+            <p className="text-foreground font-medium">Failed to load whitelist audit</p>
+            <p className="text-muted-foreground text-sm mt-1">{error}</p>
             <Button variant="secondary" size="sm" onClick={fetchAudit} className="mt-4">
               Retry
             </Button>
@@ -105,9 +105,9 @@ export function PayoutWhitelistAuditPage() {
             <div className="space-y-4">
               {Array.from({ length: 5 }).map((_, i) => (
                 <div key={i} className="animate-pulse flex items-center gap-4">
-                  <div className="h-4 bg-gray-200 rounded w-32" />
-                  <div className="h-4 bg-gray-200 rounded flex-1" />
-                  <div className="h-6 w-20 bg-gray-200 rounded-full" />
+                  <div className="h-4 bg-border rounded w-32" />
+                  <div className="h-4 bg-border rounded flex-1" />
+                  <div className="h-6 w-20 bg-border rounded-full" />
                 </div>
               ))}
             </div>
@@ -119,9 +119,9 @@ export function PayoutWhitelistAuditPage() {
       {!loading && !error && rows.length === 0 && (
         <Card>
           <CardContent className="p-12 text-center">
-            <ClipboardCheck className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-            <h2 className="text-lg font-semibold text-gray-900">No Audit Records</h2>
-            <p className="text-gray-600 mt-1">No whitelist audit records match the current filter.</p>
+            <ClipboardCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h2 className="text-lg font-semibold text-foreground">No Audit Records</h2>
+            <p className="text-muted-foreground mt-1">No whitelist audit records match the current filter.</p>
           </CardContent>
         </Card>
       )}
@@ -136,38 +136,38 @@ export function PayoutWhitelistAuditPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-200 bg-gray-50">
-                    <th className="px-4 py-3 text-left font-medium text-gray-600">Action</th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-600">Seller ID</th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-600">Actor</th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-600">Source</th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-600">Reason</th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-600">Created At</th>
+                  <tr className="border-b border-border bg-surface-muted">
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Action</th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Seller ID</th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Actor</th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Source</th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Reason</th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Created At</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody className="divide-y divide-[hsl(var(--border))]">
                   {rows.map((row) => {
                     const actionKey = row.action as WhitelistAuditAction
                     return (
-                      <tr key={row.id} className="hover:bg-gray-50">
+                      <tr key={row.id} className="hover:bg-surface-muted">
                         <td className="px-4 py-3">
                           <Badge variant={whitelistActionVariants[actionKey] ?? 'info'}>
                             {whitelistActionLabels[actionKey] ?? row.action}
                           </Badge>
                         </td>
-                        <td className="px-4 py-3 font-mono text-xs text-gray-700">
+                        <td className="px-4 py-3 font-mono text-xs text-foreground">
                           {row.seller_id ? `${row.seller_id.slice(0, 8)}...` : '-'}
                         </td>
-                        <td className="px-4 py-3 font-mono text-xs text-gray-700">
+                        <td className="px-4 py-3 font-mono text-xs text-foreground">
                           {row.actor_id}
                         </td>
-                        <td className="px-4 py-3 text-gray-700">
+                        <td className="px-4 py-3 text-foreground">
                           {row.source}
                         </td>
-                        <td className="px-4 py-3 text-gray-600 max-w-[300px] truncate" title={row.reason}>
+                        <td className="px-4 py-3 text-muted-foreground max-w-[300px] truncate" title={row.reason}>
                           {row.reason || '-'}
                         </td>
-                        <td className="px-4 py-3 text-xs text-gray-600 whitespace-nowrap">
+                        <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
                           {new Date(row.created_at).toLocaleString()}
                         </td>
                       </tr>
@@ -191,7 +191,7 @@ export function PayoutWhitelistAuditPage() {
           >
             Previous
           </Button>
-          <span className="text-sm text-gray-600">
+          <span className="text-sm text-muted-foreground">
             Page {currentPage}
           </span>
           <Button

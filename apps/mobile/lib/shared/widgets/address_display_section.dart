@@ -37,12 +37,12 @@ class AddressDisplaySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.neutralGray800 : AppColors.neutralWhite,
+        color: scheme.surface,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -56,9 +56,7 @@ class AddressDisplaySection extends StatelessWidget {
                 Text(
                   label!,
                   style: AppTypography.h6.copyWith(
-                    color: isDark
-                        ? AppColors.neutralWhite
-                        : AppColors.neutralGray900,
+                    color: scheme.onSurface,
                   ),
                 ),
                 Row(
@@ -69,7 +67,7 @@ class AddressDisplaySection extends StatelessWidget {
                         child: Text(
                           'Select',
                           style: AppTypography.button.copyWith(
-                            color: AppColors.primaryRed,
+                            color: scheme.primary,
                           ),
                         ),
                       ),
@@ -94,9 +92,7 @@ class AddressDisplaySection extends StatelessWidget {
                 Text(
                   recipientName,
                   style: AppTypography.labelEmphasized.copyWith(
-                    color: isDark
-                        ? AppColors.neutralWhite
-                        : AppColors.neutralGray900,
+                    color: scheme.onSurface,
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -106,15 +102,15 @@ class AddressDisplaySection extends StatelessWidget {
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.primaryRed,
+                    color: scheme.primary,
                     borderRadius: BorderRadius.circular(4),
                   ),
-                  child: const Text(
+                  child: Text(
                     'Primary',
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
-                      color: Colors.white,
+                      color: scheme.onPrimary,
                     ),
                   ),
                 ),
@@ -124,9 +120,7 @@ class AddressDisplaySection extends StatelessWidget {
             Text(
               recipientName,
               style: AppTypography.labelEmphasized.copyWith(
-                color: isDark
-                    ? AppColors.neutralWhite
-                    : AppColors.neutralGray900,
+                color: scheme.onSurface,
               ),
             ),
 
@@ -139,18 +133,14 @@ class AddressDisplaySection extends StatelessWidget {
                 Icon(
                   Icons.person_outline,
                   size: 14,
-                  color: isDark
-                      ? AppColors.neutralGray400
-                      : AppColors.neutralGray600,
+                  color: scheme.onSurfaceVariant,
                 ),
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
                     phone!,
                     style: AppTypography.bodyMedium.copyWith(
-                      color: isDark
-                          ? AppColors.neutralGray300
-                          : AppColors.neutralGray700,
+                      color: scheme.onSurface,
                     ),
                   ),
                 ),
@@ -165,18 +155,14 @@ class AddressDisplaySection extends StatelessWidget {
               Icon(
                 Icons.home_outlined,
                 size: 14,
-                color: isDark
-                    ? AppColors.neutralGray400
-                    : AppColors.neutralGray600,
+                color: scheme.onSurfaceVariant,
               ),
               const SizedBox(width: 4),
               Expanded(
                 child: Text(
                   streetAddress,
                   style: AppTypography.bodyMedium.copyWith(
-                    color: isDark
-                        ? AppColors.neutralGray300
-                        : AppColors.neutralGray700,
+                    color: scheme.onSurface,
                   ),
                 ),
               ),
@@ -191,18 +177,14 @@ class AddressDisplaySection extends StatelessWidget {
                 Icon(
                   Icons.location_on,
                   size: 14,
-                  color: isDark
-                      ? AppColors.neutralGray400
-                      : AppColors.neutralGray600,
+                  color: scheme.onSurfaceVariant,
                 ),
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
                     villageDistrict!,
                     style: AppTypography.bodyMedium.copyWith(
-                      color: isDark
-                          ? AppColors.neutralGray400
-                          : AppColors.neutralGray600,
+                      color: scheme.onSurfaceVariant,
                     ),
                   ),
                 ),
@@ -218,17 +200,13 @@ class AddressDisplaySection extends StatelessWidget {
                 Icon(
                   Icons.location_city,
                   size: 14,
-                  color: isDark
-                      ? AppColors.neutralGray400
-                      : AppColors.neutralGray600,
+                  color: scheme.onSurfaceVariant,
                 ),
                 const SizedBox(width: 4),
                 Text(
                   city!,
                   style: AppTypography.bodyMedium.copyWith(
-                    color: isDark
-                        ? AppColors.neutralGray400
-                        : AppColors.neutralGray600,
+                    color: scheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -243,18 +221,14 @@ class AddressDisplaySection extends StatelessWidget {
                 Icon(
                   Icons.map,
                   size: 14,
-                  color: isDark
-                      ? AppColors.neutralGray400
-                      : AppColors.neutralGray600,
+                  color: scheme.onSurfaceVariant,
                 ),
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
                     province!,
                     style: AppTypography.bodyMedium.copyWith(
-                      color: isDark
-                          ? AppColors.neutralGray400
-                          : AppColors.neutralGray600,
+                      color: scheme.onSurfaceVariant,
                     ),
                   ),
                 ),
@@ -268,9 +242,7 @@ class AddressDisplaySection extends StatelessWidget {
             Text(
               postalCode!,
               style: AppTypography.bodyMedium.copyWith(
-                color: isDark
-                    ? AppColors.neutralGray400
-                    : AppColors.neutralGray600,
+                color: scheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 16),

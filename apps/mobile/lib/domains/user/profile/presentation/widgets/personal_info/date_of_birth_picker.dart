@@ -1,30 +1,29 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 
 /// Date of birth picker widget
 class DateOfBirthPicker extends StatelessWidget {
   final DateTime? dateOfBirth;
   final VoidCallback onTap;
-  final bool isDark;
 
   const DateOfBirthPicker({
     super.key,
     this.dateOfBirth,
     required this.onTap,
-    required this.isDark,
+    
   });
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
+          color: scheme.surface,
           border: Border.all(
-            color: isDark ? AppColors.darkGray700 : AppColors.neutralGray300,
+            color: scheme.onSurfaceVariant,
           ),
           borderRadius: BorderRadius.circular(8),
         ),
@@ -32,9 +31,7 @@ class DateOfBirthPicker extends StatelessWidget {
           children: [
             Icon(
               Icons.cake_outlined,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray600,
+              color: scheme.onSurfaceVariant,
               size: 20,
             ),
             const SizedBox(width: 12),
@@ -46,9 +43,7 @@ class DateOfBirthPicker extends StatelessWidget {
                     'Date of Birth (Optional)',
                     style: TextStyle(
                       fontSize: 12,
-                      color: isDark
-                          ? AppColors.neutralGray500
-                          : AppColors.neutralGray600,
+                      color: scheme.onSurfaceVariant,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -62,12 +57,8 @@ class DateOfBirthPicker extends StatelessWidget {
                           ? FontWeight.normal
                           : FontWeight.w500,
                       color: dateOfBirth == null
-                          ? (isDark
-                                ? AppColors.neutralGray500
-                                : AppColors.neutralGray600)
-                          : (isDark
-                                ? AppColors.neutralWhite
-                                : AppColors.neutralGray900),
+                          ? scheme.onSurfaceVariant
+                          : scheme.onSurfaceVariant,
                     ),
                   ),
                 ],
@@ -76,9 +67,7 @@ class DateOfBirthPicker extends StatelessWidget {
             Icon(
               Icons.calendar_today,
               size: 18,
-              color: isDark
-                  ? AppColors.neutralGray500
-                  : AppColors.neutralGray600,
+              color: scheme.onSurfaceVariant,
             ),
           ],
         ),

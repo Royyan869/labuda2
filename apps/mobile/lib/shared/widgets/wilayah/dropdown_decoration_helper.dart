@@ -4,7 +4,6 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 
 /// Helper class untuk decoration dropdown
 class DropdownDecorationHelper {
@@ -12,39 +11,29 @@ class DropdownDecorationHelper {
 
   /// Create InputDecoration untuk dropdown
   static InputDecoration createInputDecoration({
-    required bool isDark,
+    required ColorScheme scheme,
     required String hintText,
     IconData? prefixIcon,
   }) {
     return InputDecoration(
       hintText: hintText,
       prefixIcon: prefixIcon != null
-          ? Icon(
-              prefixIcon,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray600,
-            )
+          ? Icon(prefixIcon, color: scheme.onSurfaceVariant)
           : null,
       border: InputBorder.none,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      hintStyle: TextStyle(
-        color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray500,
-      ),
+      hintStyle: TextStyle(color: scheme.onSurfaceVariant),
     );
   }
 
-  /// Get dropdown color based on theme
-  static Color getDropdownColor(bool isDark) {
-    return isDark ? AppColors.darkGray700 : AppColors.neutralWhite;
+  /// Get dropdown menu background from the scheme
+  static Color getDropdownColor(ColorScheme scheme) {
+    return scheme.surfaceContainerHigh;
   }
 
   /// Get text style untuk dropdown
-  static TextStyle getTextStyle(bool isDark) {
-    return TextStyle(
-      color: isDark ? AppColors.neutralGray200 : AppColors.neutralGray900,
-      fontSize: 16,
-    );
+  static TextStyle getTextStyle(ColorScheme scheme) {
+    return TextStyle(color: scheme.onSurface, fontSize: 16);
   }
 
   /// Create selected item builder untuk dropdown

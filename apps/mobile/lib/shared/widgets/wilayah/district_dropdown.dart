@@ -31,7 +31,7 @@ class DistrictDropdown extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     final districtsAsync = ref.watch(districtsProvider(selectedCity?.id));
 
     return Column(
@@ -43,9 +43,7 @@ class DistrictDropdown extends ConsumerWidget {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
-              color: isDark
-                  ? AppColors.neutralGray300
-                  : AppColors.neutralGray700,
+              color: scheme.onSurface,
             ),
           ),
           const SizedBox(height: 8),
@@ -53,18 +51,15 @@ class DistrictDropdown extends ConsumerWidget {
         Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isDark ? AppColors.darkGray600 : AppColors.neutralGray300,
-            ),
-            color: isDark ? AppColors.darkGray700 : AppColors.neutralWhite,
+            border: Border.all(color: scheme.outlineVariant),
+            color: scheme.surface,
           ),
           child: selectedCity == null
-              ? _buildDisabledDropdown(context, isDark, 'Pilih kota dulu')
+              ? _buildDisabledDropdown(context, 'Pilih kota dulu')
               : districtsAsync.when(
                   data: (districts) => districts.isEmpty
                       ? _buildEmptyDropdown(
                           context,
-                          isDark,
                           'Tidak ada kecamatan tersedia',
                         )
                       : DropdownButtonFormField<District>(
@@ -77,9 +72,7 @@ class DistrictDropdown extends ConsumerWidget {
                             prefixIcon: prefixIcon != null
                                 ? Icon(
                                     prefixIcon,
-                                    color: isDark
-                                        ? AppColors.neutralGray400
-                                        : AppColors.neutralGray600,
+                                    color: scheme.onSurfaceVariant,
                                   )
                                 : null,
                             border: InputBorder.none,
@@ -88,18 +81,12 @@ class DistrictDropdown extends ConsumerWidget {
                               vertical: 14,
                             ),
                             hintStyle: TextStyle(
-                              color: isDark
-                                  ? AppColors.neutralGray400
-                                  : AppColors.neutralGray500,
+                              color: scheme.onSurfaceVariant,
                             ),
                           ),
-                          dropdownColor: isDark
-                              ? AppColors.darkGray700
-                              : AppColors.neutralWhite,
+                          dropdownColor: scheme.surfaceContainerHigh,
                           style: TextStyle(
-                            color: isDark
-                                ? AppColors.neutralGray200
-                                : AppColors.neutralGray900,
+                            color: scheme.onSurface,
                             fontSize: 16,
                           ),
                           selectedItemBuilder: (context) {
@@ -126,12 +113,10 @@ class DistrictDropdown extends ConsumerWidget {
                         ),
                   loading: () => _buildLoadingDropdown(
                     context,
-                    isDark,
                     'Loading kecamatan...',
                   ),
                   error: (error, stack) => _buildErrorDropdown(
                     context,
-                    isDark,
                     'Error loading kecamatan',
                   ),
                 ),
@@ -140,31 +125,21 @@ class DistrictDropdown extends ConsumerWidget {
     );
   }
 
-  Widget _buildDisabledDropdown(
-    BuildContext context,
-    bool isDark,
-    String text,
-  ) {
+  Widget _buildDisabledDropdown(BuildContext context, String text) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       height: 50,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
           if (prefixIcon != null) ...[
-            Icon(
-              prefixIcon,
-              color: isDark
-                  ? AppColors.neutralGray500
-                  : AppColors.neutralGray400,
-            ),
+            Icon(prefixIcon, color: scheme.onSurfaceVariant),
             const SizedBox(width: 12),
           ],
           Text(
             text,
             style: TextStyle(
-              color: isDark
-                  ? AppColors.neutralGray500
-                  : AppColors.neutralGray400,
+              color: scheme.onSurfaceVariant,
               fontSize: 16,
             ),
           ),
@@ -173,27 +148,21 @@ class DistrictDropdown extends ConsumerWidget {
     );
   }
 
-  Widget _buildEmptyDropdown(BuildContext context, bool isDark, String text) {
+  Widget _buildEmptyDropdown(BuildContext context, String text) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       height: 50,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
           if (prefixIcon != null) ...[
-            Icon(
-              prefixIcon,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray600,
-            ),
+            Icon(prefixIcon, color: scheme.onSurfaceVariant),
             const SizedBox(width: 12),
           ],
           Text(
             text,
             style: TextStyle(
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray500,
+              color: scheme.onSurfaceVariant,
               fontSize: 16,
             ),
           ),
@@ -202,19 +171,15 @@ class DistrictDropdown extends ConsumerWidget {
     );
   }
 
-  Widget _buildLoadingDropdown(BuildContext context, bool isDark, String text) {
+  Widget _buildLoadingDropdown(BuildContext context, String text) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       height: 50,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
           if (prefixIcon != null) ...[
-            Icon(
-              prefixIcon,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray600,
-            ),
+            Icon(prefixIcon, color: scheme.onSurfaceVariant),
             const SizedBox(width: 12),
           ],
           const SizedBox(
@@ -225,18 +190,14 @@ class DistrictDropdown extends ConsumerWidget {
           const SizedBox(width: 12),
           Text(
             text,
-            style: TextStyle(
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray500,
-            ),
+            style: TextStyle(color: scheme.onSurfaceVariant),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildErrorDropdown(BuildContext context, bool isDark, String text) {
+  Widget _buildErrorDropdown(BuildContext context, String text) {
     return Container(
       height: 50,
       padding: const EdgeInsets.symmetric(horizontal: 16),

@@ -25,13 +25,13 @@ class PaymentMethodCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return BaseCard(
       onTap: onTap,
       padding: const EdgeInsets.all(16),
       showBorder: isSelected,
-      borderColor: isSelected ? AppColors.primaryRed : null,
+      borderColor: isSelected ? scheme.primary : null,
       child: Row(
         children: [
           // Icon
@@ -40,20 +40,16 @@ class PaymentMethodCard extends StatelessWidget {
             height: 48,
             decoration: BoxDecoration(
               color: isSelected
-                  ? AppColors.primaryRed.withValues(alpha: 0.1)
-                  : (isDark
-                        ? AppColors.neutralGray700
-                        : AppColors.neutralGray100),
+                  ? scheme.primary.withValues(alpha: 0.1)
+                  : scheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
               icon,
               size: 24,
               color: isSelected
-                  ? AppColors.primaryRed
-                  : (isDark
-                        ? AppColors.neutralGray300
-                        : AppColors.neutralGray500),
+                  ? scheme.primary
+                  : scheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(width: 12),
@@ -70,10 +66,8 @@ class PaymentMethodCard extends StatelessWidget {
                         label,
                         style: AppTypography.labelMedium.copyWith(
                           color: isSelected
-                              ? AppColors.primaryRed
-                              : (isDark
-                                    ? AppColors.neutralWhite
-                                    : AppColors.neutralGray900),
+                              ? scheme.primary
+                              : scheme.onSurface,
                         ),
                       ),
                     ),
@@ -85,13 +79,13 @@ class PaymentMethodCard extends StatelessWidget {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.primaryRed.withValues(alpha: 0.1),
+                          color: scheme.primary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(999),
                         ),
                         child: Text(
                           badge!,
                           style: AppTypography.labelSmall.copyWith(
-                            color: AppColors.primaryRed,
+                            color: scheme.primary,
                           ),
                         ),
                       ),
@@ -102,9 +96,7 @@ class PaymentMethodCard extends StatelessWidget {
                   Text(
                     subtitle!,
                     style: AppTypography.caption.copyWith(
-                      color: isDark
-                          ? AppColors.neutralGray400
-                          : AppColors.neutralGray500,
+                      color: scheme.onSurfaceVariant,
                     ),
                   ),
               ],

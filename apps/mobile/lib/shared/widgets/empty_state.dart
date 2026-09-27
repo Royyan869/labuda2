@@ -43,7 +43,7 @@ class EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Padding(
       padding: const EdgeInsets.all(48),
@@ -52,15 +52,13 @@ class EmptyState extends StatelessWidget {
         children: [
           // Icon
           if (showIcon) ...[
-            _buildIcon(context, isDark),
+            _buildIcon(context),
             const SizedBox(height: 24),
           ],
           // Title
           Text(
             title,
-            style: AppTypography.h4.copyWith(
-              color: isDark ? AppColors.neutralWhite : AppColors.neutralGray900,
-            ),
+            style: AppTypography.h4.copyWith(color: scheme.onSurface),
             textAlign: TextAlign.center,
           ),
           // Subtitle
@@ -69,9 +67,7 @@ class EmptyState extends StatelessWidget {
             Text(
               subtitle!,
               style: AppTypography.bodyMedium.copyWith(
-                color: isDark
-                    ? AppColors.neutralGray400
-                    : AppColors.neutralGray600,
+                color: scheme.onSurfaceVariant,
               ),
               textAlign: TextAlign.center,
             ),
@@ -93,70 +89,31 @@ class EmptyState extends StatelessWidget {
     );
   }
 
-  Widget _buildIcon(BuildContext context, bool isDark) {
+  Widget _buildIcon(BuildContext context) {
     if (customIcon != null) {
       return SizedBox(width: 80, height: 80, child: customIcon!);
     }
 
-    IconData? iconData = icon;
-    Color iconColor = isDark
-        ? AppColors.neutralGray500
-        : AppColors.neutralGray400;
-
-    switch (type) {
-      case EmptyStateType.noData:
-        iconData = icon ?? Icons.inbox_outlined;
-        iconColor = isDark
-            ? AppColors.neutralGray500
-            : AppColors.neutralGray400;
-        break;
-      case EmptyStateType.noResults:
-        iconData = icon ?? Icons.search_off_outlined;
-        iconColor = isDark
-            ? AppColors.neutralGray500
-            : AppColors.neutralGray400;
-        break;
-      case EmptyStateType.noItems:
-        iconData = icon ?? Icons.inventory_2_outlined;
-        iconColor = isDark
-            ? AppColors.neutralGray500
-            : AppColors.neutralGray400;
-        break;
-      case EmptyStateType.noNotifications:
-        iconData = icon ?? Icons.notifications_none_outlined;
-        iconColor = isDark
-            ? AppColors.neutralGray500
-            : AppColors.neutralGray400;
-        break;
-      case EmptyStateType.noMessages:
-        iconData = icon ?? Icons.message_outlined;
-        iconColor = isDark
-            ? AppColors.neutralGray500
-            : AppColors.neutralGray400;
-        break;
-      case EmptyStateType.noFavorites:
-        iconData = icon ?? Icons.favorite_border;
-        iconColor = isDark
-            ? AppColors.neutralGray500
-            : AppColors.neutralGray400;
-        break;
-      case EmptyStateType.error:
-        iconData = icon ?? Icons.error_outline;
-        iconColor = AppColors.statusError;
-        break;
-      case EmptyStateType.loading:
-        iconData = icon ?? Icons.hourglass_empty_outlined;
-        iconColor = isDark
-            ? AppColors.neutralGray500
-            : AppColors.neutralGray400;
-        break;
-      default:
-        iconData = icon ?? Icons.inbox_outlined;
-        iconColor = isDark
-            ? AppColors.neutralGray500
-            : AppColors.neutralGray400;
-        break;
-    }
+    // One rule: error type uses the error role, everything else the
+    // neutral variant ink. The old per-type switch produced the same gray
+    // in 8 branches — duplicate authority, killed.
+    final scheme = Theme.of(context).colorScheme;
+    final IconData iconData =
+        icon ??
+        const {
+          EmptyStateType.noData: Icons.inbox_outlined,
+          EmptyStateType.noResults: Icons.search_off_outlined,
+          EmptyStateType.noItems: Icons.inventory_2_outlined,
+          EmptyStateType.noNotifications: Icons.notifications_none_outlined,
+          EmptyStateType.noMessages: Icons.message_outlined,
+          EmptyStateType.noFavorites: Icons.favorite_border,
+          EmptyStateType.error: Icons.error_outline,
+          EmptyStateType.loading: Icons.hourglass_empty_outlined,
+          EmptyStateType.custom: Icons.inbox_outlined,
+        }[type]!;
+    final Color iconColor = type == EmptyStateType.error
+        ? scheme.error
+        : scheme.onSurfaceVariant;
 
     return Container(
       width: 80,

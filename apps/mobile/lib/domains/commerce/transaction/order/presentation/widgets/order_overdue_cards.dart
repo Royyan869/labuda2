@@ -17,13 +17,6 @@ class ShippingProofData {
     this.note,
   });
 
-  // Backward compatibility constructor
-  ShippingProofData.withLegacyTracking({
-    required String trackingNumber,
-    this.note,
-  }) : shippingReference = trackingNumber,
-       referenceType = null;
-
   Map<String, dynamic> toJson() => {
     'shippingReference': shippingReference,
     'referenceType': referenceType,
@@ -138,7 +131,7 @@ class OrderOverdueInfoCard extends StatelessWidget {
 
     final tier = order.overdueTier!;
     final daysOverdue = order.overdueDays ?? 0;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
 
     Color getBadgeColor() {
       if (tier == 'critical_overdue') return core.AppColors.statusError;
@@ -166,14 +159,10 @@ class OrderOverdueInfoCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark
-            ? core.AppColors.statusError.withValues(alpha: 0.08)
-            : core.AppColors.statusError.withValues(alpha: 0.05),
+        color: core.AppColors.statusError.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isDark
-              ? core.AppColors.statusError.withValues(alpha: 0.3)
-              : core.AppColors.statusError.withValues(alpha: 0.2),
+          color: core.AppColors.statusError.withValues(alpha: 0.3),
         ),
       ),
       child: Column(
@@ -204,9 +193,7 @@ class OrderOverdueInfoCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: isDark
-                            ? core.AppColors.neutralWhite
-                            : core.AppColors.neutralGray900,
+                        color: colorScheme.onSurface,
                       ),
                     ),
                     Text(
@@ -229,9 +216,7 @@ class OrderOverdueInfoCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: isDark
-                  ? core.AppColors.darkGray700.withValues(alpha: 0.5)
-                  : core.AppColors.neutralGray100,
+              color: colorScheme.surfaceContainerHigh,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
@@ -244,9 +229,7 @@ class OrderOverdueInfoCard extends StatelessWidget {
                     getWarningMessage(),
                     style: TextStyle(
                       fontSize: 12,
-                      color: isDark
-                          ? core.AppColors.neutralGray300
-                          : core.AppColors.neutralGray700,
+                      color: colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ),
@@ -262,18 +245,14 @@ class OrderOverdueInfoCard extends StatelessWidget {
                 Icon(
                   Icons.event,
                   size: 14,
-                  color: isDark
-                      ? core.AppColors.neutralGray400
-                      : core.AppColors.neutralGray600,
+                  color: colorScheme.onSurfaceVariant,
                 ),
                 const SizedBox(width: 6),
                 Text(
                   'Target siap kirim: ${_formatDate(order.readyToShipBy!)}',
                   style: TextStyle(
                     fontSize: 11,
-                    color: isDark
-                        ? core.AppColors.neutralGray400
-                        : core.AppColors.neutralGray600,
+                    color: colorScheme.onSurfaceVariant,
                   ),
                 ),
                 if (daysOverdue > 0) ...[

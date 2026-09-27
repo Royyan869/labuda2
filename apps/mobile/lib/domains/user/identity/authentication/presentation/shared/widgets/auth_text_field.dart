@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 
 /// Authentication text field wrapper around AppTextField
 ///
@@ -150,7 +149,7 @@ class AuthTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return TextFormField(
       controller: controller,
@@ -168,45 +167,41 @@ class AuthTextField extends StatelessWidget {
         hintText: hintText,
         floatingLabelBehavior: FloatingLabelBehavior.always,
         hintStyle: TextStyle(
-          color: isDark
-              ? AppColors.neutralGray400.withValues(alpha: 0.6)
-              : AppColors.neutralGray500.withValues(alpha: 0.6),
+          color: scheme.onSurfaceVariant.withValues(alpha: 0.6),
         ),
         prefixIcon: prefixIcon != null
             ? Icon(
                 prefixIcon,
-                color: isDark
-                    ? AppColors.neutralGray400
-                    : AppColors.neutralGray500,
+                color: scheme.onSurfaceVariant,
               )
             : null,
         suffixIcon: suffixIcon,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
-            color: isDark ? AppColors.darkGray600 : AppColors.neutralGray300,
+            color: scheme.outlineVariant,
           ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
-            color: isDark ? AppColors.darkGray600 : AppColors.neutralGray300,
+            color: scheme.outlineVariant,
           ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.primaryRed, width: 2),
+          borderSide: BorderSide(color: scheme.primary, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.error),
+          borderSide: BorderSide(color: scheme.error),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.error, width: 2),
+          borderSide: BorderSide(color: scheme.error, width: 2),
         ),
         filled: true,
-        fillColor: isDark ? AppColors.darkGray700 : AppColors.neutralGray50,
+        fillColor: scheme.surfaceContainerHigh,
       ),
       validator: validator,
     );

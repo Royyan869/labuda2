@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 
 /// Section card widget for profile about tab
 /// Reusable wrapper with title and icon header
@@ -17,11 +16,11 @@ class ProfileSectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Card(
       margin: EdgeInsets.zero,
-      color: isDark ? AppColors.darkGray700 : AppColors.neutralWhite,
+      color: scheme.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -30,16 +29,14 @@ class ProfileSectionCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(icon, size: 20, color: AppColors.primaryRed),
+                Icon(icon, size: 20, color: scheme.primary),
                 const SizedBox(width: 8),
                 Text(
                   title,
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: isDark
-                        ? AppColors.neutralWhite
-                        : AppColors.neutralGray900,
+                    color: scheme.onSurface,
                   ),
                 ),
               ],

@@ -132,12 +132,17 @@ type AuctionBidPayload struct {
 
 // AuctionLifecyclePayload represents the payload for auction lifecycle events
 // (auction.waiting_settlement, auction.ended, etc.) produced by buildAuctionPayload.
+//
+// CancelReason is stamped ONLY on auction.cancelled events (see
+// auctionentity.CancelReason — internal outbox vocabulary, never a public
+// wire field). Empty for all other lifecycle events.
 type AuctionLifecyclePayload struct {
 	AuctionID     string  `json:"auction_id"`
 	SellerID      string  `json:"seller_id"`
 	Status        string  `json:"status"`
 	CurrentBid    *int64  `json:"current_bid,omitempty"`
 	CurrentWinner *string `json:"current_winner,omitempty"`
+	CancelReason  string  `json:"cancel_reason,omitempty"`
 }
 
 // SellerSubscriptionExpiringPayload represents the payload for seller.subscription.expiring events.
@@ -404,6 +409,12 @@ func (h *NotificationEventHandler) getTitleAndBody(notifyType string) (title, bo
 		return "Ada Pemenang Lelang", "Lelang Anda memiliki pemenang. Tunggu hingga pembayaran masuk."
 	case "auction.ended_no_winner":
 		return "Lelang Berakhir Tanpa Pemenang", "Lelang Anda telah berakhir tanpa ada pemenang."
+	case "auction.cancelled.seller":
+		// Scope B — subscription-expired auto-cancel. The auction died
+		// because the seller's market authority lapsed; renewal is the
+		// recourse. Factual copy: no blame, no reason leak (reason is
+		// internal outbox vocabulary).
+		return "Lelang Dibatalkan Otomatis", "Langganan Anda telah berakhir sehingga lelang ini dibatalkan. Perpanjang langganan untuk menjual kembali."
 	case "auction.bnr_seller":
 		return "Lelang Tidak Diselesaikan", "Pemenang tidak menyelesaikan pembayaran dalam batas waktu"
 	case "auction.bnr_winner":

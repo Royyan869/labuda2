@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/generated/app_localizations.dart';
 
 class SettingsAccountManagementSection extends StatelessWidget {
@@ -10,7 +9,7 @@ class SettingsAccountManagementSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Column(
       children: [
@@ -18,15 +17,15 @@ class SettingsAccountManagementSection extends StatelessWidget {
           context,
           Icons.manage_accounts,
           l10n.accountManagement,
-          isDark,
+          scheme,
         ),
         _buildSettingsTile(
           icon: Icons.logout_outlined,
           title: l10n.signOut,
           subtitle: l10n.signOutAccount,
           onTap: onSignOut,
-          textColor: AppColors.primaryRed,
-          isDark: isDark,
+          textColor: scheme.primary,
+          scheme: scheme,
         ),
         const SizedBox(height: 32),
       ],
@@ -37,7 +36,7 @@ class SettingsAccountManagementSection extends StatelessWidget {
     BuildContext context,
     IconData icon,
     String title,
-    bool isDark,
+    ColorScheme scheme,
   ) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
@@ -46,7 +45,7 @@ class SettingsAccountManagementSection extends StatelessWidget {
           Icon(
             icon,
             size: 20,
-            color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray600,
+            color: scheme.onSurfaceVariant,
           ),
           const SizedBox(width: 8),
           Text(
@@ -54,9 +53,7 @@ class SettingsAccountManagementSection extends StatelessWidget {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray600,
+              color: scheme.onSurfaceVariant,
             ),
           ),
         ],
@@ -69,7 +66,7 @@ class SettingsAccountManagementSection extends StatelessWidget {
     required String title,
     required String subtitle,
     required VoidCallback onTap,
-    required bool isDark,
+    required ColorScheme scheme,
     Color? textColor,
   }) {
     return ListTile(
@@ -78,12 +75,12 @@ class SettingsAccountManagementSection extends StatelessWidget {
       subtitle: Text(
         subtitle,
         style: TextStyle(
-          color: isDark ? AppColors.neutralGray500 : AppColors.neutralGray600,
+          color: scheme.onSurfaceVariant,
         ),
       ),
       trailing: Icon(
         Icons.chevron_right,
-        color: isDark ? AppColors.neutralGray500 : AppColors.neutralGray400,
+        color: scheme.onSurfaceVariant,
       ),
       onTap: onTap,
     );

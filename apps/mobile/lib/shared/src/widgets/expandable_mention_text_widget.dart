@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/widgets/mentions/mention_rich_text.dart';
 
 /// Expandable Text Widget dengan Mention Support (Facebook-style)
@@ -82,12 +81,8 @@ class _ExpandableMentionTextWidgetState
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final effectiveLinkColor =
-        widget.linkColor ??
-        (isDark
-            ? AppColors.primaryBlue.withValues(alpha: 0.8)
-            : AppColors.primaryBlue);
+        widget.linkColor ?? theme.colorScheme.secondary;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

@@ -11,6 +11,7 @@ import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart';
 import 'package:labuda/domains/chat/chat/domain/repositories/chat_repository.dart';
 import 'package:labuda/domains/chat/chat/presentation/providers/chat_notifier.dart';
 import 'package:labuda/domains/chat/chat/presentation/providers/chat_state.dart';
+import 'package:labuda/shared/providers/auth_status_providers.dart';
 
 Message _lastMessage(
   String roomId,
@@ -116,6 +117,7 @@ class _FakeChatRepository implements ChatRepository {
   final StreamController<ChatRoomEventDto> events =
       StreamController<ChatRoomEventDto>.broadcast();
   int getUserChatsCalls = 0;
+  int getMessagesCalls = 0;
 
   _FakeChatRepository(this.initialChats);
 
@@ -127,6 +129,19 @@ class _FakeChatRepository implements ChatRepository {
   }) async {
     getUserChatsCalls++;
     return Result.success(List<Chat>.from(initialChats));
+  }
+
+  @override
+  Future<Result<List<Message>>> getMessages({
+    required String chatId,
+    required String userId,
+    int page = 1,
+    int limit = 50,
+    DateTime? cursorCreatedAt,
+    String? cursorId,
+  }) async {
+    getMessagesCalls++;
+    return Result.success(const []);
   }
 
   @override
@@ -484,49 +499,95 @@ void main() {
       },
     );
 
-    test('room events do not affect message-detail state', () async {
-      final roomA = _chat(
-        roomId: 'room_a',
-        otherUserId: 'user_a',
-        otherUsername: 'alice',
-        createdAt: DateTime.utc(2026, 6, 2, 10, 0),
-        updatedAt: DateTime.utc(2026, 6, 2, 10, 0),
-        lastMessageAt: DateTime.utc(2026, 6, 2, 10, 0),
-        unreadCount: 1,
-      );
-      final repo = _FakeChatRepository([roomA]);
-      final container = ProviderContainer(
-        overrides: [chatRepositoryProvider.overrideWithValue(repo)],
-      );
-      final chatListSubscription = _keepChatListAlive(container);
-      addTearDown(chatListSubscription.close);
-      addTearDown(container.dispose);
+    test(
+      'room event for the open room re-reads REST, other rooms leave the '
+      'thread untouched',
+      () async {
+        // CANONICAL (P1-A): an open thread listens to `chat.room.updated` for
+        // ITS OWN room and re-reads the message list over REST. It never
+        // patches state from the event body, and events for other rooms are
+        // ignored outright.
+        final roomA = _chat(
+          roomId: 'room_a',
+          otherUserId: 'user_a',
+          otherUsername: 'alice',
+          createdAt: DateTime.utc(2026, 6, 2, 10, 0),
+          updatedAt: DateTime.utc(2026, 6, 2, 10, 0),
+          lastMessageAt: DateTime.utc(2026, 6, 2, 10, 0),
+          unreadCount: 1,
+        );
+        final repo = _FakeChatRepository([roomA]);
+        final container = ProviderContainer(
+          overrides: [
+            chatRepositoryProvider.overrideWithValue(repo),
+            currentUserIdProvider.overrideWith((ref) => 'user_me'),
+          ],
+        );
+        final chatListSubscription = _keepChatListAlive(container);
+        final detailSubscription = container.listen(
+          chatDetailProvider('room_a'),
+          (_, __) {},
+        );
+        addTearDown(chatListSubscription.close);
+        addTearDown(detailSubscription.close);
+        addTearDown(container.dispose);
 
-      final listNotifier = container.read(chatListProvider.notifier);
-      await listNotifier.loadChats('user_me');
+        final listNotifier = container.read(chatListProvider.notifier);
+        await listNotifier.loadChats('user_me');
 
-      final detailStateBefore = container.read(chatDetailProvider('room_a'));
-      expect(detailStateBefore.messages, isEmpty);
+        expect(
+          container.read(chatDetailProvider('room_a')).messages,
+          isEmpty,
+        );
 
-      repo.events.add(
-        ChatRoomEventDto.fromJson(
-          _roomEventPayload(
-            roomId: 'room_a',
-            otherUserId: 'user_a',
-            otherUsername: 'alice',
-            createdAt: DateTime.utc(2026, 6, 2, 10, 0),
-            updatedAt: DateTime.utc(2026, 6, 2, 10, 1),
-            lastMessageAt: DateTime.utc(2026, 6, 2, 10, 1),
-            unreadCount: 0,
+        // Another room's event must not trigger a re-read for this thread.
+        repo.events.add(
+          ChatRoomEventDto.fromJson(
+            _roomEventPayload(
+              roomId: 'room_b',
+              otherUserId: 'user_b',
+              otherUsername: 'bob',
+              createdAt: DateTime.utc(2026, 6, 2, 10, 0),
+              updatedAt: DateTime.utc(2026, 6, 2, 10, 1),
+              lastMessageAt: DateTime.utc(2026, 6, 2, 10, 1),
+              unreadCount: 3,
+            ),
+            eventType: WebSocketEventType.roomUpdated,
           ),
-          eventType: WebSocketEventType.roomUpdated,
-        ),
-      );
+        );
 
-      await Future<void>.delayed(Duration.zero);
+        await pumpEventQueue();
 
-      final detailStateAfter = container.read(chatDetailProvider('room_a'));
-      expect(detailStateAfter.messages, isEmpty);
-    });
+        expect(repo.getMessagesCalls, 0);
+        expect(
+          container.read(chatDetailProvider('room_a')).messages,
+          isEmpty,
+        );
+
+        // The open room's event drives exactly one canonical REST re-read.
+        repo.events.add(
+          ChatRoomEventDto.fromJson(
+            _roomEventPayload(
+              roomId: 'room_a',
+              otherUserId: 'user_a',
+              otherUsername: 'alice',
+              createdAt: DateTime.utc(2026, 6, 2, 10, 0),
+              updatedAt: DateTime.utc(2026, 6, 2, 10, 2),
+              lastMessageAt: DateTime.utc(2026, 6, 2, 10, 2),
+              unreadCount: 0,
+            ),
+            eventType: WebSocketEventType.roomUpdated,
+          ),
+        );
+
+        await pumpEventQueue();
+
+        expect(repo.getMessagesCalls, 1);
+        expect(
+          container.read(chatDetailProvider('room_a')).messages,
+          isEmpty,
+        );
+      },
+    );
   });
 }

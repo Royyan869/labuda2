@@ -1,6 +1,5 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:labuda/core/src/theme/app_colors.dart';
 import 'package:labuda/domains/social/content/domain/entities/content.dart';
 import 'stable_network_image.dart';
 import 'media_viewer_video_player.dart';
@@ -61,18 +60,21 @@ class _MediaViewerWidgetState extends State<MediaViewerWidget> {
 
   @override
   Widget build(BuildContext context) {
+    // Immersive media room: fixed dark via the scheme scrim role in both
+    // modes (photo-bound, not a theme surface) — identical pixels.
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: AppColors.dark,
+      backgroundColor: scheme.scrim,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        foregroundColor: AppColors.light,
+        foregroundColor: scheme.onPrimary,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         scrolledUnderElevation: 0,
         title: Text(
           widget.title ?? '${_currentIndex + 1} / ${widget.media.length}',
-          style: const TextStyle(
-            color: AppColors.light,
+          style: TextStyle(
+            color: scheme.onPrimary,
             fontSize: 16,
             fontWeight: FontWeight.w500,
           ),
@@ -150,7 +152,9 @@ class _MediaViewerWidgetState extends State<MediaViewerWidget> {
           ),
         ),
         // Dark overlay
-        Container(color: Colors.black.withValues(alpha: 0.1)),
+        Container(
+          color: Theme.of(context).colorScheme.scrim.withValues(alpha: 0.1),
+        ),
         // Main image centered dengan InteractiveViewer untuk zoom
         InteractiveViewer(
           minScale: 0.5,

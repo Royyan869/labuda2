@@ -106,7 +106,7 @@ export function OrderDetailModal({ isOpen, onClose, orderData }: OrderDetailModa
         <div className="space-y-6">
           {/* Error Message */}
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg flex items-center gap-2">
+            <div className="bg-destructive-bg border border-destructive text-destructive p-3 rounded-lg flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 flex-shrink-0" />
               <span className="text-sm">{error}</span>
             </div>
@@ -129,11 +129,11 @@ export function OrderDetailModal({ isOpen, onClose, orderData }: OrderDetailModa
             </div>
             <div className="flex items-center gap-3">
               {order?.order_number && (
-                <span className="text-sm font-semibold text-gray-900 font-mono">
+                <span className="text-sm font-semibold text-foreground font-mono">
                   {order.order_number}
                 </span>
               )}
-              <span className="text-xs text-gray-400 font-mono" title={displayData.id}>
+              <span className="text-xs text-muted-foreground font-mono" title={displayData.id}>
                 {displayData.id.slice(0, 8)}…
               </span>
               <button
@@ -141,7 +141,7 @@ export function OrderDetailModal({ isOpen, onClose, orderData }: OrderDetailModa
                   setError(null)
                   refetch()
                 }}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="text-muted-foreground hover:text-muted-foreground transition-colors"
                 title="Refresh order data"
               >
                 <RefreshCw className="h-4 w-4" />
@@ -161,7 +161,7 @@ export function OrderDetailModal({ isOpen, onClose, orderData }: OrderDetailModa
               <div className="grid grid-cols-2 gap-6">
                 {/* Buyer */}
                 <div className="space-y-2">
-                  <p className="text-sm text-gray-500">Buyer</p>
+                  <p className="text-sm text-muted-foreground">Buyer</p>
                   <div className="flex items-center gap-3">
                     {displayData.buyer_avatar ? (
                       <img
@@ -170,20 +170,20 @@ export function OrderDetailModal({ isOpen, onClose, orderData }: OrderDetailModa
                         className="w-10 h-10 rounded-full object-cover"
                       />
                     ) : (
-                      <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
-                        <User className="h-5 w-5 text-gray-500" />
+                      <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                        <User className="h-5 w-5 text-muted-foreground" />
                       </div>
                     )}
                     <div>
                       <p className="font-medium">{buyerIdentity}</p>
-                      <p className="font-mono text-xs text-gray-500">{displayData.buyer_id}</p>
+                      <p className="font-mono text-xs text-muted-foreground">{displayData.buyer_id}</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Seller */}
                 <div className="space-y-2">
-                  <p className="text-sm text-gray-500">Seller</p>
+                  <p className="text-sm text-muted-foreground">Seller</p>
                   <div className="flex items-center gap-3">
                     {displayData.seller_avatar ? (
                       <img
@@ -192,16 +192,16 @@ export function OrderDetailModal({ isOpen, onClose, orderData }: OrderDetailModa
                         className="w-10 h-10 rounded-full object-cover"
                       />
                     ) : (
-                      <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
-                        <User className="h-5 w-5 text-gray-500" />
+                      <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                        <User className="h-5 w-5 text-muted-foreground" />
                       </div>
                     )}
                     <div>
                       <p className="font-medium">{sellerIdentity}</p>
                       {displayData.seller_farm_name && (
-                        <p className="text-sm text-gray-500">{displayData.seller_farm_name}</p>
+                        <p className="text-sm text-muted-foreground">{displayData.seller_farm_name}</p>
                       )}
-                      <p className="font-mono text-xs text-gray-500">{displayData.seller_id}</p>
+                      <p className="font-mono text-xs text-muted-foreground">{displayData.seller_id}</p>
                     </div>
                   </div>
                 </div>
@@ -209,34 +209,34 @@ export function OrderDetailModal({ isOpen, onClose, orderData }: OrderDetailModa
 
               {/* Order Metadata */}
               {order && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 pt-4 border-t border-gray-100">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 pt-4 border-t border-border">
                   <div>
-                    <p className="text-sm text-gray-500">Source Type</p>
+                    <p className="text-sm text-muted-foreground">Source Type</p>
                     <p className="text-sm font-medium">
                       {sourceTypeLabels[order.source_type] || order.source_type}
                     </p>
                     {order.source_id && (
-                      <p className="font-mono text-xs text-gray-400 mt-0.5 truncate" title={order.source_id}>
+                      <p className="font-mono text-xs text-muted-foreground mt-0.5 truncate" title={order.source_id}>
                         {order.source_id.slice(0, 8)}…
                       </p>
                     )}
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">Source Status</p>
+                    <p className="text-sm text-muted-foreground mb-1">Source Status</p>
                     {order.source_status ? (
                       <Badge variant={sourceStatusVariants[order.source_status] || 'default'}>
                         {sourceStatusLabels[order.source_status] || order.source_status}
                       </Badge>
                     ) : (
-                      <span className="text-xs text-gray-400">—</span>
+                      <span className="text-xs text-muted-foreground">—</span>
                     )}
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Created At</p>
+                    <p className="text-sm text-muted-foreground">Created At</p>
                     <p className="text-sm">{formatDate(order.created_at)}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Updated At</p>
+                    <p className="text-sm text-muted-foreground">Updated At</p>
                     <p className="text-sm">{formatDate(order.updated_at)}</p>
                   </div>
                 </div>
@@ -256,7 +256,7 @@ export function OrderDetailModal({ isOpen, onClose, orderData }: OrderDetailModa
               <CardContent>
                 <div className="space-y-4">
                   {order.items.map((item, index) => (
-                    <div key={index} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
+                    <div key={index} className="flex items-center gap-4 p-3 bg-muted rounded-lg">
                       {item.snapshot_image_url ? (
                         <img
                           src={item.snapshot_image_url}
@@ -264,13 +264,13 @@ export function OrderDetailModal({ isOpen, onClose, orderData }: OrderDetailModa
                           className="w-16 h-16 rounded object-cover"
                         />
                       ) : (
-                        <div className="w-16 h-16 rounded bg-gray-200 flex items-center justify-center">
-                          <Package className="h-8 w-8 text-gray-400" />
+                        <div className="w-16 h-16 rounded bg-muted flex items-center justify-center">
+                          <Package className="h-8 w-8 text-muted-foreground" />
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
                         <p className="font-medium truncate">{item.product_title}</p>
-                        <p className="text-sm text-gray-500">Qty: {item.quantity} × {formatRupiah(item.unit_price)}</p>
+                        <p className="text-sm text-muted-foreground">Qty: {item.quantity} × {formatRupiah(item.unit_price)}</p>
                       </div>
                       <div className="text-right">
                         <p className="font-medium">{formatRupiah(item.subtotal)}</p>
@@ -294,22 +294,22 @@ export function OrderDetailModal({ isOpen, onClose, orderData }: OrderDetailModa
               <CardContent>
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Subtotal</span>
+                    <span className="text-muted-foreground">Subtotal</span>
                     <span>{formatRupiah(order.subtotal)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Shipping</span>
+                    <span className="text-muted-foreground">Shipping</span>
                     <span>{formatRupiah(order.shipping_total)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Commission</span>
+                    <span className="text-muted-foreground">Commission</span>
                     <span>{formatRupiah(order.commission_amount)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Service Fee</span>
+                    <span className="text-muted-foreground">Service Fee</span>
                     <span>{formatRupiah(order.service_fee_amount ?? 0)}</span>
                   </div>
-                  <div className="border-t border-gray-200 my-2" />
+                  <div className="border-t border-border my-2" />
                   <div className="flex justify-between font-medium">
                     <span>Buyer Gross Total</span>
                     <span className="text-primary">
@@ -317,11 +317,11 @@ export function OrderDetailModal({ isOpen, onClose, orderData }: OrderDetailModa
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Escrow / Seller Eligible</span>
+                    <span className="text-muted-foreground">Escrow / Seller Eligible</span>
                     <span>{formatRupiah(order.total_before_coins_amount)}</span>
                   </div>
                   {order.refunded_amount > 0 && (
-                    <div className="flex justify-between text-sm text-orange-600">
+                    <div className="flex justify-between text-sm text-warning">
                       <span>Refunded</span>
                       <span>-{formatRupiah(order.refunded_amount)}</span>
                     </div>
@@ -343,16 +343,16 @@ export function OrderDetailModal({ isOpen, onClose, orderData }: OrderDetailModa
               <CardContent>
                 <div className="space-y-1">
                   <p className="font-medium">{order.shipping_address.recipient_name}</p>
-                  <p className="text-sm text-gray-600">{order.shipping_address.phone}</p>
-                  <p className="text-sm text-gray-600">{order.shipping_address.address}</p>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-muted-foreground">{order.shipping_address.phone}</p>
+                  <p className="text-sm text-muted-foreground">{order.shipping_address.address}</p>
+                  <p className="text-sm text-muted-foreground">
                     {order.shipping_address.city}, {order.shipping_address.province} {order.shipping_address.postal_code}
                   </p>
                 </div>
                 {order.tracking_number && (
-                  <div className="mt-3 p-2 bg-blue-50 rounded">
-                    <p className="text-sm text-gray-600">Shipping Option: {order.shipping_option || 'Standard'}</p>
-                    <p className="text-sm text-gray-600">Tracking: {order.tracking_number}</p>
+                  <div className="mt-3 p-2 bg-primary/10 rounded">
+                    <p className="text-sm text-muted-foreground">Shipping Option: {order.shipping_option || 'Standard'}</p>
+                    <p className="text-sm text-muted-foreground">Tracking: {order.tracking_number}</p>
                   </div>
                 )}
               </CardContent>
@@ -374,9 +374,9 @@ export function OrderDetailModal({ isOpen, onClose, orderData }: OrderDetailModa
               <CardContent>
                 <div className="space-y-1">
                   <p className="font-medium">{order.shipping_origin.recipient_name}</p>
-                  <p className="text-sm text-gray-600">{order.shipping_origin.phone}</p>
-                  <p className="text-sm text-gray-600">{order.shipping_origin.address}</p>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-muted-foreground">{order.shipping_origin.phone}</p>
+                  <p className="text-sm text-muted-foreground">{order.shipping_origin.address}</p>
+                  <p className="text-sm text-muted-foreground">
                     {order.shipping_origin.city}, {order.shipping_origin.province} {order.shipping_origin.postal_code}
                   </p>
                 </div>
@@ -388,35 +388,35 @@ export function OrderDetailModal({ isOpen, onClose, orderData }: OrderDetailModa
           {order?.dispute && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg text-orange-600">Dispute Information</CardTitle>
+                <CardTitle className="text-lg text-warning">Dispute Information</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Dispute ID</span>
+                    <span className="text-sm text-muted-foreground">Dispute ID</span>
                     <span className="font-mono text-sm">{order.dispute.id}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Reason</span>
+                    <span className="text-sm text-muted-foreground">Reason</span>
                     <span className="text-sm">{order.dispute.reason}</span>
                   </div>
                   {order.dispute.description && (
                     <div>
-                      <p className="text-sm text-gray-600 mb-1">Description</p>
-                      <p className="text-sm bg-gray-50 p-2 rounded">{order.dispute.description}</p>
+                      <p className="text-sm text-muted-foreground mb-1">Description</p>
+                      <p className="text-sm bg-muted p-2 rounded">{order.dispute.description}</p>
                     </div>
                   )}
                   <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Status</span>
+                    <span className="text-sm text-muted-foreground">Status</span>
                     <span className="text-sm">{order.dispute.status}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Opened</span>
+                    <span className="text-sm text-muted-foreground">Opened</span>
                     <span className="text-sm">{formatDate(order.dispute.opened_at)}</span>
                   </div>
                   {order.dispute.resolved_at && (
                     <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">Resolved</span>
+                      <span className="text-sm text-muted-foreground">Resolved</span>
                       <span className="text-sm">{formatDate(order.dispute.resolved_at)}</span>
                     </div>
                   )}
@@ -427,7 +427,7 @@ export function OrderDetailModal({ isOpen, onClose, orderData }: OrderDetailModa
 
           {/* Refund Info */}
           {order?.refund && (
-            <Card className={order.refund.gateway_status === 'failed' ? 'border-red-200' : undefined}>
+            <Card className={order.refund.gateway_status === 'failed' ? 'border-destructive' : undefined}>
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
                   <CreditCard className="h-5 w-5" />
@@ -440,46 +440,46 @@ export function OrderDetailModal({ isOpen, onClose, orderData }: OrderDetailModa
               <CardContent>
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Refund ID</span>
+                    <span className="text-muted-foreground">Refund ID</span>
                     <span className="font-mono text-xs">{order.refund.id}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Status</span>
+                    <span className="text-muted-foreground">Status</span>
                     <span className="capitalize">{order.refund.status.replace(/_/g, ' ')}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Reason</span>
+                    <span className="text-muted-foreground">Reason</span>
                     <span className="capitalize">{order.refund.reason.replace(/_/g, ' ')}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Requested Amount</span>
+                    <span className="text-muted-foreground">Requested Amount</span>
                     <span>{formatRupiah(order.refund.requested_amount)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Gateway Attempts</span>
+                    <span className="text-muted-foreground">Gateway Attempts</span>
                     <span>{order.refund.gateway_attempts}</span>
                   </div>
                   {order.refund.gateway_refund_id && (
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Gateway Refund ID</span>
+                      <span className="text-muted-foreground">Gateway Refund ID</span>
                       <span className="font-mono text-xs">{order.refund.gateway_refund_id}</span>
                     </div>
                   )}
                   {order.refund.last_gateway_error && (
-                    <div className="bg-red-50 border border-red-200 rounded p-2 mt-1">
-                      <p className="text-xs font-medium text-red-700">Last Gateway Error</p>
-                      <p className="text-xs text-red-600 mt-0.5">{order.refund.last_gateway_error}</p>
+                    <div className="bg-destructive-bg border border-destructive rounded p-2 mt-1">
+                      <p className="text-xs font-medium text-destructive">Last Gateway Error</p>
+                      <p className="text-xs text-destructive mt-0.5">{order.refund.last_gateway_error}</p>
                     </div>
                   )}
                   {order.refund.gateway_status === 'succeeded' && (
-                    <div className="bg-green-50 border border-green-200 rounded p-2 mt-1">
-                      <p className="text-xs text-green-700">Gateway refund succeeded — funds reversed to buyer&apos;s payment method.</p>
+                    <div className="bg-success-bg border border-success rounded p-2 mt-1">
+                      <p className="text-xs text-success">Gateway refund succeeded — funds reversed to buyer&apos;s payment method.</p>
                     </div>
                   )}
 
                   {/* Gateway retry — gated on capability + not already succeeded */}
                   {canInitiateGatewayRefund && order.refund.gateway_status !== 'succeeded' && (
-                    <div className="mt-3 pt-3 border-t border-gray-100">
+                    <div className="mt-3 pt-3 border-t border-border">
                       {!gatewayRetryOpen ? (
                         <Button
                           size="sm"
@@ -497,26 +497,26 @@ export function OrderDetailModal({ isOpen, onClose, orderData }: OrderDetailModa
                         </Button>
                       ) : (
                         <div className="space-y-3">
-                          <div className="bg-amber-50 border border-amber-200 rounded p-3">
-                            <p className="text-sm font-semibold text-amber-800 mb-1">Retry Gateway Refund</p>
-                            <p className="text-xs text-amber-700">This may re-attempt refund processing via the payment gateway. An idempotency key is generated automatically to prevent double-dispatch.</p>
+                          <div className="bg-warning-bg border border-warning rounded p-3">
+                            <p className="text-sm font-semibold text-warning mb-1">Retry Gateway Refund</p>
+                            <p className="text-xs text-warning">This may re-attempt refund processing via the payment gateway. An idempotency key is generated automatically to prevent double-dispatch.</p>
                           </div>
                           <div className="space-y-2">
                             <div>
-                              <label className="block text-xs font-medium text-gray-700 mb-1">Amount (IDR, smallest unit)</label>
+                              <label className="block text-xs font-medium text-foreground mb-1">Amount (IDR, smallest unit)</label>
                               <input
                                 type="number"
-                                className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                                className="w-full border border-border rounded px-2 py-1 text-sm"
                                 value={gatewayRetryAmount}
                                 onChange={e => setGatewayRetryAmount(e.target.value)}
                                 min={1}
                               />
                             </div>
                             <div>
-                              <label className="block text-xs font-medium text-gray-700 mb-1">Reason</label>
+                              <label className="block text-xs font-medium text-foreground mb-1">Reason</label>
                               <input
                                 type="text"
-                                className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                                className="w-full border border-border rounded px-2 py-1 text-sm"
                                 value={gatewayRetryReason}
                                 onChange={e => setGatewayRetryReason(e.target.value)}
                                 placeholder="e.g. admin_retry"
@@ -524,12 +524,12 @@ export function OrderDetailModal({ isOpen, onClose, orderData }: OrderDetailModa
                             </div>
                           </div>
                           {gatewayRetryError && (
-                            <div className="bg-red-50 border border-red-200 text-red-700 p-2 rounded text-xs">
+                            <div className="bg-destructive-bg border border-destructive text-destructive p-2 rounded text-xs">
                               {gatewayRetryError}
                             </div>
                           )}
                           {gatewayRetryResult && (
-                            <div className="bg-green-50 border border-green-200 text-green-700 p-2 rounded text-xs">
+                            <div className="bg-success-bg border border-success text-success p-2 rounded text-xs">
                               Dispatched. Gateway status: <strong>{gatewayRetryResult.gateway_status}</strong>. Attempts: {gatewayRetryResult.gateway_attempts}.
                             </div>
                           )}
@@ -580,14 +580,14 @@ export function OrderDetailModal({ isOpen, onClose, orderData }: OrderDetailModa
                       <div className="flex flex-col items-center">
                         <div className="w-2 h-2 rounded-full bg-primary" />
                         {index < order.timeline!.length - 1 && (
-                          <div className="w-0.5 flex-1 bg-gray-200 min-h-[40px]" />
+                          <div className="w-0.5 flex-1 bg-muted min-h-[40px]" />
                         )}
                       </div>
                       <div className="flex-1 pb-4">
                         <p className="text-sm font-medium">{event.event}</p>
-                        <p className="text-xs text-gray-500">{formatDate(event.timestamp)}</p>
+                        <p className="text-xs text-muted-foreground">{formatDate(event.timestamp)}</p>
                         {event.actor_name && (
-                          <p className="text-xs text-gray-500">by {event.actor_name}</p>
+                          <p className="text-xs text-muted-foreground">by {event.actor_name}</p>
                         )}
                       </div>
                     </div>

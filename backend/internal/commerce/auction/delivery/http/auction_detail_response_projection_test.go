@@ -47,7 +47,7 @@ func TestAuctionToDetailResponseWithSeller_SellerIdentityAbsent(t *testing.T) {
 	}
 
 	viewerID := auction.SellerID
-	resp := auctionToDetailResponseWithSeller(auction, sellerCard, sellerInfo, nil, nil, &viewerID)
+	resp := auctionToDetailResponseWithSeller(auction, sellerCard, sellerInfo, nil, &viewerID)
 	raw, err := json.Marshal(resp)
 	if err != nil {
 		t.Fatalf("marshal failed: %v", err)
@@ -131,7 +131,7 @@ func TestAuctionToDetailResponseWithSeller_EmitsCanonicalProductFields(t *testin
 		PreparationNote: ptrString("Pack carefully"),
 	}
 
-	resp := auctionToDetailResponseWithSeller(auction, sellerCard, sellerInfo, nil, product, nil)
+	resp := auctionToDetailResponseWithSeller(auction, sellerCard, sellerInfo, product, nil)
 	raw, err := json.Marshal(resp)
 	if err != nil {
 		t.Fatalf("marshal failed: %v", err)
@@ -221,7 +221,7 @@ func TestAuctionToDetailResponseWithSeller_MapsSharedViewerCapabilities(t *testi
 		Tier:               "pro",
 	}
 	viewerID := uuid.New()
-	resp := auctionToDetailResponseWithSeller(auction, sellerCard, sellerInfo, nil, nil, &viewerID)
+	resp := auctionToDetailResponseWithSeller(auction, sellerCard, sellerInfo, nil, &viewerID)
 	raw, err := json.Marshal(resp)
 	if err != nil {
 		t.Fatalf("marshal failed: %v", err)

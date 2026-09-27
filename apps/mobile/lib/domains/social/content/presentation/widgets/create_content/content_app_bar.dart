@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 
 /// Custom AppBar for create post screen
 class ContentAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -21,6 +20,7 @@ class ContentAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return AppBar(
       title: const Text('Create Content'),
       surfaceTintColor: Colors.transparent,
@@ -30,12 +30,12 @@ class ContentAppBar extends StatelessWidget implements PreferredSizeWidget {
         TextButton(
           onPressed: canSubmit && !isSubmitting ? onSubmit : null,
           child: isSubmitting
-              ? const SizedBox(
+              ? SizedBox(
                   width: 16,
                   height: 16,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation(AppColors.primaryRed),
+                    valueColor: AlwaysStoppedAnimation(scheme.primary),
                   ),
                 )
               : Text(
@@ -43,8 +43,8 @@ class ContentAppBar extends StatelessWidget implements PreferredSizeWidget {
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
                     color: canSubmit
-                        ? AppColors.primaryRed
-                        : AppColors.neutralGray400,
+                        ? scheme.primary
+                        : scheme.onSurfaceVariant,
                   ),
                 ),
         ),

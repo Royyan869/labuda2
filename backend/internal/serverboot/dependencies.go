@@ -492,6 +492,21 @@ func (a *canonicalPromotionOperabilityAdapterForContract) ValidateOwnership(ctx 
 	return a.checker.ValidateOwnership(ctx, sellerID, promotionEntity.TargetType(targetType), targetID)
 }
 
+// registerMetrics registers c with the default Prometheus registry,
+// tolerating an already-registered collector of the same type so a second
+// InitServices call in one process (wiring tests) cannot panic on duplicate
+// registration. Production calls InitServices exactly once per process;
+// non-duplicate registration errors still panic, preserving MustRegister
+// fail-fast semantics.
+func registerMetrics(c prometheus.Collector) {
+	if err := prometheus.Register(c); err != nil {
+		var already prometheus.AlreadyRegisteredError
+		if !errors.As(err, &already) {
+			panic(err)
+		}
+	}
+}
+
 func InitServices(
 	appCtx context.Context,
 	db *database.DB,
@@ -940,7 +955,7 @@ func InitServices(
 
 	// Create realtime metrics (shared between hub and chat service)
 	realtimeMetrics := monitoring.NewRealtimeMetrics()
-	prometheus.MustRegister(realtimeMetrics)
+	registerMetrics(realtimeMetrics)
 	if redisClient != nil {
 		presenceService = presence.NewService(
 			db.Pgx(),
@@ -1313,7 +1328,7 @@ func InitServices(
 	// Read-only metrics collector that exposes system health as Prometheus
 	// metrics AND accepts sink-only hooks from outbox/projection workers.
 	metricsCollector := monitoring.NewMetricsCollector(monitoringService)
-	prometheus.MustRegister(metricsCollector)
+	registerMetrics(metricsCollector)
 
 	// 4. Outbox Worker
 	//
@@ -2458,7 +2473,6 @@ func InitServices(
 	commentHandler := contentHTTP.NewCommentHandler(
 		commentService,
 		contentService, // canonical ContentService instance from CONTENT MODULE above
-		forSaleService,
 		roleChecker,
 		db.Pgx(),
 		log.Logger,
@@ -3171,17 +3185,18 @@ func InitServices(
 		ShippingHandler:        shippingHandler,       // Buyer-facing: check delivery availability
 		SellerShippingHandler:  sellerShippingHandler, // Seller-facing: shipping option management
 		PaymentHandler: &CorePaymentHandler{
-			db:                  db,
-			paymentRepo:         paymentRepo,
-			paymentAttemptRepo:  repository.NewPaymentAttemptRepository(log.Logger),
-			billingRepo:         billingrepo.NewBillingRepository(),
-			orderRepo:           orderRepository, // PAYMENT BOUNDARY HARDENING: Order as source of truth
-			paymentMethodRepo:   paymentMethodRepository,
-			pricingTokenService: pricingTokenService,
-			midtransClient:      midtransClient,
-			log:                 log,
-			isProduction:        isProduction,
-			frontendURL:         cfg.App.FrontendURL,
+			db:                     db,
+			paymentRepo:            paymentRepo,
+			paymentAttemptRepo:     repository.NewPaymentAttemptRepository(log.Logger),
+			billingRepo:            billingrepo.NewBillingRepository(),
+			orderRepo:              orderRepository, // PAYMENT BOUNDARY HARDENING: Order as source of truth
+			paymentMethodRepo:      paymentMethodRepository,
+			pricingTokenService:    pricingTokenService,
+			midtransClient:         midtransClient,
+			paymentDiscoverySyncer: paymentDiscoveryWorker,
+			log:                    log,
+			isProduction:           isProduction,
+			frontendURL:            cfg.App.FrontendURL,
 		},
 		CoinHandler:              &CoreCoinHandler{coinsService: coinsService},
 		UserHandler:              &CoreUserHandler{db: db, roleChecker: roleChecker, log: log},
@@ -3364,9 +3379,20 @@ type CorePaymentHandler struct {
 		ReleaseReservation(ctx context.Context, tx db.Tx, paymentID uuid.UUID) (*coinsEntity.CoinReservation, error)
 	}
 	midtransClient MidtransGateway
-	log            *logger.Logger
-	isProduction   bool
-	frontendURL    string // for Snap finish callback (cfg.App.FrontendURL)
+	// paymentDiscoverySyncer reuses the REC-5 discovery pipeline for the
+	// on-demand status check (POST /payments/:id/sync). One canonical
+	// inquiry→settle→finalize authority; the scan loop and this endpoint
+	// cannot diverge.
+	paymentDiscoverySyncer PaymentDiscoverySyncer
+	log                    *logger.Logger
+	isProduction           bool
+	frontendURL            string // for Snap finish callback (cfg.App.FrontendURL)
+}
+
+// PaymentDiscoverySyncer abstracts the on-demand single-payment discovery
+// capability of PaymentDiscoveryWorker. Implemented by *worker.PaymentDiscoveryWorker.
+type PaymentDiscoverySyncer interface {
+	SyncPaymentByID(ctx context.Context, paymentID uuid.UUID) (midtrans.ProviderState, bool, error)
 }
 
 // CreatePaymentRequest holds the request payload for creating a payment
@@ -4267,6 +4293,114 @@ func (h *CorePaymentHandler) compensateDefinitiveMidtransRefusal(
 		default:
 			return fmt.Errorf("reservation in unexpected status for payment %s: %s", payment.ID, reservation.Status)
 		}
+	})
+}
+
+// SyncPayment handles POST /payments/:id/sync
+//
+// On-demand payment status sync: runs the SAME canonical gateway-inquiry →
+// settle → domain-finalization pipeline as the REC-5 discovery worker scan
+// loop (single shared authority — no competing settle path), for the caller's
+// own payment. It exists so a payer is never stranded waiting for a webhook
+// that cannot reach a non-public backend, and so the mobile "Cek status
+// pembayaran" flow actively asks the gateway instead of only re-reading the
+// local row.
+//
+// Authorization: only the payment's owner may sync it. The response is a
+// status projection, never the full payment row (GET /payments/:id remains
+// the read authority).
+func (h *CorePaymentHandler) SyncPayment(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	userIDVal, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+	userID, ok := userIDVal.(uuid.UUID)
+	if !ok {
+		response.InternalServerError(c, "Invalid user ID in context")
+		return
+	}
+
+	paymentID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		response.BadRequest(c, "Invalid payment ID")
+		return
+	}
+
+	if h.paymentDiscoverySyncer == nil {
+		h.log.Error("payment sync unavailable — discovery syncer not wired",
+			zap.String("payment_id", paymentID.String()),
+		)
+		response.InternalServerError(c, "Payment sync is not available")
+		return
+	}
+
+	// Ownership must hold BEFORE any gateway interaction: sync is an
+	// owner-scoped operation, not a public probe.
+	var payment *repository.Payment
+	err = h.db.WithTx(ctx, func(tx db.Tx) error {
+		var fetchErr error
+		payment, fetchErr = h.paymentRepo.GetByID(ctx, tx, paymentID)
+		return fetchErr
+	})
+	if err != nil || payment == nil {
+		response.NotFound(c, "Payment not found")
+		return
+	}
+	if payment.UserID != userID {
+		h.log.Warn("Unauthorized payment sync attempt",
+			zap.String("payment_id", paymentID.String()),
+			zap.String("user_id", userID.String()),
+			zap.String("payment_owner_id", payment.UserID.String()),
+		)
+		response.Forbidden(c, "You can only sync your own payments")
+		return
+	}
+
+	providerState, mutated, err := h.paymentDiscoverySyncer.SyncPaymentByID(ctx, paymentID)
+	if err != nil {
+		if errors.Is(err, worker.ErrPaymentNotFound) {
+			response.NotFound(c, "Payment not found")
+			return
+		}
+		h.log.Error("Payment sync failed",
+			zap.String("payment_id", paymentID.String()),
+			zap.String("user_id", userID.String()),
+			zap.Error(err),
+		)
+		response.InternalServerError(c, "Failed to sync payment status")
+		return
+	}
+
+	// Re-read AFTER the sync so the projection reflects the row the canonical
+	// pipeline may have just mutated. GET /payments/:id remains the full-row
+	// read authority; this is a post-sync status projection.
+	err = h.db.WithTx(ctx, func(tx db.Tx) error {
+		var fetchErr error
+		payment, fetchErr = h.paymentRepo.GetByID(ctx, tx, paymentID)
+		return fetchErr
+	})
+	if err != nil || payment == nil {
+		response.InternalServerError(c, "Failed to reload payment status")
+		return
+	}
+
+	h.log.Info("Payment synced on demand",
+		zap.String("payment_id", paymentID.String()),
+		zap.String("user_id", userID.String()),
+		zap.String("provider_state", string(providerState)),
+		zap.Bool("mutated", mutated),
+		zap.String("status", payment.Status),
+	)
+
+	response.Success(c, gin.H{
+		"payment_id":     paymentID.String(),
+		"status":         payment.Status,
+		"provider_state": string(providerState),
+		"settled":        payment.IsSettled(),
+		"mutated":        mutated,
 	})
 }
 

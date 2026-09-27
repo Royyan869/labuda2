@@ -368,7 +368,6 @@ func (s *NegotiationService) StartNegotiation(
 // NEGOTIATION → CHAT UNIFICATION:
 // - Sends proposal via ChatService.SendMessage with MessageTypeNegotiationProposal
 // - Updates current_price as the authoritative source
-// - No longer creates negotiation_messages table entries
 //
 // PRICE SECURITY HARDENING:
 // - Uses SetCurrentPrice() with validation
@@ -891,19 +890,6 @@ func (s *NegotiationService) GetSession(
 	})
 
 	return session, err
-}
-
-// ListNegotiations retrieves negotiations for a user with cursor pagination.
-// TODO: Implement proper query logic with cursor pagination.
-func (s *NegotiationService) ListNegotiations(
-	ctx context.Context,
-	userID uuid.UUID,
-	cursor string,
-	limit int,
-) ([]*negotiationEntity.NegotiationSession, string, error) {
-	// Stub: returns empty list for now
-	// This method is not part of the fixed-price-sale contract hardening scope
-	return []*negotiationEntity.NegotiationSession{}, "", nil
 }
 
 // NOTE: ListMessages has been removed as part of Negotiation → Chat unification.

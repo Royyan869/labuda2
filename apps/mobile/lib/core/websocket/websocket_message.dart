@@ -56,10 +56,8 @@ class WebSocketMessage {
 
 // Message types constants
 class MessageType {
-  static const String chat = 'chat';
   static const String auctionBid = 'auction_bid';
   static const String notification = 'notification';
-  static const String typing = 'typing';
   static const String subscribe = 'subscribe';
   static const String unsubscribe = 'unsubscribe';
   static const String ack = 'ack';

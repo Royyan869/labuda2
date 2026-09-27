@@ -11,17 +11,17 @@ function SectionRow({ section }: { section: VerifierSection }) {
   const findings = section.findings || []
 
   return (
-    <div className="border border-gray-200 rounded-lg">
+    <div className="border border-border rounded-lg">
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50"
+        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-surface-muted"
       >
         <div className="flex items-center gap-3">
           {expanded ? (
-            <ChevronDown className="h-4 w-4 text-gray-500" />
+            <ChevronDown className="h-4 w-4 text-muted-foreground" />
           ) : (
-            <ChevronRight className="h-4 w-4 text-gray-500" />
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
           )}
           <span className="font-medium text-sm">{section.name}</span>
         </div>
@@ -30,17 +30,17 @@ function SectionRow({ section }: { section: VerifierSection }) {
         </Badge>
       </button>
       {expanded && findings.length > 0 && (
-        <div className="border-t border-gray-200 px-4 py-3 space-y-2">
+        <div className="border-t border-border px-4 py-3 space-y-2">
           {findings.map((f, i) => (
             <div key={i} className="flex items-start gap-3 text-sm">
               <Badge variant={f.level === 'error' ? 'error' : 'warning'} className="shrink-0">
                 {f.level}
               </Badge>
               <div className="min-w-0">
-                <span className="font-mono text-xs text-gray-500">[{f.code}]</span>{' '}
-                <span className="text-gray-700">{f.detail}</span>
+                <span className="font-mono text-xs text-muted-foreground">[{f.code}]</span>{' '}
+                <span className="text-foreground">{f.detail}</span>
                 {f.class && (
-                  <span className="ml-2 text-xs text-gray-400">({f.class})</span>
+                  <span className="ml-2 text-xs text-muted-foreground">({f.class})</span>
                 )}
               </div>
             </div>
@@ -48,7 +48,7 @@ function SectionRow({ section }: { section: VerifierSection }) {
         </div>
       )}
       {expanded && findings.length === 0 && (
-        <div className="border-t border-gray-200 px-4 py-3 text-sm text-gray-500">
+        <div className="border-t border-border px-4 py-3 text-sm text-muted-foreground">
           No findings.
         </div>
       )}
@@ -64,22 +64,22 @@ export function FinanceVerifierPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Finance Verifier</h1>
-        <p className="text-gray-600 mt-1">Run financial invariant checks (read-only)</p>
+        <h1 className="text-3xl font-bold text-foreground">Finance Verifier</h1>
+        <p className="text-muted-foreground mt-1">Run financial invariant checks (read-only)</p>
       </div>
 
       {/* Controls */}
       <Card>
         <CardContent className="pt-6">
           <div className="flex items-center gap-4 flex-wrap">
-            <label htmlFor="mode-select" className="text-sm font-medium text-gray-700">
+            <label htmlFor="mode-select" className="text-sm font-medium text-foreground">
               Mode:
             </label>
             <select
               id="mode-select"
               value={mode}
               onChange={(e) => setMode(e.target.value as 'forensic' | 'strict')}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               disabled={loading}
             >
               <option value="forensic">Forensic (default)</option>
@@ -97,7 +97,7 @@ export function FinanceVerifierPage() {
       {error && (
         <Card>
           <CardContent className="p-6">
-            <div className="text-center text-red-600">
+            <div className="text-center text-destructive">
               <p>Error: {error}</p>
             </div>
           </CardContent>
@@ -109,7 +109,7 @@ export function FinanceVerifierPage() {
         <div className="flex items-center justify-center min-h-[200px]">
           <div className="text-center">
             <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
-            <p className="mt-4 text-gray-600">Running invariant checks...</p>
+            <p className="mt-4 text-muted-foreground">Running invariant checks...</p>
           </div>
         </div>
       )}
@@ -122,9 +122,9 @@ export function FinanceVerifierPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-3">
                 {result.passed ? (
-                  <ShieldCheck className="h-6 w-6 text-green-600" />
+                  <ShieldCheck className="h-6 w-6 text-success" />
                 ) : (
-                  <ShieldAlert className="h-6 w-6 text-red-600" />
+                  <ShieldAlert className="h-6 w-6 text-destructive" />
                 )}
                 Verification {result.passed ? 'Passed' : 'Failed'}
               </CardTitle>
@@ -132,16 +132,16 @@ export function FinanceVerifierPage() {
             <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
                 <div>
-                  <span className="text-gray-500">Mode:</span>{' '}
+                  <span className="text-muted-foreground">Mode:</span>{' '}
                   <span className="font-medium">{result.mode}</span>
                 </div>
                 <div>
-                  <span className="text-gray-500">Errors:</span>{' '}
-                  <span className="font-bold text-red-600">{result.error_count}</span>
+                  <span className="text-muted-foreground">Errors:</span>{' '}
+                  <span className="font-bold text-destructive">{result.error_count}</span>
                 </div>
                 <div>
-                  <span className="text-gray-500">Warnings:</span>{' '}
-                  <span className="font-bold text-amber-600">{result.warning_count}</span>
+                  <span className="text-muted-foreground">Warnings:</span>{' '}
+                  <span className="font-bold text-warning">{result.warning_count}</span>
                 </div>
               </div>
             </CardContent>
@@ -165,8 +165,8 @@ export function FinanceVerifierPage() {
       {!result && !loading && !error && (
         <Card>
           <CardContent className="p-12">
-            <div className="text-center text-gray-500">
-              <ShieldCheck className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+            <div className="text-center text-muted-foreground">
+              <ShieldCheck className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
               <p>Click "Run Verification" to check financial invariants.</p>
               <p className="text-xs mt-2">This is a read-only operation that inspects ledger integrity.</p>
             </div>

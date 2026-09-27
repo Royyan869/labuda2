@@ -21,6 +21,7 @@ class CommentMapper {
       type: dto.type,
       reference:
           dto.reference, // Direct assignment - ShareReference is the same shape
+      resourceProjection: dto.resourceProjection,
       parentId: dto.parentId,
       createdAt: dto.createdAt,
       updatedAt: dto.updatedAt,
@@ -49,6 +50,7 @@ class CommentMapper {
       body: entity.body,
       type: entity.type,
       reference: entity.reference,
+      resourceProjection: entity.resourceProjection,
       parentId: entity.parentId,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,

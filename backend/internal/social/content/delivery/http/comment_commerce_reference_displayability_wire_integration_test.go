@@ -68,7 +68,6 @@ func testCommentDisplayabilityHandler(appDB *db.DB) *CommentHandler {
 	return NewCommentHandler(
 		commentService,
 		contentService,
-		forSaleSvc,
 		commentListHTTPRoleChecker{},
 		appDB,
 		zap.NewNop(),

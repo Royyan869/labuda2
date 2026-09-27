@@ -289,7 +289,7 @@ class _AuctionClaimShippingModalState
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.neutralWhite,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       constraints: BoxConstraints(
@@ -342,11 +342,12 @@ class _AuctionClaimShippingModalState
   }
 
   Widget _buildHeader(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       decoration: BoxDecoration(
         border: Border(
-          bottom: BorderSide(color: AppColors.neutralGray200, width: 1),
+          bottom: BorderSide(color: scheme.outlineVariant, width: 1),
         ),
       ),
       child: Column(
@@ -356,7 +357,7 @@ class _AuctionClaimShippingModalState
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: AppColors.neutralGray300,
+              color: scheme.outlineVariant,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -386,9 +387,9 @@ class _AuctionClaimShippingModalState
           // Subtitle
           Text(
             'Lengkapi alamat dan pilih opsi pengiriman untuk melanjutkan klaim.',
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: AppColors.neutralGray600),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
         ],
       ),
@@ -396,22 +397,23 @@ class _AuctionClaimShippingModalState
   }
 
   Widget _buildErrorBanner() {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.statusError.withValues(alpha: 0.1),
+        color: scheme.error.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.statusError.withValues(alpha: 0.3)),
+        border: Border.all(color: scheme.error.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
-          Icon(Icons.error_outline, color: AppColors.statusError, size: 20),
+          Icon(Icons.error_outline, color: scheme.error, size: 20),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               _error!,
-              style: TextStyle(color: AppColors.statusError, fontSize: 12),
+              style: TextStyle(color: scheme.onSurface, fontSize: 12),
             ),
           ),
         ],
@@ -423,13 +425,9 @@ class _AuctionClaimShippingModalState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
+        const Text(
           'Alamat Pengiriman',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: AppColors.neutralGray900,
-          ),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
         if (_isLoadingAddresses)
@@ -448,19 +446,20 @@ class _AuctionClaimShippingModalState
   }
 
   Widget _buildEmptyAddressState() {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: AppColors.neutralGray50,
+        color: scheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.neutralGray200),
+        border: Border.all(color: scheme.outlineVariant),
       ),
       child: Column(
         children: [
           Icon(
             Icons.location_on_outlined,
             size: 40,
-            color: AppColors.neutralGray400,
+            color: scheme.onSurfaceVariant,
           ),
           const SizedBox(height: 12),
           Text(
@@ -468,13 +467,16 @@ class _AuctionClaimShippingModalState
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: AppColors.neutralGray700,
+              color: scheme.onSurface,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             'Tambahkan alamat untuk melanjutkan',
-            style: TextStyle(fontSize: 12, color: AppColors.neutralGray600),
+            style: TextStyle(
+              fontSize: 12,
+              color: scheme.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 16),
           OutlinedButton.icon(
@@ -497,6 +499,7 @@ class _AuctionClaimShippingModalState
 
   Widget _buildAddressCard(AddressEntity address) {
     final isSelected = _selectedAddress?.id == address.id;
+    final scheme = Theme.of(context).colorScheme;
 
     return GestureDetector(
       onTap: () => _onAddressSelected(address),
@@ -505,13 +508,11 @@ class _AuctionClaimShippingModalState
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppColors.primaryBlue.withValues(alpha: 0.05)
-              : AppColors.neutralWhite,
+              ? scheme.primary.withValues(alpha: 0.08)
+              : scheme.surface,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: isSelected
-                ? AppColors.primaryBlue
-                : AppColors.neutralGray200,
+            color: isSelected ? scheme.primary : scheme.outlineVariant,
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -524,15 +525,13 @@ class _AuctionClaimShippingModalState
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: isSelected
-                      ? AppColors.primaryBlue
-                      : AppColors.neutralGray400,
+                  color: isSelected ? scheme.primary : scheme.outline,
                   width: 2,
                 ),
-                color: isSelected ? AppColors.primaryBlue : Colors.transparent,
+                color: isSelected ? scheme.primary : Colors.transparent,
               ),
               child: isSelected
-                  ? const Icon(Icons.check, size: 12, color: Colors.white)
+                  ? Icon(Icons.check, size: 12, color: scheme.onPrimary)
                   : null,
             ),
             const SizedBox(width: 12),
@@ -547,15 +546,14 @@ class _AuctionClaimShippingModalState
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.primaryBlue,
+                        color: scheme.primary,
                       ),
                     ),
                   Text(
                     address.recipientName,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.neutralGray900,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -563,7 +561,7 @@ class _AuctionClaimShippingModalState
                     address.phone,
                     style: TextStyle(
                       fontSize: 12,
-                      color: AppColors.neutralGray600,
+                      color: scheme.onSurfaceVariant,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -571,7 +569,7 @@ class _AuctionClaimShippingModalState
                     address.fullAddress,
                     style: TextStyle(
                       fontSize: 12,
-                      color: AppColors.neutralGray700,
+                      color: scheme.onSurfaceVariant,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -584,15 +582,15 @@ class _AuctionClaimShippingModalState
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: AppColors.successGreen.withValues(alpha: 0.1),
+                  color: AppColors.statusSuccess.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(4),
                 ),
-                child: Text(
+                child: const Text(
                   'Utama',
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.successGreen,
+                    color: AppColors.statusSuccess,
                   ),
                 ),
               ),
@@ -606,13 +604,9 @@ class _AuctionClaimShippingModalState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
+        const Text(
           'Opsi Pengiriman',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: AppColors.neutralGray900,
-          ),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
         if (_isLoadingDeliveryOptions)
@@ -634,13 +628,9 @@ class _AuctionClaimShippingModalState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
+        const Text(
           'Kode Promo',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: AppColors.neutralGray900,
-          ),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
         TextField(
@@ -648,7 +638,6 @@ class _AuctionClaimShippingModalState
           textCapitalization: TextCapitalization.characters,
           decoration: const InputDecoration(
             labelText: 'Kode promo (opsional)',
-            border: OutlineInputBorder(),
           ),
         ),
       ],
@@ -662,10 +651,11 @@ class _AuctionClaimShippingModalState
       orElse: () => 0,
     );
     if (coinBalance <= 0) return const SizedBox.shrink();
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        border: Border.all(color: AppColors.neutralGray200),
+        border: Border.all(color: scheme.outlineVariant),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -674,19 +664,18 @@ class _AuctionClaimShippingModalState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                const Text(
                   'Gunakan Coins',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.neutralGray900,
                   ),
                 ),
                 Text(
                   'Saldo: $coinBalance coins',
                   style: TextStyle(
                     fontSize: 12,
-                    color: AppColors.neutralGray600,
+                    color: scheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -704,10 +693,11 @@ class _AuctionClaimShippingModalState
   }
 
   Widget _buildNoDeliveryOptionsState() {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.statusWarning.withValues(alpha: 0.1),
+        color: AppColors.statusWarning.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: AppColors.statusWarning.withValues(alpha: 0.3),
@@ -715,7 +705,7 @@ class _AuctionClaimShippingModalState
       ),
       child: Row(
         children: [
-          Icon(
+          const Icon(
             Icons.warning_amber_outlined,
             color: AppColors.statusWarning,
             size: 20,
@@ -730,7 +720,7 @@ class _AuctionClaimShippingModalState
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.statusWarning,
+                    color: scheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -738,7 +728,7 @@ class _AuctionClaimShippingModalState
                   'Penjual belum menyediakan opsi pengiriman ke lokasi Anda.',
                   style: TextStyle(
                     fontSize: 11,
-                    color: AppColors.neutralGray700,
+                    color: scheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -752,6 +742,7 @@ class _AuctionClaimShippingModalState
   Widget _buildDeliveryOptionCard(DeliveryOption option) {
     final isSelected =
         _selectedDeliveryOption?.shippingSetupId == option.shippingSetupId;
+    final scheme = Theme.of(context).colorScheme;
 
     return GestureDetector(
       onTap: () => _onDeliveryOptionSelected(option),
@@ -760,11 +751,11 @@ class _AuctionClaimShippingModalState
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppColors.primaryRed.withValues(alpha: 0.05)
-              : AppColors.neutralWhite,
+              ? scheme.primary.withValues(alpha: 0.08)
+              : scheme.surface,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: isSelected ? AppColors.primaryRed : AppColors.neutralGray200,
+            color: isSelected ? scheme.primary : scheme.outlineVariant,
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -777,15 +768,13 @@ class _AuctionClaimShippingModalState
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: isSelected
-                      ? AppColors.primaryRed
-                      : AppColors.neutralGray400,
+                  color: isSelected ? scheme.primary : scheme.outline,
                   width: 2,
                 ),
-                color: isSelected ? AppColors.primaryRed : Colors.transparent,
+                color: isSelected ? scheme.primary : Colors.transparent,
               ),
               child: isSelected
-                  ? const Icon(Icons.check, size: 12, color: Colors.white)
+                  ? Icon(Icons.check, size: 12, color: scheme.onPrimary)
                   : null,
             ),
             const SizedBox(width: 12),
@@ -796,10 +785,9 @@ class _AuctionClaimShippingModalState
                 children: [
                   Text(
                     option.displayName,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.neutralGray900,
                     ),
                   ),
                 ],
@@ -811,7 +799,7 @@ class _AuctionClaimShippingModalState
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
-                color: AppColors.primaryRed,
+                color: scheme.primary,
               ),
             ),
           ],
@@ -825,17 +813,18 @@ class _AuctionClaimShippingModalState
         _selectedAddress != null &&
         _selectedDeliveryOption != null &&
         !_isClaiming;
+    final scheme = Theme.of(context).colorScheme;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
       decoration: BoxDecoration(
-        color: AppColors.neutralWhite,
+        color: scheme.surface,
         border: Border(
-          top: BorderSide(color: AppColors.neutralGray200, width: 1),
+          top: BorderSide(color: scheme.outlineVariant, width: 1),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: scheme.shadow.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),
@@ -853,7 +842,7 @@ class _AuctionClaimShippingModalState
                     : () => Navigator.of(context).pop(),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  side: BorderSide(color: AppColors.neutralGray300),
+                  side: BorderSide(color: scheme.outline),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -868,22 +857,23 @@ class _AuctionClaimShippingModalState
               child: ElevatedButton(
                 onPressed: canClaim ? _handleClaim : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryRed,
-                  foregroundColor: Colors.white,
-                  disabledBackgroundColor: AppColors.neutralGray300,
+                  backgroundColor: scheme.primary,
+                  foregroundColor: scheme.onPrimary,
+                  disabledBackgroundColor: scheme.surfaceContainerHighest,
+                  disabledForegroundColor: scheme.onSurfaceVariant,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
                 child: _isClaiming
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 20,
                         height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
                           valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.white,
+                            scheme.onPrimary,
                           ),
                         ),
                       )

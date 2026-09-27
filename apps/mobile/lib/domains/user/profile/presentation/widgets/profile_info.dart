@@ -33,8 +33,6 @@ class ProfileInfo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Opacity(
       opacity: opacity,
       child: Column(
@@ -42,35 +40,36 @@ class ProfileInfo extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           // Name row dengan verification badge
-          _buildNameRow(isDark),
+          _buildNameRow(context),
 
           // Farm name badge (seller only)
           if (farmName != null && farmName!.isNotEmpty) ...[
             const SizedBox(height: 4),
-            _buildFarmNameBadge(isDark),
+            _buildFarmNameBadge(context),
           ],
 
           // Username
           const SizedBox(height: 2),
-          _buildUsername(isDark),
+          _buildUsername(context),
 
           // Location
           if (location != null && location!.isNotEmpty) ...[
             const SizedBox(height: 4),
-            _buildLocation(isDark),
+            _buildLocation(context),
           ],
 
           // Bio (optional, biasanya di bawah avatar section)
           if (showBio && bio != null && bio!.trim().isNotEmpty) ...[
             const SizedBox(height: 12),
-            _buildBio(isDark),
+            _buildBio(context),
           ],
         ],
       ),
     );
   }
 
-  Widget _buildNameRow(bool isDark) {
+  Widget _buildNameRow(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -80,7 +79,7 @@ class ProfileInfo extends StatelessWidget {
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: isDark ? AppColors.neutralWhite : AppColors.neutralGray900,
+              color: scheme.onSurface,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -94,14 +93,15 @@ class ProfileInfo extends StatelessWidget {
     );
   }
 
-  Widget _buildFarmNameBadge(bool isDark) {
+  Widget _buildFarmNameBadge(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray700 : AppColors.neutralGray100,
+        color: scheme.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isDark ? AppColors.darkGray600 : AppColors.neutralGray200,
+          color: scheme.outlineVariant,
         ),
       ),
       child: Row(
@@ -110,7 +110,7 @@ class ProfileInfo extends StatelessWidget {
           Icon(
             Icons.storefront,
             size: 14,
-            color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray600,
+            color: scheme.onSurfaceVariant,
           ),
           const SizedBox(width: 4),
           Flexible(
@@ -119,9 +119,7 @@ class ProfileInfo extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
-                color: isDark
-                    ? AppColors.neutralGray300
-                    : AppColors.neutralGray700,
+                color: scheme.onSurface,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -132,24 +130,26 @@ class ProfileInfo extends StatelessWidget {
     );
   }
 
-  Widget _buildUsername(bool isDark) {
+  Widget _buildUsername(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Text(
       username.startsWith('@') ? username : '@$username',
       style: TextStyle(
         fontSize: 14,
-        color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray500,
+        color: scheme.onSurfaceVariant,
       ),
     );
   }
 
-  Widget _buildLocation(bool isDark) {
+  Widget _buildLocation(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(
           Icons.location_on_outlined,
           size: 14,
-          color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray500,
+          color: scheme.onSurfaceVariant,
         ),
         const SizedBox(width: 4),
         Flexible(
@@ -157,9 +157,7 @@ class ProfileInfo extends StatelessWidget {
             location!,
             style: TextStyle(
               fontSize: 13,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray500,
+              color: scheme.onSurfaceVariant,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -169,14 +167,13 @@ class ProfileInfo extends StatelessWidget {
     );
   }
 
-  Widget _buildBio(bool isDark) {
+  Widget _buildBio(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Text(
       bio!,
       style: TextStyle(
         fontSize: 14,
-        color: isDark
-            ? AppColors.neutralWhite.withValues(alpha: 0.9)
-            : AppColors.neutralGray700,
+        color: scheme.onSurface.withValues(alpha: 0.9),
         height: 1.4,
       ),
       maxLines: 3,
@@ -200,7 +197,7 @@ class ProfileInfoCompact extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Opacity(
       opacity: opacity,
@@ -213,7 +210,7 @@ class ProfileInfoCompact extends StatelessWidget {
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: isDark ? AppColors.neutralWhite : AppColors.neutralGray900,
+              color: scheme.onSurface,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -222,9 +219,7 @@ class ProfileInfoCompact extends StatelessWidget {
             username.startsWith('@') ? username : '@$username',
             style: TextStyle(
               fontSize: 12,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray500,
+              color: scheme.onSurfaceVariant,
             ),
           ),
         ],

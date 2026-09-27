@@ -1586,15 +1586,22 @@ func (s *OrderCreationService) CreateFromSaleSurface(
 	// P1-3 FIX: Emit for_sale.sold event when the sale transitions to sold.
 	// This is the ONLY emitter for for_sale.sold on order creation.
 	// Event is emitted within the same transaction as the stock mutation.
+	//
+	// buyer_id is additive (WIRED consumer): the negotiation ForSaleSoldEventHandler
+	// uses it to exclude the winning buyer from the "item sold" notifications and
+	// to keep their canonical accepted negotiation untouched. Historical payloads
+	// without buyer_id remain consumable (the handler tolerates its absence).
 	if willTransitionToSold {
 		type forSaleSoldPayload struct {
 			ForSaleID string `json:"for_sale_id"`
 			SellerID  string `json:"seller_id"`
+			BuyerID   string `json:"buyer_id"`
 			Status    string `json:"status"`
 		}
 		payload, _ := json.Marshal(forSaleSoldPayload{
 			ForSaleID: forSale.ID.String(),
 			SellerID:  forSale.SellerID.String(),
+			BuyerID:   input.BuyerID.String(),
 			Status:    string(forSale.Status),
 		})
 		if err := s.outboxRepo.InsertEvent(

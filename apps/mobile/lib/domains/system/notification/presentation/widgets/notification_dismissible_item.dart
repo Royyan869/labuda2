@@ -9,7 +9,6 @@ library;
 // Dart
 import 'notification_item_widget.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart' hide NotificationEntity;
 import 'package:labuda/domains/system/notification/domain/entities/notification_entity.dart';
 import 'package:labuda/domains/system/notification/presentation/providers/notification_list_provider.dart';
 import 'package:labuda/shared/shared.dart';
@@ -36,7 +35,7 @@ class NotificationDismissibleItem extends ConsumerWidget {
     return Dismissible(
       key: Key(notification.id),
       direction: DismissDirection.endToStart,
-      background: _buildDismissBackground(),
+      background: _buildDismissBackground(context),
       onDismissed: (direction) => _handleDismiss(context, ref),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -52,20 +51,24 @@ class NotificationDismissibleItem extends ConsumerWidget {
     );
   }
 
-  Widget _buildDismissBackground() {
+  Widget _buildDismissBackground(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       alignment: Alignment.centerRight,
       padding: const EdgeInsets.only(right: 20),
-      color: AppColors.primaryRed,
-      child: const Row(
+      color: scheme.error,
+      child: Row(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
           Text(
             'Delete',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+            style: TextStyle(
+              color: scheme.onPrimary,
+              fontWeight: FontWeight.w500,
+            ),
           ),
-          SizedBox(width: 8),
-          Icon(Icons.delete_outline, color: Colors.white, size: 24),
+          const SizedBox(width: 8),
+          Icon(Icons.delete_outline, color: scheme.onPrimary, size: 24),
         ],
       ),
     );

@@ -63,7 +63,7 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     // Use centralized providers (TANGGUNG_JAWAB_MODUL compliance)
     final authState = ref.watch(authControllerProvider);
     final currentUser = ref.watch(authenticatedUserProvider);
@@ -72,7 +72,7 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
     if (currentUser == null) {
       if (_isUnresolvedAuthState(authState) ||
           sellerIdentityStatus == SellerIdentityStatus.unknown) {
-        return _buildUnknownSellerState(context, isDark);
+        return _buildUnknownSellerState(context, scheme);
       }
 
       return PopScope(
@@ -91,7 +91,7 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
     }
 
     if (sellerIdentityStatus == SellerIdentityStatus.unknown) {
-      return _buildUnknownSellerState(context, isDark);
+      return _buildUnknownSellerState(context, scheme);
     }
 
     final isSeller = sellerIdentityStatus == SellerIdentityStatus.seller;
@@ -105,26 +105,18 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
     return PopScope(
       canPop: true,
       child: Scaffold(
-        backgroundColor: isDark
-            ? AppColors.darkGray900
-            : AppColors.neutralGray50,
+        backgroundColor: scheme.onSurfaceVariant,
         appBar: AppBar(
           title: Text(
             'Addresses',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray900,
+              color: scheme.onSurfaceVariant,
             ),
           ),
-          backgroundColor: isDark
-              ? AppColors.darkGray800
-              : AppColors.neutralWhite,
-          foregroundColor: isDark
-              ? AppColors.neutralGray400
-              : AppColors.neutralGray900,
+          backgroundColor: scheme.onSurfaceVariant,
+          foregroundColor: scheme.onSurfaceVariant,
           elevation: 0,
           surfaceTintColor: Colors.transparent,
           scrolledUnderElevation: 0,
@@ -136,22 +128,18 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
             IconButton(
               icon: Icon(
                 Icons.info_outline,
-                color: isDark
-                    ? AppColors.neutralGray400
-                    : AppColors.neutralGray600,
+                color: scheme.onSurfaceVariant,
               ),
               tooltip: 'Info',
-              onPressed: () => _showAddressInfoDialog(context, isDark),
+              onPressed: () => _showAddressInfoDialog(context, scheme),
             ),
           ],
           bottom: isSeller && _tabController != null
               ? TabBar(
                   controller: _tabController,
-                  labelColor: AppColors.primaryRed,
-                  unselectedLabelColor: isDark
-                      ? AppColors.neutralGray400
-                      : AppColors.neutralGray600,
-                  indicatorColor: AppColors.primaryRed,
+                  labelColor: scheme.primary,
+                  unselectedLabelColor: scheme.onSurfaceVariant,
+                  indicatorColor: scheme.primary,
                   indicatorWeight: 3,
                   tabs: const [
                     Tab(icon: Icon(Icons.home), text: 'Shipping Address'),
@@ -167,9 +155,7 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
                 child: Text(
                   result.error ?? 'Failed to load addresses',
                   style: TextStyle(
-                    color: isDark
-                        ? AppColors.neutralGray400
-                        : AppColors.neutralGray600,
+                    color: scheme.onSurfaceVariant,
                   ),
                 ),
               );
@@ -191,19 +177,19 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
                             addresses,
                             userId,
                             AddressPurpose.shipping,
-                            isDark,
+                            scheme,
                           ),
                           _buildTabContent(
                             context,
                             addresses,
                             userId,
                             AddressPurpose.sender,
-                            isDark,
+                            scheme,
                           ),
                         ],
                       ),
                     ),
-                    _buildStickyAddButton(context, addresses, isDark),
+                    _buildStickyAddButton(context, addresses, scheme),
                   ],
                 ),
               );
@@ -218,10 +204,10 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
                         addresses,
                         userId,
                         AddressPurpose.shipping,
-                        isDark,
+                        scheme,
                       ),
                     ),
-                    _buildStickyAddButton(context, addresses, isDark),
+                    _buildStickyAddButton(context, addresses, scheme),
                   ],
                 ),
               );
@@ -232,9 +218,7 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
             child: Text(
               'Error: $error',
               style: TextStyle(
-                color: isDark
-                    ? AppColors.neutralGray400
-                    : AppColors.neutralGray600,
+                color: scheme.onSurfaceVariant,
               ),
             ),
           ),
@@ -250,17 +234,13 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
         authState is AuthStateSyncingWithBackend;
   }
 
-  Widget _buildUnknownSellerState(BuildContext context, bool isDark) {
+  Widget _buildUnknownSellerState(BuildContext context, ColorScheme scheme) {
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkGray900 : AppColors.neutralGray50,
+      backgroundColor: scheme.surfaceContainerLowest,
       appBar: AppBar(
         title: const Text('Addresses'),
-        backgroundColor: isDark
-            ? AppColors.darkGray800
-            : AppColors.neutralWhite,
-        foregroundColor: isDark
-            ? AppColors.neutralGray400
-            : AppColors.neutralGray900,
+        backgroundColor: scheme.onSurfaceVariant,
+        foregroundColor: scheme.onSurfaceVariant,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         scrolledUnderElevation: 0,
@@ -274,7 +254,7 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
     List<AddressEntity> allAddresses,
     String userId,
     AddressPurpose purpose,
-    bool isDark,
+    ColorScheme scheme,
   ) {
     // Filter addresses by purpose
     final filteredAddresses = allAddresses
@@ -284,7 +264,7 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
     final canDelete = filteredAddresses.length > 1; // Min 1 per purpose
 
     if (filteredAddresses.isEmpty) {
-      return _buildEmptyState(context, purpose, isDark);
+      return _buildEmptyState(context, purpose, scheme);
     }
 
     return ListView(
@@ -300,7 +280,7 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
               canDelete,
               userId,
               filteredAddresses.length,
-              isDark,
+              scheme,
               purpose,
             ),
           );
@@ -312,7 +292,7 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
   Widget _buildEmptyState(
     BuildContext context,
     AddressPurpose purpose,
-    bool isDark,
+    ColorScheme scheme,
   ) {
     return Center(
       child: Padding(
@@ -325,7 +305,7 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
                   ? Icons.location_off_outlined
                   : Icons.agriculture_outlined,
               size: 80,
-              color: AppColors.neutralGray400,
+              color: scheme.onSurfaceVariant,
             ),
             const SizedBox(height: 24),
             Text(
@@ -333,9 +313,7 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: isDark
-                    ? AppColors.neutralWhite
-                    : AppColors.neutralGray900,
+                color: scheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 8),
@@ -346,9 +324,7 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
-                color: isDark
-                    ? AppColors.neutralGray400
-                    : AppColors.neutralGray600,
+                color: scheme.onSurfaceVariant,
               ),
             ),
           ],
@@ -360,7 +336,7 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
   Widget _buildStickyAddButton(
     BuildContext context,
     List<AddressEntity> addresses,
-    bool isDark,
+    ColorScheme scheme,
   ) {
     final purpose = _currentPurpose;
     final filteredAddresses = addresses
@@ -375,10 +351,10 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
     return Container(
       padding: const EdgeInsets.only(left: 16, right: 16, top: 12, bottom: 12),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
+        color: scheme.surface,
         border: Border(
           top: BorderSide(
-            color: isDark ? AppColors.darkGray600 : AppColors.neutralGray200,
+            color: scheme.outlineVariant,
           ),
         ),
       ),
@@ -389,8 +365,8 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
           icon: const Icon(Icons.add_location_alt),
           label: Text('Add ${purpose.label}'),
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primaryRed,
-            foregroundColor: Colors.white,
+            backgroundColor: scheme.primary,
+            foregroundColor: scheme.onPrimary,
             padding: const EdgeInsets.symmetric(vertical: 14),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -401,26 +377,22 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
     );
   }
 
-  void _showAddressInfoDialog(BuildContext context, bool isDark) {
+  void _showAddressInfoDialog(BuildContext context, ColorScheme scheme) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: isDark
-            ? AppColors.darkGray800
-            : AppColors.neutralWhite,
+        backgroundColor: scheme.onSurfaceVariant,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
-            Icon(Icons.info_outline, color: AppColors.primaryRed, size: 24),
+            Icon(Icons.info_outline, color: scheme.primary, size: 24),
             const SizedBox(width: 12),
             Text(
               'Address Information',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: isDark
-                    ? AppColors.neutralWhite
-                    : AppColors.neutralGray900,
+                color: scheme.onSurfaceVariant,
               ),
             ),
           ],
@@ -433,34 +405,32 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
               Icons.home,
               'Shipping Address',
               'Address for receiving packages/shipments',
-              isDark,
+              scheme,
             ),
             const SizedBox(height: 12),
             _buildInfoRow(
               Icons.agriculture,
               'Sender Address',
               'Origin address for goods (for seller)',
-              isDark,
+              scheme,
             ),
             const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.primaryRed.withValues(alpha: 0.1),
+                color: scheme.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.rule, color: AppColors.primaryRed, size: 20),
+                  Icon(Icons.rule, color: scheme.primary, size: 20),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       'Min. 1 address per category\nMax. 10 addresses per category',
                       style: TextStyle(
                         fontSize: 13,
-                        color: isDark
-                            ? AppColors.neutralGray200
-                            : AppColors.neutralGray800,
+                        color: scheme.onSurfaceVariant,
                       ),
                     ),
                   ),
@@ -475,7 +445,7 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
             child: Text(
               'Got it',
               style: TextStyle(
-                color: AppColors.primaryRed,
+                color: scheme.primary,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -485,14 +455,14 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String title, String desc, bool isDark) {
+  Widget _buildInfoRow(IconData icon, String title, String desc, ColorScheme scheme) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Icon(
           icon,
           size: 20,
-          color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray600,
+          color: scheme.onSurfaceVariant,
         ),
         const SizedBox(width: 10),
         Expanded(
@@ -504,18 +474,14 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: isDark
-                      ? AppColors.neutralWhite
-                      : AppColors.neutralGray900,
+                  color: scheme.onSurfaceVariant,
                 ),
               ),
               Text(
                 desc,
                 style: TextStyle(
                   fontSize: 12,
-                  color: isDark
-                      ? AppColors.neutralGray400
-                      : AppColors.neutralGray600,
+                  color: scheme.onSurfaceVariant,
                 ),
               ),
             ],
@@ -531,17 +497,17 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
     bool canDelete,
     String userId,
     int totalAddresses,
-    bool isDark,
+    ColorScheme scheme,
     AddressPurpose purpose,
   ) {
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
+        color: scheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: address.isPrimary
-              ? AppColors.primaryRed
-              : (isDark ? AppColors.darkGray600 : AppColors.neutralGray200),
+              ? scheme.primary
+              : scheme.onSurfaceVariant,
           width: address.isPrimary ? 2 : 1,
         ),
       ),
@@ -556,7 +522,7 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
                 Icon(
                   _getPurposeIcon(address.purpose),
                   size: 20,
-                  color: AppColors.primaryRed,
+                  color: scheme.primary,
                 ),
                 const SizedBox(width: 8),
                 Text(
@@ -564,9 +530,7 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: isDark
-                        ? AppColors.neutralWhite
-                        : AppColors.neutralGray900,
+                    color: scheme.onSurfaceVariant,
                   ),
                 ),
                 if (address.isPrimary) ...[
@@ -577,15 +541,15 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.primaryRed,
+                      color: scheme.primary,
                       borderRadius: BorderRadius.circular(4),
                     ),
-                    child: const Text(
-                      'Primary',
+child: Text(
+                       'Primary',
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w600,
-                        color: Colors.white,
+                        color: scheme.onPrimary,
                       ),
                     ),
                   ),
@@ -662,9 +626,7 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
                 Icon(
                   Icons.person_outline,
                   size: 14,
-                  color: isDark
-                      ? AppColors.neutralGray400
-                      : AppColors.neutralGray500,
+                  color: scheme.onSurfaceVariant,
                 ),
                 const SizedBox(width: 6),
                 Expanded(
@@ -673,9 +635,7 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
-                      color: isDark
-                          ? AppColors.neutralGray200
-                          : AppColors.neutralGray800,
+                      color: scheme.onSurfaceVariant,
                     ),
                   ),
                 ),
@@ -688,9 +648,7 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
               address.fullAddress,
               style: TextStyle(
                 fontSize: 14,
-                color: isDark
-                    ? AppColors.neutralGray300
-                    : AppColors.neutralGray700,
+                color: scheme.onSurfaceVariant,
               ),
             ),
 
@@ -700,14 +658,12 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: isDark
-                      ? AppColors.darkGray700
-                      : AppColors.neutralGray100,
+                  color: scheme.onSurfaceVariant,
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.note, size: 14, color: AppColors.neutralGray500),
+                    Icon(Icons.note, size: 14, color: scheme.onSurfaceVariant),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
@@ -715,9 +671,7 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
                         style: TextStyle(
                           fontSize: 12,
                           fontStyle: FontStyle.italic,
-                          color: isDark
-                              ? AppColors.neutralGray400
-                              : AppColors.neutralGray600,
+                          color: scheme.onSurfaceVariant,
                         ),
                       ),
                     ),
@@ -730,7 +684,7 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
             if (address.hasCoordinates) ...[
               const SizedBox(height: 8),
               InkWell(
-                onTap: () => _showCoordinatePreview(context, address, isDark),
+                onTap: () => _showCoordinatePreview(context, address, scheme),
                 borderRadius: BorderRadius.circular(6),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
@@ -900,7 +854,7 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
   void _showCoordinatePreview(
     BuildContext context,
     AddressEntity address,
-    bool isDark,
+    ColorScheme scheme,
   ) {
     if (!address.hasCoordinates) return;
 

@@ -31,6 +31,8 @@ import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/a
 import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/auction_state.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/screens/auction_detail_screen.dart';
 import 'package:labuda/domains/commerce/catalog/shared/domain/entities/commerce_viewer_capabilities.dart';
+import 'package:labuda/domains/user/preference/saved_item/data/repositories/saved_item_repository.dart';
+import 'package:labuda/domains/user/preference/saved_item/data/repositories/saved_item_repository_provider.dart';
 import 'package:labuda/domains/social/content/domain/entities/content.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 import 'package:labuda/core/common/types/preparation_time.dart';
@@ -60,6 +62,19 @@ class _FakeAuctionNotifier extends AuctionNotifier {
 }
 
 class _FakeNavigationHandler extends Fake implements NavigationHandler {}
+
+/// The screen chrome (saved-item action) reads the saved-item repository on
+/// init; the fake keeps the harness free of the real API client.
+class _FakeSavedItemRepository implements SavedItemRepository {
+  @override
+  Future<bool> isSaved({
+    required String targetType,
+    required String targetId,
+  }) async => false;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => null;
+}
 
 AuthUser _authUser({required String id}) {
   final now = DateTime.utc(2026, 1, 1);
@@ -204,6 +219,9 @@ Widget _wrap({
         auction.id,
       ).overrideWith((ref) async => const <Auction>[]),
       navigationHandlerProvider.overrideWithValue(_FakeNavigationHandler()),
+      savedItemRepositoryProvider.overrideWithValue(
+        _FakeSavedItemRepository(),
+      ),
     ],
     child: MaterialApp(home: AuctionDetailScreen(auctionId: auction.id)),
   );
@@ -239,7 +257,13 @@ void main() {
         ),
       ),
     );
-    await tester.pumpAndSettle();
+    // Media renders through AppImage → CachedNetworkImage whose shimmer
+    // animates until the cache-manager file IO completes (real async, not
+    // drivable by fake-async pumpAndSettle). Bounded pumps are sufficient for
+    // layout/assertions — the carousel itself is exercised in
+    // auction_detail_header_media_test.dart.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
 
     // Screen chrome.
     expect(find.text('Auction Detail'), findsOneWidget);
@@ -271,7 +295,8 @@ void main() {
     // Description + auction-specific row.
     expect(find.text('Live auction'), findsOneWidget);
     expect(find.text('Bid Increment'), findsOneWidget);
-    expect(find.text('Rp 50000'), findsOneWidget);
+    // Canonical grouping: the same formatter that renders envelope money.
+    expect(find.text('Rp 50.000'), findsOneWidget);
 
     // Single seller identity authority — flat scalars.
     expect(find.text('Acme Farm'), findsOneWidget);
@@ -423,7 +448,8 @@ void main() {
 
     expect(find.text('Detail Lelang'), findsOneWidget);
     expect(find.text('Bid Increment'), findsOneWidget);
-    expect(find.text('Rp 50000'), findsOneWidget);
+    // Canonical grouping: the same formatter that renders envelope money.
+    expect(find.text('Rp 50.000'), findsOneWidget);
     expect(find.text('Varietas'), findsNothing);
     expect(find.text('Ukuran'), findsNothing);
     expect(find.text('Usia'), findsNothing);

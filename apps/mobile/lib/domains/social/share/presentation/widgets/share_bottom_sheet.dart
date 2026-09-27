@@ -39,10 +39,8 @@ class ShareBottomSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final backgroundColor = isDark
-        ? AppColors.darkGray800
-        : AppColors.neutralWhite;
+    final scheme = Theme.of(context).colorScheme;
+    final backgroundColor = scheme.surfaceContainerLow;
 
     return Container(
       constraints: BoxConstraints(
@@ -62,9 +60,7 @@ class ShareBottomSheet extends ConsumerWidget {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: isDark
-                    ? AppColors.darkGray500
-                    : AppColors.neutralGray300,
+                color: scheme.outlineVariant,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -76,7 +72,7 @@ class ShareBottomSheet extends ConsumerWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     // Preview card - more compact
-                    SharePreviewCard(target: target, isDark: isDark),
+                    SharePreviewCard(target: target),
 
                     const SizedBox(height: 8),
 
@@ -87,7 +83,6 @@ class ShareBottomSheet extends ConsumerWidget {
                         destinations: _getShareDestinations(),
                         onTap: (destination) =>
                             _handleDestinationTap(context, ref, destination),
-                        isDark: isDark,
                       ),
                     ),
                   ],

@@ -8,7 +8,8 @@
 ///   - Suspended/banned/deleted sellers never receive tier from backend.
 ///   - Expired-subscription sellers never receive tier from backend.
 ///   - Mobile additionally suppresses the badge when sellerTrustLifecycle
-///     is not active — see _ForSaleSellerCard and AuctionSellerCard.
+///     is not active — see CommerceDetailSellerCard (render authority for
+///     both ForSale and Auction detail).
 ///
 /// The backend controls visibility via ENABLE_PUBLIC_SELLER_TIER_PROFILE
 /// feature flag + lifecycle gates. Mobile simply renders what the wire
@@ -16,6 +17,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:labuda/core/core.dart';
 import 'package:labuda/generated/app_localizations.dart';
 
 /// Renders a seller tier badge pill, or nothing if [tier] is null/basic/unknown.
@@ -29,28 +31,37 @@ class SellerTierBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context);
-    final config = _tierConfig(tier, isDark: isDark, l10n: l10n);
+    final config = _tierConfig(tier, l10n: l10n);
     if (config == null) return const SizedBox.shrink();
 
+    // Tier hues: pro is a palette brand (no scheme role); elite reuses the
+    // scheme secondary (same canonical blue). Tints derive from alpha over
+    // the scheme surface so they adapt; the label is scheme ink.
+    final brandColor = config.isPro
+        ? AppColors.primaryYellow
+        : scheme.secondary;
     final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: config.backgroundColor,
+        color: brandColor.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: config.borderColor, width: 1),
+        border: Border.all(
+          color: brandColor.withValues(alpha: 0.45),
+          width: 1,
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(config.icon, size: 14, color: config.foregroundColor),
+          Icon(config.icon, size: 14, color: brandColor),
           const SizedBox(width: 4),
           Text(
             config.label,
             style: theme.textTheme.labelSmall?.copyWith(
-              color: config.foregroundColor,
+              color: scheme.onSurface,
               fontWeight: FontWeight.w600,
               letterSpacing: 0.2,
             ),
@@ -61,11 +72,12 @@ class SellerTierBadge extends StatelessWidget {
   }
 
   /// Returns display config for known tiers, or null for basic/unknown/null.
-  /// Colors adapt to [isDark]; labels use [l10n] when available, falling back
-  /// to English strings for contexts without a locale (e.g. plain widget tests).
+  ///
+  /// Single canonical definition per tier (no per-mode variants, no raw
+  /// hex). Labels use [l10n] when available, falling back to English
+  /// strings for contexts without a locale (e.g. plain widget tests).
   static _TierDisplayConfig? _tierConfig(
     String? tier, {
-    required bool isDark,
     AppLocalizations? l10n,
   }) {
     switch (tier) {
@@ -73,25 +85,13 @@ class SellerTierBadge extends StatelessWidget {
         return _TierDisplayConfig(
           label: l10n?.sellerTierPro ?? 'Pro Seller',
           icon: Icons.star_rounded,
-          backgroundColor: isDark
-              ? const Color(0xFF2C1E00) // dark amber tint
-              : const Color(0xFFFFF8E1), // amber-50
-          borderColor: const Color(0xFFFFD54F), // amber-300 (both modes)
-          foregroundColor: isDark
-              ? const Color(0xFFFFE082) // amber-200
-              : const Color(0xFFF57F17), // amber-900
+          isPro: true,
         );
       case 'elite':
         return _TierDisplayConfig(
           label: l10n?.sellerTierElite ?? 'Elite Seller',
           icon: Icons.workspace_premium_rounded,
-          backgroundColor: isDark
-              ? const Color(0xFF1A1A3A) // dark indigo tint
-              : const Color(0xFFE8EAF6), // indigo-50
-          borderColor: const Color(0xFF7986CB), // indigo-300 (both modes)
-          foregroundColor: isDark
-              ? const Color(0xFF9FA8DA) // indigo-200
-              : const Color(0xFF283593), // indigo-800
+          isPro: false,
         );
       default:
         return null; // basic, null, unknown → no badge
@@ -102,15 +102,11 @@ class SellerTierBadge extends StatelessWidget {
 class _TierDisplayConfig {
   final String label;
   final IconData icon;
-  final Color backgroundColor;
-  final Color borderColor;
-  final Color foregroundColor;
+  final bool isPro;
 
   const _TierDisplayConfig({
     required this.label,
     required this.icon,
-    required this.backgroundColor,
-    required this.borderColor,
-    required this.foregroundColor,
+    required this.isPro,
   });
 }

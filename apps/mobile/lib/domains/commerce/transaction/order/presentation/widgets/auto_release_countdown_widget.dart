@@ -95,7 +95,7 @@ class _AutoReleaseCountdownWidgetState
       return const SizedBox.shrink();
     }
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
     final hasExpired = _remaining == Duration.zero;
 
     return Container(
@@ -109,15 +109,15 @@ class _AutoReleaseCountdownWidgetState
                   _withOpacity(core.AppColors.successGreen, 0.05),
                 ]
               : [
-                  _withOpacity(core.AppColors.primaryBlue, 0.1),
-                  _withOpacity(core.AppColors.primaryBlue, 0.05),
+                  _withOpacity(colorScheme.secondary, 0.1),
+                  _withOpacity(colorScheme.secondary, 0.05),
                 ],
         ),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: hasExpired
               ? _withOpacity(core.AppColors.successGreen, 0.3)
-              : _withOpacity(core.AppColors.primaryBlue, 0.3),
+              : _withOpacity(colorScheme.secondary, 0.3),
           width: 1,
         ),
       ),
@@ -133,14 +133,14 @@ class _AutoReleaseCountdownWidgetState
                 decoration: BoxDecoration(
                   color: hasExpired
                       ? _withOpacity(core.AppColors.successGreen, 0.15)
-                      : _withOpacity(core.AppColors.primaryBlue, 0.15),
+                      : _withOpacity(colorScheme.secondary, 0.15),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   hasExpired ? Icons.check_circle_outline : Icons.schedule,
                   color: hasExpired
                       ? core.AppColors.successGreen
-                      : core.AppColors.primaryBlue,
+                      : colorScheme.secondary,
                   size: 18,
                 ),
               ),
@@ -152,19 +152,21 @@ class _AutoReleaseCountdownWidgetState
                     Text(
                       hasExpired
                           ? 'Waktu Pemeriksaan Barang Berakhir'
-                          : 'Waktu Pemeriksaan Barang',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: isDark ? Colors.white : Colors.black87,
-                      ),
+                          : 'Waktu Pemeriksaan Barang',                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: colorScheme.onSurface,
+                        ),
                     ),
                     if (!hasExpired)
                       Text(
                         widget.isBuyer
                             ? 'Selama masa ini Anda masih bisa menghubungi penjual atau mengajukan bantuan'
                             : 'Proses penjualan akan selesai setelah masa ini berakhir',
-                        style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
                       ),
                   ],
                 ),
@@ -182,13 +184,20 @@ class _AutoReleaseCountdownWidgetState
           const SizedBox(height: 8),
           Row(
             children: [
-              Icon(Icons.event_outlined, size: 12, color: Colors.grey[600]),
+              Icon(
+                Icons.event_outlined,
+                size: 12,
+                color: colorScheme.onSurfaceVariant,
+              ),
               const SizedBox(width: 4),
               Text(
                 hasExpired
                     ? 'Masa pemeriksaan telah berakhir'
                     : 'Berakhir: ${AppFormatters.formatDate(widget.autoReleaseAt!)}',
-                style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                style: TextStyle(
+                  fontSize: 10,
+                  color: colorScheme.onSurfaceVariant,
+                ),
               ),
             ],
           ),
@@ -206,6 +215,7 @@ class _CountdownDisplay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final days = remaining.inDays;
 
     // Color coding based on urgency
@@ -215,7 +225,7 @@ class _CountdownDisplay extends StatelessWidget {
       } else if (days <= 1) {
         return core.AppColors.statusWarning; // Orange - soon
       } else {
-        return core.AppColors.primaryBlue; // Blue - normal
+        return colorScheme.secondary; // Blue - normal
       }
     }
 

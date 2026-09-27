@@ -12,6 +12,7 @@ import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction_bid.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 import 'package:labuda/shared/widgets/profile_avatar.dart';
+import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_detail_primitives.dart';
 
 /// Bid history widget for auction detail
 class AuctionBidHistory extends StatelessWidget {
@@ -22,9 +23,9 @@ class AuctionBidHistory extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      color: colorScheme.surface,
-      padding: const EdgeInsets.all(16),
+    // CANONICAL SECTION FRAME — same card language as the ForSale detail.
+    return CommerceDetailSectionCard(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

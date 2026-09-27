@@ -15,14 +15,14 @@ class ReviewCardWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     final isReceived = review['isReceived'] as bool;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
-      elevation: isDark ? 4 : 2,
+      elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      color: isDark ? AppColors.darkGray700 : AppColors.neutralWhite,
+      color: scheme.surface,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -50,9 +50,7 @@ class ReviewCardWidget extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: isDark
-                              ? AppColors.neutralWhite
-                              : AppColors.neutralGray900,
+                          color: scheme.onSurface,
                         ),
                         overflow: TextOverflow.ellipsis,
                         maxLines: 1,
@@ -65,9 +63,7 @@ class ReviewCardWidget extends StatelessWidget {
                               'Kepada: ',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: isDark
-                                    ? AppColors.neutralGray400
-                                    : AppColors.neutralGray500,
+                                color: scheme.onSurfaceVariant,
                               ),
                             ),
                             Flexible(
@@ -75,9 +71,7 @@ class ReviewCardWidget extends StatelessWidget {
                                 '@${review['recipientUsername']}',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: isDark
-                                      ? AppColors.neutralGray400
-                                      : AppColors.neutralGray500,
+                                  color: scheme.onSurfaceVariant,
                                 ),
                                 overflow: TextOverflow.ellipsis,
                                 maxLines: 1,
@@ -93,13 +87,11 @@ class ReviewCardWidget extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    _buildStarRating(review['rating'].toDouble(), 14),
+                    _buildStarRating(context, review['rating'].toDouble(), 14),
                     const SizedBox(height: 2),
                     TimeAgoWidget.compact(
                       dateTime: review['createdAt'] as DateTime,
-                      color: isDark
-                          ? AppColors.neutralGray400
-                          : AppColors.neutralGray500,
+                      color: scheme.onSurfaceVariant,
                       fontSize: 11,
                     ),
                   ],
@@ -115,9 +107,7 @@ class ReviewCardWidget extends StatelessWidget {
               style: TextStyle(
                 fontSize: 14,
                 height: 1.4,
-                color: isDark
-                    ? AppColors.neutralGray200
-                    : AppColors.neutralGray700,
+                color: scheme.onSurface,
               ),
             ),
 
@@ -138,10 +128,8 @@ class ReviewCardWidget extends StatelessWidget {
                             : Icons.thumb_up_outlined,
                         size: 16,
                         color: review['isHelpful'] ?? false
-                            ? AppColors.primaryRed
-                            : (isDark
-                                  ? AppColors.neutralGray400
-                                  : AppColors.neutralGray500),
+                            ? scheme.primary
+                            : scheme.onSurfaceVariant,
                       ),
                       const SizedBox(width: 4),
                       Text(
@@ -149,10 +137,8 @@ class ReviewCardWidget extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 12,
                           color: review['isHelpful'] ?? false
-                              ? AppColors.primaryRed
-                              : (isDark
-                                    ? AppColors.neutralGray400
-                                    : AppColors.neutralGray500),
+                              ? scheme.primary
+                              : scheme.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -166,7 +152,7 @@ class ReviewCardWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildStarRating(double rating, double size) {
+  Widget _buildStarRating(BuildContext context, double rating, double size) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: List.generate(5, (index) {
@@ -177,7 +163,7 @@ class ReviewCardWidget extends StatelessWidget {
               ? Icons.star_half
               : Icons.star_border,
           size: size,
-          color: Colors.amber,
+          color: AppColors.koiGold,
         );
       }),
     );

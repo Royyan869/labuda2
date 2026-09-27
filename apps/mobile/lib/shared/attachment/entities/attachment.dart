@@ -19,8 +19,7 @@ import 'package:equatable/equatable.dart';
 ///    - Deprecated Attachment wrappers (PostAttachment, ForSaleAttachment, etc.) removed
 ///
 /// 2. WORKFLOW PAYLOAD (domain-specific business state):
-///    - NegotiationOfferAttachment: active negotiation state (Negotiation domain)
-///    - NegotiationResultAttachment: negotiation outcome (Negotiation domain)
+///    - NegotiationProposalAttachment: live backend proposal payload (Negotiation domain)
 ///    - ShippingQuoteAttachment: shipping offer data (Shipping domain)
 ///    - BidAttachment: auction bid in comment (Auction domain)
 ///    - These are NOT "attachments" - they are workflow/business payloads
@@ -61,23 +60,6 @@ enum AttachmentCategory {
   workflowPayload,
 }
 
-/// Attachment Type enum for type discrimination and serialization
-///
-/// **REFERENCE TRUTH ALIGNMENT V1:**
-/// This enum contains TWO SEMANTICALLY DIFFERENT categories.
-/// Use AttachmentCategory for semantic grouping.
-enum AttachmentType {
-  // True Attachments (local payload)
-  location,
-
-  // Workflow Payloads (domain-specific, kept for compatibility)
-  negotiationOffer,
-  negotiationProposal,
-  negotiationResult,
-  shippingQuote,
-  bid,
-}
-
 /// Location attachment - TRUE ATTACHMENT (local payload)
 ///
 /// This is the only true attachment type - location data belongs to the message itself.
@@ -105,107 +87,6 @@ class LocationAttachment extends Attachment {
 
   @override
   bool get supportsLiveStatus => false; // Local payload has no live status
-}
-
-/// Negotiation Offer attachment - WORKFLOW PAYLOAD (Negotiation domain)
-///
-/// **SEMANTIC RULES (CRITICAL):**
-/// - negotiationId adalah CANONICAL reference ke negosiasi (backend authoritative)
-/// - forSaleId adalah CANONICAL reference ke for-sale terkait
-/// - SEMUA field lain (forSaleName, status, round, price, dll) hanya PREVIEW/CACHE untuk UI
-/// - SEMUA preview data bisa STALE - tidak ada live status provider
-/// - Gunakan negotiationId untuk semua action (accept, counter, reject)
-/// - Backend adalah source of truth untuk status negosiasi
-///
-/// **BATCH R1:** This is a WORKFLOW PAYLOAD, not a true attachment.
-/// Kept in Attachment system for backward compatibility.
-/// Should move to Negotiation domain module in V2.
-class NegotiationOfferAttachment extends Attachment {
-  /// CANONICAL REFERENCE - selalu gunakan ini untuk query ke backend
-  final String negotiationId;
-  final String forSaleId;
-
-  /// PREVIEW DATA - bisa stale, gunakan hanya untuk UI display
-  final String forSaleName;
-  final String? forSaleImage;
-  final double originalPrice;
-  final double currentOfferPrice;
-  final String lastOfferBy;
-  final int round;
-
-  /// PREVIEW STATUS - bisa stale, gunakan hanya untuk UI display
-  /// Untuk business logic, selalu query ke backend dengan negotiationId
-  final String status;
-  final String buyerId;
-  final String buyerName;
-  final String sellerId;
-  final String sellerName;
-  final DateTime createdAt;
-  final DateTime updatedAt;
-
-  const NegotiationOfferAttachment({
-    required this.negotiationId,
-    required this.forSaleId,
-    required this.forSaleName,
-    this.forSaleImage,
-    required this.originalPrice,
-    required this.currentOfferPrice,
-    required this.lastOfferBy,
-    required this.round,
-    required this.status,
-    required this.buyerId,
-    required this.buyerName,
-    required this.sellerId,
-    required this.sellerName,
-    required this.createdAt,
-    required this.updatedAt,
-  });
-
-  double get discountPercentage {
-    if (originalPrice <= 0) return 0;
-    return ((originalPrice - currentOfferPrice) / originalPrice) * 100;
-  }
-
-  /// Checks if negotiation appears active based on EMBEDDED status
-  /// **WARNING:** This is based on stale embedded data - may not reflect current backend state
-  /// For actual business decisions, query backend with negotiationId
-  bool get isActive => status == 'pending' || status == 'countered';
-
-  /// Checks if user can act based on EMBEDDED status
-  /// **WARNING:** This is based on stale embedded data - may not reflect current backend state
-  /// For actual business decisions, query backend with negotiationId
-  bool canUserAct(String userId) {
-    if (!isActive) return false;
-    return lastOfferBy == 'buyer' ? userId == sellerId : userId == buyerId;
-  }
-
-  @override
-  List<Object?> get props => [
-    negotiationId,
-    forSaleId,
-    forSaleName,
-    forSaleImage,
-    originalPrice,
-    currentOfferPrice,
-    lastOfferBy,
-    round,
-    status,
-    buyerId,
-    buyerName,
-    sellerId,
-    sellerName,
-    createdAt,
-    updatedAt,
-  ];
-
-  @override
-  AttachmentCategory get category => AttachmentCategory.workflowPayload;
-
-  @override
-  String? get canonicalId => negotiationId;
-
-  @override
-  bool get supportsLiveStatus => false; // **R1.1 HONEST:** No provider implemented - embedded status may be stale
 }
 
 /// Negotiation Proposal attachment - WORKFLOW PAYLOAD (Negotiation domain)
@@ -270,72 +151,6 @@ class NegotiationProposalAttachment extends Attachment {
 
   @override
   bool get supportsLiveStatus => false;
-}
-
-/// Negotiation Result attachment - WORKFLOW PAYLOAD (Negotiation domain)
-///
-/// **SEMANTIC RULES (CRITICAL):**
-/// - negotiationId adalah CANONICAL reference ke negosiasi (backend authoritative)
-/// - forSaleId adalah CANONICAL reference ke for-sale terkait
-/// - Field lain (forSaleName, forSaleImage, agreedPrice) hanya PREVIEW/CACHE untuk UI
-/// - Untuk checkout, selalu resolve lewat backend canonical flow dengan negotiationId
-///
-/// **BATCH R1:** This is a WORKFLOW PAYLOAD, not a true attachment.
-/// Kept in Attachment system for backward compatibility.
-/// Should move to Negotiation domain module in V2.
-class NegotiationResultAttachment extends Attachment {
-  /// CANONICAL REFERENCE - selalu gunakan ini untuk query ke backend
-  final String negotiationId;
-  final String forSaleId;
-
-  /// PREVIEW DATA - bisa stale, gunakan hanya untuk UI display
-  final String forSaleName;
-  final String? forSaleImage;
-  final double originalPrice;
-  final double? agreedPrice;
-  final String status;
-  final int totalRounds;
-  final DateTime createdAt;
-  final DateTime? completedAt;
-  final bool canPurchase;
-
-  const NegotiationResultAttachment({
-    required this.negotiationId,
-    required this.forSaleId,
-    required this.forSaleName,
-    this.forSaleImage,
-    required this.originalPrice,
-    this.agreedPrice,
-    required this.status,
-    required this.totalRounds,
-    required this.createdAt,
-    this.completedAt,
-    this.canPurchase = false,
-  });
-
-  @override
-  List<Object?> get props => [
-    negotiationId,
-    forSaleId,
-    forSaleName,
-    forSaleImage,
-    originalPrice,
-    agreedPrice,
-    status,
-    totalRounds,
-    createdAt,
-    completedAt,
-    canPurchase,
-  ];
-
-  @override
-  AttachmentCategory get category => AttachmentCategory.workflowPayload;
-
-  @override
-  String? get canonicalId => negotiationId;
-
-  @override
-  bool get supportsLiveStatus => false; // **R1.1 HONEST:** No provider implemented - embedded status may be stale
 }
 
 /// Shipping Quote attachment - WORKFLOW PAYLOAD (Shipping domain)

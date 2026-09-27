@@ -13,30 +13,23 @@ class DropdownStateBuilders {
   /// Build disabled dropdown state
   static Widget buildDisabled({
     required BuildContext context,
-    required bool isDark,
     required String text,
     IconData? prefixIcon,
   }) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       height: 50,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
           if (prefixIcon != null) ...[
-            Icon(
-              prefixIcon,
-              color: isDark
-                  ? AppColors.neutralGray500
-                  : AppColors.neutralGray400,
-            ),
+            Icon(prefixIcon, color: scheme.onSurfaceVariant),
             const SizedBox(width: 12),
           ],
           Text(
             text,
             style: TextStyle(
-              color: isDark
-                  ? AppColors.neutralGray500
-                  : AppColors.neutralGray400,
+              color: scheme.onSurfaceVariant,
               fontSize: 16,
             ),
           ),
@@ -48,30 +41,23 @@ class DropdownStateBuilders {
   /// Build empty dropdown state
   static Widget buildEmpty({
     required BuildContext context,
-    required bool isDark,
     required String text,
     IconData? prefixIcon,
   }) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       height: 50,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
           if (prefixIcon != null) ...[
-            Icon(
-              prefixIcon,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray600,
-            ),
+            Icon(prefixIcon, color: scheme.onSurfaceVariant),
             const SizedBox(width: 12),
           ],
           Text(
             text,
             style: TextStyle(
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray500,
+              color: scheme.onSurfaceVariant,
               fontSize: 16,
             ),
           ),
@@ -83,22 +69,17 @@ class DropdownStateBuilders {
   /// Build loading dropdown state
   static Widget buildLoading({
     required BuildContext context,
-    required bool isDark,
     required String text,
     IconData? prefixIcon,
   }) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       height: 50,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
           if (prefixIcon != null) ...[
-            Icon(
-              prefixIcon,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray600,
-            ),
+            Icon(prefixIcon, color: scheme.onSurfaceVariant),
             const SizedBox(width: 12),
           ],
           const SizedBox(
@@ -109,11 +90,7 @@ class DropdownStateBuilders {
           const SizedBox(width: 12),
           Text(
             text,
-            style: TextStyle(
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray500,
-            ),
+            style: TextStyle(color: scheme.onSurfaceVariant),
           ),
         ],
       ),
@@ -123,7 +100,6 @@ class DropdownStateBuilders {
   /// Build error dropdown state
   static Widget buildError({
     required BuildContext context,
-    required bool isDark,
     required String text,
     IconData? prefixIcon,
   }) {

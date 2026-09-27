@@ -7,16 +7,15 @@ import 'package:labuda/domains/user/profile/profile.dart'
 /// Header for phone verification dialog
 class VerificationHeader extends ConsumerWidget {
   final String phoneNumber;
-  final bool isDark;
 
   const VerificationHeader({
     super.key,
     required this.phoneNumber,
-    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
     final state = ref.watch(phoneVerificationProvider);
     final service = ref.read(phoneVerificationServiceProvider);
     final isTestNumber = service.isTestPhoneNumber(phoneNumber);
@@ -37,24 +36,24 @@ class VerificationHeader extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 12),
-        Text(
-          'Phone Number Verification',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: isDark ? AppColors.neutralGray200 : AppColors.neutralGray900,
-          ),
+          Text(
+            'Phone Number Verification',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: scheme.onSurface,
+            ),
         ),
         const SizedBox(height: 6),
-        Text(
-          state.codeSent
-              ? 'Enter the 6-digit code sent to you'
-              : 'We will send a verification code via SMS',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 13,
-            color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray600,
-          ),
+          Text(
+            state.codeSent
+                ? 'Enter the 6-digit code sent to you'
+                : 'We will send a verification code via SMS',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              color: scheme.onSurfaceVariant,
+            ),
         ),
         if (isTestNumber && !state.codeSent) ...[
           const SizedBox(height: 4),

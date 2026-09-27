@@ -105,7 +105,6 @@ var domainTables = []string{
 	"ledger_transactions",
 	"listing_views",
 	"listings",
-	"negotiation_messages",
 	"negotiation_price_history",
 	"negotiation_sessions",
 	"notification_delivery_log",

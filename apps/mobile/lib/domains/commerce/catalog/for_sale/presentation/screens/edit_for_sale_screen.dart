@@ -258,18 +258,14 @@ class _EditForSaleScreenState extends ConsumerState<EditForSaleScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     if (_originalForSale == null && _errorMessage == null) {
       return Scaffold(
         appBar: AppBar(
           title: const Text('Edit ForSale'),
-          backgroundColor: isDark
-              ? AppColors.darkGray800
-              : AppColors.neutralWhite,
-          foregroundColor: isDark
-              ? AppColors.neutralWhite
-              : AppColors.neutralGray900,
+          backgroundColor: scheme.surface,
+          foregroundColor: scheme.onSurface,
         ),
         body: const Center(child: CircularProgressIndicator()),
       );
@@ -279,9 +275,7 @@ class _EditForSaleScreenState extends ConsumerState<EditForSaleScreen> {
       return Scaffold(
         appBar: AppBar(
           title: const Text('Edit ForSale'),
-          backgroundColor: isDark
-              ? AppColors.darkGray800
-              : AppColors.neutralWhite,
+          backgroundColor: scheme.surface,
         ),
         body: Center(
           child: Padding(
@@ -289,7 +283,11 @@ class _EditForSaleScreenState extends ConsumerState<EditForSaleScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.lock, size: 64, color: AppColors.primaryRed),
+                Icon(
+                  Icons.lock,
+                  size: 64,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
                 const SizedBox(height: 16),
                 Text(
                   _errorMessage!,
@@ -309,19 +307,15 @@ class _EditForSaleScreenState extends ConsumerState<EditForSaleScreen> {
     }
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkGray900 : AppColors.neutralGray50,
+      backgroundColor: scheme.surfaceContainerLowest,
       appBar: AppBar(
         title: const Text('Edit ForSale'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        backgroundColor: isDark
-            ? AppColors.darkGray800
-            : AppColors.neutralWhite,
-        foregroundColor: isDark
-            ? AppColors.neutralWhite
-            : AppColors.neutralGray900,
+        backgroundColor: scheme.surface,
+        foregroundColor: scheme.onSurface,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         scrolledUnderElevation: 0,
@@ -329,22 +323,22 @@ class _EditForSaleScreenState extends ConsumerState<EditForSaleScreen> {
           TextButton(
             onPressed: _isSubmitting ? null : _submitForm,
             child: _isSubmitting
-                ? const SizedBox(
+                ? SizedBox(
                     width: 16,
                     height: 16,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
                       valueColor: AlwaysStoppedAnimation<Color>(
-                        AppColors.primaryRed,
+                        scheme.primary,
                       ),
                     ),
                   )
-                : const Text(
+                : Text(
                     'Simpan',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.primaryRed,
+                      color: scheme.primary,
                     ),
                   ),
           ),
@@ -426,16 +420,16 @@ class _EditForSaleScreenState extends ConsumerState<EditForSaleScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryRed.withValues(alpha: 0.1),
+                  color: scheme.error.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: AppColors.primaryRed.withValues(alpha: 0.3),
+                    color: scheme.error.withValues(alpha: 0.3),
                   ),
                 ),
                 child: Text(
                   _errorMessage!,
-                  style: const TextStyle(
-                    color: AppColors.primaryRed,
+                  style: TextStyle(
+                    color: scheme.onSurface,
                     fontSize: 14,
                   ),
                 ),
@@ -535,7 +529,7 @@ class _NegotiableToggle extends StatelessWidget {
       subtitle: const Text('Pembeli dapat melakukan negosiasi harga'),
       value: initialValue,
       onChanged: onChanged,
-      activeTrackColor: AppColors.primaryRed,
+      activeTrackColor: Theme.of(context).colorScheme.primary,
     );
   }
 }

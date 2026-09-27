@@ -2,9 +2,9 @@ import 'dart:async';
 
 import 'package:labuda/core/common/result.dart';
 import 'package:labuda/core/websocket/websocket_service.dart';
-import 'package:labuda/domains/chat/chat/data/dto/message_dto.dart';
 import 'package:labuda/domains/chat/chat/data/dto/chat_resource_occurrence_request.dart';
 import 'package:labuda/domains/chat/chat/data/dto/chat_room_event_dto.dart';
+import 'package:labuda/domains/chat/chat/data/dto/message_dto.dart';
 import 'package:labuda/domains/chat/chat/data/mappers/chat_mapper.dart';
 import 'package:labuda/domains/chat/chat/data/remote/chat_api_datasource.dart';
 import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart';
@@ -15,64 +15,46 @@ import 'package:labuda/domains/commerce/catalog/for_sale/data/dto/shipping_quote
 
 /// Chat Repository Implementation
 ///
-/// Combines REST API calls with WebSocket for real-time updates.
+/// REST carries every read/write; the WebSocket carries ONE gateway signal
+/// type for chat: `chat.room.created` / `chat.room.updated`.
+///
+/// CANONICAL REALTIME AUTHORITY: room summary events only. The backend emits
+/// `chat.room.updated` (user-targeted, viewer-scoped) for each message sent
+/// to a room, for moderation hide/restore, for read-state changes and for
+/// order linking. Consumers re-fetch message bodies over REST (ADR-005: no
+/// message payload in WS frames).
+///
+/// KILLED DESIGNS (do not reintroduce):
+/// - a message-level stream (`watchMessages`) that required a room
+///   subscription and had no consumer;
+/// - patching thread state from an event body;
+/// - typing indicators and read-receipt streams (backend has no such
+///   events);
+/// - `chat.message.hidden` / `chat.message.restored` / `message.read`
+///   handling — those event names are not emitted by the backend.
 class ChatRepositoryImpl implements ChatRepository {
   final ChatApiDatasource _apiDatasource;
   final WebSocketService _webSocketService;
   final ILoggerService _logger;
 
-  // Stream controllers for real-time events
-  final Map<String, StreamController<Message>> _messageStreamControllers = {};
   StreamController<ChatRoomEventDto>? _chatRoomEventStreamController;
-  final Map<String, StreamController<TypingEvent>> _typingStreamControllers =
-      {};
-  final Map<String, StreamController<ReadReceiptEvent>>
-  _readReceiptStreamControllers = {};
-
-  // Track subscribed chat rooms
-  final Set<String> _subscribedChatRooms = {};
 
   // WebSocket event subscription
   StreamSubscription? _wsEventSubscription;
-
-  /// Test-only seam: replace the canonical mapper with a function the
-  /// test controls so the mapper-error path is exercisable
-  /// deterministically. Production wires this as null and falls back
-  /// to [ChatMapper.messageToDomain].
-  final Message Function(MessageDto)? _messageMapperOverride;
-  final Future<void> Function(String chatRoomId)? _roomRefreshHookForTest;
-  final Map<String, Map<String, Message>> _messageCacheByRoom = {};
 
   ChatRepositoryImpl({
     required ChatApiDatasource apiDatasource,
     required WebSocketService webSocketService,
     required ILoggerService logger,
-    Message Function(MessageDto)? messageMapperForTest,
-    Future<void> Function(String chatRoomId)? roomRefreshHookForTest,
   }) : _apiDatasource = apiDatasource,
        _webSocketService = webSocketService,
-       _logger = logger,
-       _messageMapperOverride = messageMapperForTest,
-       _roomRefreshHookForTest = roomRefreshHookForTest {
+       _logger = logger {
     _initializeWebSocketListener();
   }
 
-  /// Test-only seam to register a stream controller for a chat room
-  /// without going through the public watchMessages API (which
-  /// triggers backend subscription side-effects). Returns the
-  /// controller so the test can listen and observe errors.
-  StreamController<Message> primeMessageControllerForTest(String chatRoomId) {
-    final ctrl = StreamController<Message>.broadcast();
-    _messageStreamControllers[chatRoomId] = ctrl;
-    return ctrl;
-  }
-
-  /// Test-only seam to drive [_handleMessageEvent] directly with a
-  /// crafted payload. Used to verify that DTO parse failures and
-  /// mapper failures route correctly.
-  void handleMessageEventForTest(Map<String, dynamic> payload) =>
-      _handleMessageEvent(payload);
-
+  /// Test-only seam to drive [_handleWebSocketEvent] directly with a crafted
+  /// payload. Used to verify room-event parsing and that non-gateway chat
+  /// signals cannot fabricate thread content.
   void handleWebSocketEventForTest(Map<String, dynamic> eventPayload) =>
       _handleWebSocketEvent(eventPayload);
 
@@ -101,15 +83,12 @@ class ChatRepositoryImpl implements ChatRepository {
         if (state == ConnectionState.disconnected) {
           _logger.warning('WebSocket disconnected - real-time updates paused');
         } else if (state == ConnectionState.connected) {
-          _logger.info('WebSocket connected - resubscribing to chat rooms');
-          _resubscribeToAllChats();
+          // Room re-joins after reconnect are owned by WebSocketService
+          // itself (it re-issues the subscribe frames it initiated). Chat
+          // does not subscribe to rooms: its authority is user-targeted.
+          _logger.info('WebSocket connected');
         }
       },
-      // Tier 4 (Runtime Honesty): connectionState stream had no
-      // onError. If the underlying state controller errored, the
-      // listener died silently and the UI continued to believe it
-      // was connected. Surface as a structured log so an incident
-      // is at least diagnosable from telemetry.
       onError: (Object error, StackTrace stackTrace) {
         _logger.error(
           'WebSocket connectionState stream errored — '
@@ -130,35 +109,19 @@ class ChatRepositoryImpl implements ChatRepository {
       final event = WebSocketEventDto.fromJson(eventData);
 
       switch (event.type) {
-        case WebSocketEventType.messageNew:
-          // Backend canonical realtime signal currently ships minimal
-          // envelope data (room_id/message_id) and not full message body.
-          // Skip DTO parsing for this shape; room refresh stays REST-driven.
-          if (_isMinimalChatSignal(event.payload)) {
-            _logger.debug(
-              'Received minimal chat signal: room_id=${event.payload['room_id']} message_id=${event.payload['message_id']}',
-            );
-            unawaited(_handleMessageSentSignal(event.payload));
-            break;
-          }
-          _handleMessageEvent(event.payload);
-          break;
-        case WebSocketEventType.messageHidden:
-          _handleMessageHiddenEvent(event.payload);
-          break;
-        case WebSocketEventType.messageRestored:
-          unawaited(_handleMessageRestoredEvent(event.payload));
-          break;
-        case WebSocketEventType.messageRead:
-          _handleMessageReadEvent(event.payload);
-          break;
         case WebSocketEventType.roomCreated:
         case WebSocketEventType.roomUpdated:
           _handleRoomEvent(event);
           break;
-        case WebSocketEventType.typingStarted:
-        case WebSocketEventType.typingStopped:
-          _handleTypingEvent(event.payload);
+        case WebSocketEventType.messageNew:
+          // `chat.message.sent` is a room-broadcast minimal envelope
+          // (room_id + message_id) and this connection never subscribes to
+          // rooms. Even if it arrived, the open thread refresh is driven by
+          // `chat.room.updated` — never by patching state from a signal.
+          _logger.debug(
+            'Ignored chat message signal — thread refresh is driven by '
+            'chat.room.updated',
+          );
           break;
         default:
           // Unknown chat websocket events are treated as contract drift.
@@ -167,163 +130,6 @@ class ChatRepositoryImpl implements ChatRepository {
       }
     } catch (e) {
       _logger.error('Error handling WebSocket event: $e');
-    }
-  }
-
-  bool _isMinimalChatSignal(Map<String, dynamic> payload) {
-    return payload.containsKey('room_id') &&
-        payload.containsKey('message_id') &&
-        !payload.containsKey('chat_room_id') &&
-        !payload.containsKey('sender_id');
-  }
-
-  void _handleMessageEvent(Map<String, dynamic> payload) {
-    MessageDto? messageDto;
-    try {
-      messageDto = MessageDto.fromJson(payload);
-    } catch (e, stackTrace) {
-      // DTO-level parse failure: we cannot identify which chat room
-      // the malformed payload belongs to, so we cannot route the
-      // error to a specific stream. Log structured + carry on (the
-      // service stays alive).
-      _logger.error(
-        'Chat WS message: DTO parse failed (cannot route to a stream)',
-        extra: {'error': e.toString()},
-        stackTrace: stackTrace,
-      );
-      return;
-    }
-
-    final controller = _messageStreamControllers[messageDto.chatRoomId];
-    if (controller == null || controller.isClosed) {
-      // No active listener for this chat room — nothing to deliver
-      // to. This is normal (e.g. message arrived for a room the user
-      // is not currently viewing); not an error.
-      return;
-    }
-
-    try {
-      final mapper = _messageMapperOverride ?? ChatMapper.messageToDomain;
-      final message = mapper(messageDto);
-      _upsertMessageCache(message);
-      controller.add(message);
-    } catch (e, stackTrace) {
-      // Tier 4 (Runtime Honesty): mapper failure used to be silently
-      // logged — the message was dropped from the user-visible chat
-      // stream and the UI looked stuck on the previous message even
-      // though the server had delivered an update. Surface the error
-      // on the chat room's stream so the listener's onError handler
-      // can render a "couldn't decode this message" placeholder or
-      // refresh the room from REST. The controller stays open so the
-      // next valid message still flows through.
-      _logger.error(
-        'Chat WS message: mapper error for chatRoomId=${messageDto.chatRoomId}',
-        extra: {'error': e.toString()},
-        stackTrace: stackTrace,
-      );
-      controller.addError(
-        StateError('Failed to decode realtime chat message: $e'),
-        stackTrace,
-      );
-    }
-  }
-
-  void _handleMessageHiddenEvent(Map<String, dynamic> payload) {
-    final roomId = payload['room_id'] as String?;
-    final messageId = payload['message_id'] as String?;
-    if (roomId == null || messageId == null) return;
-
-    final controller = _messageStreamControllers[roomId];
-    if (controller == null || controller.isClosed) return;
-
-    final roomCache = _messageCacheByRoom[roomId];
-    final existing = roomCache?[messageId];
-    if (existing == null) return;
-
-    final hiddenMessage = existing.tombstone();
-    roomCache![messageId] = hiddenMessage;
-    controller.add(hiddenMessage);
-  }
-
-  Future<void> _handleMessageRestoredEvent(Map<String, dynamic> payload) async {
-    final roomId = payload['room_id'] as String?;
-    final messageId = payload['message_id'] as String?;
-    if (roomId == null || messageId == null) return;
-
-    final controller = _messageStreamControllers[roomId];
-    if (controller == null || controller.isClosed) return;
-
-    if (_roomRefreshHookForTest != null) {
-      await _roomRefreshHookForTest(roomId);
-      return;
-    }
-
-    await _refreshRoomFromSignal(roomId: roomId, messageId: messageId);
-  }
-
-  Future<void> _handleMessageSentSignal(Map<String, dynamic> payload) async {
-    final roomId = payload['room_id'] as String?;
-    final messageId = payload['message_id'] as String?;
-    if (roomId == null || messageId == null) return;
-
-    final controller = _messageStreamControllers[roomId];
-    if (controller == null || controller.isClosed) return;
-
-    if (_roomRefreshHookForTest != null) {
-      await _roomRefreshHookForTest(roomId);
-      return;
-    }
-
-    await _refreshRoomFromSignal(roomId: roomId, messageId: messageId);
-  }
-
-  Future<void> _refreshRoomFromSignal({
-    required String roomId,
-    required String messageId,
-  }) async {
-    final controller = _messageStreamControllers[roomId];
-    if (controller == null || controller.isClosed) return;
-
-    final previous = _messageCacheByRoom[roomId]?[messageId];
-    final result = await _apiDatasource.listMessages(roomId, limit: 50);
-    result.fold((_) {}, (dto) {
-      final messages = ChatMapper.messageListToDomain(dto.messages);
-      final roomCache = <String, Message>{};
-      for (final msg in messages) {
-        roomCache[msg.id] = msg;
-      }
-      _messageCacheByRoom[roomId] = roomCache;
-
-      final refreshed = roomCache[messageId];
-      if (refreshed != null && refreshed != previous) {
-        controller.add(refreshed);
-      }
-    });
-  }
-
-  void _upsertMessageCache(Message message) {
-    final roomCache = _messageCacheByRoom.putIfAbsent(
-      message.chatId,
-      () => <String, Message>{},
-    );
-    roomCache[message.id] = message;
-  }
-
-  void _handleMessageReadEvent(Map<String, dynamic> payload) {
-    try {
-      final event = MessageReadEventDto.fromJson(payload);
-      final controller = _readReceiptStreamControllers[event.chatRoomId];
-      if (controller != null && !controller.isClosed) {
-        controller.add(
-          ReadReceiptEvent(
-            chatRoomId: event.chatRoomId,
-            messageId: event.messageId,
-            userId: event.userId,
-          ),
-        );
-      }
-    } catch (e) {
-      _logger.error('Error handling message read event: $e');
     }
   }
 
@@ -342,50 +148,7 @@ class ChatRepositoryImpl implements ChatRepository {
         },
       );
     } catch (e, stackTrace) {
-      _logger.error(
-        'Error handling chat room event: $e',
-        stackTrace: stackTrace,
-      );
-    }
-  }
-
-  void _handleTypingEvent(Map<String, dynamic> payload) {
-    try {
-      final event = TypingEventDto.fromJson(payload);
-      final controller = _typingStreamControllers[event.chatRoomId];
-      if (controller != null && !controller.isClosed) {
-        controller.add(
-          TypingEvent(
-            chatRoomId: event.chatRoomId,
-            userId: event.userId,
-            userName: event.userName,
-            isTyping: event.isTyping,
-          ),
-        );
-      }
-    } catch (e) {
-      _logger.error('Error handling typing event: $e');
-    }
-  }
-
-  Future<void> _resubscribeToAllChats() async {
-    for (final chatId in _subscribedChatRooms) {
-      try {
-        await _webSocketService.subscribeToRoom(chatId);
-        _logger.info('Resubscribed to chat: $chatId');
-      } catch (e) {
-        _logger.warning('Failed to resubscribe to chat $chatId: $e');
-      }
-    }
-  }
-
-  Future<void> _subscribeToChat(String chatRoomId) async {
-    try {
-      await _webSocketService.subscribeToRoom(chatRoomId);
-      _subscribedChatRooms.add(chatRoomId);
-      _logger.info('Subscribed to chat room: $chatRoomId');
-    } catch (e) {
-      _logger.error('Failed to subscribe to chat room $chatRoomId: $e');
+      _logger.error('Error handling chat room websocket event: $e', stackTrace: stackTrace);
     }
   }
 
@@ -438,18 +201,6 @@ class ChatRepositoryImpl implements ChatRepository {
   }
 
   @override
-  Future<Result<bool>> deleteChat({
-    required String chatId,
-    required String userId,
-  }) async {
-    // NOTE: Backend does not have a delete chat endpoint.
-    // Implement client-side soft delete (hide from UI).
-    return Result.error(
-      'Delete chat not implemented - use client-side filtering',
-    );
-  }
-
-  @override
   Future<Result<Chat>> linkOrderToChat({
     required String roomId,
     required String orderId,
@@ -477,6 +228,7 @@ class ChatRepositoryImpl implements ChatRepository {
     List<String> mentionedUserIds = const [],
     ShareReference? objectReference,
     Map<String, dynamic>? workflowAttachment,
+    ChatResourceOccurrenceRequest? resourceOccurrence,
   }) async {
     final normalizedReference = _normalizeReferenceForChat(
       objectReference,
@@ -514,9 +266,10 @@ class ChatRepositoryImpl implements ChatRepository {
       replyToId: replyToId,
       mentionedUserIds: mentionedUserIds,
       // Declare what the message is about (communication reference only).
-      resourceOccurrence: _resourceOccurrenceFor(
-        normalizedReference ?? objectReference,
-      ),
+      // An explicit occurrence (composer direct-commerce attach) wins over
+      // the reference-derived one.
+      resourceOccurrence: resourceOccurrence ??
+          _resourceOccurrenceFor(normalizedReference ?? objectReference),
     );
 
     final result = await _apiDatasource.sendMessage(chatId, request);
@@ -541,15 +294,10 @@ class ChatRepositoryImpl implements ChatRepository {
       cursorId: cursorId,
       limit: limit,
     );
-    return result.fold((error) => Result.error(error), (dto) {
-      final messages = ChatMapper.messageListToDomain(dto.messages);
-      final roomCache = <String, Message>{};
-      for (final message in messages) {
-        roomCache[message.id] = message;
-      }
-      _messageCacheByRoom[chatId] = roomCache;
-      return Result.success(messages);
-    });
+    return result.fold(
+      (error) => Result.error(error),
+      (dto) => Result.success(ChatMapper.messageListToDomain(dto.messages)),
+    );
   }
 
   // ========================================
@@ -570,55 +318,9 @@ class ChatRepositoryImpl implements ChatRepository {
     );
   }
 
-  @override
-  Future<Result<bool>> markMessageAsDelivered({
-    required String chatId,
-    required String messageId,
-  }) async {
-    // TODO: Implement API call
-    return Result.success(true);
-  }
-
-  // ========================================
-  // Content Validation
-  // ========================================
-
-  @override
-  Future<Result<bool>> validateMessageContent(String content) async {
-    // TODO: Implement content validation
-    return Result.success(true);
-  }
-
-  // ========================================
-  // Unread Count
-  // ========================================
-
-  @override
-  Future<Result<int>> getRoomUnreadCount(String roomId) async {
-    return _apiDatasource.getUnreadCount(roomId);
-  }
-
   // ========================================
   // Streams (Real-time)
   // ========================================
-
-  @override
-  Stream<List<Message>> watchMessages({
-    required String chatId,
-    required String userId,
-  }) {
-    if (!_messageStreamControllers.containsKey(chatId)) {
-      _messageStreamControllers[chatId] = StreamController<Message>.broadcast();
-    }
-
-    if (!_subscribedChatRooms.contains(chatId)) {
-      _subscribeToChat(chatId);
-    }
-
-    return _messageStreamControllers[chatId]!.stream.map(
-      (message) => [message],
-    );
-  }
 
   @override
   Stream<ChatRoomEventDto> watchChatRoomEvents() {
@@ -627,37 +329,24 @@ class ChatRepositoryImpl implements ChatRepository {
     return _chatRoomEventStreamController!.stream;
   }
 
-  @override
-  Stream<Map<String, bool>> watchTypingIndicators(String chatId) {
-    if (!_typingStreamControllers.containsKey(chatId)) {
-      _typingStreamControllers[chatId] =
-          StreamController<TypingEvent>.broadcast();
-    }
-
-    if (!_subscribedChatRooms.contains(chatId)) {
-      _subscribeToChat(chatId);
-    }
-
-    return _typingStreamControllers[chatId]!.stream.map((event) {
-      return {event.userId: event.isTyping};
-    });
-  }
-
   // ========================================
-  // Support
+  // Commerce Operations
   // ========================================
 
   @override
-  Future<Result<Map<String, dynamic>>> getChatStats(String userId) async {
-    // NOTE: Backend does not have chat stats endpoint.
-    // Chat statistics are not available.
-    return Result.error('Chat statistics not available');
-  }
+  Future<Result<Map<String, dynamic>>> createShippingQuote({
+    required String chatId,
+    required CreateShippingQuoteRequestDto request,
+  }) async {
+    final result = await _apiDatasource.createShippingQuote(
+      chatId,
+      request.toJson(),
+    );
 
-  @override
-  Future<Result<void>> clearChatContext(String chatId) async {
-    // No-op for API-based chats
-    return Result.success(null);
+    return result.fold(
+      (error) => Result.error(error),
+      (data) => Result.success(data),
+    );
   }
 
   // ========================================
@@ -713,50 +402,12 @@ class ChatRepositoryImpl implements ChatRepository {
   }
 
   // ========================================
-  // Commerce Operations
-  // ========================================
-
-  @override
-  Future<Result<Map<String, dynamic>>> createShippingQuote({
-    required String chatId,
-    required CreateShippingQuoteRequestDto request,
-  }) async {
-    final result = await _apiDatasource.createShippingQuote(
-      chatId,
-      request.toJson(),
-    );
-
-    return result.fold(
-      (error) => Result.error(error),
-      (data) => Result.success(data),
-    );
-  }
-
-  // ========================================
   // Cleanup
   // ========================================
 
   void dispose() {
     _wsEventSubscription?.cancel();
-
-    for (final controller in _messageStreamControllers.values) {
-      controller.close();
-    }
-    _messageStreamControllers.clear();
-
-    for (final controller in _typingStreamControllers.values) {
-      controller.close();
-    }
-    _typingStreamControllers.clear();
-
-    for (final controller in _readReceiptStreamControllers.values) {
-      controller.close();
-    }
-    _readReceiptStreamControllers.clear();
-
     _chatRoomEventStreamController?.close();
     _chatRoomEventStreamController = null;
-
-    _subscribedChatRooms.clear();
   }
 }

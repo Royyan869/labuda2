@@ -1,6 +1,6 @@
+import 'package:labuda/core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/core/src/config/google_config.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/shared/entities/post_location.dart';
@@ -63,18 +63,18 @@ class AddressFormFields extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Purpose selection - show locked indicator if forcedPurpose is set
         if (forcedPurpose != null)
-          _buildLockedPurposeIndicator(isDark)
+          _buildLockedPurposeIndicator(scheme)
         else ...[
-          _buildLabel('Address Purpose', isDark),
+          _buildLabel('Address Purpose', scheme),
           const SizedBox(height: 8),
-          _buildPurposeDropdown(isDark),
+          _buildPurposeDropdown(scheme),
         ],
         const SizedBox(height: 16),
 
@@ -187,7 +187,7 @@ class AddressFormFields extends StatelessWidget {
 
         // Map Picker Button
         if (onCoordinatesChanged != null)
-          _buildMapPickerSection(context, isDark),
+          _buildMapPickerSection(context, scheme),
 
         const SizedBox(height: 16),
 
@@ -226,44 +226,44 @@ class AddressFormFields extends StatelessWidget {
           'Add notes to help delivery find your location',
           style: TextStyle(
             fontSize: 12,
-            color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray600,
+            color: scheme.onSurfaceVariant,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildLabel(String text, bool isDark) {
+  Widget _buildLabel(String text, ColorScheme scheme) {
     return Text(
       text,
       style: TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.w600,
-        color: isDark ? AppColors.neutralGray200 : AppColors.neutralGray900,
+        color: scheme.onSurfaceVariant,
       ),
     );
   }
 
-  InputDecoration _inputDecoration(bool isDark, String hintText) {
+  InputDecoration _inputDecoration(ColorScheme scheme, String hintText) {
     return InputDecoration(
       hintText: hintText,
       filled: true,
-      fillColor: isDark ? AppColors.darkGray700 : AppColors.neutralGray50,
+      fillColor: scheme.onSurfaceVariant,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide(
-          color: isDark ? AppColors.darkGray600 : AppColors.neutralGray200,
+          color: scheme.outlineVariant,
         ),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide(
-          color: isDark ? AppColors.darkGray600 : AppColors.neutralGray200,
+          color: scheme.outlineVariant,
         ),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: AppColors.primaryRed, width: 2),
+        borderSide: BorderSide(color: scheme.primary, width: 2),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
@@ -272,20 +272,18 @@ class AddressFormFields extends StatelessWidget {
     );
   }
 
-  Widget _buildPurposeDropdown(bool isDark) {
+  Widget _buildPurposeDropdown(ColorScheme scheme) {
     return DropdownButtonFormField<AddressPurpose>(
       initialValue: selectedPurpose,
-      decoration: _inputDecoration(isDark, 'Select address purpose'),
-      dropdownColor: isDark ? AppColors.darkGray700 : AppColors.neutralWhite,
+      decoration: _inputDecoration(scheme, 'Select address purpose'),
+      dropdownColor: scheme.onSurfaceVariant,
       items: AddressPurpose.values.map((purpose) {
         return DropdownMenuItem(
           value: purpose,
           child: Text(
             purpose.label,
             style: TextStyle(
-              color: isDark
-                  ? AppColors.neutralGray200
-                  : AppColors.neutralGray900,
+              color: scheme.onSurfaceVariant,
             ),
           ),
         );
@@ -301,17 +299,17 @@ class AddressFormFields extends StatelessWidget {
   }
 
   /// Build locked purpose indicator when forcedPurpose is set
-  Widget _buildLockedPurposeIndicator(bool isDark) {
+  Widget _buildLockedPurposeIndicator(ColorScheme scheme) {
     final purpose = forcedPurpose!;
     final isShipping = purpose == AddressPurpose.shipping;
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray700 : AppColors.neutralGray50,
+        color: scheme.onSurfaceVariant,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isDark ? AppColors.darkGray600 : AppColors.neutralGray200,
+          color: scheme.outlineVariant,
         ),
       ),
       child: Row(
@@ -321,7 +319,7 @@ class AddressFormFields extends StatelessWidget {
                 ? Icons.local_shipping_outlined
                 : Icons.storefront_outlined,
             size: 20,
-            color: AppColors.primaryRed,
+            color: scheme.primary,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -335,9 +333,7 @@ class AddressFormFields extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: isDark
-                        ? AppColors.neutralGray200
-                        : AppColors.neutralGray900,
+                    color: scheme.onSurfaceVariant,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -347,9 +343,7 @@ class AddressFormFields extends StatelessWidget {
                       : 'Origin address for shipping',
                   style: TextStyle(
                     fontSize: 12,
-                    color: isDark
-                        ? AppColors.neutralGray400
-                        : AppColors.neutralGray600,
+                    color: scheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -361,7 +355,7 @@ class AddressFormFields extends StatelessWidget {
   }
 
   /// Build map picker section with button and coordinate indicator
-  Widget _buildMapPickerSection(BuildContext context, bool isDark) {
+  Widget _buildMapPickerSection(BuildContext context, ColorScheme scheme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -372,14 +366,12 @@ class AddressFormFields extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
             decoration: BoxDecoration(
-              color: isDark ? AppColors.darkGray700 : AppColors.neutralGray50,
+              color: scheme.onSurfaceVariant,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: hasCoordinates
                     ? AppColors.success
-                    : (isDark
-                          ? AppColors.darkGray600
-                          : AppColors.neutralGray300),
+                    : scheme.onSurfaceVariant,
                 width: hasCoordinates ? 2 : 1,
               ),
             ),
@@ -390,9 +382,7 @@ class AddressFormFields extends StatelessWidget {
                   size: 20,
                   color: hasCoordinates
                       ? AppColors.success
-                      : (isDark
-                            ? AppColors.neutralGray400
-                            : AppColors.neutralGray600),
+                      : scheme.onSurfaceVariant,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -408,9 +398,7 @@ class AddressFormFields extends StatelessWidget {
                           fontWeight: FontWeight.w500,
                           color: hasCoordinates
                               ? AppColors.success
-                              : (isDark
-                                    ? AppColors.neutralGray200
-                                    : AppColors.neutralGray900),
+                              : scheme.onSurfaceVariant,
                         ),
                       ),
                       if (hasCoordinates)
@@ -419,9 +407,7 @@ class AddressFormFields extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 11,
                             fontFamily: 'monospace',
-                            color: isDark
-                                ? AppColors.neutralGray400
-                                : AppColors.neutralGray600,
+                            color: scheme.onSurfaceVariant,
                           ),
                         ),
                     ],
@@ -430,9 +416,7 @@ class AddressFormFields extends StatelessWidget {
                 Icon(
                   Icons.chevron_right,
                   size: 20,
-                  color: isDark
-                      ? AppColors.neutralGray400
-                      : AppColors.neutralGray600,
+                  color: scheme.onSurfaceVariant,
                 ),
               ],
             ),
@@ -443,7 +427,7 @@ class AddressFormFields extends StatelessWidget {
           'Pinpoint location to facilitate delivery',
           style: TextStyle(
             fontSize: 11,
-            color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray500,
+            color: scheme.onSurfaceVariant,
           ),
         ),
       ],

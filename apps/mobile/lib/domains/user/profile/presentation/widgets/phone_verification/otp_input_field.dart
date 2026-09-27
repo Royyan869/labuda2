@@ -7,14 +7,12 @@ import 'package:labuda/domains/user/profile/profile.dart'
 
 /// OTP Input Field - Handles OTP entry and verification
 class OTPInputField extends ConsumerStatefulWidget {
-  final bool isDark;
   final String phoneNumber;
   final Function() onVerificationSuccess;
   final Function() onResend;
 
   const OTPInputField({
     super.key,
-    required this.isDark,
     required this.phoneNumber,
     required this.onVerificationSuccess,
     required this.onResend,
@@ -66,6 +64,7 @@ class _OTPInputFieldState extends ConsumerState<OTPInputField> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final state = ref.watch(phoneVerificationProvider);
 
     return Column(
@@ -97,9 +96,7 @@ class _OTPInputFieldState extends ConsumerState<OTPInputField> {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
-                      color: widget.isDark
-                          ? AppColors.neutralGray200
-                          : AppColors.neutralGray900,
+                       color: scheme.onSurface,
                     ),
                     inputFormatters: [
                       LengthLimitingTextInputFormatter(1),
@@ -108,31 +105,25 @@ class _OTPInputFieldState extends ConsumerState<OTPInputField> {
                     decoration: InputDecoration(
                       contentPadding: EdgeInsets.zero,
                       filled: true,
-                      fillColor: widget.isDark
-                          ? AppColors.darkGray700.withValues(alpha: 0.5)
-                          : AppColors.neutralGray50,
+                       fillColor: scheme.surfaceContainerHigh,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(6),
                         borderSide: BorderSide(
-                          color: widget.isDark
-                              ? AppColors.darkGray600
-                              : AppColors.neutralGray300,
+                           color: scheme.outlineVariant,
                         ),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(6),
                         borderSide: BorderSide(
-                          color: widget.isDark
-                              ? AppColors.darkGray600
-                              : AppColors.neutralGray300,
+                           color: scheme.outlineVariant,
                         ),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(6),
-                        borderSide: const BorderSide(
-                          color: AppColors.primaryRed,
-                          width: 1.5,
-                        ),
+                         borderSide: BorderSide(
+                           color: scheme.primary,
+                           width: 1.5,
+                         ),
                       ),
                       errorBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(6),
@@ -171,9 +162,7 @@ class _OTPInputFieldState extends ConsumerState<OTPInputField> {
               'Tidak terima?',
               style: TextStyle(
                 fontSize: 11,
-                color: widget.isDark
-                    ? AppColors.neutralGray400
-                    : AppColors.neutralGray600,
+                 color: scheme.onSurfaceVariant,
               ),
             ),
             if (state.resendCountdown > 0)
@@ -181,9 +170,7 @@ class _OTPInputFieldState extends ConsumerState<OTPInputField> {
                 'Tunggu ${state.resendCountdown}d',
                 style: TextStyle(
                   fontSize: 11,
-                  color: widget.isDark
-                      ? AppColors.neutralGray400
-                      : AppColors.neutralGray600,
+                   color: scheme.onSurfaceVariant,
                 ),
               )
             else

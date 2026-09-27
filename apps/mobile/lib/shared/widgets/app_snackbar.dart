@@ -77,7 +77,10 @@ class AppSnackBar {
     // Clear existing snackbar
     ScaffoldMessenger.of(context).clearSnackBars();
 
-    final config = _getTypeConfig(type);
+    final config = _getTypeConfig(
+      type,
+      Theme.of(context).colorScheme,
+    );
 
     // Calculate safe bottom margin that works with bottom navigation
     final mediaQuery = MediaQuery.of(context);
@@ -88,17 +91,18 @@ class AppSnackBar {
         ? bottomInset + 16
         : 106 + bottomPadding;
 
+    final scheme = Theme.of(context).colorScheme;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
           children: [
-            Icon(config.icon, color: AppColors.light, size: 20),
+            Icon(config.icon, color: scheme.onPrimary, size: 20),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
                 message,
-                style: const TextStyle(
-                  color: AppColors.light,
+                style: TextStyle(
+                  color: scheme.onPrimary,
                   fontWeight: FontWeight.w500,
                   fontSize: 14,
                 ),
@@ -115,7 +119,7 @@ class AppSnackBar {
         action: duration.inSeconds > 3
             ? SnackBarAction(
                 label: 'Close',
-                textColor: Colors.white70,
+                textColor: scheme.onPrimary.withValues(alpha: 0.7),
                 onPressed: () {
                   ScaffoldMessenger.of(context).hideCurrentSnackBar();
                 },
@@ -126,7 +130,10 @@ class AppSnackBar {
   }
 
   /// Get configuration berdasarkan type
-  static _SnackBarConfig _getTypeConfig(AppSnackBarType type) {
+  static _SnackBarConfig _getTypeConfig(
+    AppSnackBarType type,
+    ColorScheme scheme,
+  ) {
     switch (type) {
       case AppSnackBarType.success:
         return _SnackBarConfig(
@@ -140,7 +147,9 @@ class AppSnackBar {
         );
       case AppSnackBarType.info:
         return _SnackBarConfig(
-          color: AppColors.primaryRed,
+          // Same canonical red value via the scheme role (info uses the
+          // brand red by product convention — hue unchanged).
+          color: scheme.primary,
           icon: Icons.info_outline,
         );
       case AppSnackBarType.warning:

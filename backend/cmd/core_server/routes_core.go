@@ -226,6 +226,7 @@ func SetupRoutes(
 		paymentRoutes.POST("", deps.PaymentHandler.CreatePayment)
 		paymentRoutes.POST("/billing", deps.PaymentHandler.CreateBillingPayment)
 		paymentRoutes.GET("/methods", deps.PaymentHandler.ListPaymentMethods)
+		paymentRoutes.POST("/:id/sync", deps.PaymentHandler.SyncPayment)
 		paymentRoutes.GET("/:id", deps.PaymentHandler.GetPayment)
 		// NOTE: Midtrans webhook is at POST /webhooks/payment/midtrans (no auth required)
 

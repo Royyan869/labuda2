@@ -138,21 +138,23 @@ func requireLiveProfileProjection(t *testing.T, proj *chatApp.ResourceProjection
 	t.Helper()
 	require.NotNil(t, proj)
 	require.Equal(t, chatApp.ProjectionStateLive, proj.State)
-	require.Equal(t, chatEntity.ResourceOccurrenceResourceTypeProfile, proj.Identity.ResourceType)
-	require.NotNil(t, proj.Payload)
-
-	payload, ok := proj.Payload.(chatApp.ProfileLivePayload)
-	require.True(t, ok, "expected ProfileLivePayload, got %T", proj.Payload)
-	return payload
+	require.Equal(t, string(chatEntity.ResourceOccurrenceResourceTypeProfile), string(proj.ResourceType))
+	require.NotNil(t, proj.Profile)
+	require.Nil(t, proj.CommerceActions)
+	return *proj.Profile
 }
 
 func requireTombstoneProfileProjection(t *testing.T, proj *chatApp.ResourceProjection) {
 	t.Helper()
 	require.NotNil(t, proj)
 	require.Equal(t, chatApp.ProjectionStateTombstone, proj.State)
-	require.Equal(t, chatEntity.ResourceOccurrenceResourceTypeProfile, proj.Identity.ResourceType)
-	require.Nil(t, proj.Payload)
-	require.Equal(t, uuid.Nil, proj.Identity.ResourceID)
+	require.Equal(t, string(chatEntity.ResourceOccurrenceResourceTypeProfile), string(proj.ResourceType))
+	require.Nil(t, proj.Profile)
+	require.Nil(t, proj.Content)
+	require.Nil(t, proj.ForSale)
+	require.Nil(t, proj.Auction)
+	// Canonical contract: the resource id survives death.
+	require.NotEqual(t, uuid.Nil, proj.ResourceID)
 	assert.True(t, proj.ViewerCapabilities.BlockedByTombstone)
 	assert.False(t, proj.ViewerCapabilities.CanView)
 	assert.False(t, proj.ViewerCapabilities.CanInteract)
@@ -232,7 +234,7 @@ func TestProfileProjectionResolver_MixedStatesAndPayloadContract(t *testing.T) {
 			assert.Nil(t, payload.StoreName)
 			assert.False(t, payload.IsSeller)
 			assert.Equal(t, "active", payload.Lifecycle)
-			assert.Equal(t, sourceID, proj.Identity.ResourceID)
+			assert.Equal(t, sourceID, proj.ResourceID)
 		case viewerID:
 			payload := requireLiveProfileProjection(t, proj)
 			assert.Equal(t, "viewer", payload.Username)
@@ -241,7 +243,7 @@ func TestProfileProjectionResolver_MixedStatesAndPayloadContract(t *testing.T) {
 			assert.Nil(t, payload.StoreName)
 			assert.False(t, payload.IsSeller)
 			assert.Equal(t, "active", payload.Lifecycle)
-			assert.Equal(t, sourceID, proj.Identity.ResourceID)
+			assert.Equal(t, sourceID, proj.ResourceID)
 		case blockedByViewerID, blocksViewerID, suspendedID, bannedID, removedID:
 			requireTombstoneProfileProjection(t, proj)
 		case sellerID:
@@ -252,7 +254,7 @@ func TestProfileProjectionResolver_MixedStatesAndPayloadContract(t *testing.T) {
 			assert.Equal(t, "Labuda Farm", *payload.StoreName)
 			assert.True(t, payload.IsSeller)
 			assert.Equal(t, "active", payload.Lifecycle)
-			assert.Equal(t, sourceID, proj.Identity.ResourceID)
+			assert.Equal(t, sourceID, proj.ResourceID)
 		case plainID:
 			payload := requireLiveProfileProjection(t, proj)
 			assert.Equal(t, "plain-user", payload.Username)
@@ -260,7 +262,7 @@ func TestProfileProjectionResolver_MixedStatesAndPayloadContract(t *testing.T) {
 			assert.Nil(t, payload.StoreName)
 			assert.False(t, payload.IsSeller)
 			assert.Equal(t, "active", payload.Lifecycle)
-			assert.Equal(t, sourceID, proj.Identity.ResourceID)
+			assert.Equal(t, sourceID, proj.ResourceID)
 		default:
 			t.Fatalf("unexpected source id %s", sourceID)
 		}

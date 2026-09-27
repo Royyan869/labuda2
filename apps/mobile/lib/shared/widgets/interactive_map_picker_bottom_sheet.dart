@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart' as gmaps;
-import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/entities/post_location.dart';
 import 'package:labuda/shared/services/places_autocomplete_service.dart';
 import 'package:labuda/shared/services/location_service.dart';
@@ -185,16 +184,14 @@ class _InteractiveMapPickerBottomSheetState
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final scheme = Theme.of(context).colorScheme;
     final mediaQuery = MediaQuery.of(context);
     final bottomPadding = mediaQuery.padding.bottom;
 
     return Container(
       height: mediaQuery.size.height * 0.9,
       decoration: BoxDecoration(
-        color: theme.brightness == Brightness.dark
-            ? AppColors.darkGray800
-            : AppColors.neutralWhite,
+        color: scheme.surfaceContainerLow,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
       ),
       child: Column(
@@ -310,13 +307,13 @@ class _InteractiveMapPickerBottomSheetState
   }
 
   Widget _buildCurrentLocationButton(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return FloatingActionButton(
       mini: true,
-      backgroundColor: isDark ? AppColors.darkGray700 : AppColors.neutralWhite,
+      backgroundColor: scheme.surfaceContainerHigh,
       onPressed: recenterToCurrentLocation,
-      child: Icon(Icons.my_location, color: AppColors.primaryRed, size: 20),
+      child: Icon(Icons.my_location, color: scheme.primary, size: 20),
     );
   }
 
@@ -390,12 +387,12 @@ class _InitialLoadingIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray700 : AppColors.neutralWhite,
+        color: scheme.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -408,13 +405,13 @@ class _InitialLoadingIndicator extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const CircularProgressIndicator(color: AppColors.primaryRed),
+          CircularProgressIndicator(color: scheme.primary),
           const SizedBox(height: 12),
           Text(
             'Mendapatkan lokasi...',
             style: TextStyle(
               fontSize: 14,
-              color: isDark ? AppColors.neutralWhite : AppColors.neutralBlack,
+              color: scheme.onSurface,
             ),
           ),
         ],
@@ -431,15 +428,15 @@ class _DefaultLocationBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.primaryRed.withValues(alpha: 0.1),
+        color: scheme.error.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppColors.primaryRed.withValues(alpha: 0.4),
+          color: scheme.error.withValues(alpha: 0.4),
           width: 1,
         ),
       ),
@@ -447,7 +444,7 @@ class _DefaultLocationBanner extends StatelessWidget {
         children: [
           Icon(
             Icons.warning_amber_rounded,
-            color: AppColors.primaryRed,
+            color: scheme.error,
             size: 18,
           ),
           const SizedBox(width: 10),
@@ -461,18 +458,14 @@ class _DefaultLocationBanner extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: isDark
-                        ? AppColors.neutralWhite
-                        : AppColors.neutralGray900,
+                    color: scheme.onSurface,
                   ),
                 ),
                 Text(
                   'Menggunakan lokasi default (Jakarta)',
                   style: TextStyle(
                     fontSize: 11,
-                    color: isDark
-                        ? AppColors.neutralGray400
-                        : AppColors.neutralGray600,
+                    color: scheme.onSurfaceVariant,
                   ),
                 ),
               ],

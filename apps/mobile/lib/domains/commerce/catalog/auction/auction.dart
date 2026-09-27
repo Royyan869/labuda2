@@ -14,7 +14,6 @@ export 'presentation/providers/auction_notifier.dart';
 export 'presentation/providers/auction_providers.dart';
 
 // Presentation layer - Screens
-export 'presentation/screens/auction_list_screen.dart';
 export 'presentation/screens/auction_detail_screen.dart';
 export 'presentation/screens/create_auction_screen.dart';
 

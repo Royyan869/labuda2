@@ -26,5 +26,4 @@ export 'presentation/screens/new_chat_screen.dart';
 export 'presentation/widgets/chat_card.dart';
 export 'presentation/widgets/message_bubble.dart';
 export 'presentation/widgets/chat_input_area.dart';
-export 'presentation/widgets/typing_indicator.dart';
 export 'presentation/widgets/new_chat_user_list_widget.dart';

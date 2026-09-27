@@ -19,7 +19,6 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/attachment/entities/share_reference.dart';
 import 'package:labuda/shared/widgets/stable_network_image.dart';
 
@@ -45,6 +44,7 @@ class ObjectPreviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final imageUrl = reference.preview.imageUrl;
 
     return Card(
@@ -56,7 +56,7 @@ class ObjectPreviewCard extends StatelessWidget {
           padding: const EdgeInsets.all(12),
           child: Row(
             children: [
-              if (imageUrl != null) _buildThumbnail(imageUrl),
+              if (imageUrl != null) _buildThumbnail(context, imageUrl),
               if (imageUrl != null) const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -67,7 +67,7 @@ class ObjectPreviewCard extends StatelessWidget {
                         reference.targetType.displayName,
                         style: TextStyle(
                           fontSize: 12,
-                          color: AppColors.primaryRed,
+                          color: scheme.primary,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -81,7 +81,7 @@ class ObjectPreviewCard extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right, color: AppColors.neutralGray400),
+              Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
             ],
           ),
         ),
@@ -99,7 +99,7 @@ class ObjectPreviewCard extends StatelessWidget {
   /// image decoder.
   ///
   /// Commerce (for_sale / auction) and profile references are unchanged.
-  Widget _buildThumbnail(String imageUrl) {
+  Widget _buildThumbnail(BuildContext context, String imageUrl) {
     const borderRadius = BorderRadius.all(Radius.circular(8));
 
     if (reference.targetType == ShareTargetType.content) {
@@ -111,7 +111,7 @@ class ObjectPreviewCard extends StatelessWidget {
           child: StableNetworkImage(
             imageUrl: imageUrl,
             fit: BoxFit.cover,
-            fallback: _buildThumbnailFallback(),
+            fallback: _buildThumbnailFallback(context),
           ),
         ),
       );
@@ -124,17 +124,19 @@ class ObjectPreviewCard extends StatelessWidget {
         width: 60,
         height: 60,
         fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => _buildThumbnailFallback(),
+        errorBuilder: (context, error, stackTrace) =>
+            _buildThumbnailFallback(context),
       ),
     );
   }
 
-  Widget _buildThumbnailFallback() {
+  Widget _buildThumbnailFallback(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       width: 60,
       height: 60,
-      color: AppColors.neutralGray200,
-      child: const Icon(Icons.image_not_supported),
+      color: scheme.surfaceContainerHighest,
+      child: Icon(Icons.image_not_supported, color: scheme.onSurfaceVariant),
     );
   }
 }

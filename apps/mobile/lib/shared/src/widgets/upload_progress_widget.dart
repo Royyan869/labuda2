@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 // Internal
-import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/src/providers/upload_progress_provider.dart';
 import 'package:labuda/shared/src/widgets/upload_task_utils.dart';
 
@@ -17,25 +16,25 @@ class UploadProgressWidget extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final uploadState = ref.watch(uploadProgressProvider);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     if (uploadState.activeUploads.isEmpty) {
       return const SizedBox.shrink();
     }
 
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray700 : AppColors.neutralGray50,
+        color: scheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isDark ? AppColors.neutralGray600 : AppColors.neutralGray200,
+          color: scheme.outlineVariant,
           width: 1,
         ),
       ),
       child: Column(
         children: uploadState.activeUploads.values
-            .map((task) => _buildUploadCard(context, ref, task, isDark))
+            .map((task) => _buildUploadCard(context, ref, task))
             .toList(),
       ),
     );
@@ -45,8 +44,8 @@ class UploadProgressWidget extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     UploadTaskProgress task,
-    bool isDark,
   ) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(12),
       child: Column(
@@ -55,7 +54,7 @@ class UploadProgressWidget extends ConsumerWidget {
           // Header dengan icon dan tipe
           Row(
             children: [
-              UploadTaskUtils.buildTaskIcon(task.type, task.status),
+              UploadTaskUtils.buildTaskIcon(context, task.type, task.status),
               const SizedBox(width: 8),
               Expanded(
                 child: Column(
@@ -73,9 +72,7 @@ class UploadProgressWidget extends ConsumerWidget {
                       task.description,
                       style: TextStyle(
                         fontSize: 12,
-                        color: isDark
-                            ? AppColors.neutralGray400
-                            : AppColors.neutralGray600,
+                        color: scheme.onSurfaceVariant,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -86,7 +83,7 @@ class UploadProgressWidget extends ConsumerWidget {
               if (task.status == UploadTaskStatus.completed)
                 Icon(
                   Icons.check_circle,
-                  color: AppColors.statusSuccess,
+                  color: scheme.primary,
                   size: 20,
                 )
               else if (task.status == UploadTaskStatus.failed)
@@ -94,9 +91,9 @@ class UploadProgressWidget extends ConsumerWidget {
                   onTap: () => ref
                       .read(uploadProgressProvider.notifier)
                       .removeUpload(task.taskId),
-                  child: const Icon(
+                  child: Icon(
                     Icons.close,
-                    color: AppColors.statusError,
+                    color: scheme.error,
                     size: 20,
                   ),
                 ),
@@ -112,13 +109,11 @@ class UploadProgressWidget extends ConsumerWidget {
                 Expanded(
                   child: LinearProgressIndicator(
                     value: task.progress,
-                    backgroundColor: isDark
-                        ? AppColors.neutralGray600
-                        : AppColors.neutralGray200,
+                    backgroundColor: scheme.surfaceContainerHighest,
                     valueColor: AlwaysStoppedAnimation<Color>(
                       task.status == UploadTaskStatus.failed
-                          ? AppColors.statusError
-                          : AppColors.primaryBlue,
+                          ? scheme.error
+                          : scheme.secondary,
                     ),
                   ),
                 ),
@@ -128,9 +123,7 @@ class UploadProgressWidget extends ConsumerWidget {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: isDark
-                        ? AppColors.neutralGray300
-                        : AppColors.neutralGray700,
+                    color: scheme.onSurface,
                   ),
                 ),
               ],
@@ -143,9 +136,7 @@ class UploadProgressWidget extends ConsumerWidget {
                 'Langkah ${task.currentStep} dari ${task.totalSteps}',
                 style: TextStyle(
                   fontSize: 11,
-                  color: isDark
-                      ? AppColors.neutralGray400
-                      : AppColors.neutralGray500,
+                  color: scheme.onSurfaceVariant,
                 ),
               ),
           ],
@@ -156,9 +147,9 @@ class UploadProgressWidget extends ConsumerWidget {
             const SizedBox(height: 4),
             Text(
               task.errorMessage!,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11,
-                color: AppColors.statusError,
+                color: scheme.error,
               ),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,

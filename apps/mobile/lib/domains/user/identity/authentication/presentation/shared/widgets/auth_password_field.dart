@@ -51,7 +51,7 @@ class AuthPasswordField extends StatefulWidget {
 class _AuthPasswordFieldState extends State<AuthPasswordField> {
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -68,15 +68,11 @@ class _AuthPasswordFieldState extends State<AuthPasswordField> {
             hintText: widget.hintText ?? 'Enter your password',
             floatingLabelBehavior: FloatingLabelBehavior.always,
             hintStyle: TextStyle(
-              color: isDark
-                  ? AppColors.neutralGray400.withValues(alpha: 0.6)
-                  : AppColors.neutralGray500.withValues(alpha: 0.6),
+              color: scheme.onSurfaceVariant.withValues(alpha: 0.6),
             ),
             prefixIcon: Icon(
               Icons.lock_outline,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray500,
+              color: scheme.onSurfaceVariant,
             ),
             suffixIcon: IconButton(
               onPressed: widget.onToggleVisibility,
@@ -84,9 +80,7 @@ class _AuthPasswordFieldState extends State<AuthPasswordField> {
                 widget.isPasswordVisible
                     ? Icons.visibility_off
                     : Icons.visibility,
-                color: isDark
-                    ? AppColors.neutralGray400
-                    : AppColors.neutralGray500,
+                color: scheme.onSurfaceVariant,
               ),
               tooltip: widget.isPasswordVisible
                   ? 'Hide password'
@@ -95,36 +89,32 @@ class _AuthPasswordFieldState extends State<AuthPasswordField> {
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                color: isDark
-                    ? AppColors.darkGray600
-                    : AppColors.neutralGray300,
+                color: scheme.outlineVariant,
               ),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                color: isDark
-                    ? AppColors.darkGray600
-                    : AppColors.neutralGray300,
+                color: scheme.outlineVariant,
               ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(
-                color: AppColors.primaryRed,
+              borderSide: BorderSide(
+                color: scheme.primary,
                 width: 2,
               ),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.error),
+              borderSide: BorderSide(color: scheme.error),
             ),
             focusedErrorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.error, width: 2),
+              borderSide: BorderSide(color: scheme.error, width: 2),
             ),
             filled: true,
-            fillColor: isDark ? AppColors.darkGray700 : AppColors.neutralGray50,
+            fillColor: scheme.surfaceContainerHigh,
           ),
           validator: widget.validator,
         ),
@@ -230,7 +220,7 @@ class _AuthConfirmPasswordFieldState extends State<AuthConfirmPasswordField> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     // Canonical confirm-password matching: exact equality of TRIMMED values.
     //
@@ -262,80 +252,71 @@ class _AuthConfirmPasswordFieldState extends State<AuthConfirmPasswordField> {
             hintText: widget.hintText ?? 'Re-enter your password',
             floatingLabelBehavior: FloatingLabelBehavior.always,
             hintStyle: TextStyle(
-              color: isDark
-                  ? AppColors.neutralGray400.withValues(alpha: 0.6)
-                  : AppColors.neutralGray500.withValues(alpha: 0.6),
+              color: scheme.onSurfaceVariant.withValues(alpha: 0.6),
             ),
             prefixIcon: Icon(
               Icons.lock_outline,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray500,
+              color: scheme.onSurfaceVariant,
             ),
             suffixIcon: IconButton(
               onPressed: widget.onToggleVisibility,
               icon: Icon(
                 widget.isVisible ? Icons.visibility_off : Icons.visibility,
-                color: isDark
-                    ? AppColors.neutralGray400
-                    : AppColors.neutralGray500,
+                color: scheme.onSurfaceVariant,
               ),
               tooltip: widget.isVisible ? 'Hide password' : 'Show password',
             ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                color: isDark
-                    ? AppColors.darkGray600
-                    : AppColors.neutralGray300,
+                color: scheme.outlineVariant,
               ),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                color: isDark
-                    ? AppColors.darkGray600
-                    : AppColors.neutralGray300,
+                color: scheme.outlineVariant,
               ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(
-                color: AppColors.primaryRed,
+              borderSide: BorderSide(
+                color: scheme.primary,
                 width: 2,
               ),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.error),
+              borderSide: BorderSide(color: scheme.error),
             ),
             focusedErrorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.error, width: 2),
+              borderSide: BorderSide(color: scheme.error, width: 2),
             ),
             filled: true,
-            fillColor: isDark ? AppColors.darkGray700 : AppColors.neutralGray50,
+            fillColor: scheme.surfaceContainerHigh,
           ),
           validator: widget.validator,
         ),
         if (widget.showMatchIndicator && hasConfirm) ...[
           const SizedBox(height: 8),
-          _buildMatchIndicator(isMatch, isDark),
+          _buildMatchIndicator(context, isMatch),
         ],
       ],
     );
   }
 
-  Widget _buildMatchIndicator(bool isMatch, bool isDark) {
+  Widget _buildMatchIndicator(BuildContext context, bool isMatch) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray700 : AppColors.neutralGray50,
+        color: scheme.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: isMatch
               ? AppColors.success
-              : (isDark ? AppColors.darkGray600 : AppColors.neutralGray200),
+              : scheme.outlineVariant,
         ),
       ),
       child: Row(
@@ -343,7 +324,7 @@ class _AuthConfirmPasswordFieldState extends State<AuthConfirmPasswordField> {
           Icon(
             isMatch ? Icons.check_circle : Icons.cancel,
             size: 20,
-            color: isMatch ? AppColors.success : AppColors.error,
+            color: isMatch ? AppColors.success : scheme.error,
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -352,7 +333,7 @@ class _AuthConfirmPasswordFieldState extends State<AuthConfirmPasswordField> {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
-                color: isMatch ? AppColors.success : AppColors.error,
+                color: isMatch ? AppColors.success : scheme.error,
               ),
             ),
           ),

@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:labuda/core/core.dart';
+import 'package:flutter/material.dart';
 import 'package:labuda/domains/user/profile/domain/entities/address_entity.dart';
 
 /// Purpose selection field for address form
@@ -7,57 +7,55 @@ class AddressPurposeField extends StatelessWidget {
   final AddressPurpose? selectedPurpose;
   final AddressPurpose? forcedPurpose;
   final ValueChanged<AddressPurpose?> onPurposeChanged;
-  final bool isDark;
 
   const AddressPurposeField({
     super.key,
     required this.selectedPurpose,
     this.forcedPurpose,
     required this.onPurposeChanged,
-    required this.isDark,
+    
   });
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     if (forcedPurpose != null) {
-      return _buildLockedPurposeIndicator();
+      return _buildLockedPurposeIndicator(scheme);
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildLabel('Address Purpose'),
+        _buildLabel('Address Purpose', scheme),
         const SizedBox(height: 8),
-        _buildPurposeDropdown(),
+        _buildPurposeDropdown(scheme),
       ],
     );
   }
 
-  Widget _buildLabel(String text) {
+  Widget _buildLabel(String text, ColorScheme scheme) {
     return Text(
       text,
       style: TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.w600,
-        color: isDark ? AppColors.neutralGray200 : AppColors.neutralGray900,
+        color: scheme.onSurfaceVariant,
       ),
     );
   }
 
-  Widget _buildPurposeDropdown() {
+  Widget _buildPurposeDropdown(ColorScheme scheme) {
     return DropdownButtonFormField<AddressPurpose>(
       initialValue: selectedPurpose,
-      decoration: _inputDecoration('Select address purpose'),
-      dropdownColor: isDark ? AppColors.darkGray700 : AppColors.neutralWhite,
+      decoration: _inputDecoration(scheme, 'Select address purpose'),
+      dropdownColor: scheme.onSurfaceVariant,
       items: AddressPurpose.values.map((purpose) {
         return DropdownMenuItem(
           value: purpose,
           child: Text(
             purpose.label,
             style: TextStyle(
-              color: isDark
-                  ? AppColors.neutralGray200
-                  : AppColors.neutralGray900,
+              color: scheme.onSurfaceVariant,
             ),
           ),
         );
@@ -72,17 +70,17 @@ class AddressPurposeField extends StatelessWidget {
     );
   }
 
-  Widget _buildLockedPurposeIndicator() {
+  Widget _buildLockedPurposeIndicator(ColorScheme scheme) {
     final purpose = forcedPurpose!;
     final isShipping = purpose == AddressPurpose.shipping;
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray700 : AppColors.neutralGray50,
+        color: scheme.onSurfaceVariant,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isDark ? AppColors.darkGray600 : AppColors.neutralGray200,
+          color: scheme.outlineVariant,
         ),
       ),
       child: Row(
@@ -92,7 +90,7 @@ class AddressPurposeField extends StatelessWidget {
                 ? Icons.local_shipping_outlined
                 : Icons.storefront_outlined,
             size: 20,
-            color: AppColors.primaryRed,
+            color: scheme.primary,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -106,9 +104,7 @@ class AddressPurposeField extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: isDark
-                        ? AppColors.neutralGray200
-                        : AppColors.neutralGray900,
+                    color: scheme.onSurfaceVariant,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -118,9 +114,7 @@ class AddressPurposeField extends StatelessWidget {
                       : 'Origin address for shipping',
                   style: TextStyle(
                     fontSize: 12,
-                    color: isDark
-                        ? AppColors.neutralGray400
-                        : AppColors.neutralGray600,
+                    color: scheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -131,26 +125,26 @@ class AddressPurposeField extends StatelessWidget {
     );
   }
 
-  InputDecoration _inputDecoration(String hintText) {
+  InputDecoration _inputDecoration(ColorScheme scheme, String hintText) {
     return InputDecoration(
       hintText: hintText,
       filled: true,
-      fillColor: isDark ? AppColors.darkGray700 : AppColors.neutralGray50,
+      fillColor: scheme.onSurfaceVariant,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide(
-          color: isDark ? AppColors.darkGray600 : AppColors.neutralGray200,
+          color: scheme.outlineVariant,
         ),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide(
-          color: isDark ? AppColors.darkGray600 : AppColors.neutralGray200,
+          color: scheme.outlineVariant,
         ),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: AppColors.primaryRed, width: 2),
+        borderSide: BorderSide(color: scheme.primary, width: 2),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),

@@ -10,6 +10,7 @@
 // The negative guard at the bottom is what keeps the residue from coming back:
 // no checkout-owned presentation file may reintroduce a palette neutral, a raw
 // Material colour, or a local theme branch.
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -146,7 +147,20 @@ PreviewOrderResult _previewResult() => PreviewOrderResult(
   shippingMode: 'standard',
 );
 
-Future<void> _pumpCheckout(WidgetTester tester, ThemeData theme) async {
+/// Pumps the checkout screen WITHOUT settling: the order preview stays
+/// pending behind [previewGate] so the caller fully controls async timing.
+///
+/// Rationale: the token-validity loading fill (the only
+/// `surfaceContainerHighest` container reachable in this state) exists only
+/// while every prerequisite is ready and the preview is still pending. That
+/// window is timing-sensitive across first/second pumps in one test, so the
+/// caller gates the preview, pumps until the fill is on screen, asserts,
+/// completes the gate, and only then settles. No vacuous scheme assertions.
+Future<void> _pumpCheckout(
+  WidgetTester tester,
+  ThemeData theme, {
+  required Future<PreviewOrderResult> Function() previewFuture,
+}) async {
   tester.view.physicalSize = const Size(600, 1800);
   tester.view.devicePixelRatio = 1.0;
   addTearDown(() {
@@ -163,7 +177,7 @@ Future<void> _pumpCheckout(WidgetTester tester, ThemeData theme) async {
         forSaleDetailProvider.overrideWith((ref, forSaleId) async => _listing()),
         shippingRepositoryProvider.overrideWithValue(_FakeShippingRepository()),
         orderPreviewProvider.overrideWith(
-          (ref, params) async => _previewResult(),
+          (ref, params) => previewFuture(),
         ),
         checkoutRepositoryProvider.overrideWithValue(
           _NoopCheckoutRepository(),
@@ -178,8 +192,15 @@ Future<void> _pumpCheckout(WidgetTester tester, ThemeData theme) async {
       ),
     ),
   );
+}
 
-  // Bounded pumps: the pricing indicator shows a spinner while loading.
+/// Pumps until the gated loading fill is on screen (the gate keeps the
+/// preview pending, so once shown it cannot disappear), then settles.
+Future<void> _settleCheckout(
+  WidgetTester tester,
+  Completer<PreviewOrderResult> previewGate,
+) async {
+  previewGate.complete(_previewResult());
   for (var i = 0; i < 8; i++) {
     await tester.pump(const Duration(milliseconds: 150));
   }
@@ -211,12 +232,36 @@ ElevatedButton _submitButton(WidgetTester tester) => tester
     );
 
 void main() {
+  // NOTE: dark and light live in SEPARATE testWidgets. A second pumpWidget
+  // in one test does not reliably re-theme the tree (proven by probe: the
+  // second theme's brightness/containers lag or never land), and transient
+  // loading states resolve differently on warm versus cold engines. One
+  // theme per test keeps every assertion deterministic.
   testWidgets(
-    'checkout surfaces and primary action follow the canonical color scheme in BOTH themes',
+    'checkout surfaces and primary action follow the canonical color scheme (dark)',
     (tester) async {
-      // ---- DARK -------------------------------------------------------------
-      await _pumpCheckout(tester, AppTheme.darkTheme);
       final dark = AppTheme.darkTheme.colorScheme;
+      final darkGate = Completer<PreviewOrderResult>();
+      await _pumpCheckout(
+        tester,
+        AppTheme.darkTheme,
+        previewFuture: () => darkGate.future,
+      );
+      // Prerequisites resolve while the preview stays gated, so the loading
+      // fill is guaranteed present (never transient-raced). No container
+      // with this tone exists on the settled screen.
+      for (var i = 0;
+          i < 10 &&
+              !_decorationColors(tester).contains(dark.surfaceContainerHighest);
+          i++) {
+        await tester.pump(const Duration(milliseconds: 150));
+      }
+      expect(
+        _decorationColors(tester),
+        contains(dark.surfaceContainerHighest),
+        reason: 'loading fill renders the scheme container tone (dark)',
+      );
+      await _settleCheckout(tester, darkGate);
 
       expect(Theme.of(tester.element(find.byType(Scaffold))).brightness,
           Brightness.dark);
@@ -237,12 +282,6 @@ void main() {
         contains(dark.outlineVariant),
         reason: 'checkout card borders render the scheme outline tone',
       );
-      expect(
-        _decorationColors(tester),
-        contains(dark.surfaceContainerHighest),
-        reason: 'subtle fills render the scheme container tone',
-      );
-
       // Enabled primary action: canonical primary + onPrimary.
       final darkSubmit = _submitButton(tester);
       expect(darkSubmit.onPressed, isNotNull);
@@ -261,10 +300,32 @@ void main() {
         isNot(contains(AppColors.neutralWhite)),
         reason: 'a hardcoded light-mode surface cannot survive dark mode',
       );
+    },
+  );
 
-      // ---- LIGHT ------------------------------------------------------------
-      await _pumpCheckout(tester, AppTheme.lightTheme);
+  testWidgets(
+    'checkout surfaces and primary action follow the canonical color scheme (light)',
+    (tester) async {
       final light = AppTheme.lightTheme.colorScheme;
+      final lightGate = Completer<PreviewOrderResult>();
+      await _pumpCheckout(
+        tester,
+        AppTheme.lightTheme,
+        previewFuture: () => lightGate.future,
+      );
+      for (var i = 0;
+          i < 10 &&
+              !_decorationColors(tester)
+                  .contains(light.surfaceContainerHighest);
+          i++) {
+        await tester.pump(const Duration(milliseconds: 150));
+      }
+      expect(
+        _decorationColors(tester),
+        contains(light.surfaceContainerHighest),
+        reason: 'loading fill renders the scheme container tone (light)',
+      );
+      await _settleCheckout(tester, lightGate);
 
       expect(
         Theme.of(tester.element(find.byType(Scaffold))).brightness,

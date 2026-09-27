@@ -82,7 +82,7 @@ export function UsersPage() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
-          <p className="mt-4 text-gray-600">Loading users...</p>
+          <p className="mt-4 text-muted-foreground">Loading users...</p>
         </div>
       </div>
     )
@@ -92,12 +92,12 @@ export function UsersPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Users</h1>
-          <p className="text-gray-600 mt-1">Manage user accounts</p>
+          <h1 className="text-3xl font-bold text-foreground">Users</h1>
+          <p className="text-muted-foreground mt-1">Manage user accounts</p>
         </div>
         <Card>
           <CardContent className="p-6">
-            <div className="text-center text-red-600">
+            <div className="text-center text-destructive">
               <p>Error loading users: {error.message}</p>
             </div>
           </CardContent>
@@ -111,8 +111,8 @@ export function UsersPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Users</h1>
-          <p className="text-gray-600 mt-1">Manage user accounts and permissions</p>
+          <h1 className="text-3xl font-bold text-foreground">Users</h1>
+          <p className="text-muted-foreground mt-1">Manage user accounts and permissions</p>
         </div>
         <Button
           variant="secondary"
@@ -129,11 +129,11 @@ export function UsersPage() {
         <CardContent className="pt-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Total Users</p>
+              <p className="text-sm font-medium text-muted-foreground">Total Users</p>
               <p className="text-3xl font-bold text-primary mt-1">{total}</p>
             </div>
-            <div className="p-4 rounded-lg bg-blue-100">
-              <Users className="h-8 w-8 text-blue-600" />
+            <div className="p-4 rounded-lg bg-info-bg">
+              <Users className="h-8 w-8 text-info" />
             </div>
           </div>
         </CardContent>
@@ -144,19 +144,19 @@ export function UsersPage() {
         <CardContent className="pt-6">
           <div className="flex items-center gap-6 flex-wrap">
             <div className="flex items-center gap-4">
-              <Filter className="h-5 w-5 text-gray-500" />
+              <Filter className="h-5 w-5 text-muted-foreground" />
             </div>
 
             {/* Status Filter */}
             <div className="flex items-center gap-2">
-              <label htmlFor="status-filter" className="text-sm font-medium text-gray-700">
+              <label htmlFor="status-filter" className="text-sm font-medium text-foreground">
                 Status:
               </label>
               <select
                 id="status-filter"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value as AccountStatus | '')}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 {USER_STATUSES.map((status) => (
                   <option key={status.value} value={status.value}>
@@ -168,14 +168,14 @@ export function UsersPage() {
 
             {/* Role Filter */}
             <div className="flex items-center gap-2">
-              <label htmlFor="role-filter" className="text-sm font-medium text-gray-700">
+              <label htmlFor="role-filter" className="text-sm font-medium text-foreground">
                 Role:
               </label>
               <select
                 id="role-filter"
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value as 'user' | 'admin' | '')}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 {USER_ROLES.map((role) => (
                   <option key={role.value} value={role.value}>
@@ -187,14 +187,14 @@ export function UsersPage() {
 
             {/* Verification Filter */}
             <div className="flex items-center gap-2">
-              <label htmlFor="verified-filter" className="text-sm font-medium text-gray-700">
+              <label htmlFor="verified-filter" className="text-sm font-medium text-foreground">
                 KYC:
               </label>
               <select
                 id="verified-filter"
                 value={verifiedFilter}
                 onChange={(e) => setVerifiedFilter(e.target.value as 'true' | 'false' | '')}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 {VERIFICATION_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -207,13 +207,13 @@ export function UsersPage() {
             {/* Search */}
             <form onSubmit={handleSearch} className="flex items-center gap-2">
               <div className="relative">
-                <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search by name, email, or username..."
-                  className="pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary w-64"
+                  className="pl-9 pr-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary w-64"
                 />
               </div>
               <Button type="submit" size="sm" variant="secondary">
@@ -232,16 +232,16 @@ export function UsersPage() {
         <CardContent>
           {users.length === 0 ? (
             <div className="text-center py-12">
-              <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Users Found</h3>
-              <p className="text-gray-600">
+              <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-foreground mb-2">No Users Found</h3>
+              <p className="text-muted-foreground">
                 {statusFilter || roleFilter || verifiedFilter || searchQuery
                   ? 'No users match the current filters.'
                   : 'No users in the system.'}
               </p>
             </div>
           ) : (
-            <div className="border border-gray-200 rounded-lg overflow-hidden">
+            <div className="border border-border rounded-lg overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -272,7 +272,7 @@ export function UsersPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <p className="text-sm font-mono text-gray-600 truncate max-w-[150px]">{user.email}</p>
+                        <p className="text-sm font-mono text-muted-foreground truncate max-w-[150px]">{user.email}</p>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1 flex-wrap">
@@ -299,13 +299,13 @@ export function UsersPage() {
                             {user.warning_count}
                           </Badge>
                         ) : (
-                          <span className="text-sm text-gray-400">-</span>
+                          <span className="text-sm text-muted-foreground">-</span>
                         )}
                       </TableCell>
-                      <TableCell className="text-sm text-gray-600">
+                      <TableCell className="text-sm text-muted-foreground">
                         {formatDate(user.created_at)}
                       </TableCell>
-                      <TableCell className="text-sm text-gray-600">
+                      <TableCell className="text-sm text-muted-foreground">
                         {user.last_active_at ? formatDate(user.last_active_at) : 'Never'}
                       </TableCell>
                       <TableCell className="text-right">

@@ -119,7 +119,7 @@ class _SellerRefundDecisionDialogState
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final colorScheme = theme.colorScheme;
 
     return AlertDialog(
       title: Row(
@@ -152,13 +152,11 @@ class _SellerRefundDecisionDialogState
                 label: 'Alasan',
                 value: widget.refund.reason.displayName,
                 emoji: widget.refund.reason.emoji,
-                isDark: isDark,
               ),
               const SizedBox(height: 8),
               _SummaryRow(
                 label: 'Jumlah',
                 value: AppFormatters.formatCurrency(widget.refund.refundAmount),
-                isDark: isDark,
                 isBold: true,
               ),
 
@@ -171,7 +169,6 @@ class _SellerRefundDecisionDialogState
                   icon: Icons.info_outline_rounded,
                   message:
                       'Jumlah refund dihitung otomatis oleh sistem berdasarkan kebijakan yang berlaku. Anda tidak perlu menentukan jumlah.',
-                  isDark: isDark,
                 ),
               ] else ...[
                 _InfoBanner(
@@ -179,7 +176,6 @@ class _SellerRefundDecisionDialogState
                   icon: Icons.warning_amber_rounded,
                   message:
                       'Pembeli dapat mengajukan sengketa ke admin setelah penolakan.',
-                  isDark: isDark,
                 ),
               ],
 
@@ -190,7 +186,7 @@ class _SellerRefundDecisionDialogState
                 _isApprove ? 'Catatan (opsional)' : 'Alasan penolakan *',
                 style: theme.textTheme.bodySmall?.copyWith(
                   fontWeight: FontWeight.w600,
-                  color: isDark ? Colors.white70 : Colors.black87,
+                  color: colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 8),
@@ -224,16 +220,16 @@ class _SellerRefundDecisionDialogState
             backgroundColor: _isApprove
                 ? core.AppColors.statusSuccess
                 : core.AppColors.statusError,
-            foregroundColor: Colors.white,
-            disabledBackgroundColor: Colors.grey,
+            foregroundColor: colorScheme.onPrimary,
+            disabledBackgroundColor: colorScheme.surfaceContainerHighest,
           ),
           child: _isSubmitting
-              ? const SizedBox(
+              ? SizedBox(
                   width: 16,
                   height: 16,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: Colors.white,
+                    color: colorScheme.onPrimary,
                   ),
                 )
               : Text(_isApprove ? 'Setujui' : 'Tolak'),
@@ -257,20 +253,19 @@ class _SummaryRow extends StatelessWidget {
   final String label;
   final String value;
   final String? emoji;
-  final bool isDark;
   final bool isBold;
 
   const _SummaryRow({
     required this.label,
     required this.value,
     this.emoji,
-    required this.isDark,
     this.isBold = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -278,14 +273,16 @@ class _SummaryRow extends StatelessWidget {
           width: 80,
           child: Text(
             label,
-            style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
           ),
         ),
         Expanded(
           child: Text(
             '${emoji ?? ''} $value'.trim(),
             style: theme.textTheme.bodySmall?.copyWith(
-              color: isDark ? Colors.white : Colors.black87,
+              color: colorScheme.onSurface,
               fontWeight: isBold ? FontWeight.w600 : FontWeight.normal,
             ),
           ),
@@ -299,13 +296,11 @@ class _InfoBanner extends StatelessWidget {
   final Color color;
   final IconData icon;
   final String message;
-  final bool isDark;
 
   const _InfoBanner({
     required this.color,
     required this.icon,
     required this.message,
-    required this.isDark,
   });
 
   @override
@@ -327,7 +322,7 @@ class _InfoBanner extends StatelessWidget {
               message,
               style: TextStyle(
                 fontSize: 12,
-                color: isDark ? Colors.white70 : Colors.black87,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
           ),

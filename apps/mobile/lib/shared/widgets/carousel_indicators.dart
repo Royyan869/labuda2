@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/src/theme/app_colors.dart';
 
 /// Page indicators dan counter untuk media carousel
 ///
@@ -32,11 +31,11 @@ class CarouselIndicators extends StatelessWidget {
       bottom: 12,
       left: 0,
       right: 0,
-      child: _buildPageIndicators(),
+      child: _buildPageIndicators(Theme.of(context).colorScheme),
     );
   }
 
-  Widget _buildPageIndicators() {
+  Widget _buildPageIndicators(ColorScheme scheme) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(
@@ -48,8 +47,8 @@ class CarouselIndicators extends StatelessWidget {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: currentIndex == index
-                ? AppColors.light
-                : AppColors.light.withValues(alpha: 0.4),
+                ? scheme.onPrimary
+                : scheme.onPrimary.withValues(alpha: 0.4),
           ),
         ),
       ),
@@ -70,6 +69,7 @@ class MediaPageIndicators extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(
@@ -81,8 +81,8 @@ class MediaPageIndicators extends StatelessWidget {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: currentIndex == index
-                ? AppColors.light
-                : AppColors.light.withValues(alpha: 0.4),
+                ? scheme.onPrimary
+                : scheme.onPrimary.withValues(alpha: 0.4),
           ),
         ),
       ),
@@ -103,16 +103,17 @@ class MediaCounter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: AppColors.dark.withValues(alpha: 0.6),
+        color: scheme.scrim.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
         '${currentIndex + 1}/$totalItems',
-        style: const TextStyle(
-          color: AppColors.light,
+        style: TextStyle(
+          color: scheme.onPrimary,
           fontSize: 12,
           fontWeight: FontWeight.w500,
         ),

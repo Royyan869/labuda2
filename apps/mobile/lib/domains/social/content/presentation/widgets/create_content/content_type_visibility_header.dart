@@ -21,7 +21,7 @@ class ContentVisibilityHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     final user = authenticatedUser;
 
     return Container(
@@ -39,17 +39,13 @@ class ContentVisibilityHeader extends StatelessWidget {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: isDark
-                    ? AppColors.darkGray700
-                    : AppColors.neutralGray200,
+                color: scheme.surfaceContainerHighest,
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 Icons.person_outline,
                 size: 20,
-                color: isDark
-                    ? AppColors.neutralGray400
-                    : AppColors.neutralGray500,
+                color: scheme.onSurfaceVariant,
               ),
             ),
           const SizedBox(width: 12),
@@ -67,28 +63,27 @@ class ContentVisibilityHeader extends StatelessWidget {
                 : Container(
                     height: 14,
                     decoration: BoxDecoration(
-                      color: isDark
-                          ? AppColors.darkGray700
-                          : AppColors.neutralGray200,
+                      color: scheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(999),
                     ),
                   ),
           ),
           const SizedBox(width: 8),
-          _buildVisibilityDropdown(isDark),
+          _buildVisibilityDropdown(context),
         ],
       ),
     );
   }
 
-  Widget _buildVisibilityDropdown(bool isDark) {
+  Widget _buildVisibilityDropdown(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       width: 116,
       height: 32,
       padding: const EdgeInsets.symmetric(horizontal: 8),
       decoration: BoxDecoration(
         border: Border.all(
-          color: isDark ? AppColors.darkGray600 : AppColors.neutralGray300,
+          color: scheme.outlineVariant,
         ),
         borderRadius: BorderRadius.circular(6),
       ),
@@ -100,7 +95,7 @@ class ContentVisibilityHeader extends StatelessWidget {
           icon: Icon(
             Icons.arrow_drop_down,
             size: 18,
-            color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray600,
+            color: scheme.onSurfaceVariant,
           ),
           items: ['Public', 'Followers', 'Private'].map((String value) {
             IconData icon;

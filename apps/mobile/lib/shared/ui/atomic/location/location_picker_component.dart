@@ -80,12 +80,13 @@ class LocationPickerComponent extends BaseComponent
   }
 
   Widget _buildCurrentLocation(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.neutralGray50,
+        color: scheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.neutralGray200),
+        border: Border.all(color: scheme.outlineVariant),
       ),
       child: Row(
         children: [

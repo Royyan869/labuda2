@@ -14,7 +14,6 @@ import 'package:labuda/domains/chat/chat/presentation/providers/chat_providers.d
 import 'package:labuda/domains/chat/chat/presentation/providers/chat_state.dart';
 import 'package:labuda/domains/chat/chat/presentation/screens/chat_detail_screen.dart';
 import 'package:labuda/domains/chat/chat/presentation/widgets/chat_input_area.dart';
-import 'package:labuda/domains/chat/chat/presentation/widgets/message_bubble.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction_status.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/seller_auctions_pager.dart';
@@ -332,18 +331,6 @@ Chat _makeChat() => Chat(
   status: ChatStatus.active,
 );
 
-Message _makeReplyTarget() => Message(
-  id: 'msg-target',
-  chatId: _chatId,
-  senderId: _otherUserId,
-  senderName: 'other',
-  content: 'original message',
-  createdAt: DateTime.utc(2026, 7, 30, 9, 0),
-  status: MessageStatus.sent,
-  mentionedUserIds: const [],
-  deletedBy: const [],
-);
-
 ForSale _fixedPriceForSale({
   String fixedPriceSaleId = _fixedPriceSaleId,
   String title = 'Koi Test FPS',
@@ -422,7 +409,6 @@ ProviderScope _buildScope({
     overrides: [
       authControllerProvider.overrideWith(_FakeAuthController.new),
       currentUserIdProvider.overrideWith((ref) => _currentUserId),
-      typingIndicatorEnabledProvider.overrideWithValue(false),
       isUserBlockedProvider(_otherUserId).overrideWith((ref) => false),
       negotiationNotifierProvider.overrideWith(_FakeNegotiationNotifier.new),
       chatDetailProvider(_chatId).overrideWith(() => chatNotifier),
@@ -467,7 +453,6 @@ Widget _buildChatCommerceScope({
     overrides: [
       authControllerProvider.overrideWith(_FakeAuthController.new),
       currentUserIdProvider.overrideWith((ref) => _currentUserId),
-      typingIndicatorEnabledProvider.overrideWithValue(false),
       isUserBlockedProvider(_otherUserId).overrideWith((ref) => false),
       negotiationNotifierProvider.overrideWith(_FakeNegotiationNotifier.new),
       chatDetailProvider(_chatId).overrideWith(() => chatDetailNotifier),
@@ -494,7 +479,7 @@ Future<void> _openChatCreateForSaleRoute(WidgetTester tester) async {
   await tester.pump(const Duration(milliseconds: 400));
 
   expect(find.text('Pilih Produk'), findsOneWidget);
-  await tester.tap(find.text('Buat ForSale Baru'));
+  await tester.tap(find.text('Buat Produk Baru'));
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 1200));
 }
@@ -550,7 +535,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
 
     expect(find.text('Pilih Produk'), findsOneWidget);
-    expect(find.text('Buat ForSale Baru'), findsOneWidget);
+    expect(find.text('Buat Produk Baru'), findsOneWidget);
   });
 
   testWidgets('canceling commerce picker preserves draft and sends nothing', (
@@ -695,7 +680,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 400));
 
       expect(find.text('Pilih Produk'), findsOneWidget);
-      await tester.tap(find.text('Buat ForSale Baru'));
+      await tester.tap(find.text('Buat Produk Baru'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 1200));
 
@@ -748,7 +733,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 400));
 
       expect(find.text('Pilih Produk'), findsOneWidget);
-      await tester.tap(find.text('Buat ForSale Baru'));
+      await tester.tap(find.text('Buat Produk Baru'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 1200));
 
@@ -855,42 +840,6 @@ void main() {
       await tester.pump(const Duration(milliseconds: 200));
     },
   );
-
-  testWidgets('reply preview can be selected and cancelled from bubble', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      _buildScope(
-        initialState: ChatDetailState(
-          chat: _makeChat(),
-          messages: [_makeReplyTarget()],
-        ),
-        child: const ChatDetailScreen(chatId: _chatId),
-      ),
-    );
-    await tester.pump(const Duration(milliseconds: 300));
-
-    final bubble = tester.widget<MessageBubble>(find.byType(MessageBubble));
-    expect(bubble.onLongPress, isNotNull);
-    bubble.onLongPress!.call();
-    await tester.pump(const Duration(milliseconds: 500));
-
-    final replyTile = tester.widget<ListTile>(
-      find.widgetWithText(ListTile, 'Reply'),
-    );
-    expect(replyTile.onTap, isNotNull);
-    replyTile.onTap!.call();
-    await tester.pump(const Duration(milliseconds: 300));
-
-    expect(find.text('Membalas other'), findsOneWidget);
-    expect(find.text('original message'), findsWidgets);
-
-    await tester.tap(find.byIcon(Icons.close).last);
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
-
-    expect(find.text('Membalas other'), findsNothing);
-  });
 
   testWidgets('rapid send only invokes notifier once', (tester) async {
     final notifier = _FakeChatDetailNotifier(

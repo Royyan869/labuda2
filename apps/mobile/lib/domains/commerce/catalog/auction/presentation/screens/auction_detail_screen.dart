@@ -31,6 +31,7 @@ import 'package:labuda/domains/commerce/catalog/auction/presentation/widgets/det
 import 'package:labuda/domains/chat/chat/presentation/utils/commerce_chat_navigation.dart';
 import 'package:labuda/domains/social/share/share.dart';
 import 'package:labuda/shared/shared.dart';
+import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_detail_states.dart';
 import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_saved_item_action_button.dart';
 import 'package:labuda/domains/system/report/domain/entities/entities.dart';
 import 'package:labuda/domains/system/report/presentation/dialogs/report_submission_dialog.dart';
@@ -91,7 +92,7 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
         : '';
 
     if (state.isLoading && auction == null) {
-      return _buildLoadingScaffold();
+      return CommerceDetailStates.loading(title: 'Auction Detail');
     }
     if (state.error != null && auction == null) {
       return _buildErrorScaffold(state.error!);
@@ -109,16 +110,9 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
     );
   }
 
-  Widget _buildLoadingScaffold() {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Detail Auction')),
-      body: const Center(child: CircularProgressIndicator()),
-    );
-  }
-
   Widget _buildErrorScaffold(String error) {
-    // TRANSACTION CLARITY: Provide actionable error messages
-    // Instead of generic "Error: ...", give specific guidance
+    // TRANSACTION CLARITY: actionable, user-facing copy. The raw error never
+    // reaches the screen — it stays in the notifier/log.
     String errorTitle = 'Gagal Memuat Lelang';
     String errorMessage = error;
     String actionLabel = 'Coba Lagi';
@@ -126,10 +120,7 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
 
     // Parse common error patterns and provide actionable guidance
     if (error.contains('not found') || error.contains('404')) {
-      errorTitle = 'Lelang Tidak Ditemukan';
-      errorMessage = 'Lelang ini mungkin telah dihapus atau tidak tersedia.';
-      actionLabel = 'Lihat Lelang Lain';
-      action = () => Navigator.pop(context);
+      return _buildNotFoundScaffold();
     } else if (error.contains('network') || error.contains('connection')) {
       errorTitle = 'Koneksi Bermasalah';
       errorMessage = 'Periksa koneksi internet Anda dan coba lagi.';
@@ -145,103 +136,27 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
       errorMessage = 'Lelang ini sudah berakhir dan tidak dapat diakses.';
       actionLabel = 'Lihat Lelang Lain';
       action = () => Navigator.pop(context);
+    } else {
+      errorMessage = 'Data belum bisa dimuat. Coba lagi nanti.';
     }
 
-    final scheme = Theme.of(context).colorScheme;
-    return Scaffold(
-      appBar: AppBar(title: const Text('Detail Auction')),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.error_outline, size: 64, color: scheme.error),
-              const SizedBox(height: 16),
-              Text(
-                errorTitle,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                errorMessage,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: scheme.onSurfaceVariant,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: action,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: scheme.primary,
-                  foregroundColor: scheme.onPrimary,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 12,
-                  ),
-                ),
-                child: Text(actionLabel),
-              ),
-            ],
-          ),
-        ),
-      ),
+    return CommerceDetailStates.error(
+      title: 'Auction Detail',
+      headline: errorTitle,
+      message: errorMessage,
+      actionLabel: actionLabel,
+      onAction: action,
     );
   }
 
   Widget _buildNotFoundScaffold() {
-    // TRANSACTION CLARITY: No dead-end - provide next action
-    final scheme = Theme.of(context).colorScheme;
-    return Scaffold(
-      appBar: AppBar(title: const Text('Detail Auction')),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.search_off,
-                size: 64,
-                color: scheme.onSurfaceVariant,
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Lelang Tidak Ditemukan',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Lelang ini mungkin telah dihapus atau ID tidak valid.',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: scheme.onSurfaceVariant,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: scheme.primary,
-                  foregroundColor: scheme.onPrimary,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 12,
-                  ),
-                ),
-                child: const Text('Lihat Lelang Lain'),
-              ),
-            ],
-          ),
-        ),
-      ),
+    // TRANSACTION CLARITY: no dead-end — one next action.
+    return CommerceDetailStates.notFound(
+      title: 'Auction Detail',
+      headline: 'Lelang Tidak Ditemukan',
+      message: 'Lelang ini mungkin telah dihapus atau ID tidak valid.',
+      actionLabel: 'Kembali',
+      onAction: () => Navigator.pop(context),
     );
   }
 
@@ -329,13 +244,19 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
           onRefresh: () async => _loadAuctionData(),
           child: CustomScrollView(
             slivers: [
+              // CANONICAL DETAIL SKELETON (identical to ForSale):
+              // media block → title → channel sections, each a 16-margin card.
               SliverToBoxAdapter(child: AuctionDetailHeader(auction: auction)),
+              SliverToBoxAdapter(child: _AuctionDetailTitle(auction: auction)),
               SliverToBoxAdapter(
-                child: AuctionCountdownTimer(
-                  auction: auction,
-                  currentUserId: currentUserId.isNotEmpty
-                      ? currentUserId
-                      : null,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  child: AuctionCountdownTimer(
+                    auction: auction,
+                    currentUserId: currentUserId.isNotEmpty
+                        ? currentUserId
+                        : null,
+                  ),
                 ),
               ),
               // STEP 1: WARNING DI DETAIL (WAITING SETTLEMENT)
@@ -349,16 +270,19 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
               // SELLER SETTLEMENT MONITOR - Show seller the winner info and status
               if (currentUserId.isNotEmpty)
                 SliverToBoxAdapter(
-                  child: AuctionSellerSettlementMonitor(
-                    auction: auction,
-                    currentUserId: currentUserId,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    child: AuctionSellerSettlementMonitor(
+                      auction: auction,
+                      currentUserId: currentUserId,
+                    ),
                   ),
                 ),
               // Bid position indicator - show user's current standing
               if (currentUserId.isNotEmpty)
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                     child: AuctionBidPositionIndicator(
                       auction: auction,
                       userBids: liveBids
@@ -376,7 +300,7 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
               SliverToBoxAdapter(child: AuctionBidHistory(bids: liveBids)),
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 24, 16, 80),
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 80),
                   child: AuctionRecommendationsSection(
                     currentAuction: auction,
                     ownerOtherAuctions: ownerOtherAuctionsAsync,
@@ -827,6 +751,25 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
               return null;
             }
           },
+    );
+  }
+}
+
+/// Canonical detail title block — the same slot, style and spacing the
+/// ForSale detail uses right under the media gallery.
+class _AuctionDetailTitle extends StatelessWidget {
+  final Auction auction;
+
+  const _AuctionDetailTitle({required this.auction});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+      child: Text(
+        auction.title,
+        style: Theme.of(context).textTheme.headlineSmall,
+      ),
     );
   }
 }

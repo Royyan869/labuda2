@@ -127,27 +127,27 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
   /// Inline status line under the username field — the single message surface
   /// for both local format feedback and backend rejections.
   Widget _buildUsernameStatus(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     if (_inlineError != null) {
       return Text(
         _inlineError!,
-        style: const TextStyle(color: AppColors.error, fontSize: 12),
+        style: TextStyle(color: scheme.error, fontSize: 12),
       );
     }
     if (_isUsernameValid) {
       return Text(
         'Username terlihat baik — ketersediaan diputuskan server saat disimpan.',
         style: TextStyle(
-          color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray600,
+          color: scheme.onSurfaceVariant,
           fontSize: 12,
         ),
       );
     }
     if (_usernameController.text.isNotEmpty) {
-      return const Text(
+      return Text(
         'Gunakan 3-30 karakter: huruf kecil, angka, dan underscore.',
-        style: TextStyle(color: Colors.orange, fontSize: 12),
+        style: TextStyle(color: AppColors.statusWarning, fontSize: 12),
       );
     }
     return const SizedBox.shrink();
@@ -155,7 +155,7 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     final authState = ref.watch(authControllerProvider);
     String? email;
 
@@ -165,23 +165,16 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
     }
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkGray900 : AppColors.neutralWhite,
       body: Container(
         decoration: BoxDecoration(
-          gradient: isDark
-              ? const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    AppColors.darkGray900,
-                    AppColors.darkGray800,
-                  ],
-                )
-              : const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [AppColors.neutralGray50, AppColors.neutralWhite],
-                ),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              scheme.surfaceContainerLow,
+              scheme.surface,
+            ],
+          ),
         ),
         child: SafeArea(
           child: Center(
@@ -194,13 +187,13 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
                   Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: AppColors.primaryRed.withValues(alpha: 0.1),
+                      color: scheme.primary.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.person_add_outlined,
                       size: 64,
-                      color: AppColors.primaryRed,
+                      color: scheme.primary,
                     ),
                   ),
                   const SizedBox(height: 32),
@@ -210,9 +203,7 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
                     'Complete Your Profile',
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: isDark
-                          ? AppColors.neutralWhite
-                          : AppColors.darkGray800,
+                      color: scheme.onSurface,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -222,9 +213,7 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
                   Text(
                     'Please choose a username to continue',
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: isDark
-                          ? AppColors.neutralGray300
-                          : AppColors.neutralGray600,
+                      color: scheme.onSurfaceVariant,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -234,7 +223,6 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
                   // sign-up screen (auto-lowercase, format-only validation).
                   UsernameField(
                     controller: _usernameController,
-                    isDark: isDark,
                     onValidationChanged: _onValidationChanged,
                   ),
                   const SizedBox(height: 8),
@@ -248,14 +236,10 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: isDark
-                            ? AppColors.darkGray700.withValues(alpha: 0.5)
-                            : AppColors.neutralGray50,
+                        color: scheme.surfaceContainerLow,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: isDark
-                              ? AppColors.darkGray600
-                              : AppColors.neutralGray200,
+                          color: scheme.outlineVariant,
                         ),
                       ),
                       child: Row(
@@ -263,9 +247,7 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
                           Icon(
                             Icons.email_outlined,
                             size: 20,
-                            color: isDark
-                                ? AppColors.neutralGray400
-                                : AppColors.neutralGray600,
+                            color: scheme.onSurfaceVariant,
                           ),
                           const SizedBox(width: 12),
                           Expanded(
@@ -273,9 +255,7 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
                               'Signed in with: $email',
                               style: TextStyle(
                                 fontSize: 13,
-                                color: isDark
-                                    ? AppColors.neutralGray300
-                                    : AppColors.neutralGray700,
+                                color: scheme.onSurface,
                               ),
                             ),
                           ),
@@ -294,23 +274,22 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
                           ? _submitProfile
                           : null,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryRed,
-                        foregroundColor: AppColors.light,
-                        disabledBackgroundColor: isDark
-                            ? AppColors.darkGray600
-                            : AppColors.neutralGray300,
+                        backgroundColor: scheme.primary,
+                        foregroundColor: scheme.onPrimary,
+                        disabledBackgroundColor:
+                            scheme.surfaceContainerHighest,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                       child: _isSubmitting
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 20,
                               height: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: AppColors.light,
+                                color: scheme.onPrimary,
                               ),
                             )
                           : const Text('Complete Profile'),
@@ -336,9 +315,7 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
                         'Sign Out',
                         style: TextStyle(
                           fontSize: 16,
-                          color: isDark
-                              ? AppColors.neutralGray400
-                              : AppColors.neutralGray600,
+                          color: scheme.onSurfaceVariant,
                         ),
                       ),
                     ),

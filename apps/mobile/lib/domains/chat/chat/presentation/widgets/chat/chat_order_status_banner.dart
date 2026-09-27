@@ -28,6 +28,7 @@ import 'package:labuda/domains/commerce/transaction/order/domain/entities/order_
 /// instead of generic "Menunggu penjual mengirim barang" message.
 /// This helps buyers understand when to expect their order to be shipped.
 _StatusDisplay _getOrderStatusDisplay({
+  required ColorScheme scheme,
   required OrderStatus? orderStatus,
   required PaymentStatus? paymentStatus,
   required bool useCompactLabels,
@@ -54,7 +55,7 @@ _StatusDisplay _getOrderStatusDisplay({
           icon: Icons.pending_outlined,
           label: useCompactLabels ? 'Memproses' : 'Memproses Pembayaran',
           subtitle: 'Pembayaran sedang diverifikasi',
-          backgroundColor: AppColors.primaryRed,
+          backgroundColor: scheme.primary,
         );
       case PaymentStatus.expired:
         return _StatusDisplay(
@@ -126,7 +127,7 @@ _StatusDisplay _getOrderStatusDisplay({
           icon: Icons.local_shipping_outlined,
           label: 'Dikirim',
           subtitle: 'Dalam perjalanan menuju lokasi Anda',
-          backgroundColor: AppColors.primaryRed,
+          backgroundColor: scheme.primary,
         );
       case OrderStatus.delivered:
         // B4A: Delivered is internal-only. If reached, show as completing.
@@ -148,14 +149,14 @@ _StatusDisplay _getOrderStatusDisplay({
           icon: Icons.cancel_outlined,
           label: 'Dibatalkan',
           subtitle: null,
-          backgroundColor: AppColors.neutralGray500,
+          backgroundColor: scheme.onSurfaceVariant,
         );
       case OrderStatus.cancelledTimeout:
         return _StatusDisplay(
           icon: Icons.timer_off_outlined,
           label: 'Dibatalkan (Timeout)',
           subtitle: 'Penjual tidak mengirim dalam batas waktu',
-          backgroundColor: AppColors.neutralGray500,
+          backgroundColor: scheme.onSurfaceVariant,
         );
       case OrderStatus.refunded:
         return _StatusDisplay(
@@ -193,7 +194,7 @@ _StatusDisplay _getOrderStatusDisplay({
     icon: Icons.shopping_bag_outlined,
     label: 'Aktif',
     subtitle: 'Tap untuk melihat detail',
-    backgroundColor: AppColors.primaryRed,
+    backgroundColor: scheme.primary,
   );
 }
 
@@ -235,10 +236,11 @@ class ChatOrderStatusBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     // Use shared status display logic for consistency
     final statusDisplay = _getOrderStatusDisplay(
+      scheme: Theme.of(context).colorScheme,
       orderStatus: status,
       paymentStatus: paymentStatus,
       useCompactLabels: false,
@@ -252,9 +254,7 @@ class ChatOrderStatusBanner extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(12, 4, 12, 8),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: statusDisplay.backgroundColor.withValues(
-          alpha: isDark ? 0.3 : 0.15,
-        ),
+        color: statusDisplay.backgroundColor.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: statusDisplay.backgroundColor.withValues(alpha: 0.4),
@@ -298,7 +298,7 @@ class ChatOrderStatusBanner extends StatelessWidget {
                         'Pesanan Terkait',
                         style: TextStyle(
                           fontSize: 11,
-                          color: statusDisplay.backgroundColor,
+                          color: scheme.onSurface,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -310,9 +310,7 @@ class ChatOrderStatusBanner extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: isDark
-                          ? AppColors.neutralWhite
-                          : AppColors.neutralGray900,
+                      color: scheme.onSurface,
                     ),
                   ),
                   if (statusDisplay.subtitle != null) ...[
@@ -321,7 +319,7 @@ class ChatOrderStatusBanner extends StatelessWidget {
                       statusDisplay.subtitle!,
                       style: TextStyle(
                         fontSize: 11,
-                        color: AppColors.neutralGray600,
+                        color: scheme.onSurfaceVariant,
                       ),
                     ),
                   ],
@@ -336,7 +334,10 @@ class ChatOrderStatusBanner extends StatelessWidget {
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
             else
-              Icon(Icons.chevron_right, color: AppColors.neutralGray400),
+              Icon(
+                Icons.chevron_right,
+                color: scheme.onSurfaceVariant,
+              ),
           ],
         ),
       ),
@@ -396,6 +397,7 @@ class OrderStatusMiniWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     // Use shared status display logic for consistency
     final display = _getOrderStatusDisplay(
+      scheme: Theme.of(context).colorScheme,
       orderStatus: status,
       paymentStatus: paymentStatus,
       useCompactLabels: true,
@@ -405,11 +407,12 @@ class OrderStatusMiniWidget extends StatelessWidget {
       overdueDays: overdueDays,
     );
 
+    final scheme = Theme.of(context).colorScheme;
     if (compact) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-          color: display.backgroundColor.withValues(alpha: 0.1),
+          color: display.backgroundColor.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(6),
           border: Border.all(
             color: display.backgroundColor.withValues(alpha: 0.3),
@@ -426,7 +429,7 @@ class OrderStatusMiniWidget extends StatelessWidget {
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
-                color: display.backgroundColor,
+                color: scheme.onSurface,
               ),
             ),
           ],
@@ -437,7 +440,7 @@ class OrderStatusMiniWidget extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: display.backgroundColor.withValues(alpha: 0.1),
+        color: display.backgroundColor.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -449,7 +452,7 @@ class OrderStatusMiniWidget extends StatelessWidget {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w500,
-              color: display.backgroundColor,
+              color: scheme.onSurface,
             ),
           ),
         ],

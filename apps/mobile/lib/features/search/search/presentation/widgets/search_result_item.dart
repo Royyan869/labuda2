@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/features/search/search/domain/entities/search_result.dart';
 import 'package:labuda/features/search/search/presentation/utils/search_result_type_helper.dart';
 import 'package:labuda/features/search/search/presentation/widgets/search_result_extra_info.dart';
@@ -116,7 +115,7 @@ class SearchResultItem extends ConsumerWidget {
   /// reference is therefore never handed to the image decoder, and no
   /// search-local URL builder exists.
   Widget _buildImage(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(
@@ -125,30 +124,31 @@ class SearchResultItem extends ConsumerWidget {
       child: Container(
         width: 48,
         height: 48,
-        color: isDark ? AppColors.darkGray700 : AppColors.neutralGray200,
+        color: scheme.surfaceContainerHighest,
         child: result.imageUrl != null
             ? StableNetworkImage(
                 imageUrl: result.imageUrl,
                 fit: BoxFit.cover,
-                fallback: _buildPlaceholder(),
+                fallback: _buildPlaceholder(context),
               )
-            : _buildPlaceholder(),
+            : _buildPlaceholder(context),
       ),
     );
   }
 
-  Widget _buildPlaceholder() {
+  Widget _buildPlaceholder(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Center(
       child: Icon(
         SearchResultTypeHelper.getIcon(result.type),
-        color: AppColors.neutralGray400,
+        color: scheme.onSurfaceVariant,
         size: 24,
       ),
     );
   }
 
   Widget _buildContent(BuildContext context, {required bool isUnavailable}) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     final extraInfo = SearchResultExtraInfo(result: result);
     final sellerSurface =
         result.type == SearchResultType.forSale ||
@@ -177,9 +177,7 @@ class SearchResultItem extends ConsumerWidget {
                 result.title,
                 style: TextStyle(
                   fontWeight: FontWeight.w600,
-                  color: isDark
-                      ? AppColors.neutralGray100
-                      : AppColors.neutralGray900,
+                  color: scheme.onSurface,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -199,9 +197,7 @@ class SearchResultItem extends ConsumerWidget {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray500,
+              color: scheme.onSurfaceVariant,
             ),
             maxLines: subtitleMaxLines,
             overflow: TextOverflow.ellipsis,
@@ -213,9 +209,7 @@ class SearchResultItem extends ConsumerWidget {
             style: TextStyle(
               fontSize: 13,
               fontStyle: FontStyle.italic,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray500,
+              color: scheme.onSurfaceVariant,
             ),
             maxLines: subtitleMaxLines,
             overflow: TextOverflow.ellipsis,
@@ -227,9 +221,7 @@ class SearchResultItem extends ConsumerWidget {
             style: TextStyle(
               fontSize: 13,
               fontStyle: FontStyle.italic,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray500,
+              color: scheme.onSurfaceVariant,
             ),
             maxLines: subtitleMaxLines,
             overflow: TextOverflow.ellipsis,
@@ -240,9 +232,7 @@ class SearchResultItem extends ConsumerWidget {
             result.subtitle!,
             style: TextStyle(
               fontSize: 13,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray500,
+              color: scheme.onSurfaceVariant,
             ),
             maxLines: subtitleMaxLines,
             overflow: TextOverflow.ellipsis,
@@ -258,7 +248,7 @@ class SearchResultItem extends ConsumerWidget {
   }
 
   Widget _buildTypeIndicator(BuildContext context) {
-    final color = SearchResultTypeHelper.getColor(result.type);
+    final color = SearchResultTypeHelper.getColor(result.type, context);
     final label = SearchResultTypeHelper.getLabel(result.type);
 
     return Container(

@@ -65,20 +65,19 @@ class AuthStateView extends StatelessWidget {
   }
 
   Widget _buildDefaultLoading(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryRed),
+          CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(scheme.primary),
           ),
           const SizedBox(height: 16),
           Text(
             'Please wait...',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray600,
+              color: scheme.onSurfaceVariant,
             ),
           ),
         ],
@@ -87,7 +86,7 @@ class AuthStateView extends StatelessWidget {
   }
 
   Widget _buildDefaultError(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Center(
       child: Padding(
@@ -99,22 +98,20 @@ class AuthStateView extends StatelessWidget {
               width: 64,
               height: 64,
               decoration: BoxDecoration(
-                color: AppColors.error.withValues(alpha: 0.1),
+                color: scheme.error.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.error_outline,
                 size: 32,
-                color: AppColors.error,
+                color: scheme.error,
               ),
             ),
             const SizedBox(height: 16),
             Text(
               error!,
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: isDark
-                    ? AppColors.neutralGray300
-                    : AppColors.neutralGray700,
+                color: scheme.onSurface,
               ),
               textAlign: TextAlign.center,
             ),
@@ -123,7 +120,8 @@ class AuthStateView extends StatelessWidget {
               ElevatedButton(
                 onPressed: onErrorDismiss,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryRed,
+                  backgroundColor: scheme.primary,
+                  foregroundColor: scheme.onPrimary,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -138,7 +136,7 @@ class AuthStateView extends StatelessWidget {
   }
 
   Widget _buildDefaultSuccess(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Center(
       child: Padding(
@@ -163,9 +161,7 @@ class AuthStateView extends StatelessWidget {
             Text(
               success!,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: isDark
-                    ? AppColors.neutralWhite
-                    : AppColors.neutralGray900,
+                color: scheme.onSurface,
                 fontWeight: FontWeight.bold,
               ),
               textAlign: TextAlign.center,
@@ -202,9 +198,11 @@ class AuthStateBanner extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    final scheme = Theme.of(context).colorScheme;
     final isError = error != null;
     final message = isError ? error! : success!;
-    final backgroundColor = isError ? AppColors.error : AppColors.success;
+    final backgroundColor = isError ? scheme.error : AppColors.success;
+    final foregroundColor = isError ? scheme.onError : scheme.onPrimary;
     final icon = isError ? Icons.error_outline : Icons.check_circle;
 
     return AnimatedContainer(
@@ -217,13 +215,13 @@ class AuthStateBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(icon, color: AppColors.neutralWhite),
+          Icon(icon, color: foregroundColor),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               message,
-              style: const TextStyle(
-                color: AppColors.neutralWhite,
+              style: TextStyle(
+                color: foregroundColor,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -231,7 +229,7 @@ class AuthStateBanner extends StatelessWidget {
           if (onDismiss != null)
             IconButton(
               onPressed: onDismiss,
-              icon: const Icon(Icons.close, color: AppColors.neutralWhite),
+              icon: Icon(Icons.close, color: foregroundColor),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
             ),

@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/shared/models/seller_identity_data.dart';
-import 'package:labuda/shared/widgets/seller_identity_view.dart';
 import 'package:labuda/generated/app_localizations.dart';
 
 /// Drawer header component
@@ -12,7 +10,6 @@ import 'package:labuda/generated/app_localizations.dart';
 /// - Logo + auth buttons (when not logged in)
 /// - User profile with avatar (when logged in)
 class MainDrawerHeader extends ConsumerStatefulWidget {
-  final bool isDark;
   final bool isLoggedIn;
   final bool showPlaceholder;
   final VoidCallback onSignIn;
@@ -24,7 +21,6 @@ class MainDrawerHeader extends ConsumerStatefulWidget {
 
   const MainDrawerHeader({
     super.key,
-    required this.isDark,
     required this.isLoggedIn,
     required this.showPlaceholder,
     required this.onSignIn,
@@ -40,6 +36,7 @@ class MainDrawerHeader extends ConsumerStatefulWidget {
 class _MainDrawerHeaderState extends ConsumerState<MainDrawerHeader> {
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context)!;
 
     return Container(
@@ -50,14 +47,14 @@ class _MainDrawerHeaderState extends ConsumerState<MainDrawerHeader> {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  AppColors.primaryRed,
-                  AppColors.primaryRed.withValues(alpha: 0.85),
+                  scheme.primary,
+                  scheme.primary.withValues(alpha: 0.85),
                 ],
               )
             : null,
         color: widget.isLoggedIn
             ? null
-            : (widget.isDark ? AppColors.darkGray700 : AppColors.neutralGray50),
+            : scheme.surfaceContainerHigh,
       ),
       child: SafeArea(
         bottom: false,
@@ -75,12 +72,12 @@ class _MainDrawerHeaderState extends ConsumerState<MainDrawerHeader> {
                       width: 56,
                       height: 56,
                       decoration: BoxDecoration(
-                        color: AppColors.neutralWhite.withValues(alpha: 0.14),
+                        color: scheme.surfaceContainerHighest,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.person_outline,
-                        color: AppColors.neutralWhite,
+                        color: scheme.onSurfaceVariant,
                         size: 28,
                       ),
                     ),
@@ -93,9 +90,7 @@ class _MainDrawerHeaderState extends ConsumerState<MainDrawerHeader> {
                             height: 14,
                             width: double.infinity,
                             decoration: BoxDecoration(
-                              color: AppColors.neutralWhite.withValues(
-                                alpha: 0.22,
-                              ),
+                              color: scheme.surfaceContainerHighest,
                               borderRadius: BorderRadius.circular(999),
                             ),
                           ),
@@ -104,9 +99,7 @@ class _MainDrawerHeaderState extends ConsumerState<MainDrawerHeader> {
                             height: 10,
                             width: 120,
                             decoration: BoxDecoration(
-                              color: AppColors.neutralWhite.withValues(
-                                alpha: 0.16,
-                              ),
+                              color: scheme.surfaceContainerHighest,
                               borderRadius: BorderRadius.circular(999),
                             ),
                           ),
@@ -128,9 +121,7 @@ class _MainDrawerHeaderState extends ConsumerState<MainDrawerHeader> {
                           Text(
                             'LABUDA',
                             style: TextStyle(
-                              color: widget.isDark
-                                  ? AppColors.neutralWhite
-                                  : AppColors.neutralGray900,
+                              color: scheme.onSurface,
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                             ),
@@ -139,9 +130,7 @@ class _MainDrawerHeaderState extends ConsumerState<MainDrawerHeader> {
                           Text(
                             l10n.koiCommunity,
                             style: TextStyle(
-                              color: widget.isDark
-                                  ? AppColors.neutralGray400
-                                  : AppColors.neutralGray600,
+                              color: scheme.onSurfaceVariant,
                               fontSize: 12,
                             ),
                           ),
@@ -161,8 +150,8 @@ class _MainDrawerHeaderState extends ConsumerState<MainDrawerHeader> {
                           widget.onSignIn();
                         },
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.primaryRed,
-                          side: const BorderSide(color: AppColors.primaryRed),
+                          foregroundColor: scheme.primary,
+                          side: BorderSide(color: scheme.primary),
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
@@ -182,8 +171,8 @@ class _MainDrawerHeaderState extends ConsumerState<MainDrawerHeader> {
                           widget.onSignUp();
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primaryRed,
-                          foregroundColor: AppColors.neutralWhite,
+                          backgroundColor: scheme.primary,
+                          foregroundColor: scheme.onPrimary,
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),

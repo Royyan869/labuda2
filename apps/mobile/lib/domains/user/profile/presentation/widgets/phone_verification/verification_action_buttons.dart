@@ -4,14 +4,12 @@ import 'package:labuda/domains/user/profile/profile.dart';
 
 /// Action buttons for verification dialog
 class VerificationActionButtons extends StatelessWidget {
-  final bool isDark;
   final PhoneVerificationState state;
   final VoidCallback onSendOTP;
   final VoidCallback onVerifyOTP;
 
   const VerificationActionButtons({
     super.key,
-    required this.isDark,
     required this.state,
     required this.onSendOTP,
     required this.onVerifyOTP,
@@ -19,6 +17,7 @@ class VerificationActionButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Row(
       children: [
         Expanded(
@@ -28,11 +27,7 @@ class VerificationActionButtons extends StatelessWidget {
                 : () => Navigator.of(context).pop(false),
             style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-              side: BorderSide(
-                color: isDark
-                    ? AppColors.neutralGray600
-                    : AppColors.neutralGray400,
-              ),
+               side: BorderSide(color: scheme.outlineVariant),
             ),
             child: const Text(
               'Cancel',
@@ -50,20 +45,20 @@ class VerificationActionButtons extends StatelessWidget {
                 ? onVerifyOTP
                 : onSendOTP,
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryRed,
-              foregroundColor: Colors.white,
+               backgroundColor: scheme.primary,
+               foregroundColor: scheme.onPrimary,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
               disabledBackgroundColor: AppColors.primaryRed.withValues(
                 alpha: 0.5,
               ),
             ),
             child: state.isLoading || state.isVerifying
-                ? const SizedBox(
+                ? SizedBox(
                     width: 16,
                     height: 16,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      valueColor: AlwaysStoppedAnimation<Color>(scheme.onPrimary),
                     ),
                   )
                 : Text(

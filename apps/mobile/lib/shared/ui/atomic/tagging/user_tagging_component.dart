@@ -78,7 +78,7 @@ class UserTaggingComponent extends BaseComponent
           label: Text('@$user'),
           onDeleted: isDisabled ? null : () => _removeUser(index),
           deleteIcon: const Icon(Icons.close, size: 16),
-          backgroundColor: AppColors.neutralGray100,
+          backgroundColor: Theme.of(context).colorScheme.surfaceContainerHigh,
         );
       }).toList(),
     );

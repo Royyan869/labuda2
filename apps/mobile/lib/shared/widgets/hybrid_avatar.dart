@@ -139,7 +139,7 @@ class HybridAvatar extends ConsumerWidget {
                       color: AppColors.primaryGreen,
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: AppColors.neutralWhite,
+                        color: Theme.of(context).colorScheme.surface,
                         width: 2,
                       ),
                     ),

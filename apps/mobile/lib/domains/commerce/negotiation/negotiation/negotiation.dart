@@ -18,6 +18,3 @@ export 'presentation/providers/negotiation_notifier.dart';
 
 // Presentation - Providers
 export 'presentation/providers/negotiation_providers.dart';
-
-// DI Helper
-export 'negotiation_di.dart';

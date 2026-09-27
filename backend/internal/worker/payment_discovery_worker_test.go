@@ -166,6 +166,36 @@ func TestPaymentDiscoveryWorker_ConstantsOwnership(t *testing.T) {
 	assert.Equal(t, 30*time.Second, DefaultDiscoveryGatewayTimeout)
 }
 
+// TestPaymentDiscoveryWorker_InquiryEligibilityAgeFromEnv pins the env override
+// contract for DISCOVERY_INQUIRY_ELIGIBILITY_AGE (whole seconds). The canonical
+// default stays 10 minutes; development/sandbox environments may shorten it so
+// the scan loop discovers settled payments without a public webhook endpoint.
+func TestPaymentDiscoveryWorker_InquiryEligibilityAgeFromEnv(t *testing.T) {
+	t.Run("unset_env_uses_canonical_default", func(t *testing.T) {
+		t.Setenv("DISCOVERY_INQUIRY_ELIGIBILITY_AGE", "")
+		cfg := DefaultPaymentDiscoveryConfig()
+		assert.Equal(t, 10*time.Minute, cfg.InquiryEligibilityAge)
+	})
+
+	t.Run("valid_env_overrides_age", func(t *testing.T) {
+		t.Setenv("DISCOVERY_INQUIRY_ELIGIBILITY_AGE", "15")
+		cfg := DefaultPaymentDiscoveryConfig()
+		assert.Equal(t, 15*time.Second, cfg.InquiryEligibilityAge)
+	})
+
+	t.Run("invalid_env_falls_back_to_default", func(t *testing.T) {
+		t.Setenv("DISCOVERY_INQUIRY_ELIGIBILITY_AGE", "not-a-number")
+		cfg := DefaultPaymentDiscoveryConfig()
+		assert.Equal(t, 10*time.Minute, cfg.InquiryEligibilityAge)
+	})
+
+	t.Run("non_positive_env_falls_back_to_default", func(t *testing.T) {
+		t.Setenv("DISCOVERY_INQUIRY_ELIGIBILITY_AGE", "0")
+		cfg := DefaultPaymentDiscoveryConfig()
+		assert.Equal(t, 10*time.Minute, cfg.InquiryEligibilityAge)
+	})
+}
+
 // TestPaymentDiscoveryWorker_InterfaceContracts verifies interface contracts
 func TestPaymentDiscoveryWorker_InterfaceContracts(t *testing.T) {
 	t.Run("OrderPaymentFinalizer_interface", func(t *testing.T) {

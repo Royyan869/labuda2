@@ -167,20 +167,20 @@ export function DisputeDetailModal({ isOpen, onClose, disputeData, onResolutionC
                   setStaleStatus(null)
                   refetch()
                 }}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="text-muted-foreground hover:text-muted-foreground transition-colors"
                 title="Refresh dispute data"
               >
                 <RefreshCw className="h-4 w-4" />
               </button>
             </div>
-            <span className="text-sm text-gray-500">
+            <span className="text-sm text-muted-foreground">
               Dispute ID: <span className="font-mono">{displayData.id}</span>
             </span>
           </div>
 
           {/* Stale Status Warning */}
           {staleStatus && (
-            <div className="bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-lg flex items-start gap-2">
+            <div className="bg-warning-bg border border-warning text-warning p-4 rounded-lg flex items-start gap-2">
               <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
               <div className="flex-1">
                 <p className="font-medium text-sm">Status Changed</p>
@@ -191,7 +191,7 @@ export function DisputeDetailModal({ isOpen, onClose, disputeData, onResolutionC
 
           {/* Error Message */}
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg flex items-center gap-2">
+            <div className="bg-destructive-bg border border-destructive text-destructive p-3 rounded-lg flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 flex-shrink-0" />
               <span className="text-sm">{error}</span>
             </div>
@@ -209,7 +209,7 @@ export function DisputeDetailModal({ isOpen, onClose, disputeData, onResolutionC
               <div className="grid grid-cols-2 gap-6">
                 {/* Buyer */}
                 <div className="space-y-2">
-                  <p className="text-sm text-gray-500">Buyer (Complainant)</p>
+                  <p className="text-sm text-muted-foreground">Buyer (Complainant)</p>
                   <div className="flex items-center gap-3">
                     {displayData.buyer_avatar ? (
                       <img
@@ -218,20 +218,20 @@ export function DisputeDetailModal({ isOpen, onClose, disputeData, onResolutionC
                         className="w-10 h-10 rounded-full object-cover"
                       />
                     ) : (
-                      <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
-                        <User className="h-5 w-5 text-gray-500" />
+                      <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                        <User className="h-5 w-5 text-muted-foreground" />
                       </div>
                     )}
                     <div>
                       <p className="font-medium">{displayData.buyer_username || 'Unknown'}</p>
-                      <p className="font-mono text-xs text-gray-500">{displayData.buyer_id}</p>
+                      <p className="font-mono text-xs text-muted-foreground">{displayData.buyer_id}</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Seller */}
                 <div className="space-y-2">
-                  <p className="text-sm text-gray-500">Seller (Respondent)</p>
+                  <p className="text-sm text-muted-foreground">Seller (Respondent)</p>
                   <div className="flex items-center gap-3">
                     {displayData.seller_avatar ? (
                       <img
@@ -240,16 +240,16 @@ export function DisputeDetailModal({ isOpen, onClose, disputeData, onResolutionC
                         className="w-10 h-10 rounded-full object-cover"
                       />
                     ) : (
-                      <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
-                        <User className="h-5 w-5 text-gray-500" />
+                      <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                        <User className="h-5 w-5 text-muted-foreground" />
                       </div>
                     )}
                     <div>
                       <p className="font-medium">{displayData.seller_username || 'Unknown'}</p>
                       {displayData.seller_farm_name && (
-                        <p className="text-sm text-gray-500">{displayData.seller_farm_name}</p>
+                        <p className="text-sm text-muted-foreground">{displayData.seller_farm_name}</p>
                       )}
-                      <p className="font-mono text-xs text-gray-500">{displayData.seller_id}</p>
+                      <p className="font-mono text-xs text-muted-foreground">{displayData.seller_id}</p>
                     </div>
                   </div>
                 </div>
@@ -268,24 +268,24 @@ export function DisputeDetailModal({ isOpen, onClose, disputeData, onResolutionC
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-gray-500">Order ID</p>
+                  <p className="text-sm text-muted-foreground">Order ID</p>
                   <p className="font-mono text-sm">{displayData.order_id}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Opened Date</p>
+                  <p className="text-sm text-muted-foreground">Opened Date</p>
                   <p className="text-sm">{formatDate(displayData.opened_at)}</p>
                 </div>
               </div>
               <div>
-                <p className="text-sm text-gray-500">Reason</p>
+                <p className="text-sm text-muted-foreground">Reason</p>
                 <p className="font-medium">
                   {disputeReasonLabels[displayData.reason] || displayData.reason}
                 </p>
               </div>
               {displayData.description && (
                 <div>
-                  <p className="text-sm text-gray-500 mb-1">Description</p>
-                  <p className="text-gray-900 bg-gray-50 p-3 rounded-lg whitespace-pre-wrap break-words">
+                  <p className="text-sm text-muted-foreground mb-1">Description</p>
+                  <p className="text-foreground bg-muted p-3 rounded-lg whitespace-pre-wrap break-words">
                     {displayData.description}
                   </p>
                 </div>
@@ -294,20 +294,20 @@ export function DisputeDetailModal({ isOpen, onClose, disputeData, onResolutionC
               {/* Resolution Info (if resolved) */}
               {displayData.resolved_at && (
                 <>
-                  <div className="border-t border-gray-100 pt-4">
-                    <p className="text-sm text-gray-500">Resolution</p>
+                  <div className="border-t border-border pt-4">
+                    <p className="text-sm text-muted-foreground">Resolution</p>
                     <p className="font-medium">{displayData.status === 'resolved_refund' ? 'Refunded to Buyer' : 'Released to Seller'}</p>
                   </div>
                   {displayData.resolution_notes && (
                     <div>
-                      <p className="text-sm text-gray-500 mb-1">Admin Notes</p>
-                      <p className="text-gray-900 bg-gray-50 p-3 rounded-lg whitespace-pre-wrap break-words">
+                      <p className="text-sm text-muted-foreground mb-1">Admin Notes</p>
+                      <p className="text-foreground bg-muted p-3 rounded-lg whitespace-pre-wrap break-words">
                         {displayData.resolution_notes}
                       </p>
                     </div>
                   )}
                   <div>
-                    <p className="text-sm text-gray-500">Resolved At</p>
+                    <p className="text-sm text-muted-foreground">Resolved At</p>
                     <p className="text-sm">{formatDate(displayData.resolved_at)}</p>
                   </div>
                 </>
@@ -315,36 +315,36 @@ export function DisputeDetailModal({ isOpen, onClose, disputeData, onResolutionC
 
               {/* Order Context */}
               {(dispute?.order_status || dispute?.total_before_coins_amount != null || dispute?.shipping_reference) && (
-                <div className="border-t border-gray-100 pt-4 space-y-3">
+                <div className="border-t border-border pt-4 space-y-3">
                   <div className="grid grid-cols-2 gap-4">
                     {dispute?.order_status && (
                       <div>
-                        <p className="text-sm text-gray-500">Order Status</p>
+                        <p className="text-sm text-muted-foreground">Order Status</p>
                         <p className="text-sm capitalize">{dispute.order_status.replace(/_/g, ' ')}</p>
                       </div>
                     )}
                     {dispute?.order_escrow_status && (
                       <div>
-                        <p className="text-sm text-gray-500">Escrow Status</p>
+                        <p className="text-sm text-muted-foreground">Escrow Status</p>
                         <p className="text-sm capitalize">{dispute.order_escrow_status.replace(/_/g, ' ')}</p>
                       </div>
                     )}
                     {dispute?.total_before_coins_amount != null && (
                       <div>
-                        <p className="text-sm text-gray-500">Escrow at Risk</p>
-                        <p className="text-sm font-semibold text-orange-700">{formatRupiah(dispute.total_before_coins_amount)}</p>
+                        <p className="text-sm text-muted-foreground">Escrow at Risk</p>
+                        <p className="text-sm font-semibold text-warning">{formatRupiah(dispute.total_before_coins_amount)}</p>
                       </div>
                     )}
                     {dispute?.shipping_carrier && (
                       <div>
-                        <p className="text-sm text-gray-500">Carrier</p>
+                        <p className="text-sm text-muted-foreground">Carrier</p>
                         <p className="text-sm">{dispute.shipping_carrier}</p>
                       </div>
                     )}
                   </div>
                   {dispute?.shipping_reference && (
                     <div>
-                      <p className="text-sm text-gray-500">Tracking / Shipping Reference</p>
+                      <p className="text-sm text-muted-foreground">Tracking / Shipping Reference</p>
                       <p className="text-sm font-mono">{dispute.shipping_reference}</p>
                     </div>
                   )}
@@ -384,7 +384,7 @@ export function DisputeDetailModal({ isOpen, onClose, disputeData, onResolutionC
           {/* Action Notes */}
           {isOpened && (
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-2 block">
+              <label className="text-sm font-medium text-foreground mb-2 block">
                 Resolution Notes (Optional)
               </label>
               <textarea
@@ -393,9 +393,9 @@ export function DisputeDetailModal({ isOpen, onClose, disputeData, onResolutionC
                 placeholder="Add notes explaining your decision..."
                 rows={3}
                 maxLength={1000}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-none"
               />
-              <p className="text-xs text-gray-500 mt-1">{actionNotes.length}/1000 characters</p>
+              <p className="text-xs text-muted-foreground mt-1">{actionNotes.length}/1000 characters</p>
             </div>
           )}
 
@@ -403,7 +403,7 @@ export function DisputeDetailModal({ isOpen, onClose, disputeData, onResolutionC
           <ModalFooter>
             {showConfirm ? (
               <>
-                <div className={`flex-1 ${confirmConfig?.variant === 'danger' ? 'text-red-600' : 'text-amber-600'}`}>
+                <div className={`flex-1 ${confirmConfig?.variant === 'danger' ? 'text-destructive' : 'text-warning'}`}>
                   <AlertTriangle className="h-5 w-5 inline mr-2" />
                   {confirmConfig?.message}
                 </div>
@@ -430,7 +430,7 @@ export function DisputeDetailModal({ isOpen, onClose, disputeData, onResolutionC
                       variant="secondary"
                       onClick={() => handleActionClick('reject')}
                       disabled={isSubmitting || !canResolveDisputes}
-                      className="border-orange-200 text-orange-700 hover:bg-orange-50"
+                      className="border-warning text-warning hover:bg-warning-bg"
                       title={!canResolveDisputes ? `Requires: ${requiredCapability}` : ''}
                     >
                       <XCircle className="h-4 w-4 mr-2" />

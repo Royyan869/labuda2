@@ -163,9 +163,9 @@ function PaymentMethodEditModal({ method, onClose, onSaved }: EditModalProps) {
     <Modal isOpen onClose={onClose} title={`Edit ${method.method_code}`}>
       <div className="space-y-5 max-h-[70vh] overflow-y-auto pr-1">
         {/* Safety copy */}
-        <div className="flex items-start gap-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-          <ShieldAlert className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
-          <div className="text-sm text-amber-800 space-y-1">
+        <div className="flex items-start gap-3 p-3 bg-warning-bg border border-warning rounded-lg">
+          <ShieldAlert className="h-5 w-5 text-warning mt-0.5 flex-shrink-0" />
+          <div className="text-sm text-warning space-y-1">
             <p>Fee dihitung backend saat buyer membuat pembayaran.</p>
             <p>Perubahan hanya berlaku untuk payment baru — order/payment lama tidak berubah.</p>
             <p>Jangan isi rate sebelum cocok dengan kontrak Midtrans merchant.</p>
@@ -175,43 +175,43 @@ function PaymentMethodEditModal({ method, onClose, onSaved }: EditModalProps) {
         {/* Basic fields */}
         <div className="grid grid-cols-2 gap-4">
           <div className="col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Display Name</label>
+            <label className="block text-sm font-medium text-foreground mb-1">Display Name</label>
             <input
               type="text"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-info"
             />
           </div>
 
           <div className="flex items-end pb-2">
-            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer">
+            <label className="flex items-center gap-2 text-sm font-medium text-foreground cursor-pointer">
               <input
                 type="checkbox"
                 checked={enabled}
                 onChange={(e) => setEnabled(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className="h-4 w-4 rounded border-border text-info focus:ring-info"
               />
               Enabled
             </label>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Sort Order</label>
+            <label className="block text-sm font-medium text-foreground mb-1">Sort Order</label>
             <input
               type="number"
               value={sortOrder}
               onChange={(e) => setSortOrder(e.target.value)}
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-border rounded px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-info"
             />
           </div>
 
           <div className="col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Fee Type</label>
+            <label className="block text-sm font-medium text-foreground mb-1">Fee Type</label>
             <select
               value={feeType}
               onChange={(e) => setFeeType(e.target.value as PaymentMethodFeeType)}
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-info"
             >
               <option value="flat">Flat</option>
               <option value="percent">Percent</option>
@@ -221,13 +221,13 @@ function PaymentMethodEditModal({ method, onClose, onSaved }: EditModalProps) {
 
           {(feeType === 'flat' || feeType === 'percent_plus_flat') && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Flat Amount (Rupiah)</label>
+              <label className="block text-sm font-medium text-foreground mb-1">Flat Amount (Rupiah)</label>
               <input
                 type="number"
                 min={0}
                 value={flatAmount}
                 onChange={(e) => setFlatAmount(e.target.value)}
-                className="w-full border border-gray-300 rounded px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-border rounded px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-info"
                 placeholder="e.g. 4000"
               />
             </div>
@@ -235,41 +235,41 @@ function PaymentMethodEditModal({ method, onClose, onSaved }: EditModalProps) {
 
           {(feeType === 'percent' || feeType === 'percent_plus_flat') && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Percent (basis points)</label>
+              <label className="block text-sm font-medium text-foreground mb-1">Percent (basis points)</label>
               <input
                 type="number"
                 min={0}
                 max={2000}
                 value={percentBps}
                 onChange={(e) => setPercentBps(e.target.value)}
-                className="w-full border border-gray-300 rounded px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-border rounded px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-info"
                 placeholder="e.g. 70 = 0.7%"
               />
               {percentBps && !isNaN(parseInt(percentBps)) && (
-                <p className="mt-1 text-xs text-gray-500">= {formatBps(parseInt(percentBps))}</p>
+                <p className="mt-1 text-xs text-muted-foreground">= {formatBps(parseInt(percentBps))}</p>
               )}
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Min Fee (Rupiah, optional)</label>
+            <label className="block text-sm font-medium text-foreground mb-1">Min Fee (Rupiah, optional)</label>
             <input
               type="number"
               min={0}
               value={minFee}
               onChange={(e) => setMinFee(e.target.value)}
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-border rounded px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-info"
               placeholder="none"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Max Fee (Rupiah, optional)</label>
+            <label className="block text-sm font-medium text-foreground mb-1">Max Fee (Rupiah, optional)</label>
             <input
               type="number"
               min={0}
               value={maxFee}
               onChange={(e) => setMaxFee(e.target.value)}
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-border rounded px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-info"
               placeholder="none"
             />
           </div>
@@ -277,8 +277,8 @@ function PaymentMethodEditModal({ method, onClose, onSaved }: EditModalProps) {
 
         {/* Midtrans channels */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Midtrans Channels {enabled && <span className="text-red-600">(required when enabled)</span>}
+          <label className="block text-sm font-medium text-foreground mb-1">
+            Midtrans Channels {enabled && <span className="text-destructive">(required when enabled)</span>}
           </label>
           <div className="flex flex-wrap gap-2">
             {ALLOWED_MIDTRANS_CHANNELS.map((ch) => (
@@ -288,8 +288,8 @@ function PaymentMethodEditModal({ method, onClose, onSaved }: EditModalProps) {
                 onClick={() => toggleChannel(ch)}
                 className={`text-xs px-2 py-1 rounded border font-mono ${
                   channels.includes(ch)
-                    ? 'bg-blue-100 border-blue-400 text-blue-800'
-                    : 'bg-gray-50 border-gray-200 text-gray-500'
+                    ? 'bg-info-bg border-info text-info'
+                    : 'bg-surface-muted border-border text-muted-foreground'
                 }`}
               >
                 {ch}
@@ -299,46 +299,46 @@ function PaymentMethodEditModal({ method, onClose, onSaved }: EditModalProps) {
         </div>
 
         {/* Rate source (PASS_19A) */}
-        <div className="border border-gray-200 rounded-lg p-3 space-y-3 bg-gray-50">
+        <div className="border border-border rounded-lg p-3 space-y-3 bg-surface-muted">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Rate Source</label>
+            <label className="block text-sm font-medium text-foreground mb-1">Rate Source</label>
             <select
               value={rateSource}
               onChange={(e) => setRateSource(e.target.value as PaymentMethodRateSource)}
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-info"
             >
               <option value="public_baseline">Public Baseline</option>
               <option value="merchant_verified">Merchant Verified</option>
               <option value="manual_override">Manual Override</option>
             </select>
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-muted-foreground">
               Public baseline bukan rate kontrak merchant Labuda. Jika Anda mengubah nilai fee dari
               baseline tanpa memilih &quot;Merchant Verified&quot;, backend otomatis akan menandainya
               sebagai &quot;Manual Override&quot;.
             </p>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Rate Source Note {rateSource === 'merchant_verified' && <span className="text-red-600">(wajib diisi)</span>}
+            <label className="block text-sm font-medium text-foreground mb-1">
+              Rate Source Note {rateSource === 'merchant_verified' && <span className="text-destructive">(wajib diisi)</span>}
             </label>
             <textarea
               value={rateSourceNote}
               onChange={(e) => setRateSourceNote(e.target.value)}
               rows={2}
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-info"
               placeholder="mis. Dikonfirmasi dari dashboard merchant Midtrans tanggal ..."
             />
           </div>
           {method.merchant_verified_at && (
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-muted-foreground">
               Terakhir diverifikasi merchant: {new Date(method.merchant_verified_at).toLocaleString('id-ID')}
             </p>
           )}
         </div>
 
         {/* Preview simulation */}
-        <div className="border border-gray-200 rounded-lg p-3 space-y-2 bg-gray-50">
-          <p className="text-sm font-medium text-gray-700 flex items-center gap-1">
+        <div className="border border-border rounded-lg p-3 space-y-2 bg-surface-muted">
+          <p className="text-sm font-medium text-foreground flex items-center gap-1">
             <PlayCircle className="h-4 w-4" /> Preview Simulation
           </p>
           <div className="flex items-center gap-2">
@@ -347,7 +347,7 @@ function PaymentMethodEditModal({ method, onClose, onSaved }: EditModalProps) {
               min={1}
               value={previewBase}
               onChange={(e) => setPreviewBase(e.target.value)}
-              className="border border-gray-300 rounded px-3 py-1.5 text-sm font-mono w-40 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="border border-border rounded px-3 py-1.5 text-sm font-mono w-40 focus:outline-none focus:ring-2 focus:ring-info"
               placeholder="Base amount (Rupiah)"
             />
             <Button size="sm" variant="secondary" onClick={handlePreview} disabled={previewing}>
@@ -355,22 +355,22 @@ function PaymentMethodEditModal({ method, onClose, onSaved }: EditModalProps) {
             </Button>
           </div>
           {previewError && (
-            <p className="text-xs text-red-600 flex items-center gap-1">
+            <p className="text-xs text-destructive flex items-center gap-1">
               <AlertTriangle className="h-3 w-3" /> {previewError}
             </p>
           )}
           {previewResult && (
             <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm mt-2">
-              <dt className="text-gray-600">Buyer Payment Fee</dt>
+              <dt className="text-muted-foreground">Buyer Payment Fee</dt>
               <dd className="font-mono font-semibold">{formatIdr(previewResult.buyer_payment_fee_rupiah)}</dd>
-              <dt className="text-gray-600">Gross Amount</dt>
+              <dt className="text-muted-foreground">Gross Amount</dt>
               <dd className="font-mono font-semibold">{formatIdr(previewResult.gross_amount_rupiah)}</dd>
-              <dt className="text-gray-600">Formula</dt>
-              <dd className="font-mono text-xs text-gray-700">{previewResult.formula}</dd>
+              <dt className="text-muted-foreground">Formula</dt>
+              <dd className="font-mono text-xs text-foreground">{previewResult.formula}</dd>
               {previewResult.clamped && (
                 <>
-                  <dt className="text-gray-600">Note</dt>
-                  <dd className="text-amber-700 text-xs">min/max clamp applied</dd>
+                  <dt className="text-muted-foreground">Note</dt>
+                  <dd className="text-warning text-xs">min/max clamp applied</dd>
                 </>
               )}
             </dl>
@@ -378,12 +378,12 @@ function PaymentMethodEditModal({ method, onClose, onSaved }: EditModalProps) {
         </div>
 
         {saveError && (
-          <p className="text-sm text-red-600 flex items-center gap-1">
+          <p className="text-sm text-destructive flex items-center gap-1">
             <AlertTriangle className="h-4 w-4" /> {saveError}
           </p>
         )}
 
-        <div className="flex items-center gap-2 pt-3 border-t border-gray-100">
+        <div className="flex items-center gap-2 pt-3 border-t border-border">
           <Button onClick={handleSave} disabled={saving}>
             <Check className="h-4 w-4 mr-1" />
             {saving ? 'Saving…' : 'Save'}
@@ -410,27 +410,27 @@ interface RowProps {
 
 function MethodRow({ method, canEdit, onEdit }: RowProps) {
   return (
-    <tr className="hover:bg-gray-50">
-      <td className="px-6 py-3 font-mono text-xs text-gray-900 font-medium">{method.method_code}</td>
-      <td className="px-6 py-3 text-sm text-gray-900">{method.display_name}</td>
+    <tr className="hover:bg-surface-muted">
+      <td className="px-6 py-3 font-mono text-xs text-foreground font-medium">{method.method_code}</td>
+      <td className="px-6 py-3 text-sm text-foreground">{method.display_name}</td>
       <td className="px-6 py-3">
         <Badge variant={method.enabled ? 'success' : 'default'}>
           {method.enabled ? 'Enabled' : 'Disabled'}
         </Badge>
       </td>
-      <td className="px-6 py-3 text-sm text-gray-700">{FEE_TYPE_LABELS[method.fee_type]}</td>
-      <td className="px-6 py-3 font-mono text-sm text-gray-900">{formulaSummary(method)}</td>
+      <td className="px-6 py-3 text-sm text-foreground">{FEE_TYPE_LABELS[method.fee_type]}</td>
+      <td className="px-6 py-3 font-mono text-sm text-foreground">{formulaSummary(method)}</td>
       <td className="px-6 py-3">
         <RateSourceBadge rateSource={method.rate_source} />
       </td>
-      <td className="px-6 py-3 font-mono text-xs text-gray-600">
+      <td className="px-6 py-3 font-mono text-xs text-muted-foreground">
         {method.min_fee_rupiah != null || method.max_fee_rupiah != null
           ? `${method.min_fee_rupiah != null ? formatIdr(method.min_fee_rupiah) : '—'} / ${
               method.max_fee_rupiah != null ? formatIdr(method.max_fee_rupiah) : '—'
             }`
           : '—'}
       </td>
-      <td className="px-6 py-3 text-xs text-gray-600">{method.sort_order}</td>
+      <td className="px-6 py-3 text-xs text-muted-foreground">{method.sort_order}</td>
       <td className="px-6 py-3">
         {canEdit ? (
           <Button variant="ghost" size="sm" onClick={onEdit}>
@@ -438,7 +438,7 @@ function MethodRow({ method, canEdit, onEdit }: RowProps) {
             Edit
           </Button>
         ) : (
-          <span className="text-xs text-gray-400 italic">Requires manage capability</span>
+          <span className="text-xs text-muted-foreground italic">Requires manage capability</span>
         )}
       </td>
     </tr>
@@ -484,11 +484,11 @@ export function PaymentMethodsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
+          <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
             <CreditCard className="h-7 w-7" />
             Payment Methods
           </h1>
-          <p className="text-gray-600 mt-1">
+          <p className="text-muted-foreground mt-1">
             Buyer payment method fee configuration. Fee dihitung backend saat buyer membuat
             pembayaran; perubahan di sini hanya berlaku untuk payment baru.
             {!canEdit && ' (View only.)'}
@@ -501,9 +501,9 @@ export function PaymentMethodsPage() {
       </div>
 
       {noneMerchantVerified && (
-        <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-          <ShieldAlert className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
-          <div className="text-sm text-amber-800 space-y-1">
+        <div className="flex items-start gap-3 p-4 bg-warning-bg border border-warning rounded-lg">
+          <ShieldAlert className="h-5 w-5 text-warning mt-0.5 flex-shrink-0" />
+          <div className="text-sm text-warning space-y-1">
             <p className="font-medium">Belum ada metode dengan rate merchant-verified.</p>
             <p>
               Semua rate saat ini adalah public baseline dari dokumentasi/harga publik Midtrans, bukan
@@ -524,9 +524,9 @@ export function PaymentMethodsPage() {
       {error && (
         <Card>
           <CardContent className="p-8 text-center">
-            <AlertTriangle className="h-10 w-10 text-red-400 mx-auto mb-3" />
-            <p className="text-gray-900 font-medium">Failed to load payment methods</p>
-            <p className="text-gray-600 text-sm mt-1">{error}</p>
+            <AlertTriangle className="h-10 w-10 text-destructive mx-auto mb-3" />
+            <p className="text-foreground font-medium">Failed to load payment methods</p>
+            <p className="text-muted-foreground text-sm mt-1">{error}</p>
             <Button variant="secondary" size="sm" onClick={fetchMethods} className="mt-4">
               Retry
             </Button>
@@ -540,8 +540,8 @@ export function PaymentMethodsPage() {
             <div className="space-y-4">
               {Array.from({ length: 3 }).map((_, i) => (
                 <div key={i} className="animate-pulse flex items-center gap-4">
-                  <div className="h-4 bg-gray-200 rounded w-40" />
-                  <div className="h-4 bg-gray-200 rounded flex-1" />
+                  <div className="h-4 bg-border rounded w-40" />
+                  <div className="h-4 bg-border rounded flex-1" />
                 </div>
               ))}
             </div>
@@ -552,9 +552,9 @@ export function PaymentMethodsPage() {
       {!loading && !error && methods.length === 0 && (
         <Card>
           <CardContent className="p-12 text-center">
-            <CreditCard className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-            <h2 className="text-lg font-semibold text-gray-900">No Payment Methods</h2>
-            <p className="text-gray-600 mt-1">No canonical payment methods are configured.</p>
+            <CreditCard className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h2 className="text-lg font-semibold text-foreground">No Payment Methods</h2>
+            <p className="text-muted-foreground mt-1">No canonical payment methods are configured.</p>
           </CardContent>
         </Card>
       )}
@@ -568,19 +568,19 @@ export function PaymentMethodsPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-200 bg-gray-50">
-                    <th className="px-6 py-3 text-left font-medium text-gray-600">Code</th>
-                    <th className="px-6 py-3 text-left font-medium text-gray-600">Display Name</th>
-                    <th className="px-6 py-3 text-left font-medium text-gray-600">Status</th>
-                    <th className="px-6 py-3 text-left font-medium text-gray-600">Fee Type</th>
-                    <th className="px-6 py-3 text-left font-medium text-gray-600">Formula</th>
-                    <th className="px-6 py-3 text-left font-medium text-gray-600">Rate Source</th>
-                    <th className="px-6 py-3 text-left font-medium text-gray-600">Min / Max</th>
-                    <th className="px-6 py-3 text-left font-medium text-gray-600">Sort</th>
-                    <th className="px-6 py-3 text-left font-medium text-gray-600">Action</th>
+                  <tr className="border-b border-border bg-surface-muted">
+                    <th className="px-6 py-3 text-left font-medium text-muted-foreground">Code</th>
+                    <th className="px-6 py-3 text-left font-medium text-muted-foreground">Display Name</th>
+                    <th className="px-6 py-3 text-left font-medium text-muted-foreground">Status</th>
+                    <th className="px-6 py-3 text-left font-medium text-muted-foreground">Fee Type</th>
+                    <th className="px-6 py-3 text-left font-medium text-muted-foreground">Formula</th>
+                    <th className="px-6 py-3 text-left font-medium text-muted-foreground">Rate Source</th>
+                    <th className="px-6 py-3 text-left font-medium text-muted-foreground">Min / Max</th>
+                    <th className="px-6 py-3 text-left font-medium text-muted-foreground">Sort</th>
+                    <th className="px-6 py-3 text-left font-medium text-muted-foreground">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody className="divide-y divide-[hsl(var(--border))]">
                   {methods.map((m) => (
                     <MethodRow
                       key={m.method_code}

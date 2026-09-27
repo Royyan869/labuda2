@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/features/home/presentation/models/main_tab.dart';
 
 /// Main bottom navigation widget
@@ -22,35 +21,33 @@ class MainBottomNavigation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return BottomNavigationBar(
       type: BottomNavigationBarType.fixed,
-      backgroundColor: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
-      selectedItemColor: AppColors.primaryRed,
-      unselectedItemColor: isDark
-          ? AppColors.neutralGray400
-          : AppColors.neutralGray600,
-      selectedLabelStyle: const TextStyle(
+      backgroundColor: scheme.surface,
+      selectedItemColor: scheme.primary,
+      unselectedItemColor: scheme.onSurfaceVariant,
+      selectedLabelStyle: TextStyle(
         fontSize: 12,
         fontWeight: FontWeight.w600,
-        color: AppColors.primaryRed,
+        color: scheme.primary,
       ),
       unselectedLabelStyle: TextStyle(
         fontSize: 12,
         fontWeight: FontWeight.w400,
-        color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray600,
+        color: scheme.onSurfaceVariant,
       ),
       currentIndex: (currentIndex >= 0 && currentIndex < tabs.length)
           ? (currentIndex >= 2 ? currentIndex + 1 : currentIndex)
           : 0,
       onTap: onTap,
       elevation: 8,
-      items: _buildBottomNavItems(),
+      items: _buildBottomNavItems(context),
     );
   }
 
-  List<BottomNavigationBarItem> _buildBottomNavItems() {
+  List<BottomNavigationBarItem> _buildBottomNavItems(BuildContext context) {
     final items = <BottomNavigationBarItem>[];
 
     // Add tabs before position 2 (before create button)
@@ -69,11 +66,11 @@ class MainBottomNavigation extends StatelessWidget {
       BottomNavigationBarItem(
         icon: Icon(
           showMultiFAB ? Icons.close : Icons.add,
-          color: AppColors.primaryRed,
+          color: Theme.of(context).colorScheme.primary,
         ),
         activeIcon: Icon(
           showMultiFAB ? Icons.close : Icons.add,
-          color: AppColors.primaryRed,
+          color: Theme.of(context).colorScheme.primary,
         ),
         label: 'Create',
       ),

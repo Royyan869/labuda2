@@ -127,7 +127,7 @@ class AuctionMapper {
       // wire fields — never parsed from a wire field.
       createdAt: dto.createdAt,
       updatedAt: dto.updatedAt,
-      farmAddressId: null,
+      farmAddressId: dto.farmAddressId,
       productId: dto.productId,
     );
   }

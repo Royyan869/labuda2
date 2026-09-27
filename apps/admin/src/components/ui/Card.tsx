@@ -11,7 +11,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
       <div
         ref={ref}
         className={cn(
-          'bg-white rounded-lg border border-gray-200 shadow-sm',
+          'bg-[hsl(var(--surface))] rounded-lg border border-[hsl(var(--border))] shadow-sm',
           hover && 'transition-shadow hover:shadow-md',
           className
         )}
@@ -25,7 +25,7 @@ Card.displayName = 'Card'
 
 export const CardHeader = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn('px-6 py-4 border-b border-gray-200', className)} {...props} />
+    <div ref={ref} className={cn('px-6 py-4 border-b border-[hsl(var(--border))]', className)} {...props} />
   )
 )
 
@@ -33,7 +33,7 @@ CardHeader.displayName = 'CardHeader'
 
 export const CardTitle = forwardRef<HTMLHeadingElement, HTMLAttributes<HTMLHeadingElement>>(
   ({ className, ...props }, ref) => (
-    <h3 ref={ref} className={cn('text-lg font-semibold text-gray-900', className)} {...props} />
+    <h3 ref={ref} className={cn('text-lg font-semibold text-[hsl(var(--foreground))]', className)} {...props} />
   )
 )
 
@@ -49,7 +49,7 @@ CardContent.displayName = 'CardContent'
 
 export const CardFooter = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn('px-6 py-4 border-t border-gray-200 bg-gray-50', className)} {...props} />
+    <div ref={ref} className={cn('px-6 py-4 border-t border-[hsl(var(--border))] bg-[hsl(var(--surface-muted))]', className)} {...props} />
   )
 )
 

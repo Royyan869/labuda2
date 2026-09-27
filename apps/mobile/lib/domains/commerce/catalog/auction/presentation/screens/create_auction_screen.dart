@@ -13,6 +13,9 @@ import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/domain.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/auction_providers.dart';
+import 'package:labuda/domains/commerce/catalog/shared/presentation/sender_address_provider.dart';
+import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_access_gate.dart';
+import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_detail_states.dart';
 import 'package:labuda/shared/widgets/media_grid_uploader.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/domains/commerce/transaction/shipping/presentation/widgets/seller_shipping_options_selector.dart';
@@ -301,6 +304,18 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
           : _bloodlineController.text.trim(),
     );
 
+    // Product content parity with for_sale: the shipping origin rides the
+    // CREATE request (backend CreateAuctionRequest.farm_address_id), resolved
+    // from the seller's primary sender address — never null by default just
+    // because this channel forgot to ask. A provider failure degrades to null
+    // (same value for_sale's non-blocking read would produce).
+    String? farmAddressId;
+    try {
+      farmAddressId = await ref.read(senderAddressIdProvider.future);
+    } catch (_) {
+      farmAddressId = null;
+    }
+
     final success = await ref
         .read(auctionNotifierProvider.notifier)
         .createAuction(
@@ -319,7 +334,7 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
           startMode: _startMode,
           scheduledStartAt: scheduledStartAt,
           durationHours: durationHours,
-          farmAddressId: null,
+          farmAddressId: farmAddressId,
           shippingSetupIds: _selectedShippingSetupIds,
           preparationNote: _preparationNoteController.text.trim().isEmpty
               ? null
@@ -363,38 +378,51 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     // Canonical expiry axis (RF-02). Capability gates access to selling; only
     // an ENDED subscription period may produce expiry/renewal copy.
     final isSubscriptionExpired = ref.watch(isSellerSubscriptionExpiredProvider);
 
-    if (authState is! AuthStateAuthenticated) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Buat Lelang')),
-        body: const Center(child: Text('Silakan login untuk melanjutkan.')),
+    // CHANNEL PARITY with the for-sale create screen: only a RESOLVED
+    // "not signed in" session gets the login gate. Hydration and a restricted
+    // account never claim "please login" — they fail closed on the canonical
+    // loading surface / the canonical restricted screen.
+    if (authState is AuthStateAccountRestricted) {
+      return const AccountRestrictedScreen();
+    }
+
+    if (authState is AuthStateUnauthenticated) {
+      return CommerceAccessGate(
+        screenTitle: 'Buat Lelang',
+        headline: 'Login Diperlukan',
+        message: 'Silakan login untuk melanjutkan.',
+        buttonLabel: 'Masuk',
+        onAction: () => context.push('/auth/sign-in'),
       );
+    }
+
+    if (authState is! AuthStateAuthenticated) {
+      return CommerceDetailStates.loading(title: 'Buat Lelang');
     }
 
     final currentUser = authState.user;
 
     if (!currentUser.hasCreatedSellerProfile) {
-      return _buildAccessGate(
-        context,
-        isDark: isDark,
-        title: 'Jadi Seller Dulu',
+      return CommerceAccessGate(
+        screenTitle: 'Buat Lelang',
+        headline: 'Jadi Seller Dulu',
         message:
             'Untuk membuat lelang, kamu perlu membuat seller profile terlebih dahulu.',
         buttonLabel: 'Mulai Jualan',
-        destinationRoute: RoutePaths.sellerUpgrade,
+        onAction: () => context.push(RoutePaths.sellerUpgrade),
       );
     }
 
     if (currentUser.hasMarketAuthority != true) {
       // Capability gate unchanged; only its COPY follows the expiry axis.
-      return _buildAccessGate(
-        context,
-        isDark: isDark,
-        title: isSubscriptionExpired
+      return CommerceAccessGate(
+        screenTitle: 'Buat Lelang',
+        headline: isSubscriptionExpired
             ? 'Langganan Seller Habis'
             : 'Langganan Belum Aktif',
         message: isSubscriptionExpired
@@ -403,7 +431,7 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
         buttonLabel: isSubscriptionExpired
             ? 'Perpanjang Langganan'
             : 'Aktifkan Langganan',
-        destinationRoute: RoutePaths.sellerRenewal,
+        onAction: () => context.push(RoutePaths.sellerRenewal),
       );
     }
 
@@ -457,7 +485,7 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
-              _buildMediaSection(isDark),
+              _buildMediaSection(),
               const SizedBox(height: 24),
               const Text(
                 'Detail Koi',
@@ -519,9 +547,9 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              _buildStartModeSection(context, isDark),
+              _buildStartModeSection(context),
               const SizedBox(height: 20),
-              _buildDurationSection(context, isDark),
+              _buildDurationSection(context),
               const SizedBox(height: 20),
               const Text(
                 'Opsi Pengiriman *',
@@ -550,16 +578,16 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppColors.primaryRed.withValues(alpha: 0.1),
+                    color: scheme.error.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: AppColors.primaryRed.withValues(alpha: 0.3),
+                      color: scheme.error.withValues(alpha: 0.3),
                     ),
                   ),
                   child: Text(
                     _errorMessage!,
-                    style: const TextStyle(
-                      color: AppColors.primaryRed,
+                    style: TextStyle(
+                      color: scheme.onSurface,
                       fontSize: 14,
                     ),
                   ),
@@ -570,26 +598,27 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
                 onPressed: _isSubmitting ? null : _submitForm,
                 style: ElevatedButton.styleFrom(
                   minimumSize: const Size.fromHeight(50),
-                  backgroundColor: AppColors.primaryRed,
-                  disabledBackgroundColor: AppColors.neutralGray300,
+                  backgroundColor: scheme.primary,
+                  disabledBackgroundColor: scheme.surfaceContainerHighest,
+                  disabledForegroundColor: scheme.onSurfaceVariant,
                 ),
                 child: _isSubmitting
-                    ? const SizedBox(
+                    ? SizedBox(
                         height: 20,
                         width: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
                           valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.white,
+                            scheme.onPrimary,
                           ),
                         ),
                       )
-                    : const Text(
+                    : Text(
                         'Buat Lelang',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: Colors.white,
+                          color: scheme.onPrimary,
                         ),
                       ),
               ),
@@ -601,75 +630,9 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
     );
   }
 
-  Widget _buildAccessGate(
-    BuildContext context, {
-    required bool isDark,
-    required String title,
-    required String message,
-    required String buttonLabel,
-    required String destinationRoute,
-  }) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Buat Lelang')),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.storefront_outlined,
-                size: 64,
-                color: isDark
-                    ? AppColors.neutralGray500
-                    : AppColors.neutralGray400,
-              ),
-              const SizedBox(height: 20),
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: isDark
-                      ? AppColors.neutralWhite
-                      : AppColors.neutralGray900,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                message,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: isDark
-                      ? AppColors.neutralGray400
-                      : AppColors.neutralGray600,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 28),
-              ElevatedButton(
-                onPressed: () => context.push(destinationRoute),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryRed,
-                  foregroundColor: AppColors.light,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 14,
-                  ),
-                ),
-                child: Text(buttonLabel),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   /// Start-mode selector: "Mulai sekarang" (default) vs "Jadwalkan".
   /// Backend is the source of truth — this UI is a convenience only.
-  Widget _buildStartModeSection(BuildContext context, bool isDark) {
+  Widget _buildStartModeSection(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -710,7 +673,7 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
 
   /// Duration selector: owner-approved presets (1/3/5/7 days). The backend
   /// enforces the 1-7 day bound regardless of what this UI offers.
-  Widget _buildDurationSection(BuildContext context, bool isDark) {
+  Widget _buildDurationSection(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -737,7 +700,7 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
     );
   }
 
-  Widget _buildMediaSection(bool isDark) {
+  Widget _buildMediaSection() {
     return MediaGridUploader(
       mediaUrls: _mediaUrls,
       onMediaAdded: (url) => setState(() => _mediaUrls.add(url)),

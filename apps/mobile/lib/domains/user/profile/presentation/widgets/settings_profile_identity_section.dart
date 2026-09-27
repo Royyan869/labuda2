@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/generated/app_localizations.dart';
 
 /// Profile & Identity Section
@@ -12,7 +11,7 @@ class SettingsProfileIdentitySection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Column(
       children: [
@@ -20,28 +19,28 @@ class SettingsProfileIdentitySection extends StatelessWidget {
           context,
           Icons.person_outline,
           'Profile & Identity',
-          isDark,
+          scheme,
         ),
         _buildSettingsTile(
           icon: Icons.person_outline,
           title: l10n.editProfile,
           subtitle: 'Display name, username, bio, and photo',
           onTap: () => onNavigate('editProfile'),
-          isDark: isDark,
+          scheme: scheme,
         ),
         _buildSettingsTile(
           icon: Icons.badge_outlined,
           title: 'Personal Information',
           subtitle: 'Date of birth, phone, and KTP verification',
           onTap: () => onNavigate('personalInformation'),
-          isDark: isDark,
+          scheme: scheme,
         ),
         _buildSettingsTile(
           icon: Icons.location_on_outlined,
           title: 'Addresses',
           subtitle: 'Manage your addresses',
           onTap: () => onNavigate('address'),
-          isDark: isDark,
+          scheme: scheme,
         ),
       ],
     );
@@ -51,7 +50,7 @@ class SettingsProfileIdentitySection extends StatelessWidget {
     BuildContext context,
     IconData icon,
     String title,
-    bool isDark,
+    ColorScheme scheme,
   ) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
@@ -60,7 +59,7 @@ class SettingsProfileIdentitySection extends StatelessWidget {
           Icon(
             icon,
             size: 20,
-            color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray600,
+            color: scheme.onSurfaceVariant,
           ),
           const SizedBox(width: 8),
           Text(
@@ -68,9 +67,7 @@ class SettingsProfileIdentitySection extends StatelessWidget {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray600,
+              color: scheme.onSurfaceVariant,
             ),
           ),
         ],
@@ -83,7 +80,7 @@ class SettingsProfileIdentitySection extends StatelessWidget {
     required String title,
     required String subtitle,
     required VoidCallback onTap,
-    required bool isDark,
+    required ColorScheme scheme,
     Color? textColor,
   }) {
     return ListTile(
@@ -91,25 +88,25 @@ class SettingsProfileIdentitySection extends StatelessWidget {
         icon,
         color:
             textColor ??
-            (isDark ? AppColors.neutralGray300 : AppColors.neutralGray700),
+            (scheme.onSurfaceVariant),
       ),
       title: Text(
         title,
         style: TextStyle(
           color:
               textColor ??
-              (isDark ? AppColors.neutralWhite : AppColors.neutralGray900),
+              (scheme.onSurface),
         ),
       ),
       subtitle: Text(
         subtitle,
         style: TextStyle(
-          color: isDark ? AppColors.neutralGray500 : AppColors.neutralGray600,
+          color: scheme.onSurfaceVariant,
         ),
       ),
       trailing: Icon(
         Icons.chevron_right,
-        color: isDark ? AppColors.neutralGray500 : AppColors.neutralGray400,
+        color: scheme.onSurfaceVariant,
       ),
       onTap: onTap,
     );

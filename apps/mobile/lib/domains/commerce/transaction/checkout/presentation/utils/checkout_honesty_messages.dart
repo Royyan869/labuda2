@@ -33,11 +33,6 @@ class CheckoutHonestyMessages {
       'Harga negosiasi masih valid, namun produk terkait sudah tidak tersedia. '
       'Silakan cari produk lain atau hubungi penjual.';
 
-  static const String quoteUnavailableTitle = 'Penawaran Tidak Valid';
-  static const String quoteUnavailableMessage =
-      'Penawaran dari penjual masih ada, namun produk terkait sudah tidak tersedia. '
-      'Silakan cari produk lain atau minta penawaran baru.';
-
   static const String auctionUnavailableTitle = 'Lelang Tidak Valid';
   static const String auctionUnavailableMessage =
       'Lelang ini sudah tidak tersedia untuk checkout. '

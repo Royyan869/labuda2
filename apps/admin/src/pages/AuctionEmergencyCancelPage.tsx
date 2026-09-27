@@ -83,11 +83,11 @@ export function AuctionEmergencyCancelPage() {
     <div className="space-y-6 max-w-2xl">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-          <Gavel className="h-7 w-7 text-red-600" />
+        <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
+          <Gavel className="h-7 w-7 text-destructive" />
           Emergency Auction Cancel
         </h1>
-        <p className="text-gray-600 mt-1">
+        <p className="text-muted-foreground mt-1">
           Governance-authority override to stop a live auction (e.g. unreachable or abusive
           seller). This is separate from moderation case enforcement — use this only when there
           is no filed moderation case, or the situation requires an immediate stop.
@@ -96,9 +96,9 @@ export function AuctionEmergencyCancelPage() {
 
       <Card>
         <CardContent className="p-6 space-y-4">
-          <div className="flex items-start gap-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-            <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
-            <p className="text-sm text-amber-800">
+          <div className="flex items-start gap-3 p-3 bg-warning-bg border border-warning rounded-lg">
+            <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
+            <p className="text-sm text-warning">
               This action cannot be undone. The backend remains the source of truth for whether
               cancellation is allowed — auctions that already have an order, or are already in a
               terminal state, will be rejected here and must be handled through the order/dispute
@@ -107,14 +107,14 @@ export function AuctionEmergencyCancelPage() {
           </div>
 
           <div>
-            <label htmlFor="auction-id" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="auction-id" className="block text-sm font-medium text-foreground mb-1">
               Auction ID
             </label>
             <input
               id="auction-id"
               type="text"
               placeholder="UUID"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               value={auctionId}
               onChange={(e) => setAuctionId(e.target.value)}
               disabled={loading}
@@ -145,14 +145,14 @@ export function AuctionEmergencyCancelPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
-              <ShieldAlert className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
+              <ShieldAlert className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-medium text-gray-900">
+                <p className="text-sm font-medium text-foreground">
                   <Badge variant="error" className="mr-2">{errorDetail.code}</Badge>
                   {errorDetail.message}
                 </p>
                 {errorDetail.code === 'AUCTION_CANCEL_CONFLICT' && (
-                  <p className="text-xs text-gray-600 mt-2">
+                  <p className="text-xs text-muted-foreground mt-2">
                     This auction cannot be cancelled here — it likely already has an order or is
                     in a terminal state. Use the Orders / Disputes admin pages to handle it through
                     the canonical order/dispute/refund flow instead.
@@ -169,15 +169,15 @@ export function AuctionEmergencyCancelPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
-              <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0 mt-0.5" />
+              <CheckCircle2 className="h-5 w-5 text-success shrink-0 mt-0.5" />
               <div className="text-sm">
-                <p className="font-medium text-gray-900">Auction cancelled</p>
-                <p className="text-gray-600 mt-1">
+                <p className="font-medium text-foreground">Auction cancelled</p>
+                <p className="text-muted-foreground mt-1">
                   {result.auction_id}: <Badge variant="default">{result.status_before}</Badge>
                   {' → '}
                   <Badge variant="success">{result.status_after}</Badge>
                 </p>
-                <p className="text-gray-500 mt-1">Reason: {result.reason}</p>
+                <p className="text-muted-foreground mt-1">Reason: {result.reason}</p>
               </div>
             </div>
             <Button variant="ghost" size="sm" onClick={handleReset} className="mt-3">
@@ -194,11 +194,11 @@ export function AuctionEmergencyCancelPage() {
         title="Confirm Emergency Cancel"
         size="sm"
       >
-        <p className="text-sm text-gray-700">
+        <p className="text-sm text-foreground">
           This will immediately cancel auction <span className="font-mono">{trimmedAuctionId}</span>{' '}
           under governance authority. This action cannot be undone.
         </p>
-        <p className="text-sm text-gray-600 mt-3">
+        <p className="text-sm text-muted-foreground mt-3">
           <span className="font-medium">Reason:</span> {trimmedReason}
         </p>
         <ModalFooter>

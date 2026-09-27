@@ -1,4 +1,5 @@
 import 'package:labuda/core/common/result.dart';
+import 'package:labuda/domains/chat/chat/data/dto/chat_resource_occurrence_request.dart';
 import 'package:labuda/domains/chat/chat/data/dto/chat_room_event_dto.dart';
 import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart';
 import 'package:labuda/shared/attachment/entities/share_reference.dart';
@@ -7,7 +8,12 @@ import 'package:labuda/domains/commerce/catalog/for_sale/data/dto/shipping_quote
 /// Chat Repository Interface
 ///
 /// Defines contract for chat data operations.
-/// Implementation can be API-based, Firestore-based, or hybrid.
+///
+/// CANONICAL REALTIME CONTRACT: the only realtime gateway is
+/// [watchChatRoomEvents] (`chat.room.created` / `chat.room.updated`,
+/// user-targeted). Consumers re-fetch message bodies over REST — the WS frame
+/// intentionally carries no message content (ADR-005). There is no message
+/// stream, no typing stream and no read-receipt stream.
 abstract class ChatRepository {
   // ========================================
   // Chat Operations
@@ -24,12 +30,6 @@ abstract class ChatRepository {
     required String userId,
     int page = 1,
     int limit = 20,
-  });
-
-  /// Delete chat for specific user (soft delete)
-  Future<Result<bool>> deleteChat({
-    required String chatId,
-    required String userId,
   });
 
   /// Link order to chat for commerce continuity (order↔chat alignment)
@@ -62,6 +62,9 @@ abstract class ChatRepository {
     ShareReference? objectReference,
     Map<String, dynamic>?
     workflowAttachment, // For negotiation/shipping/location
+    // Explicit resource occurrence (composer direct-commerce attach); when
+    // null the repository derives it from objectReference.
+    ChatResourceOccurrenceRequest? resourceOccurrence,
   });
 
   /// Get messages with pagination
@@ -85,56 +88,16 @@ abstract class ChatRepository {
     List<String>? messageIds,
   });
 
-  /// Mark message as delivered
-  Future<Result<bool>> markMessageAsDelivered({
-    required String chatId,
-    required String messageId,
-  });
-
-  // ========================================
-  // Content Validation
-  // ========================================
-
-  /// Validate message content (anti-circumvention)
-  Future<Result<bool>> validateMessageContent(String content);
-
-  // ========================================
-  // Unread Count
-  // ========================================
-
-  /// Get unread count for a specific chat room.
-  ///
-  /// Canonical backend contract: GET /chat/rooms/:room_id/unread
-  Future<Result<int>> getRoomUnreadCount(String roomId);
-
   // ========================================
   // Streams (Real-time)
   // ========================================
 
-  /// Stream real-time messages
-  Stream<List<Message>> watchMessages({
-    required String chatId,
-    required String userId,
-  });
-
   /// Stream parsed room summary events from realtime transport.
   ///
   /// This is the gateway-only contract for `chat.room.created` and
-  /// `chat.room.updated`. It does not mutate chat-list state.
+  /// `chat.room.updated`. It never carries message bodies; consumers
+  /// (chat list merge, open-thread refresh) re-read the canonical REST state.
   Stream<ChatRoomEventDto> watchChatRoomEvents();
-
-  /// Stream typing indicators
-  Stream<Map<String, bool>> watchTypingIndicators(String chatId);
-
-  // ========================================
-  // Support Ticket (Optional)
-  // ========================================
-
-  /// Get chat statistics
-  Future<Result<Map<String, dynamic>>> getChatStats(String userId);
-
-  /// Clear chat context
-  Future<Result<void>> clearChatContext(String chatId);
 
   // ========================================
   // Commerce Operations
@@ -147,33 +110,5 @@ abstract class ChatRepository {
   Future<Result<Map<String, dynamic>>> createShippingQuote({
     required String chatId,
     required CreateShippingQuoteRequestDto request,
-  });
-}
-
-/// Typing event from WebSocket
-class TypingEvent {
-  final String chatRoomId;
-  final String userId;
-  final String userName;
-  final bool isTyping;
-
-  const TypingEvent({
-    required this.chatRoomId,
-    required this.userId,
-    required this.userName,
-    required this.isTyping,
-  });
-}
-
-/// Read receipt event from WebSocket
-class ReadReceiptEvent {
-  final String chatRoomId;
-  final String messageId;
-  final String userId;
-
-  const ReadReceiptEvent({
-    required this.chatRoomId,
-    required this.messageId,
-    required this.userId,
   });
 }

@@ -169,20 +169,20 @@ export function AppealDetailModal({ isOpen, onClose, appeal, onReviewComplete }:
                   setStaleStatus(null)
                   refetchDetail()
                 }}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="text-muted-foreground hover:text-muted-foreground transition-colors"
                 title="Refresh appeal data"
               >
                 <RefreshCw className="h-4 w-4" />
               </button>
             </div>
-            <span className="text-sm text-gray-500">
+            <span className="text-sm text-muted-foreground">
               Appeal ID: <span className="font-mono">{displayData.id}</span>
             </span>
           </div>
 
           {/* Stale Status Warning */}
           {staleStatus && (
-            <div className="bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-lg flex items-start gap-2">
+            <div className="bg-warning-bg border border-warning text-warning p-4 rounded-lg flex items-start gap-2">
               <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
               <div className="flex-1">
                 <p className="font-medium text-sm">Status Changed</p>
@@ -199,17 +199,17 @@ export function AppealDetailModal({ isOpen, onClose, appeal, onReviewComplete }:
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-gray-500">Decision ID</p>
+                  <p className="text-sm text-muted-foreground">Decision ID</p>
                   <p className="font-mono text-sm break-all">{appeal.decision_id}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Submitted Date</p>
+                  <p className="text-sm text-muted-foreground">Submitted Date</p>
                   <p className="text-sm">{formatDate(appeal.created_at)}</p>
                 </div>
               </div>
               <div>
-                <p className="text-sm text-gray-500 mb-1">Appeal Message</p>
-                <p className="text-gray-900 bg-gray-50 p-3 rounded-lg whitespace-pre-wrap break-words">
+                <p className="text-sm text-muted-foreground mb-1">Appeal Message</p>
+                <p className="text-foreground bg-muted p-3 rounded-lg whitespace-pre-wrap break-words">
                   {appeal.message}
                 </p>
               </div>
@@ -217,20 +217,20 @@ export function AppealDetailModal({ isOpen, onClose, appeal, onReviewComplete }:
               {displayData.reviewed_by && (
                 <>
                   <div>
-                    <p className="text-sm text-gray-500">Reviewed By</p>
+                    <p className="text-sm text-muted-foreground">Reviewed By</p>
                     <p className="font-mono text-sm break-all">{displayData.reviewed_by}</p>
                   </div>
                   {displayData.admin_response && (
                     <div>
-                      <p className="text-sm text-gray-500 mb-1">Admin Response</p>
-                      <p className="text-gray-900 bg-gray-50 p-3 rounded-lg whitespace-pre-wrap break-words">
+                      <p className="text-sm text-muted-foreground mb-1">Admin Response</p>
+                      <p className="text-foreground bg-muted p-3 rounded-lg whitespace-pre-wrap break-words">
                         {displayData.admin_response}
                       </p>
                     </div>
                   )}
                   {displayData.reviewed_at && (
                     <div>
-                      <p className="text-sm text-gray-500">Reviewed At</p>
+                      <p className="text-sm text-muted-foreground">Reviewed At</p>
                       <p className="text-sm">{formatDate(displayData.reviewed_at)}</p>
                     </div>
                   )}
@@ -248,32 +248,32 @@ export function AppealDetailModal({ isOpen, onClose, appeal, onReviewComplete }:
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm text-gray-500">Case ID</p>
+                    <p className="text-sm text-muted-foreground">Case ID</p>
                     <p className="font-mono text-sm break-all">{appealDetail.original_case.id}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Resource Type</p>
+                    <p className="text-sm text-muted-foreground">Resource Type</p>
                     <p className="text-sm">{targetTypeLabels[appealDetail.original_case.resource_type as keyof typeof targetTypeLabels] || appealDetail.original_case.resource_type}</p>
                   </div>
                 </div>                <div className="flex items-center gap-4">
                   <div>
-                    <p className="text-sm text-gray-500">Case Status</p>
+                    <p className="text-sm text-muted-foreground">Case Status</p>
                     <Badge variant={caseStatusVariants[appealDetail.original_case.status as keyof typeof caseStatusVariants] || 'info'}>
                       {caseStatusLabels[appealDetail.original_case.status as keyof typeof caseStatusLabels] || appealDetail.original_case.status}
                     </Badge>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Decision Outcome</p>
+                    <p className="text-sm text-muted-foreground">Decision Outcome</p>
                     <p className="text-sm font-medium capitalize">
                       {appealDetail.original_case.decision_outcome}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Decision ID</p>
+                    <p className="text-sm text-muted-foreground">Decision ID</p>
                     <p className="font-mono text-xs break-all">{appealDetail.original_case.decision_id}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Created</p>
+                    <p className="text-sm text-muted-foreground">Created</p>
                     <p className="text-sm">{formatDate(appealDetail.original_case.created_at)}</p>
                   </div>
                 </div>
@@ -284,7 +284,7 @@ export function AppealDetailModal({ isOpen, onClose, appeal, onReviewComplete }:
           {/* Admin Response */}
           {isPending && canReview && (
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-2 block">
+              <label className="text-sm font-medium text-foreground mb-2 block">
                 Admin Response (Optional)
               </label>
               <textarea
@@ -293,15 +293,15 @@ export function AppealDetailModal({ isOpen, onClose, appeal, onReviewComplete }:
                 placeholder="Provide a response to the user explaining your decision..."
                 rows={3}
                 maxLength={2000}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-none"
               />
-              <p className="text-xs text-gray-500 mt-1">{adminResponse.length}/2000 characters</p>
+              <p className="text-xs text-muted-foreground mt-1">{adminResponse.length}/2000 characters</p>
             </div>
           )}
 
           {/* Read-only notice: pending appeal, but this admin cannot submit a decision */}
           {isPending && !canReview && (
-            <div className="bg-gray-50 border border-gray-200 text-gray-600 p-3 rounded-lg flex items-center gap-2">
+            <div className="bg-muted border border-border text-muted-foreground p-3 rounded-lg flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 flex-shrink-0" />
               <span className="text-sm">
                 You can view this appeal but do not have permission to submit a decision
@@ -312,7 +312,7 @@ export function AppealDetailModal({ isOpen, onClose, appeal, onReviewComplete }:
 
           {/* Error Message */}
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg flex items-center gap-2">
+            <div className="bg-destructive-bg border border-destructive text-destructive p-3 rounded-lg flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 flex-shrink-0" />
               <span className="text-sm">{error}</span>
             </div>
@@ -322,7 +322,7 @@ export function AppealDetailModal({ isOpen, onClose, appeal, onReviewComplete }:
           <ModalFooter>
             {showConfirm ? (
               <>
-                <div className={`flex-1 ${confirmConfig?.variant === 'warning' ? 'text-amber-600' : 'text-blue-600'}`}>
+                <div className={`flex-1 ${confirmConfig?.variant === 'warning' ? 'text-warning' : 'text-primary'}`}>
                   <AlertTriangle className="h-5 w-5 inline mr-2" />
                   {confirmConfig?.message}
                 </div>
@@ -349,7 +349,7 @@ export function AppealDetailModal({ isOpen, onClose, appeal, onReviewComplete }:
                       variant="secondary"
                       onClick={() => handleReviewClick('reject')}
                       disabled={submitting}
-                      className="border-orange-200 text-orange-700 hover:bg-orange-50"
+                      className="border-warning text-warning hover:bg-warning-bg"
                     >
                       <XCircle className="h-4 w-4 mr-2" />
                       Reject Appeal
@@ -358,7 +358,7 @@ export function AppealDetailModal({ isOpen, onClose, appeal, onReviewComplete }:
                       variant="secondary"
                       onClick={() => handleReviewClick('approve')}
                       disabled={submitting}
-                      className="border-green-200 text-green-700 hover:bg-green-50"
+                      className="border-success text-success hover:bg-success-bg"
                     >
                       <CheckCircle className="h-4 w-4 mr-2" />
                       Approve Appeal

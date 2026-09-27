@@ -18,12 +18,8 @@ class AttachmentMapper {
       // Note: 'post', 'forSale', 'auction', 'request' removed - now use ShareReference
       case 'location':
         return _mapToLocationAttachment(data);
-      case 'negotiation_offer':
-        return _mapToNegotiationOfferAttachment(data);
       case 'negotiation_proposal':
         return _mapToNegotiationProposalAttachment(data);
-      case 'negotiation_result':
-        return _mapToNegotiationResultAttachment(data);
       case 'shipping_quote':
         return _mapToShippingQuoteAttachment(data);
       case 'bid':
@@ -42,12 +38,8 @@ class AttachmentMapper {
 
     if (attachment is LocationAttachment) {
       return _locationAttachmentToMap(attachment);
-    } else if (attachment is NegotiationOfferAttachment) {
-      return _negotiationOfferAttachmentToMap(attachment);
     } else if (attachment is NegotiationProposalAttachment) {
       return _negotiationProposalAttachmentToMap(attachment);
-    } else if (attachment is NegotiationResultAttachment) {
-      return _negotiationResultAttachmentToMap(attachment);
     } else if (attachment is ShippingQuoteAttachment) {
       return _shippingQuoteAttachmentToMap(attachment);
     } else if (attachment is BidAttachment) {
@@ -81,28 +73,6 @@ class AttachmentMapper {
     );
   }
 
-  static NegotiationOfferAttachment _mapToNegotiationOfferAttachment(
-    Map<String, dynamic> data,
-  ) {
-    return NegotiationOfferAttachment(
-      negotiationId: data['negotiationId'] as String,
-      forSaleId: data['forSaleId'] as String,
-      forSaleName: data['forSaleName'] as String,
-      forSaleImage: data['forSaleImage'] as String?,
-      originalPrice: (data['originalPrice'] as num).toDouble(),
-      currentOfferPrice: (data['currentOfferPrice'] as num).toDouble(),
-      lastOfferBy: data['lastOfferBy'] as String,
-      round: data['round'] as int,
-      status: data['status'] as String,
-      buyerId: data['buyerId'] as String,
-      buyerName: data['buyerName'] as String,
-      sellerId: data['sellerId'] as String,
-      sellerName: data['sellerName'] as String,
-      createdAt: _parseDateTimeRequired(data['createdAt']),
-      updatedAt: _parseDateTimeRequired(data['updatedAt']),
-    );
-  }
-
   static NegotiationProposalAttachment _mapToNegotiationProposalAttachment(
     Map<String, dynamic> data,
   ) {
@@ -113,24 +83,6 @@ class AttachmentMapper {
       resourceType: data['resourceType'] as String?,
       resourceId: data['resourceId'] as String?,
       note: data['note'] as String?,
-    );
-  }
-
-  static NegotiationResultAttachment _mapToNegotiationResultAttachment(
-    Map<String, dynamic> data,
-  ) {
-    return NegotiationResultAttachment(
-      negotiationId: data['negotiationId'] as String,
-      forSaleId: data['forSaleId'] as String,
-      forSaleName: data['forSaleName'] as String,
-      forSaleImage: data['forSaleImage'] as String?,
-      originalPrice: (data['originalPrice'] as num).toDouble(),
-      agreedPrice: (data['agreedPrice'] as num?)?.toDouble(),
-      status: data['status'] as String,
-      totalRounds: data['totalRounds'] as int,
-      createdAt: _parseDateTimeRequired(data['createdAt']),
-      completedAt: _parseDateTime(data['completedAt']),
-      canPurchase: data['canPurchase'] as bool? ?? false,
     );
   }
 
@@ -188,29 +140,6 @@ class AttachmentMapper {
     };
   }
 
-  static Map<String, dynamic> _negotiationOfferAttachmentToMap(
-    NegotiationOfferAttachment attachment,
-  ) {
-    return {
-      'type': 'negotiation_offer',
-      'negotiationId': attachment.negotiationId,
-      'forSaleId': attachment.forSaleId,
-      'forSaleName': attachment.forSaleName,
-      'forSaleImage': attachment.forSaleImage,
-      'originalPrice': attachment.originalPrice,
-      'currentOfferPrice': attachment.currentOfferPrice,
-      'lastOfferBy': attachment.lastOfferBy,
-      'round': attachment.round,
-      'status': attachment.status,
-      'buyerId': attachment.buyerId,
-      'buyerName': attachment.buyerName,
-      'sellerId': attachment.sellerId,
-      'sellerName': attachment.sellerName,
-      'createdAt': attachment.createdAt.toIso8601String(),
-      'updatedAt': attachment.updatedAt.toIso8601String(),
-    };
-  }
-
   static Map<String, dynamic> _negotiationProposalAttachmentToMap(
     NegotiationProposalAttachment attachment,
   ) {
@@ -223,25 +152,6 @@ class AttachmentMapper {
         'resource_type': attachment.resourceType,
       if (attachment.resourceId != null) 'resource_id': attachment.resourceId,
       if (attachment.note != null) 'note': attachment.note,
-    };
-  }
-
-  static Map<String, dynamic> _negotiationResultAttachmentToMap(
-    NegotiationResultAttachment attachment,
-  ) {
-    return {
-      'type': 'negotiation_result',
-      'negotiationId': attachment.negotiationId,
-      'forSaleId': attachment.forSaleId,
-      'forSaleName': attachment.forSaleName,
-      'forSaleImage': attachment.forSaleImage,
-      'originalPrice': attachment.originalPrice,
-      'agreedPrice': attachment.agreedPrice,
-      'status': attachment.status,
-      'totalRounds': attachment.totalRounds,
-      'createdAt': attachment.createdAt.toIso8601String(),
-      'completedAt': attachment.completedAt?.toIso8601String(),
-      'canPurchase': attachment.canPurchase,
     };
   }
 

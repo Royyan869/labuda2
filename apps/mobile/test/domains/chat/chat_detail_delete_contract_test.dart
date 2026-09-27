@@ -40,7 +40,6 @@ void main() {
       ProviderScope(
         overrides: [
           currentUserIdProvider.overrideWith((ref) => currentUserId),
-          typingIndicatorEnabledProvider.overrideWith((ref) => false),
           isUserBlockedProvider(otherUserId).overrideWith((ref) => true),
           chatDetailProvider(chatId).overrideWithValue(
             ChatDetailState(chat: makeChat(), messages: [makeMyMessage()]),
@@ -65,7 +64,6 @@ void main() {
       ProviderScope(
         overrides: [
           currentUserIdProvider.overrideWith((ref) => currentUserId),
-          typingIndicatorEnabledProvider.overrideWith((ref) => false),
           isUserBlockedProvider(otherUserId).overrideWith((ref) => true),
           chatDetailProvider(chatId).overrideWithValue(
             ChatDetailState(chat: makeChat(), messages: const []),

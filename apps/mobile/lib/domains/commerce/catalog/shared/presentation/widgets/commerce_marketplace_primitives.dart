@@ -210,6 +210,11 @@ class CommerceMarketplaceCardShell extends StatelessWidget {
   final String title;
   final Widget value;
   final Widget? metadata;
+
+  /// Optional action row rendered under [metadata], inside the card frame.
+  /// Reserved for navigation CTAs (the owning domain keeps transaction
+  /// authority; the card itself carries no business logic).
+  final Widget? footer;
   final List<Widget> badges;
   final VoidCallback? onTap;
   final EdgeInsetsGeometry padding;
@@ -225,6 +230,7 @@ class CommerceMarketplaceCardShell extends StatelessWidget {
     required this.title,
     required this.value,
     this.metadata,
+    this.footer,
     this.badges = const [],
     this.onTap,
     this.padding = EdgeInsets.zero,
@@ -290,6 +296,7 @@ class CommerceMarketplaceCardShell extends StatelessWidget {
                         const SizedBox(height: 8),
                         metadata!,
                       ],
+                      if (footer != null) ...[footer!],
                     ],
                   ),
                 ),

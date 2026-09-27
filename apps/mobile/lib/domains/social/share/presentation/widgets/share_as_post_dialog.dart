@@ -47,19 +47,11 @@ class _ShareAsPostDialogState extends ConsumerState<ShareAsPostDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final backgroundColor = isDark
-        ? AppColors.darkGray800
-        : AppColors.neutralWhite;
-    final textColor = isDark
-        ? AppColors.neutralGray100
-        : AppColors.neutralGray900;
-    final borderColor = isDark
-        ? AppColors.darkGray600
-        : AppColors.neutralGray300;
-    final dividerColor = isDark
-        ? AppColors.darkGray600
-        : AppColors.neutralGray200;
+    final scheme = Theme.of(context).colorScheme;
+    final backgroundColor = scheme.surfaceContainerHigh;
+    final textColor = scheme.onSurface;
+    final borderColor = scheme.outlineVariant;
+    final dividerColor = scheme.outlineVariant;
 
     return Dialog(
       backgroundColor: backgroundColor,
@@ -102,7 +94,7 @@ class _ShareAsPostDialogState extends ConsumerState<ShareAsPostDialog> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     // Preview card
-                    SharePreviewCard(target: widget.target, isDark: isDark),
+                    SharePreviewCard(target: widget.target),
 
                     Divider(height: 1, color: dividerColor),
 
@@ -134,9 +126,7 @@ class _ShareAsPostDialogState extends ConsumerState<ShareAsPostDialog> {
                                   ? 'Add your thoughts...'
                                   : 'Write something about this...',
                               hintStyle: AppTypography.bodyMedium.copyWith(
-                                color: isDark
-                                    ? AppColors.neutralGray500
-                                    : AppColors.neutralGray400,
+                                color: scheme.onSurfaceVariant,
                               ),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
@@ -148,8 +138,8 @@ class _ShareAsPostDialogState extends ConsumerState<ShareAsPostDialog> {
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(
-                                  color: AppColors.primaryRed,
+                                borderSide: BorderSide(
+                                  color: scheme.primary,
                                   width: 2,
                                 ),
                               ),
@@ -194,27 +184,28 @@ class _ShareAsPostDialogState extends ConsumerState<ShareAsPostDialog> {
                     child: ElevatedButton(
                       onPressed: _isLoading ? null : _handlePost,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryRed,
+                        backgroundColor: scheme.primary,
+                        foregroundColor: scheme.onPrimary,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                       child: _isLoading
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 20,
                               height: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
                                 valueColor: AlwaysStoppedAnimation<Color>(
-                                  AppColors.neutralWhite,
+                                  scheme.onPrimary,
                                 ),
                               ),
                             )
                           : Text(
                               widget.isRepost ? 'Share' : 'Post',
                               style: AppTypography.button.copyWith(
-                                color: AppColors.neutralWhite,
+                                color: scheme.onPrimary,
                               ),
                             ),
                     ),

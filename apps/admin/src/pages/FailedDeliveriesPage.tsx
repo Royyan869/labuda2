@@ -33,7 +33,7 @@ export function FailedDeliveriesPage() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
-          <p className="mt-4 text-gray-600">Loading failed deliveries...</p>
+          <p className="mt-4 text-muted-foreground">Loading failed deliveries...</p>
         </div>
       </div>
     )
@@ -43,12 +43,12 @@ export function FailedDeliveriesPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Failed Deliveries</h1>
-          <p className="text-gray-600 mt-1">Notification delivery failures</p>
+          <h1 className="text-3xl font-bold text-foreground">Failed Deliveries</h1>
+          <p className="text-muted-foreground mt-1">Notification delivery failures</p>
         </div>
         <Card>
           <CardContent className="p-6">
-            <div className="text-center text-red-600">
+            <div className="text-center text-destructive">
               <p>Error loading failed deliveries: {error.message}</p>
               <Button variant="secondary" onClick={refetch} className="mt-4 gap-2">
                 <RefreshCw className="h-4 w-4" />
@@ -66,8 +66,8 @@ export function FailedDeliveriesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Failed Deliveries</h1>
-          <p className="text-gray-600 mt-1">Notification delivery failures ({total} total)</p>
+          <h1 className="text-3xl font-bold text-foreground">Failed Deliveries</h1>
+          <p className="text-muted-foreground mt-1">Notification delivery failures ({total} total)</p>
         </div>
         <Button variant="secondary" onClick={refetch} className="gap-2">
           <RefreshCw className="h-4 w-4" />
@@ -79,14 +79,14 @@ export function FailedDeliveriesPage() {
       <Card>
         <CardContent className="pt-6">
           <div className="flex items-center gap-4">
-            <label htmlFor="since-filter" className="text-sm font-medium text-gray-700">
+            <label htmlFor="since-filter" className="text-sm font-medium text-foreground">
               Since:
             </label>
             <select
               id="since-filter"
               value={sinceHours}
               onChange={(e) => handleSinceChange(Number(e.target.value))}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <option value={1}>Last 1 hour</option>
               <option value={6}>Last 6 hours</option>
@@ -106,14 +106,14 @@ export function FailedDeliveriesPage() {
         <CardContent>
           {deliveries.length === 0 ? (
             <div className="text-center py-12">
-              <MailWarning className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Failed Deliveries</h3>
-              <p className="text-gray-600">
+              <MailWarning className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-foreground mb-2">No Failed Deliveries</h3>
+              <p className="text-muted-foreground">
                 No notification delivery failures in the selected time range.
               </p>
             </div>
           ) : (
-            <div className="border border-gray-200 rounded-lg overflow-hidden">
+            <div className="border border-border rounded-lg overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -139,13 +139,13 @@ export function FailedDeliveriesPage() {
                       <TableCell>
                         <Badge variant="error">{d.status}</Badge>
                       </TableCell>
-                      <TableCell className="max-w-[300px] truncate text-sm text-gray-700">
+                      <TableCell className="max-w-[300px] truncate text-sm text-foreground">
                         {d.reason || '-'}
                       </TableCell>
                       <TableCell className="font-mono text-sm">
                         {d.notification_id.slice(0, 8)}...
                       </TableCell>
-                      <TableCell className="text-sm text-gray-600">
+                      <TableCell className="text-sm text-muted-foreground">
                         {formatDate(d.created_at)}
                       </TableCell>
                     </TableRow>
@@ -169,7 +169,7 @@ export function FailedDeliveriesPage() {
             <ChevronLeft className="h-4 w-4 mr-1" />
             Previous
           </Button>
-          <span className="text-sm text-gray-600 font-medium">
+          <span className="text-sm text-muted-foreground font-medium">
             Page {page} of {totalPages}
           </span>
           <Button

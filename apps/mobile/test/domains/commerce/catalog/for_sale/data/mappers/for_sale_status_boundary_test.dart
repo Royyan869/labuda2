@@ -5,12 +5,14 @@ import 'package:labuda/domains/commerce/catalog/for_sale/domain/entities/for_sal
 
 /// SCOPE 3 — for_sale status boundary (mobile side, parity with auction).
 ///
-/// The backend now coarsens the public `status` wire field to the public
-/// lifecycle vocabulary ({active, unavailable}) — raw `draft`/`sold`/
-/// `withdrawn` NEVER cross the public boundary. The exact internal state
-/// crosses ONLY via `seller_status`, and only on owner surfaces. The mapper
-/// must prefer `seller_status` (owner precision) and resolve through the
-/// public vocabulary otherwise.
+/// The backend coarsens the public `status` wire field to the public
+/// lifecycle vocabulary ({active, sold, unavailable}) — raw `draft`/
+/// `withdrawn` NEVER cross the public boundary; `sold` is honest public
+/// business truth (honest-labeling decision), while the reason a listing
+/// was pulled stays private. The exact internal state crosses ONLY via
+/// `seller_status`, and only on owner surfaces. The mapper must prefer
+/// `seller_status` (owner precision) and resolve through the public
+/// vocabulary otherwise.
 void main() {
   Map<String, dynamic> baseJson({String? status, String? sellerStatus}) {
     return <String, dynamic>{
@@ -36,13 +38,21 @@ void main() {
     expect(forSale.status, ForSaleStatus.active);
   });
 
-  test('unavailable coarsens sold/withdrawn/draft into one not-buyable value', () {
+  test('unavailable coarsens draft/withdrawn into one not-buyable value (sold crosses honestly)', () {
     final forSale = ForSaleDtoMapper.toEntity(
       ForSaleResponseDto.fromJson(baseJson(status: 'unavailable')),
     );
     // Public viewers only need "not buyable" — the conservative mapping
     // resolves unavailable to the draft (not-buyable) domain state.
     expect(forSale.status, ForSaleStatus.draft);
+    expect(forSale.isAvailable, isFalse);
+  });
+
+  test('sold crosses the wire honestly (public business truth)', () {
+    final forSale = ForSaleDtoMapper.toEntity(
+      ForSaleResponseDto.fromJson(baseJson(status: 'sold')),
+    );
+    expect(forSale.status, ForSaleStatus.sold);
     expect(forSale.isAvailable, isFalse);
   });
 

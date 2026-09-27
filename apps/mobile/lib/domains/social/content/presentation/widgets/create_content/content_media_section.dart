@@ -11,7 +11,6 @@ class ContentMediaSection extends StatelessWidget {
   final Function(int, int) onImageReorder;
   final Function(int) onImageRemove;
   final VoidCallback onVideoRemove;
-  final bool isDark;
 
   const ContentMediaSection({
     super.key,
@@ -20,7 +19,6 @@ class ContentMediaSection extends StatelessWidget {
     required this.onImageReorder,
     required this.onImageRemove,
     required this.onVideoRemove,
-    required this.isDark,
   });
 
   @override

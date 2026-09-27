@@ -55,7 +55,7 @@ extension ContentSearchResultDtoX on ContentSearchResultDto {
   }
 
   String? _getThumbnailUrl() {
-    final projectionImage = resourceProjection?.imageUrl;
+    final projectionImage = resourceProjection?.primaryImageUrl;
     if (projectionImage != null && projectionImage.isNotEmpty) {
       return projectionImage;
     }

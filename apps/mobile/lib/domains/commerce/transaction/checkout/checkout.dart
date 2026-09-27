@@ -21,7 +21,7 @@
 /// ═══════════════════════════════════════════════════════════════════════════════
 /// COMMERCE FLOW
 /// ═══════════════════════════════════════════════════════════════════════════════
-/// 1. User views forSale detail / accepts negotiation / accepts seller quote, and
+/// 1. User views forSale detail or accepts negotiation, and
 ///    navigates to CheckoutScreen with the sale/product identity (NOT a token).
 /// 2. CheckoutScreen calls the canonical pricing preview (`POST /pricing/preview`)
 ///    for the CURRENT inputs and receives pricing + pricingToken (10 min expiry).

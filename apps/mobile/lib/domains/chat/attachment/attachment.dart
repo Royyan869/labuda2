@@ -17,5 +17,4 @@ export 'mappers/attachment_mapper.dart';
 // ===== TRUTH RESOLUTION =====
 export 'package:labuda/domains/commerce/catalog/shared/attachment_truth_resolver.dart';
 
-// ===== LIVE STATUS PROVIDER =====
-export 'package:labuda/domains/commerce/catalog/shared/live_status_provider.dart';
+// ===== LIVE STATUS PROVIDER ===== (purged: snapshot authority, zero consumers)

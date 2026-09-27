@@ -1,0 +1,13 @@
+-- NEGOTIATION MESSAGES PURGE (Z1)
+--
+-- negotiation_messages is a dead schema authority:
+-- - NegotiationService no longer writes negotiation_messages entries
+--   ("No longer creates negotiation_messages table entries").
+-- - Proposal/counter content is transported exclusively as chat_messages
+--   with type='negotiation_proposal' (chat-owned attachment authority).
+-- - No Go code reads or writes this table (grep = 0 outside migrations).
+-- - Production data = 0; no backward compatibility obligation (zero-to-one).
+--
+-- The index idx_negotiation_messages_session_id and all FK constraints are
+-- dropped automatically with the table.
+DROP TABLE IF EXISTS negotiation_messages;

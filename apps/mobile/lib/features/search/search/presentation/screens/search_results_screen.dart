@@ -93,25 +93,20 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen>
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     final searchState = ref.watch(searchProvider);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Search Results'),
-        backgroundColor: isDark
-            ? AppColors.darkGray800
-            : AppColors.neutralWhite,
         elevation: 0,
         bottom: TabBar(
           controller: _tabController,
           onTap: _onTabSelected,
           isScrollable: true,
-          labelColor: AppColors.primary,
-          unselectedLabelColor: isDark
-              ? AppColors.neutralGray400
-              : AppColors.neutralGray500,
-          indicatorColor: AppColors.primary,
+          labelColor: scheme.primary,
+          unselectedLabelColor: scheme.onSurfaceVariant,
+          indicatorColor: scheme.primary,
           tabs: _tabs,
         ),
       ),
@@ -166,15 +161,14 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen>
 
   Widget _buildTypeResults(SearchState state) {
     final results = state.selectedDomainResults;
+    final scheme = Theme.of(context).colorScheme;
 
     return ListView.separated(
       padding: const EdgeInsets.symmetric(vertical: 8),
       itemCount: results.length,
       separatorBuilder: (_, _) => Divider(
         height: 1,
-        color: Theme.of(context).brightness == Brightness.dark
-            ? AppColors.darkGray600
-            : AppColors.neutralGray200,
+        color: scheme.outlineVariant,
       ),
       itemBuilder: (context, index) {
         final result = results[index];
@@ -187,7 +181,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen>
   }
 
   Widget _buildError(String error) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Center(
       child: Padding(
@@ -195,15 +189,13 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, size: 64, color: AppColors.primaryRed),
+            Icon(Icons.error_outline, size: 64, color: scheme.error),
             const SizedBox(height: 16),
             Text(
               error,
               style: TextStyle(
                 fontSize: 16,
-                color: isDark
-                    ? AppColors.neutralGray300
-                    : AppColors.neutralGray700,
+                color: scheme.onSurface,
               ),
               textAlign: TextAlign.center,
             ),
@@ -219,7 +211,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen>
   }
 
   Widget _buildEmptyState() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Center(
       child: Padding(
@@ -230,9 +222,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen>
             Icon(
               Icons.search_off,
               size: 64,
-              color: isDark
-                  ? AppColors.neutralGray600
-                  : AppColors.neutralGray300,
+              color: scheme.outline,
             ),
             const SizedBox(height: 16),
             Text(
@@ -240,18 +230,14 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen>
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: isDark
-                    ? AppColors.neutralGray300
-                    : AppColors.neutralGray700,
+                color: scheme.onSurface,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               'Try different keywords or different filters',
               style: TextStyle(
-                color: isDark
-                    ? AppColors.neutralGray500
-                    : AppColors.neutralGray500,
+                color: scheme.onSurfaceVariant,
               ),
               textAlign: TextAlign.center,
             ),

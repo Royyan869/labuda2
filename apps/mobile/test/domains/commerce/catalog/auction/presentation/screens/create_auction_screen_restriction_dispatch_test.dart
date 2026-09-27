@@ -19,11 +19,11 @@
 //     - the preserved side effects / fallbacks / pre-submit gate are intact.
 //
 // FACTUAL BLOCKER for executing PART A's reactive branch end-to-end:
-//   `_mediaUrls` is private state and is ONLY ever populated through
-//   `ForSaleMediaHandler.showMediaPicker` (platform `image_picker` via
-//   `MediaPickerHelper`) followed by a direct `S3Service()` upload. Neither is
-//   provider-injectable and `CreateAuctionScreen` exposes no media seam
-//   (`const CreateAuctionScreen({super.key})`), so no widget test can pass the
+//   `_mediaUrls` is private state and is ONLY ever populated through the
+//   shared `MediaGridUploader` (canonical `MediaUploadOrchestrator`: platform
+//   `image_picker` via `MediaPickerHelper` + S3 upload). Those callbacks come
+//   from the screen's own private state and `CreateAuctionScreen` exposes no
+//   media seam (`const CreateAuctionScreen({super.key})`), so no widget test can pass the
 //   `'Minimal 1 foto wajib diupload'` guard and reach the notifier call. The
 //   dispatch itself is therefore proven by PART B, and the identical canonical
 //   call is executed end-to-end at the neighbouring commerce call-sites

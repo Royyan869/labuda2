@@ -3,8 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/shared.dart';
-import 'package:labuda/domains/user/profile/profile.dart';
+import 'package:labuda/features/search/search/domain/entities/user_search.dart';
 import 'package:labuda/domains/chat/chat/chat.dart';
+import '../providers/new_chat_user_search_provider.dart';
 import '../widgets/new_chat_user_list_widget.dart';
 
 /// Screen untuk memilih user untuk memulai chat baru
@@ -27,14 +28,11 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final authState = ref.watch(authControllerProvider);
 
     if (authState is! AuthStateAuthenticated) {
       return _buildUnauthorizedScreen();
     }
-
-    final currentUserId = authState.user.id;
 
     return PopScope(
       canPop: false,
@@ -49,11 +47,11 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
         body: SafeArea(
           child: Column(
             children: [
-              _buildSearchBar(isDark),
+              _buildSearchBar(context),
               Expanded(
                 child: _searchQuery.isEmpty
-                    ? _buildEmptySearchState(isDark)
-                    : _buildSearchResults(currentUserId, isDark),
+                    ? _buildEmptySearchState(context)
+                    : _buildSearchResults(context),
               ),
             ],
           ),
@@ -82,7 +80,7 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
     return const AppBarCustom(title: 'Select Contact');
   }
 
-  Widget _buildSearchBar(bool isDark) {
+  Widget _buildSearchBar(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(16),
       child: TextField(
@@ -107,7 +105,7 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
                 )
               : null,
           filled: true,
-          fillColor: isDark ? AppColors.darkGray700 : AppColors.neutralGray100,
+          fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide.none,
@@ -121,7 +119,8 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
     );
   }
 
-  Widget _buildEmptySearchState(bool isDark) {
+  Widget _buildEmptySearchState(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -129,26 +128,19 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
           Icon(
             Icons.search,
             size: 64,
-            color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray500,
+            color: scheme.onSurfaceVariant,
           ),
           const SizedBox(height: 16),
           Text(
             'Search user to start a chat',
-            style: TextStyle(
-              fontSize: 16,
-              color: isDark
-                  ? AppColors.neutralGray300
-                  : AppColors.neutralGray600,
-            ),
+            style: TextStyle(fontSize: 16, color: scheme.onSurface),
           ),
           const SizedBox(height: 8),
           Text(
             'Type a name or username',
             style: TextStyle(
               fontSize: 14,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray500,
+              color: scheme.onSurfaceVariant,
             ),
           ),
         ],
@@ -156,30 +148,27 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
     );
   }
 
-  Widget _buildSearchResults(String currentUserId, bool isDark) {
-    final searchAsync = ref.watch(searchProfilesProvider(_searchQuery));
+  Widget _buildSearchResults(BuildContext context) {
+    // Canonical search authority: the search domain's UserSearch projection
+    // via /search/users. Self-exclusion is delegated to the provider (live
+    // principal) — no client-side filter here.
+    final searchAsync = ref.watch(newChatUserSearchProvider(_searchQuery));
 
     return searchAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stack) => _buildErrorState(error, isDark),
-      data: (profiles) {
-        final filteredProfiles = profiles
-            .where((profile) => profile.userId != currentUserId)
-            .toList();
-
-        if (filteredProfiles.isEmpty) {
-          return _buildNoResultsState(isDark);
+      error: (error, stack) => _buildErrorState(context, error),
+      data: (List<UserSearch> users) {
+        if (users.isEmpty) {
+          return _buildNoResultsState(context);
         }
 
         return ListView.builder(
           padding: const EdgeInsets.only(bottom: 16),
-          itemCount: filteredProfiles.length,
+          itemCount: users.length,
           itemBuilder: (context, index) {
-            final profile = filteredProfiles[index];
+            final user = users[index];
             return NewChatUserListWidget(
-              profile: profile,
-              currentUserId: currentUserId,
-              isDark: isDark,
+              user: user,
             );
           },
         );
@@ -187,30 +176,24 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
     );
   }
 
-  Widget _buildErrorState(Object error, bool isDark) {
+  Widget _buildErrorState(BuildContext context, Object error) {
+    final scheme = Theme.of(context).colorScheme;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.error_outline, size: 64, color: AppColors.error),
+          Icon(Icons.error_outline, size: 64, color: scheme.error),
           const SizedBox(height: 16),
           Text(
             'Failed to search users',
-            style: TextStyle(
-              fontSize: 16,
-              color: isDark
-                  ? AppColors.neutralGray300
-                  : AppColors.neutralGray700,
-            ),
+            style: TextStyle(fontSize: 16, color: scheme.onSurface),
           ),
           const SizedBox(height: 8),
           Text(
             error.toString(),
             style: TextStyle(
               fontSize: 12,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray500,
+              color: scheme.onSurfaceVariant,
             ),
             textAlign: TextAlign.center,
           ),
@@ -219,7 +202,8 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
     );
   }
 
-  Widget _buildNoResultsState(bool isDark) {
+  Widget _buildNoResultsState(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -227,26 +211,19 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
           Icon(
             Icons.search_off,
             size: 64,
-            color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray500,
+            color: scheme.onSurfaceVariant,
           ),
           const SizedBox(height: 16),
           Text(
             'User not found',
-            style: TextStyle(
-              fontSize: 16,
-              color: isDark
-                  ? AppColors.neutralGray300
-                  : AppColors.neutralGray600,
-            ),
+            style: TextStyle(fontSize: 16, color: scheme.onSurface),
           ),
           const SizedBox(height: 8),
           Text(
             'Try a different keyword',
             style: TextStyle(
               fontSize: 14,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray500,
+              color: scheme.onSurfaceVariant,
             ),
           ),
         ],

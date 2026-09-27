@@ -196,7 +196,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen>
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     // 🔒 DETERMINISTIC: Watch auth state untuk loading, bukan local controller
     // Ini memastikan UI sinkron dengan actual auth flow
@@ -215,17 +215,11 @@ class _SignInScreenState extends ConsumerState<SignInScreen>
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
-          gradient: isDark
-              ? const LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [AppColors.darkGray900, AppColors.darkGray800],
-                )
-              : const LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [AppColors.neutralGray50, AppColors.neutralWhite],
-                ),
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [scheme.surfaceContainerLow, scheme.surface],
+          ),
         ),
         child: SafeArea(
           child: ListenableBuilder(
@@ -286,7 +280,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen>
                                     onChanged: (value) {
                                       _controller.setRememberMe(value ?? false);
                                     },
-                                    activeColor: AppColors.primaryRed,
+                                    activeColor: scheme.primary,
                                     materialTapTargetSize:
                                         MaterialTapTargetSize.shrinkWrap,
                                   ),
@@ -294,9 +288,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen>
                                     'Remember me',
                                     style: Theme.of(context).textTheme.bodySmall
                                         ?.copyWith(
-                                          color: isDark
-                                              ? AppColors.neutralGray400
-                                              : AppColors.neutralGray600,
+                                          color: scheme.onSurfaceVariant,
                                         ),
                                   ),
                                 ],
@@ -305,10 +297,10 @@ class _SignInScreenState extends ConsumerState<SignInScreen>
                                 onPressed: () => ref
                                     .read(navigationHandlerProvider)
                                     .navigateToForgotPassword(),
-                                child: const Text(
+                                child: Text(
                                   'Forgot password?',
                                   style: TextStyle(
-                                    color: AppColors.primaryRed,
+                                    color: scheme.primary,
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
@@ -329,20 +321,18 @@ class _SignInScreenState extends ConsumerState<SignInScreen>
                         width: double.infinity,
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: isDark
-                              ? AppColors.darkGray700
-                              : AppColors.primaryRed.withValues(alpha: 0.08),
+                          color: scheme.error.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: AppColors.primaryRed,
+                            color: scheme.error,
                             width: 1,
                           ),
                         ),
                         child: Row(
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.error_outline,
-                              color: AppColors.primaryRed,
+                              color: scheme.error,
                             ),
                             const SizedBox(width: 10),
                             Expanded(
@@ -352,9 +342,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen>
                                     .textTheme
                                     .bodyMedium
                                     ?.copyWith(
-                                      color: isDark
-                                          ? AppColors.neutralGray100
-                                          : AppColors.neutralGray800,
+                                      color: scheme.onSurface,
                                     ),
                               ),
                             ),
@@ -397,19 +385,17 @@ class _SignInScreenState extends ConsumerState<SignInScreen>
                           "Don't have an account? ",
                           style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(
-                                color: isDark
-                                    ? AppColors.neutralGray400
-                                    : AppColors.neutralGray600,
+                                color: scheme.onSurfaceVariant,
                               ),
                         ),
                         TextButton(
                           onPressed: () => ref
                               .read(navigationHandlerProvider)
                               .navigateToSignUp(),
-                          child: const Text(
+                          child: Text(
                             'Sign Up',
                             style: TextStyle(
-                              color: AppColors.primaryRed,
+                              color: scheme.primary,
                               fontWeight: FontWeight.w600,
                             ),
                           ),

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/core/core.dart';
 
 /// Reusable Back Button dengan styling konsisten
 ///
@@ -17,7 +16,7 @@ class AppBackButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return IconButton(
       onPressed:
@@ -33,9 +32,7 @@ class AppBackButton extends StatelessWidget {
           },
       icon: Icon(
         Icons.arrow_back,
-        color:
-            color ??
-            (isDark ? AppColors.neutralGray300 : AppColors.neutralGray700),
+        color: color ?? scheme.onSurface,
       ),
       tooltip: 'Back',
     );

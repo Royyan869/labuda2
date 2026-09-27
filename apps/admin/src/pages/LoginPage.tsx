@@ -148,28 +148,28 @@ export function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-surface-muted px-4">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-primary">LABUDA</h1>
-          <p className="text-gray-600 mt-2">Admin Dashboard</p>
+          <p className="text-muted-foreground mt-2">Admin Dashboard</p>
         </div>
 
         {/* Login Card */}
-        <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Sign In</h2>
+        <div className="bg-white rounded-lg shadow-lg border border-border p-8">
+          <h2 className="text-2xl font-bold text-foreground mb-6">Sign In</h2>
 
           {error && (
-            <div className="mb-4 rounded-lg bg-red-50 border border-red-200 p-3">
-              <p className="text-sm text-red-800">{error}</p>
+            <div className="mb-4 rounded-lg bg-destructive-bg border border-destructive p-3">
+              <p className="text-sm text-destructive">{error}</p>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Email */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="email" className="block text-sm font-medium text-foreground mb-1">
                 Email
               </label>
               <input
@@ -179,14 +179,14 @@ export function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={anyLoading}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50"
+                className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50"
                 placeholder="admin@labuda.com"
               />
             </div>
 
             {/* Password */}
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="password" className="block text-sm font-medium text-foreground mb-1">
                 Password
               </label>
               <input
@@ -196,7 +196,7 @@ export function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={anyLoading}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50"
+                className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50"
                 placeholder="••••••••"
               />
             </div>
@@ -209,9 +209,9 @@ export function LoginPage() {
 
           {/* Divider */}
           <div className="flex items-center my-5">
-            <div className="flex-1 border-t border-gray-200" />
-            <span className="px-3 text-xs text-gray-400">atau</span>
-            <div className="flex-1 border-t border-gray-200" />
+            <div className="flex-1 border-t border-border" />
+            <span className="px-3 text-xs text-muted-foreground">atau</span>
+            <div className="flex-1 border-t border-border" />
           </div>
 
           {/* Google Sign In */}
@@ -248,12 +248,12 @@ export function LoginPage() {
 
           {/* Footer */}
           <div className="mt-6 text-center">
-            <p className="text-xs text-gray-500">Admin access only. Contact your administrator if you need access.</p>
+            <p className="text-xs text-muted-foreground">Admin access only. Contact your administrator if you need access.</p>
           </div>
         </div>
 
         {/* Version Info */}
-        <p className="text-center text-sm text-gray-500 mt-6">LABUDA Admin Dashboard v1.0.0</p>
+        <p className="text-center text-sm text-muted-foreground mt-6">LABUDA Admin Dashboard v1.0.0</p>
       </div>
     </div>
   );

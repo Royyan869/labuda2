@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:dio/dio.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/chat/chat/data/remote/chat_api_datasource.dart';
 import 'package:labuda/domains/chat/chat/data/repositories/chat_repository_impl.dart';
@@ -149,8 +150,29 @@ class _SilentLogger implements ILoggerService {
   Future<void> log(String message, {LogLevel level = LogLevel.debug}) async {}
 }
 
-class _FakeChatApiDatasource extends ChatApiDatasource {
-  _FakeChatApiDatasource() : super(_NoopApiClient(), logger: _SilentLogger());
+class _RoomCapturingApiClient implements ApiClient {
+  _RoomCapturingApiClient(this.room);
+
+  final Map<String, dynamic> room;
+  String? lastGetPath;
+
+  @override
+  Future<Response<T>> get<T>(
+    String path, {
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+    CancelToken? cancelToken,
+  }) async {
+    lastGetPath = path;
+    return Response<T>(
+      requestOptions: RequestOptions(path: path),
+      statusCode: 200,
+      data: {'success': true, 'data': room} as T,
+    );
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 class _NoopApiClient implements ApiClient {
@@ -193,7 +215,6 @@ ProviderScope _buildChatDetailScope({required ChatRepository repository}) {
       apiClientProvider.overrideWithValue(_NoopApiClient()),
       authControllerProvider.overrideWith(_FakeAuthController.new),
       currentUserIdProvider.overrideWithValue(_currentUserId),
-      typingIndicatorEnabledProvider.overrideWithValue(false),
       isUserBlockedProvider(_peerUserId).overrideWith((ref) => false),
       negotiationNotifierProvider.overrideWith(_FakeNegotiationNotifier.new),
       chatRepositoryProvider.overrideWithValue(repository),
@@ -210,20 +231,33 @@ ProviderScope _buildChatDetailScope({required ChatRepository repository}) {
 void main() {
   group('ChatRepositoryImpl.getChatById', () {
     test(
-      'canonical: getChatById is not available via single-room endpoint',
+      'canonical: getChatById reads GET /chat/rooms/:room_id',
       () async {
+        // CANONICAL (P1-B): the backend registers the single-room read
+        // (`routes_core.go` → GET /chat/rooms/:room_id → ChatHandler.GetRoom)
+        // and its own route contract test locks that registration. The old
+        // contract "single-room endpoint does not exist" protected a killed
+        // design and was replaced by this positive proof.
+        final apiClient = _RoomCapturingApiClient({
+          'id': _chatId,
+          'room_type': 'direct',
+          'other_user_id': _peerUserId,
+          'created_at': '2026-07-30T08:00:00Z',
+        });
         final repo = ChatRepositoryImpl(
-          apiDatasource: _FakeChatApiDatasource(),
+          apiDatasource: ChatApiDatasource(
+            apiClient,
+            logger: _SilentLogger(),
+          ),
           webSocketService: WebSocketService(baseUrl: 'ws://example.invalid'),
           logger: _SilentLogger(),
         );
 
         final result = await repo.getChatById(_chatId);
 
-        // Current canonical: single-room endpoint does not exist, use getUserChats
-        expect(result.isSuccess, isFalse);
-        expect(result.error, contains('not available'));
-        expect(result.data, isNull);
+        expect(result.isSuccess, isTrue);
+        expect(result.data?.id, _chatId);
+        expect(apiClient.lastGetPath, '/chat/rooms/$_chatId');
       },
     );
   });

@@ -30,6 +30,7 @@ import { PlatformConfigPage } from '@/pages/PlatformConfigPage'
 import { PaymentMethodsPage } from '@/pages/PaymentMethodsPage'
 import { SupportOverviewPage } from '@/pages/SupportOverviewPage'
 import { ExternalProductsPage } from '@/pages/ExternalProductsPage'
+import { ProfilePage } from '@/pages/ProfilePage'
 
 function App() {
   return (
@@ -39,6 +40,7 @@ function App() {
 
       {/* Protected Routes (Admin Only) */}
       <Route element={<MainLayout />}>
+        <Route path="/profile" element={<ProfilePage />} />
         <Route
           path="/"
           element={

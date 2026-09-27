@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/services/places_autocomplete_service.dart';
 
 /// Header untuk Map Picker
@@ -8,15 +7,15 @@ class MapPickerHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
+        color: scheme.surface,
         border: Border(
           bottom: BorderSide(
-            color: isDark ? AppColors.neutralGray700 : AppColors.neutralGray200,
+            color: scheme.outlineVariant,
           ),
         ),
       ),
@@ -28,16 +27,14 @@ class MapPickerHeader extends StatelessWidget {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: isDark ? AppColors.neutralWhite : AppColors.neutralBlack,
+                color: scheme.onSurface,
               ),
             ),
           ),
           IconButton(
             icon: Icon(
               Icons.close,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray600,
+              color: scheme.onSurfaceVariant,
             ),
             onPressed: () => Navigator.pop(context),
           ),
@@ -53,23 +50,24 @@ class MapCenterPin extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         // Pin icon
         Container(
           decoration: BoxDecoration(
-            color: AppColors.primaryRed,
+            color: scheme.primary,
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: AppColors.primaryRed.withValues(alpha: 0.3),
+                color: scheme.primary.withValues(alpha: 0.3),
                 blurRadius: 8,
                 offset: const Offset(0, 4),
               ),
             ],
           ),
-          child: const Icon(Icons.place, color: Colors.white, size: 36),
+          child: Icon(Icons.place, color: scheme.onPrimary, size: 36),
         ),
         const SizedBox(height: 4),
         // Shadow untuk depth effect
@@ -77,7 +75,7 @@ class MapCenterPin extends StatelessWidget {
           width: 12,
           height: 6,
           decoration: BoxDecoration(
-            color: AppColors.primaryRed.withValues(alpha: 0.2),
+            color: scheme.primary.withValues(alpha: 0.2),
             shape: BoxShape.circle,
           ),
         ),
@@ -105,7 +103,7 @@ class MapSearchBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -113,7 +111,7 @@ class MapSearchBar extends StatelessWidget {
         // Search TextField
         Container(
           decoration: BoxDecoration(
-            color: isDark ? AppColors.darkGray700 : AppColors.neutralWhite,
+            color: scheme.surfaceContainerHigh,
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
@@ -128,15 +126,11 @@ class MapSearchBar extends StatelessWidget {
             decoration: InputDecoration(
               hintText: 'Cari lokasi...',
               hintStyle: TextStyle(
-                color: isDark
-                    ? AppColors.neutralGray400
-                    : AppColors.neutralGray500,
+                color: scheme.onSurfaceVariant,
               ),
               prefixIcon: Icon(
                 Icons.search,
-                color: isDark
-                    ? AppColors.neutralGray400
-                    : AppColors.neutralGray600,
+                color: scheme.onSurfaceVariant,
               ),
               suffixIcon: controller.text.isNotEmpty
                   ? IconButton(
@@ -161,7 +155,7 @@ class MapSearchBar extends StatelessWidget {
             ),
             style: TextStyle(
               fontSize: 14,
-              color: isDark ? AppColors.neutralWhite : AppColors.neutralBlack,
+              color: scheme.onSurface,
             ),
           ),
         ),
@@ -174,7 +168,7 @@ class MapSearchBar extends StatelessWidget {
             child: Container(
               constraints: const BoxConstraints(maxHeight: 300),
               decoration: BoxDecoration(
-                color: isDark ? AppColors.darkGray700 : AppColors.neutralWhite,
+                color: scheme.surfaceContainerHigh,
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
@@ -193,15 +187,12 @@ class MapSearchBar extends StatelessWidget {
                   itemCount: searchResults.length,
                   separatorBuilder: (context, index) => Divider(
                     height: 1,
-                    color: isDark
-                        ? AppColors.neutralGray600
-                        : AppColors.neutralGray200,
+                    color: scheme.outlineVariant,
                   ),
                   itemBuilder: (context, index) {
                     final prediction = searchResults[index];
                     return _SearchResultItem(
                       prediction: prediction,
-                      isDark: isDark,
                       onTap: () => onPlaceSelected(prediction),
                     );
                   },
@@ -218,17 +209,16 @@ class MapSearchBar extends StatelessWidget {
 /// Search Result Item
 class _SearchResultItem extends StatelessWidget {
   final PlacePrediction prediction;
-  final bool isDark;
   final VoidCallback onTap;
 
   const _SearchResultItem({
     required this.prediction,
-    required this.isDark,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -237,7 +227,7 @@ class _SearchResultItem extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
             children: [
-              Icon(Icons.location_on, color: AppColors.primaryRed, size: 20),
+              Icon(Icons.location_on, color: scheme.primary, size: 20),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -248,9 +238,7 @@ class _SearchResultItem extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
-                        color: isDark
-                            ? AppColors.neutralWhite
-                            : AppColors.neutralBlack,
+                        color: scheme.onSurface,
                       ),
                     ),
                     if (prediction.secondaryText != null) ...[
@@ -259,9 +247,7 @@ class _SearchResultItem extends StatelessWidget {
                         prediction.secondaryText!,
                         style: TextStyle(
                           fontSize: 12,
-                          color: isDark
-                              ? AppColors.neutralGray400
-                              : AppColors.neutralGray600,
+                          color: scheme.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -295,12 +281,12 @@ class MapLocationInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray700 : AppColors.neutralWhite,
+        color: scheme.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -316,7 +302,7 @@ class MapLocationInfoCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.place, color: AppColors.primaryRed, size: 20),
+              Icon(Icons.place, color: scheme.primary, size: 20),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -324,9 +310,7 @@ class MapLocationInfoCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: isDark
-                        ? AppColors.neutralGray400
-                        : AppColors.neutralGray600,
+                    color: scheme.onSurfaceVariant,
                   ),
                 ),
               ),
@@ -338,7 +322,7 @@ class MapLocationInfoCard extends StatelessWidget {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.primaryRed.withValues(alpha: 0.1),
+                    color: scheme.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Row(
@@ -347,7 +331,7 @@ class MapLocationInfoCard extends StatelessWidget {
                       Icon(
                         Icons.warning_amber_rounded,
                         size: 12,
-                        color: AppColors.primaryRed,
+                        color: scheme.primary,
                       ),
                       const SizedBox(width: 4),
                       Text(
@@ -355,7 +339,7 @@ class MapLocationInfoCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w500,
-                          color: AppColors.primaryRed,
+                          color: scheme.primary,
                         ),
                       ),
                     ],
@@ -372,9 +356,7 @@ class MapLocationInfoCard extends StatelessWidget {
                   height: 16,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: isDark
-                        ? AppColors.neutralGray400
-                        : AppColors.neutralGray600,
+                    color: scheme.onSurfaceVariant,
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -382,9 +364,7 @@ class MapLocationInfoCard extends StatelessWidget {
                   'Mendapatkan alamat...',
                   style: TextStyle(
                     fontSize: 14,
-                    color: isDark
-                        ? AppColors.neutralGray400
-                        : AppColors.neutralGray600,
+                    color: scheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -399,9 +379,7 @@ class MapLocationInfoCard extends StatelessWidget {
                     fontSize: 15,
                     fontWeight: FontWeight.w500,
                     height: 1.4,
-                    color: isDark
-                        ? AppColors.neutralWhite
-                        : AppColors.neutralBlack,
+                    color: scheme.onSurface,
                   ),
                   maxLines: 4,
                   overflow: TextOverflow.ellipsis,
@@ -414,9 +392,7 @@ class MapLocationInfoCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 11,
                         fontFamily: 'monospace',
-                        color: isDark
-                            ? AppColors.neutralGray400
-                            : AppColors.neutralGray600,
+                        color: scheme.onSurfaceVariant,
                       ),
                     ),
                   ),
@@ -443,15 +419,15 @@ class MapConfirmButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Container(
       padding: EdgeInsets.fromLTRB(16, 12, 16, 12 + bottomPadding),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
+        color: scheme.surface,
         border: Border(
           top: BorderSide(
-            color: isDark ? AppColors.neutralGray700 : AppColors.neutralGray200,
+            color: scheme.outlineVariant,
           ),
         ),
       ),
@@ -460,7 +436,8 @@ class MapConfirmButton extends StatelessWidget {
         child: FilledButton(
           onPressed: canConfirm ? onConfirm : null,
           style: FilledButton.styleFrom(
-            backgroundColor: AppColors.primaryRed,
+            backgroundColor: scheme.primary,
+            foregroundColor: scheme.onPrimary,
             padding: const EdgeInsets.symmetric(vertical: 14),
           ),
           child: const Text(

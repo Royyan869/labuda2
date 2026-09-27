@@ -48,45 +48,6 @@ func TestNewNegotiationSession(t *testing.T) {
 	}
 }
 
-func TestNegotiationSessionAccept(t *testing.T) {
-	forSaleID := uuid.New()
-	session := NewNegotiationSession(
-		NegotiationResourceForSale,
-		forSaleID,
-		uuid.New(),
-		uuid.New(),
-	)
-
-	// Successful accept
-	err := session.Accept()
-	if err != nil {
-		t.Errorf("Accept() unexpected error: %v", err)
-	}
-
-	if session.Status != NegotiationStatusAccepted {
-		t.Errorf("Accept() Status = %s, want %s", session.Status, NegotiationStatusAccepted)
-	}
-
-	// Cannot accept twice
-	err = session.Accept()
-	if err == nil {
-		t.Error("Accept() should error when already accepted")
-	}
-
-	var transitionErr *InvalidTransitionError
-	if err == nil || err.(*InvalidTransitionError) == nil {
-		_, ok := err.(*InvalidTransitionError)
-		if !ok {
-			t.Errorf("Accept() should return InvalidTransitionError, got %T", err)
-		}
-	} else {
-		transitionErr = err.(*InvalidTransitionError)
-		if transitionErr.CurrentStatus != NegotiationStatusAccepted {
-			t.Errorf("InvalidTransitionError.CurrentStatus = %s, want %s", transitionErr.CurrentStatus, NegotiationStatusAccepted)
-		}
-	}
-}
-
 func TestNegotiationSessionCancel(t *testing.T) {
 	forSaleID := uuid.New()
 	session := NewNegotiationSession(

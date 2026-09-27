@@ -19,8 +19,11 @@ class SearchResultTypeHelper {
     }
   }
 
-  /// Get color for result type
-  static Color getColor(SearchResultType type) {
+  /// Get color for result type.
+  ///
+  /// Brand/semantic tokens stay constant across modes; the content tint
+  /// follows the scheme secondary text role so it adapts to light/dark.
+  static Color getColor(SearchResultType type, BuildContext context) {
     switch (type) {
       case SearchResultType.user:
         return AppColors.primaryBlue;
@@ -28,9 +31,9 @@ class SearchResultTypeHelper {
       case SearchResultType.externalProduct:
         return AppColors.primary;
       case SearchResultType.auction:
-        return const Color(0xFFFF8C00); // Orange color
+        return AppColors.statusWarning;
       case SearchResultType.content:
-        return AppColors.neutralGray600;
+        return Theme.of(context).colorScheme.onSurfaceVariant;
     }
   }
 

@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:labuda/core/core.dart';
+import 'package:flutter/material.dart';
 import 'package:labuda/shared/shared.dart';
 
 /// Phone verification field widget
@@ -8,7 +8,6 @@ class PhoneVerificationField extends StatelessWidget {
   final bool phoneVerified;
   final DateTime? phoneVerifiedAt;
   final VoidCallback onVerifyPhone;
-  final bool isDark;
 
   const PhoneVerificationField({
     super.key,
@@ -16,29 +15,30 @@ class PhoneVerificationField extends StatelessWidget {
     required this.phoneVerified,
     this.phoneVerifiedAt,
     required this.onVerifyPhone,
-    required this.isDark,
+    
   });
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Column(
       children: [
-        _buildPhoneInput(),
+        _buildPhoneInput(scheme),
         if (!phoneVerified) ...[
           const SizedBox(height: 12),
-          _buildVerifyPrompt(),
+          _buildVerifyPrompt(scheme),
         ],
       ],
     );
   }
 
-  Widget _buildPhoneInput() {
+  Widget _buildPhoneInput(ColorScheme scheme) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray800 : AppColors.neutralGray50,
+        color: scheme.onSurfaceVariant,
         border: Border.all(
-          color: isDark ? AppColors.darkGray700 : AppColors.neutralGray300,
+          color: scheme.onSurfaceVariant,
         ),
         borderRadius: BorderRadius.circular(8),
       ),
@@ -49,9 +49,7 @@ class PhoneVerificationField extends StatelessWidget {
             children: [
               Icon(
                 Icons.phone_outlined,
-                color: isDark
-                    ? AppColors.neutralGray400
-                    : AppColors.neutralGray600,
+                color: scheme.onSurfaceVariant,
                 size: 20,
               ),
               const SizedBox(width: 8),
@@ -59,13 +57,11 @@ class PhoneVerificationField extends StatelessWidget {
                 'Phone Number',
                 style: TextStyle(
                   fontSize: 12,
-                  color: isDark
-                      ? AppColors.neutralGray500
-                      : AppColors.neutralGray600,
+                  color: scheme.onSurfaceVariant,
                 ),
               ),
               const Spacer(),
-              _buildVerificationBadge(),
+              _buildVerificationBadge(scheme),
             ],
           ),
           const SizedBox(height: 12),
@@ -75,14 +71,12 @@ class PhoneVerificationField extends StatelessWidget {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
-              color: isDark ? AppColors.neutralWhite : AppColors.neutralGray900,
+              color: scheme.onSurface,
             ),
             decoration: InputDecoration(
               hintText: '081234567890',
               hintStyle: TextStyle(
-                color: isDark
-                    ? AppColors.neutralGray600.withValues(alpha: 0.5)
-                    : AppColors.neutralGray400.withValues(alpha: 0.6),
+                color: scheme.onSurfaceVariant,
               ),
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 12,
@@ -91,25 +85,21 @@ class PhoneVerificationField extends StatelessWidget {
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: BorderSide(
-                  color: isDark
-                      ? AppColors.darkGray600
-                      : AppColors.neutralGray300,
+                  color: scheme.onSurfaceVariant,
                 ),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: BorderSide(
-                  color: isDark
-                      ? AppColors.darkGray600
-                      : AppColors.neutralGray300,
+                  color: scheme.onSurfaceVariant,
                 ),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(
-                  color: AppColors.primaryRed,
-                  width: 1.5,
-                ),
+borderSide: BorderSide(
+                   color: scheme.primary,
+                   width: 1.5,
+                 ),
               ),
             ),
           ),
@@ -119,9 +109,7 @@ class PhoneVerificationField extends StatelessWidget {
               'Verified on ${phoneVerifiedAt!.day}/${phoneVerifiedAt!.month}/${phoneVerifiedAt!.year}',
               style: TextStyle(
                 fontSize: 11,
-                color: isDark
-                    ? AppColors.neutralGray500
-                    : AppColors.neutralGray600,
+                color: scheme.onSurfaceVariant,
               ),
             ),
           ],
@@ -130,7 +118,7 @@ class PhoneVerificationField extends StatelessWidget {
     );
   }
 
-  Widget _buildVerificationBadge() {
+  Widget _buildVerificationBadge(scheme) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
@@ -166,7 +154,7 @@ class PhoneVerificationField extends StatelessWidget {
     );
   }
 
-  Widget _buildVerifyPrompt() {
+  Widget _buildVerifyPrompt(ColorScheme scheme) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -183,9 +171,7 @@ class PhoneVerificationField extends StatelessWidget {
               'Please verify your phone number',
               style: TextStyle(
                 fontSize: 11,
-                color: isDark
-                    ? AppColors.neutralGray400
-                    : AppColors.neutralGray700,
+                color: scheme.onSurfaceVariant,
               ),
             ),
           ),

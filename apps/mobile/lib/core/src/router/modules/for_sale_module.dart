@@ -28,6 +28,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/for_sale.dart';
+import 'package:labuda/domains/commerce/catalog/for_sale/presentation/create_for_sale_route_contract.dart';
 import 'package:labuda/core/src/router/route_paths.dart';
 import 'base_module.dart';
 
@@ -67,8 +68,17 @@ class ForSaleModule extends BaseModule {
     GoRoute(
       path: RoutePaths.createForSale,
       name: RouteNames.createForSale,
-      pageBuilder: (context, state) =>
-          MaterialPage(key: state.pageKey, child: const CreateForSaleScreen()),
+      pageBuilder: (context, state) => MaterialPage(
+        key: state.pageKey,
+        child: CreateForSaleScreen(
+          // Canonical return-mode contract: chat's direct-commerce attach
+          // pushes CreateForSaleRouteArgs.chatDirectCommerce() and consumes
+          // a CreatedForSaleResult; other callers get the raw ForSale.
+          routeArgs: state.extra is CreateForSaleRouteArgs
+              ? state.extra as CreateForSaleRouteArgs
+              : null,
+        ),
+      ),
     ),
 
     // ============================================================================

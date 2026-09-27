@@ -74,6 +74,7 @@ class AuctionRecommendationsSection extends StatelessWidget {
             separatorBuilder: (_, _) => const SizedBox(width: 12),
             itemBuilder: (context, index) {
               final auction = auctions[index];
+              final colorScheme = Theme.of(context).colorScheme;
               return SizedBox(
                 width: 140,
                 child: Card(
@@ -94,16 +95,24 @@ class AuctionRecommendationsSection extends StatelessWidget {
                               width: double.infinity,
                               fit: BoxFit.cover,
                               errorBuilder: (_, _, _) => Container(
-                                color: Colors.grey[200],
-                                child: const Icon(Icons.image),
+                                color:
+                                    colorScheme.surfaceContainerHighest,
+                                child: Icon(
+                                  Icons.image,
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
                               ),
                             ),
                           )
                         else
                           Expanded(
                             child: Container(
-                              color: Colors.grey[200],
-                              child: const Icon(Icons.image),
+                              color:
+                                  colorScheme.surfaceContainerHighest,
+                              child: Icon(
+                                Icons.image,
+                                color: colorScheme.onSurfaceVariant,
+                              ),
                             ),
                           ),
                         Padding(

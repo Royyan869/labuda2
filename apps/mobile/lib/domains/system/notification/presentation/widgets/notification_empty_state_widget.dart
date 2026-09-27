@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/system/notification/domain/entities/notification_filter.dart';
 
 /// Notification Empty State Widget
@@ -18,6 +19,7 @@ class NotificationEmptyStateWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (title, description) = _getEmptyStateMessage();
+    final scheme = Theme.of(context).colorScheme;
 
     return Center(
       child: Padding(
@@ -30,13 +32,13 @@ class NotificationEmptyStateWidget extends StatelessWidget {
               width: 160,
               height: 160,
               decoration: BoxDecoration(
-                color: Colors.grey[100],
+                color: scheme.surfaceContainerHighest,
                 shape: BoxShape.circle,
               ),
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  Icon(filter.icon, size: 80, color: Colors.grey[300]),
+                  Icon(filter.icon, size: 80, color: scheme.outlineVariant),
                   Positioned(
                     right: 35,
                     top: 35,
@@ -44,14 +46,14 @@ class NotificationEmptyStateWidget extends StatelessWidget {
                       width: 32,
                       height: 32,
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: scheme.surface,
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.grey[200]!, width: 2),
+                        border: Border.all(color: scheme.outlineVariant, width: 2),
                       ),
                       child: Icon(
                         Icons.check,
                         size: 20,
-                        color: Colors.grey[400],
+                        color: scheme.onSurfaceVariant,
                       ),
                     ),
                   ),
@@ -63,10 +65,10 @@ class NotificationEmptyStateWidget extends StatelessWidget {
             // Title
             Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w600,
-                color: Colors.grey,
+                color: scheme.onSurface,
                 letterSpacing: -0.5,
               ),
             ),
@@ -78,7 +80,7 @@ class NotificationEmptyStateWidget extends StatelessWidget {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 15,
-                color: Colors.grey[600],
+                color: scheme.onSurfaceVariant,
                 height: 1.5,
               ),
             ),
@@ -94,17 +96,17 @@ class NotificationEmptyStateWidget extends StatelessWidget {
                   _InfoChip(
                     icon: Icons.shopping_bag_outlined,
                     label: 'Pesanan',
-                    color: Colors.green,
+                    color: AppColors.statusSuccess,
                   ),
                   _InfoChip(
                     icon: Icons.chat_bubble_outline,
                     label: 'Chat',
-                    color: Colors.blue,
+                    color: scheme.secondary,
                   ),
                   _InfoChip(
                     icon: Icons.gavel_outlined,
                     label: 'Lelang',
-                    color: Colors.amber,
+                    color: AppColors.statusWarning,
                   ),
                 ],
               ),
@@ -150,9 +152,9 @@ class NotificationEmptyStateWidget extends StatelessWidget {
 class _InfoChip extends StatelessWidget {
   final IconData icon;
   final String label;
-  final MaterialColor color;
+  final Color color;
 
-  const _InfoChip({
+  _InfoChip({
     required this.icon,
     required this.label,
     required this.color,
@@ -163,21 +165,21 @@ class _InfoChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: color[50],
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color[100]!, width: 1),
+        border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 16, color: color[700]),
+          Icon(icon, size: 16, color: color),
           const SizedBox(width: 6),
           Text(
             label,
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w500,
-              color: color[800],
+              color: color,
             ),
           ),
         ],

@@ -7,25 +7,26 @@ import 'package:labuda/core/core.dart';
 class ContentMetadataSections {
   /// Build location section
   static Widget buildLocationSection({
+    required BuildContext context,
     required String? location,
     required VoidCallback onEdit,
     required VoidCallback onRemove,
-    required bool isDark,
   }) {
     if (location == null || location.isEmpty) return const SizedBox.shrink();
+    final scheme = Theme.of(context).colorScheme;
 
     return _buildSection(
+      context: context,
       icon: Icons.location_on,
       iconColor: AppColors.koiOrange,
       title: 'Location',
-      isDark: isDark,
       onEdit: onEdit,
       onRemove: onRemove,
       content: Text(
         location,
         style: TextStyle(
           fontSize: 14,
-          color: isDark ? AppColors.neutralGray300 : AppColors.neutralGray700,
+          color: scheme.onSurface,
         ),
       ),
     );
@@ -33,18 +34,18 @@ class ContentMetadataSections {
 
   /// Build hashtags section
   static Widget buildHashtagsSection({
+    required BuildContext context,
     required List<String> hashtags,
     required VoidCallback onEdit,
     required Function(String) onRemove,
-    required bool isDark,
   }) {
     if (hashtags.isEmpty) return const SizedBox.shrink();
 
     return _buildSection(
+      context: context,
       icon: Icons.tag,
       iconColor: AppColors.primaryBlue,
       title: 'Hashtags',
-      isDark: isDark,
       onEdit: onEdit,
       content: Wrap(
         spacing: 8,
@@ -80,21 +81,20 @@ class ContentMetadataSections {
 
   // Helper method to build section wrapper
   static Widget _buildSection({
+    required BuildContext context,
     required IconData icon,
     required Color iconColor,
     required String title,
-    required bool isDark,
     required VoidCallback onEdit,
     VoidCallback? onRemove,
     required Widget content,
   }) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isDark
-            ? AppColors.darkGray800.withValues(alpha: 0.5)
-            : AppColors.neutralGray50,
+        color: scheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -112,9 +112,7 @@ class ContentMetadataSections {
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: isDark
-                          ? AppColors.neutralGray300
-                          : AppColors.neutralGray700,
+                      color: scheme.onSurface,
                     ),
                   ),
                 ],
@@ -127,9 +125,7 @@ class ContentMetadataSections {
                     child: Icon(
                       Icons.edit,
                       size: 16,
-                      color: isDark
-                          ? AppColors.neutralGray500
-                          : AppColors.neutralGray600,
+                      color: scheme.onSurfaceVariant,
                     ),
                   ),
                   if (onRemove != null) ...[
@@ -139,9 +135,7 @@ class ContentMetadataSections {
                       child: Icon(
                         Icons.close,
                         size: 18,
-                        color: isDark
-                            ? AppColors.neutralGray400
-                            : AppColors.neutralGray600,
+                        color: scheme.onSurfaceVariant,
                       ),
                     ),
                   ],

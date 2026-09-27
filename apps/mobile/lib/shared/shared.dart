@@ -111,10 +111,9 @@ export 'ui/src/helpers/media_picker_helper.dart'; // ⭐ Media picker helper for
 export 'ui/src/screens/custom_camera_screen.dart'; // ⭐ Custom camera screen
 export 'src/widgets/upload_progress_widget.dart'; // ⭐ Upload progress component
 export 'src/widgets/upload_task_utils.dart'; // ⭐ Upload task utilities
-export 'src/widgets/empty_state_widget.dart'; // ⭐ Reusable empty state component
+export 'widgets/empty_state.dart'; // ⭐ Reusable empty state component (canonical; EmptyStateWidget purged)
 // export 'widgets/common_button.dart';        // ✅ Removed - use AppButton
 // export 'widgets/common_text_field.dart';    // ✅ Removed - use AppTextField
-// export 'widgets/empty_state_widget.dart';
 // export 'widgets/image_picker_widget.dart';
 // export 'widgets/bottom_sheet_widget.dart';
 

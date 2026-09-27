@@ -3,13 +3,11 @@ part of 'order_widgets_impl.dart';
 class OrderUserInfoCard extends ConsumerWidget {
   final Order order;
   final String currentUserId;
-  final bool isDark;
 
   const OrderUserInfoCard({
     super.key,
     required this.order,
     required this.currentUserId,
-    required this.isDark,
   });
 
   @override
@@ -25,11 +23,9 @@ class OrderUserInfoCard extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDark ? const Color(0xFF333333) : const Color(0xFFE0E0E0),
-        ),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -47,7 +43,6 @@ class OrderUserInfoCard extends ConsumerWidget {
               _ChatButton(
                 order: order,
                 currentUserId: currentUserId,
-                isDark: isDark,
               ),
             ],
           ),
@@ -60,13 +55,11 @@ class OrderUserInfoCard extends ConsumerWidget {
               sellerFarmName: order.sellerFarmName,
               sellerAvatarUrl: order.sellerAvatarUrl,
               showSellerIdentity: true,
-              isDark: isDark,
             ),
           if (showBuyerInfo)
             _UserInfoTile(
               label: 'Pembeli',
               userId: order.buyerId,
-              isDark: isDark,
             ),
         ],
       ),
@@ -81,7 +74,6 @@ class _UserInfoTile extends ConsumerWidget {
   final String? sellerFarmName;
   final String? sellerAvatarUrl;
   final bool showSellerIdentity;
-  final bool isDark;
 
   const _UserInfoTile({
     required this.label,
@@ -90,12 +82,12 @@ class _UserInfoTile extends ConsumerWidget {
     this.sellerFarmName,
     this.sellerAvatarUrl,
     this.showSellerIdentity = false,
-    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final sellerIdentity = showSellerIdentity
         ? buildCommerceSellerIdentity(
             username: sellerUsername,
@@ -109,7 +101,7 @@ class _UserInfoTile extends ConsumerWidget {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: core.AppColors.primaryRed.withValues(alpha: 0.1),
+            color: colorScheme.primary.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
           child: sellerAvatarUrl != null && sellerAvatarUrl!.isNotEmpty
@@ -120,7 +112,7 @@ class _UserInfoTile extends ConsumerWidget {
                     errorBuilder: (context, error, stackTrace) {
                       return Icon(
                         Icons.person_outline,
-                        color: core.AppColors.primaryRed,
+                        color: colorScheme.primary,
                         size: 20,
                       );
                     },
@@ -128,7 +120,7 @@ class _UserInfoTile extends ConsumerWidget {
                 )
               : Icon(
                   Icons.person_outline,
-                  color: core.AppColors.primaryRed,
+                  color: colorScheme.primary,
                   size: 20,
                 ),
         ),
@@ -142,7 +134,7 @@ class _UserInfoTile extends ConsumerWidget {
                   Text(
                     label,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: Colors.grey,
+                      color: colorScheme.onSurfaceVariant,
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -176,7 +168,7 @@ class _UserInfoTile extends ConsumerWidget {
             ],
           ),
         ),
-        Icon(Icons.chevron_right, color: Colors.grey, size: 20),
+        Icon(Icons.chevron_right, color: colorScheme.onSurfaceVariant, size: 20),
       ],
     );
   }
@@ -190,12 +182,10 @@ class _UserInfoTile extends ConsumerWidget {
 class _ChatButton extends ConsumerWidget {
   final Order order;
   final String currentUserId;
-  final bool isDark;
 
   const _ChatButton({
     required this.order,
     required this.currentUserId,
-    required this.isDark,
   });
 
   Future<void> _handleChatTap(BuildContext context, WidgetRef ref) async {
@@ -221,20 +211,17 @@ class _ChatButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colorScheme = Theme.of(context).colorScheme;
     return InkWell(
       onTap: () => _handleChatTap(context, ref),
       borderRadius: BorderRadius.circular(8),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: isDark
-              ? core.AppColors.primaryRed.withValues(alpha: 0.2)
-              : core.AppColors.primaryRed.withValues(alpha: 0.1),
+          color: colorScheme.primary.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: isDark
-                ? core.AppColors.primaryRed.withValues(alpha: 0.5)
-                : core.AppColors.primaryRed.withValues(alpha: 0.3),
+            color: colorScheme.primary.withValues(alpha: 0.3),
           ),
         ),
         child: Row(
@@ -243,9 +230,7 @@ class _ChatButton extends ConsumerWidget {
             Icon(
               Icons.chat_bubble_outline,
               size: 16,
-              color: isDark
-                  ? core.AppColors.primaryRed.withValues(alpha: 0.9)
-                  : core.AppColors.primaryRed,
+              color: colorScheme.primary,
             ),
             const SizedBox(width: 4),
             Text(
@@ -253,9 +238,7 @@ class _ChatButton extends ConsumerWidget {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
-                color: isDark
-                    ? core.AppColors.primaryRed.withValues(alpha: 0.9)
-                    : core.AppColors.primaryRed,
+                color: colorScheme.primary,
               ),
             ),
           ],

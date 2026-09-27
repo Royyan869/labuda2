@@ -15,7 +15,11 @@ import 'package:labuda/core/api/api_error_codes.dart' as api_codes;
 import 'package:labuda/core/common/types/preparation_time.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/domain/domain.dart';
+import 'package:labuda/domains/commerce/catalog/for_sale/presentation/create_for_sale_route_contract.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart';
+import 'package:labuda/domains/commerce/catalog/shared/presentation/sender_address_provider.dart';
+import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_access_gate.dart';
+import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_detail_states.dart';
 import 'package:labuda/shared/widgets/media_grid_uploader.dart';
 import 'package:labuda/domains/commerce/transaction/shipping/presentation/widgets/seller_shipping_options_selector.dart';
 import 'package:labuda/domains/user/preference/seller/presentation/providers/current_seller_provider.dart';
@@ -24,7 +28,13 @@ import 'package:labuda/domains/user/preference/seller/presentation/providers/cur
 ///
 /// UI only - delegates all logic to forSale application layer.
 class CreateForSaleScreen extends ConsumerStatefulWidget {
-  const CreateForSaleScreen({super.key});
+  /// Canonical route args. When the pusher requested the forSaleId return
+  /// mode (chat direct-commerce attach), the screen pops a
+  /// [CreatedForSaleResult] instead of the raw ForSale entity. Callers that
+  /// push without args keep receiving the ForSale entity.
+  final CreateForSaleRouteArgs? routeArgs;
+
+  const CreateForSaleScreen({super.key, this.routeArgs});
 
   @override
   ConsumerState<CreateForSaleScreen> createState() =>
@@ -171,7 +181,15 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
             duration: const Duration(seconds: 3),
           ),
         );
-        Navigator.of(context).pop(forSale); // Return created forSale
+        // Return mode comes from the canonical route args (see [routeArgs]).
+        final returnMode = widget.routeArgs?.returnMode;
+        Navigator.of(
+          context,
+        ).pop(
+          returnMode == CreateForSaleReturnMode.forSaleId
+              ? CreatedForSaleResult(forSaleId: forSale.forSaleId)
+              : forSale,
+        );
       } else if (result.errorCode == api_codes.emailVerificationRequired) {
         // Backend-rejection handler (defense-in-depth): the backend stays
         // the single authority for EMAIL_VERIFICATION_REQUIRED.
@@ -210,21 +228,21 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
       case AuthStateBackendFailure():
       case AuthStateBackendUnavailable():
       case AuthStateError():
-        return _buildLoadingScaffold(context);
+        return CommerceDetailStates.loading(title: 'Buat ForSale Baru');
 
       case AuthStateUnauthenticated():
-        return _buildAccessGate(
-          context,
-          title: 'Login Diperlukan',
+        return CommerceAccessGate(
+          screenTitle: 'Buat ForSale Baru',
+          headline: 'Login Diperlukan',
           message: 'Silakan login untuk melanjutkan.',
           buttonLabel: 'Masuk',
-          onPressed: () => context.push('/auth/sign-in'),
+          onAction: () => context.push('/auth/sign-in'),
         );
 
       // D2 hard gate: unverified sessions never reach an authenticated
       // surface; the router parks them on the verify-email screen.
       case AuthStatePendingEmailVerification():
-        return _buildLoadingScaffold(context);
+        return CommerceDetailStates.loading(title: 'Buat ForSale Baru');
 
       case AuthStateRequiresProfileCompletion():
         return const CompleteProfileScreen();
@@ -234,13 +252,13 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
 
       case AuthStateAuthenticated(:final user):
         if (user.hasSellerProfile != true) {
-          return _buildAccessGate(
-            context,
-            title: 'Jadi Seller Dulu',
+          return CommerceAccessGate(
+            screenTitle: 'Buat ForSale Baru',
+            headline: 'Jadi Seller Dulu',
             message:
                 'Untuk membuat forSale, kamu perlu membuat seller profile terlebih dahulu.',
             buttonLabel: 'Mulai Jualan',
-            onPressed: () => context.push(RoutePaths.sellerUpgrade),
+            onAction: () => context.push(RoutePaths.sellerUpgrade),
           );
         }
 
@@ -248,9 +266,9 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
         // gate and same renewal CTA as the auction create screen.
         if (user.hasMarketAuthority != true) {
           final isExpired = ref.watch(isSellerSubscriptionExpiredProvider);
-          return _buildAccessGate(
-            context,
-            title: isExpired
+          return CommerceAccessGate(
+            screenTitle: 'Buat ForSale Baru',
+            headline: isExpired
                 ? 'Langganan Seller Habis'
                 : 'Langganan Belum Aktif',
             message: isExpired
@@ -259,7 +277,7 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
             buttonLabel: isExpired
                 ? 'Perpanjang Langganan'
                 : 'Aktifkan Langganan',
-            onPressed: () => context.push(RoutePaths.sellerRenewal),
+            onAction: () => context.push(RoutePaths.sellerRenewal),
           );
         }
 
@@ -267,118 +285,19 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
     }
   }
 
-  Widget _buildLoadingScaffold(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Scaffold(
-      backgroundColor: isDark ? AppColors.darkGray900 : AppColors.neutralGray50,
-      appBar: AppBar(
-        title: const Text('Buat ForSale Baru'),
-        backgroundColor: isDark
-            ? AppColors.darkGray800
-            : AppColors.neutralWhite,
-        foregroundColor: isDark
-            ? AppColors.neutralWhite
-            : AppColors.neutralGray900,
-        elevation: 0,
-        surfaceTintColor: Colors.transparent,
-        scrolledUnderElevation: 0,
-      ),
-      body: const Center(child: CircularProgressIndicator()),
-    );
-  }
-
-  Widget _buildAccessGate(
-    BuildContext context, {
-    required String title,
-    required String message,
-    required String buttonLabel,
-    required VoidCallback onPressed,
-  }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Scaffold(
-      backgroundColor: isDark ? AppColors.darkGray900 : AppColors.neutralGray50,
-      appBar: AppBar(
-        title: const Text('Buat ForSale Baru'),
-        backgroundColor: isDark
-            ? AppColors.darkGray800
-            : AppColors.neutralWhite,
-        foregroundColor: isDark
-            ? AppColors.neutralWhite
-            : AppColors.neutralGray900,
-        elevation: 0,
-        surfaceTintColor: Colors.transparent,
-        scrolledUnderElevation: 0,
-      ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.lock_outline,
-                size: 56,
-                color: isDark
-                    ? AppColors.neutralGray300
-                    : AppColors.neutralGray700,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                message,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: isDark
-                      ? AppColors.neutralGray400
-                      : AppColors.neutralGray600,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: onPressed,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryRed,
-                  foregroundColor: AppColors.light,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 14,
-                  ),
-                ),
-                child: Text(buttonLabel),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildFormScaffold(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkGray900 : AppColors.neutralGray50,
+      backgroundColor: scheme.surfaceContainerLowest,
       appBar: AppBar(
         title: const Text('Buat ForSale Baru'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        backgroundColor: isDark
-            ? AppColors.darkGray800
-            : AppColors.neutralWhite,
-        foregroundColor: isDark
-            ? AppColors.neutralWhite
-            : AppColors.neutralGray900,
+        backgroundColor: scheme.surface,
+        foregroundColor: scheme.onSurface,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         scrolledUnderElevation: 0,
@@ -456,7 +375,10 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
               padding: const EdgeInsets.only(bottom: 12),
               child: Text(
                 'Informasikan kepada pembeli berapa lama waktu yang Anda butuhkan untuk menyiapkan ikan sebelum dikirim.',
-                style: TextStyle(fontSize: 13, color: AppColors.neutralGray600),
+                style: TextStyle(
+                  fontSize: 13,
+                  color: scheme.onSurfaceVariant,
+                ),
               ),
             ),
             _PreparationTimeSelector(
@@ -487,16 +409,16 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryRed.withValues(alpha: 0.1),
+                  color: scheme.error.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: AppColors.primaryRed.withValues(alpha: 0.3),
+                    color: scheme.error.withValues(alpha: 0.3),
                   ),
                 ),
                 child: Text(
                   _errorMessage!,
-                  style: const TextStyle(
-                    color: AppColors.primaryRed,
+                  style: TextStyle(
+                    color: scheme.onSurface,
                     fontSize: 14,
                   ),
                 ),
@@ -509,24 +431,28 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
               onPressed: _canSubmit ? _submitForm : null,
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size.fromHeight(50),
-                backgroundColor: AppColors.primaryRed,
-                disabledBackgroundColor: AppColors.neutralGray300,
+                backgroundColor: scheme.primary,
+                foregroundColor: scheme.onPrimary,
+                disabledBackgroundColor: scheme.surfaceContainerHighest,
+                disabledForegroundColor: scheme.onSurfaceVariant,
               ),
               child: _isSubmitting
-                  ? const SizedBox(
+                  ? SizedBox(
                       height: 20,
                       width: 20,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          scheme.onPrimary,
+                        ),
                       ),
                     )
-                  : const Text(
+                  : Text(
                       'Publikasikan ForSale',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: Colors.white,
+                        color: scheme.onPrimary,
                       ),
                     ),
             ),
@@ -639,7 +565,7 @@ class _NegotiableToggle extends StatelessWidget {
       subtitle: const Text('Pembeli dapat melakukan negosiasi harga'),
       value: initialValue,
       onChanged: onChanged,
-      activeTrackColor: AppColors.primaryRed,
+      activeTrackColor: Theme.of(context).colorScheme.primary,
     );
   }
 }
@@ -946,23 +872,20 @@ class _PreparationTimeSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.neutralGray100,
+        color: scheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.neutralGray300),
+        border: Border.all(color: scheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
             'Waktu Persiapan *',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: AppColors.neutralGray900,
-            ),
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 12),
           Wrap(
@@ -980,37 +903,37 @@ class _PreparationTimeSelector extends StatelessWidget {
                   ),
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? AppColors.primaryRed
-                        : AppColors.neutralWhite,
+                        ? scheme.primary
+                        : scheme.surface,
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
                       color: isSelected
-                          ? AppColors.primaryRed
-                          : AppColors.neutralGray300,
+                          ? scheme.primary
+                          : scheme.outlineVariant,
                     ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       if (isSelected)
-                        const Icon(
+                        Icon(
                           Icons.check_circle,
                           size: 16,
-                          color: Colors.white,
+                          color: scheme.onPrimary,
                         )
                       else
                         Icon(
                           Icons.radio_button_unchecked,
                           size: 16,
-                          color: AppColors.neutralGray600,
+                          color: scheme.onSurfaceVariant,
                         ),
                       const SizedBox(width: 6),
                       Text(
                         time.displayName,
                         style: TextStyle(
                           color: isSelected
-                              ? Colors.white
-                              : AppColors.neutralGray900,
+                              ? scheme.onPrimary
+                              : scheme.onSurface,
                           fontSize: 13,
                           fontWeight: isSelected
                               ? FontWeight.w600
@@ -1026,9 +949,9 @@ class _PreparationTimeSelector extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             selected.description,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
-              color: AppColors.neutralGray600,
+              color: scheme.onSurfaceVariant,
             ),
           ),
         ],

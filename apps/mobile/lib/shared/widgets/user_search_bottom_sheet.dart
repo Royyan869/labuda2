@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/features/search/search/search.dart'; // R3.1: Full import for providers and extensions
 import 'package:labuda/features/search/search/data/dto/search_dto.dart'; // R3.1: Import for UserSearchResultDto.toUserSearch() extension
-import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/shared.dart';
 
 /// Bottom sheet untuk search dan select users (Instagram style)
@@ -144,8 +143,7 @@ class _UserSearchBottomSheetState extends ConsumerState<UserSearchBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     final mediaQuery = MediaQuery.of(context);
     final keyboardHeight = mediaQuery.viewInsets.bottom;
 
@@ -158,34 +156,35 @@ class _UserSearchBottomSheetState extends ConsumerState<UserSearchBottomSheet> {
     return Container(
       height: modalHeight,
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
+        color: scheme.surfaceContainerLow,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
       ),
       child: Column(
         children: [
           // Header
-          _buildHeader(isDark),
+          _buildHeader(context),
 
           // Search bar
-          _buildSearchBar(isDark),
+          _buildSearchBar(context),
 
           // Selected count
-          if (_selectedUserIds.isNotEmpty) _buildSelectedCount(isDark),
+          if (_selectedUserIds.isNotEmpty) _buildSelectedCount(context),
 
           // Divider
           Divider(
             height: 1,
-            color: isDark ? AppColors.neutralGray700 : AppColors.neutralGray200,
+            color: scheme.outlineVariant,
           ),
 
           // Results
-          Expanded(child: _buildResults(isDark)),
+          Expanded(child: _buildResults(context)),
         ],
       ),
     );
   }
 
-  Widget _buildHeader(bool isDark) {
+  Widget _buildHeader(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Row(
@@ -196,7 +195,7 @@ class _UserSearchBottomSheetState extends ConsumerState<UserSearchBottomSheet> {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: isDark ? AppColors.neutralWhite : AppColors.neutralBlack,
+                color: scheme.onSurface,
               ),
             ),
           ),
@@ -208,8 +207,8 @@ class _UserSearchBottomSheetState extends ConsumerState<UserSearchBottomSheet> {
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
                 color: _selectedUserIds.isEmpty
-                    ? AppColors.neutralGray400
-                    : AppColors.primaryBlue,
+                    ? scheme.onSurfaceVariant
+                    : scheme.secondary,
               ),
             ),
           ),
@@ -218,7 +217,8 @@ class _UserSearchBottomSheetState extends ConsumerState<UserSearchBottomSheet> {
     );
   }
 
-  Widget _buildSearchBar(bool isDark) {
+  Widget _buildSearchBar(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: TextField(
@@ -228,15 +228,13 @@ class _UserSearchBottomSheetState extends ConsumerState<UserSearchBottomSheet> {
           hintText: 'Search username...',
           prefixIcon: Icon(
             Icons.search,
-            color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray600,
+            color: scheme.onSurfaceVariant,
           ),
           suffixIcon: _searchController.text.isNotEmpty
               ? IconButton(
                   icon: Icon(
                     Icons.clear,
-                    color: isDark
-                        ? AppColors.neutralGray400
-                        : AppColors.neutralGray600,
+                    color: scheme.onSurfaceVariant,
                   ),
                   onPressed: () {
                     _searchController.clear();
@@ -244,7 +242,7 @@ class _UserSearchBottomSheetState extends ConsumerState<UserSearchBottomSheet> {
                 )
               : null,
           filled: true,
-          fillColor: isDark ? AppColors.darkGray700 : AppColors.neutralGray100,
+          fillColor: scheme.surfaceContainerHigh,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
             borderSide: BorderSide.none,
@@ -258,20 +256,22 @@ class _UserSearchBottomSheetState extends ConsumerState<UserSearchBottomSheet> {
     );
   }
 
-  Widget _buildSelectedCount(bool isDark) {
+  Widget _buildSelectedCount(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Text(
         '${_selectedUserIds.length} / ${widget.maxSelections} selected',
         style: TextStyle(
           fontSize: 12,
-          color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray600,
+          color: scheme.onSurfaceVariant,
         ),
       ),
     );
   }
 
-  Widget _buildResults(bool isDark) {
+  Widget _buildResults(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     // Empty state - no search
     if (_searchQuery.isEmpty) {
       return Center(
@@ -281,18 +281,14 @@ class _UserSearchBottomSheetState extends ConsumerState<UserSearchBottomSheet> {
             Icon(
               Icons.person_search,
               size: 64,
-              color: isDark
-                  ? AppColors.neutralGray600
-                  : AppColors.neutralGray300,
+              color: scheme.outline,
             ),
             const SizedBox(height: 16),
             Text(
               'Search for users to tag',
               style: TextStyle(
                 fontSize: 16,
-                color: isDark
-                    ? AppColors.neutralGray400
-                    : AppColors.neutralGray600,
+                color: scheme.onSurfaceVariant,
               ),
             ),
           ],
@@ -314,18 +310,14 @@ class _UserSearchBottomSheetState extends ConsumerState<UserSearchBottomSheet> {
             Icon(
               Icons.person_off_outlined,
               size: 64,
-              color: isDark
-                  ? AppColors.neutralGray600
-                  : AppColors.neutralGray300,
+              color: scheme.outline,
             ),
             const SizedBox(height: 16),
             Text(
               'No users found',
               style: TextStyle(
                 fontSize: 16,
-                color: isDark
-                    ? AppColors.neutralGray400
-                    : AppColors.neutralGray600,
+                color: scheme.onSurfaceVariant,
               ),
             ),
           ],
@@ -340,12 +332,13 @@ class _UserSearchBottomSheetState extends ConsumerState<UserSearchBottomSheet> {
         final user = _searchResults[index];
         final isSelected = _selectedUserIds.contains(user.userId);
 
-        return _buildUserTile(user, isSelected, isDark);
+        return _buildUserTile(context, user, isSelected);
       },
     );
   }
 
-  Widget _buildUserTile(UserSearch user, bool isSelected, bool isDark) {
+  Widget _buildUserTile(BuildContext context, UserSearch user, bool isSelected) {
+    final scheme = Theme.of(context).colorScheme;
     return ListTile(
       leading: ProfileAvatar(
         userId: user.userId,
@@ -356,23 +349,21 @@ class _UserSearchBottomSheetState extends ConsumerState<UserSearchBottomSheet> {
         user.username,
         style: TextStyle(
           fontWeight: FontWeight.w600,
-          color: isDark ? AppColors.neutralWhite : AppColors.neutralBlack,
+          color: scheme.onSurface,
         ),
         overflow: TextOverflow.ellipsis,
       ),
       subtitle: Text(
         '@${user.username}',
         style: TextStyle(
-          color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray600,
+          color: scheme.onSurfaceVariant,
         ),
       ),
       trailing: isSelected
-          ? const Icon(Icons.check_circle, color: AppColors.primaryBlue)
+          ? Icon(Icons.check_circle, color: scheme.secondary)
           : Icon(
               Icons.circle_outlined,
-              color: isDark
-                  ? AppColors.neutralGray600
-                  : AppColors.neutralGray300,
+              color: scheme.outlineVariant,
             ),
       onTap: () => _toggleUser(user),
     );

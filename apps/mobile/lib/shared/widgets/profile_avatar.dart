@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/widgets/stable_network_image.dart';
 
 /// CANONICAL personal user avatar — the single authority for rendering a
@@ -35,7 +34,7 @@ class ProfileAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return GestureDetector(
       onTap: onTap,
@@ -54,16 +53,14 @@ class ProfileAvatar extends StatelessWidget {
                 boxShadow: showShadow
                     ? [
                         BoxShadow(
-                          color: AppColors.dark.withValues(
-                            alpha: isDark ? 0.3 : 0.1,
-                          ),
+                          color: scheme.shadow.withValues(alpha: 0.15),
                           blurRadius: 6,
                           offset: const Offset(0, 2),
                         ),
                       ]
                     : null,
               ),
-              child: ClipOval(child: _buildAvatarContent(context, isDark)),
+              child: ClipOval(child: _buildAvatarContent(context)),
             ),
 
             // Edit icon only (no verification badge)
@@ -75,7 +72,7 @@ class ProfileAvatar extends StatelessWidget {
     );
   }
 
-  Widget _buildAvatarContent(BuildContext context, bool isDark) {
+  Widget _buildAvatarContent(BuildContext context) {
     if (imageUrl != null && imageUrl!.trim().isNotEmpty) {
       // StableNetworkImage keeps the last successful frame visible while a
       // new signed URL loads (gapless), and falls back to the user icon on
@@ -83,42 +80,45 @@ class ProfileAvatar extends StatelessWidget {
       return StableNetworkImage(
         imageUrl: imageUrl,
         fit: BoxFit.cover,
-        fallback: _buildUserIcon(isDark),
+        fallback: _buildUserIcon(context),
       );
     }
 
-    return _buildUserIcon(isDark);
+    return _buildUserIcon(context);
   }
 
-  Widget _buildUserIcon(bool isDark) {
+  Widget _buildUserIcon(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
-      color: isDark ? AppColors.darkGray600 : AppColors.neutralGray200,
+      color: scheme.surfaceContainerHighest,
       alignment: Alignment.center,
       child: Icon(
         Icons.person,
         size: size * 0.5,
-        color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray500,
+        color: scheme.onSurfaceVariant,
       ),
     );
   }
 
   Widget _buildEditIcon(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     final iconSize = (size * 0.3).clamp(16.0, 28.0);
 
+    // Inverted pair (ink circle, surface ring/icon) so the badge contrasts
+    // with any avatar photo in both modes. No brightness branch.
     return GestureDetector(
       onTap: onEditTap,
       child: Container(
         width: iconSize,
         height: iconSize,
         decoration: BoxDecoration(
-          color: isDark ? AppColors.darkGray600 : AppColors.neutralGray700,
+          color: scheme.onSurface,
           shape: BoxShape.circle,
-          border: Border.all(color: AppColors.neutralWhite, width: 1.5),
+          border: Border.all(color: scheme.surface, width: 1.5),
         ),
         child: Icon(
           Icons.camera_alt,
-          color: AppColors.neutralWhite,
+          color: scheme.surface,
           size: iconSize * 0.6,
         ),
       ),

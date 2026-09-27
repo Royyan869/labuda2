@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 
@@ -36,39 +35,35 @@ class ProfileActions extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Opacity(
       opacity: opacity,
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: isOwnProfile
-            ? _buildOwnProfileButtons(context, isDark)
-            : _buildOtherProfileButtons(context, isDark),
+            ? _buildOwnProfileButtons(context)
+            : _buildOtherProfileButtons(context),
       ),
     );
   }
 
-  List<Widget> _buildOwnProfileButtons(BuildContext context, bool isDark) {
+  List<Widget> _buildOwnProfileButtons(BuildContext context) {
     return [
       _CompactButton(
         icon: Icons.edit_outlined,
         label: 'Edit',
         onTap: onEditProfile,
-        isDark: isDark,
       ),
       const SizedBox(width: 8),
       _CompactButton(
         icon: Icons.share_outlined,
         label: 'Share',
         onTap: onShare,
-        isDark: isDark,
         isSecondary: true,
       ),
     ];
   }
 
-  List<Widget> _buildOtherProfileButtons(BuildContext context, bool isDark) {
+  List<Widget> _buildOtherProfileButtons(BuildContext context) {
     final disabled = lifecycle.isDegraded;
     return [
       // Single authority: FollowButton canonical (big, solid). Gated via
@@ -85,7 +80,6 @@ class ProfileActions extends ConsumerWidget {
         icon: Icons.chat_bubble_outline,
         label: 'Message',
         onTap: disabled ? null : onMessage,
-        isDark: isDark,
         isSecondary: true,
         disabled: disabled,
       ),
@@ -98,7 +92,6 @@ class _CompactButton extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback? onTap;
-  final bool isDark;
   final bool isSecondary;
   final bool disabled;
 
@@ -106,20 +99,20 @@ class _CompactButton extends StatelessWidget {
     required this.icon,
     required this.label,
     this.onTap,
-    required this.isDark,
     this.isSecondary = false,
     this.disabled = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final backgroundColor = isSecondary
-        ? (isDark ? AppColors.darkGray700 : AppColors.neutralGray100)
-        : AppColors.primaryRed;
+        ? scheme.surfaceContainerHigh
+        : scheme.primary;
 
     final foregroundColor = isSecondary
-        ? (isDark ? AppColors.neutralWhite : AppColors.neutralGray700)
-        : AppColors.neutralWhite;
+        ? scheme.onSurface
+        : scheme.onPrimary;
 
     final effectiveOpacity = disabled ? 0.4 : 1.0;
 

@@ -18,38 +18,29 @@ class BlockedUserBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: isDark
-            ? AppColors.statusWarning.withValues(alpha: 0.15)
-            : AppColors.statusWarning.withValues(alpha: 0.1),
+        color: AppColors.statusWarning.withValues(alpha: 0.12),
         border: Border(
           bottom: BorderSide(
-            color: isDark
-                ? AppColors.statusWarning.withValues(alpha: 0.3)
-                : AppColors.statusWarning.withValues(alpha: 0.2),
+            color: AppColors.statusWarning.withValues(alpha: 0.3),
           ),
         ),
       ),
       child: Row(
         children: [
-          Icon(Icons.block, size: 20, color: AppColors.statusWarning),
+          const Icon(Icons.block, size: 20, color: AppColors.statusWarning),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               displayName != null
                   ? 'Kamu telah memblokir $displayName'
                   : 'Kamu telah memblokir user ini',
-              style: TextStyle(
-                fontSize: 14,
-                color: isDark
-                    ? AppColors.neutralGray200
-                    : AppColors.neutralGray700,
-              ),
+              style: TextStyle(fontSize: 14, color: scheme.onSurface),
             ),
           ),
           if (onUnblock != null) ...[
@@ -57,7 +48,7 @@ class BlockedUserBanner extends StatelessWidget {
             TextButton(
               onPressed: isLoading ? null : onUnblock,
               style: TextButton.styleFrom(
-                foregroundColor: AppColors.primaryRed,
+                foregroundColor: scheme.primary,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 12,
                   vertical: 6,
@@ -66,12 +57,12 @@ class BlockedUserBanner extends StatelessWidget {
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
               child: isLoading
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 16,
                       height: 16,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: AppColors.primaryRed,
+                        color: scheme.primary,
                       ),
                     )
                   : const Text(

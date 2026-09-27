@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/generated/app_localizations.dart';
 import 'package:labuda/shared/shared.dart'; // R3.1: Import for AppSnackBar
 import 'package:labuda/domains/system/support/support.dart';
@@ -13,7 +13,7 @@ class SettingsSupportSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Column(
       children: [
@@ -21,14 +21,14 @@ class SettingsSupportSection extends ConsumerWidget {
           context,
           Icons.support_agent,
           l10n.supportLegal,
-          isDark,
+          scheme,
         ),
         _buildSettingsTile(
           icon: Icons.help_outline,
           title: l10n.helpSupportTitle,
           subtitle: l10n.getHelpContactSupport,
           onTap: () => onNavigate('helpSupport'),
-          isDark: isDark,
+          scheme: scheme,
         ),
         // PHASE 2 HARDENING: Add "My Tickets" entry point
         _buildSettingsTile(
@@ -36,28 +36,28 @@ class SettingsSupportSection extends ConsumerWidget {
           title: 'Tiket Saya',
           subtitle: 'Lihat tiket bantuan Anda',
           onTap: () => _handleMyTicketsTap(context, ref),
-          isDark: isDark,
+          scheme: scheme,
         ),
         _buildSettingsTile(
           icon: Icons.description_outlined,
           title: l10n.termsOfService,
           subtitle: l10n.readTermsConditions,
           onTap: () => onNavigate('termsOfService'),
-          isDark: isDark,
+          scheme: scheme,
         ),
         _buildSettingsTile(
           icon: Icons.privacy_tip_outlined,
           title: l10n.privacyPolicy,
           subtitle: l10n.learnDataProtection,
           onTap: () => onNavigate('privacyPolicy'),
-          isDark: isDark,
+          scheme: scheme,
         ),
         _buildSettingsTile(
           icon: Icons.info_outline,
           title: l10n.aboutLABUDA,
           subtitle: l10n.appVersionInformation,
           onTap: () => onNavigate('about'),
-          isDark: isDark,
+          scheme: scheme,
         ),
       ],
     );
@@ -82,7 +82,7 @@ class SettingsSupportSection extends ConsumerWidget {
     BuildContext context,
     IconData icon,
     String title,
-    bool isDark,
+    ColorScheme scheme,
   ) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
@@ -91,7 +91,7 @@ class SettingsSupportSection extends ConsumerWidget {
           Icon(
             icon,
             size: 20,
-            color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray600,
+            color: scheme.onSurfaceVariant,
           ),
           const SizedBox(width: 8),
           Text(
@@ -99,9 +99,7 @@ class SettingsSupportSection extends ConsumerWidget {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray600,
+              color: scheme.onSurfaceVariant,
             ),
           ),
         ],
@@ -114,7 +112,7 @@ class SettingsSupportSection extends ConsumerWidget {
     required String title,
     required String subtitle,
     required VoidCallback onTap,
-    required bool isDark,
+    required ColorScheme scheme,
     Color? textColor,
   }) {
     return ListTile(
@@ -122,25 +120,25 @@ class SettingsSupportSection extends ConsumerWidget {
         icon,
         color:
             textColor ??
-            (isDark ? AppColors.neutralGray300 : AppColors.neutralGray700),
+            (scheme.onSurfaceVariant),
       ),
       title: Text(
         title,
         style: TextStyle(
           color:
               textColor ??
-              (isDark ? AppColors.neutralWhite : AppColors.neutralGray900),
+              (scheme.onSurface),
         ),
       ),
       subtitle: Text(
         subtitle,
         style: TextStyle(
-          color: isDark ? AppColors.neutralGray500 : AppColors.neutralGray600,
+          color: scheme.onSurfaceVariant,
         ),
       ),
       trailing: Icon(
         Icons.chevron_right,
-        color: isDark ? AppColors.neutralGray500 : AppColors.neutralGray400,
+        color: scheme.onSurfaceVariant,
       ),
       onTap: onTap,
     );

@@ -252,20 +252,21 @@ class _NoneTrailing implements ListItemTrailing {
   Widget? get custom => null;
 }
 
-/// Build widget from ListItemTrailing configuration
-Widget? buildListItemTrailing(ListItemTrailing config, bool isDark) {
+/// Build widget from ListItemTrailing configuration.
+///
+/// Ink resolves from [scheme] — no brightness branch (the function has no
+/// live callers yet; the signature carries the scheme so the first caller
+/// inherits the authority instead of a bool).
+Widget? buildListItemTrailing(ListItemTrailing config, ColorScheme scheme) {
   switch (config.type) {
     case TrailingType.chevron:
-      return Icon(
-        Icons.chevron_right,
-        color: isDark ? AppColors.neutralGray500 : AppColors.neutralGray400,
-      );
+      return Icon(Icons.chevron_right, color: scheme.onSurfaceVariant);
 
     case TrailingType.arrow:
       return Icon(
         Icons.arrow_forward_ios,
         size: 16,
-        color: isDark ? AppColors.neutralGray500 : AppColors.neutralGray400,
+        color: scheme.onSurfaceVariant,
       );
 
     case TrailingType.toggle:
@@ -279,13 +280,13 @@ Widget? buildListItemTrailing(ListItemTrailing config, bool isDark) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-          color: config.badgeColor ?? AppColors.primaryRed,
+          color: config.badgeColor ?? scheme.primary,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Text(
           config.badgeText ?? '',
           style: AppTypography.labelSmall.copyWith(
-            color: Colors.white,
+            color: scheme.onPrimary,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -295,9 +296,7 @@ Widget? buildListItemTrailing(ListItemTrailing config, bool isDark) {
       return Text(
         config.text ?? '',
         style: AppTypography.bodyMedium.copyWith(
-          color:
-              config.textColor ??
-              (isDark ? AppColors.neutralWhite : AppColors.neutralGray900),
+          color: config.textColor ?? scheme.onSurface,
           fontWeight: FontWeight.w600,
         ),
       );
@@ -309,8 +308,8 @@ Widget? buildListItemTrailing(ListItemTrailing config, bool isDark) {
           onPressed: config.onButtonPressed,
           style: TextButton.styleFrom(
             padding: const EdgeInsets.symmetric(horizontal: 12),
-            backgroundColor: AppColors.primaryRed,
-            foregroundColor: Colors.white,
+            backgroundColor: scheme.primary,
+            foregroundColor: scheme.onPrimary,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(6),
             ),

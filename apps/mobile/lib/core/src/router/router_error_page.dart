@@ -9,10 +9,10 @@ class RouterErrorPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
+      backgroundColor: scheme.surface,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -40,9 +40,7 @@ class RouterErrorPage extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: isDark
-                      ? AppColors.neutralWhite
-                      : AppColors.neutralGray900,
+                  color: scheme.onSurface,
                 ),
               ),
               const SizedBox(height: 12),
@@ -53,9 +51,7 @@ class RouterErrorPage extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 16,
-                  color: isDark
-                      ? AppColors.neutralGray400
-                      : AppColors.neutralGray600,
+                  color: scheme.onSurfaceVariant,
                 ),
               ),
               const SizedBox(height: 8),
@@ -65,9 +61,7 @@ class RouterErrorPage extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 12,
-                  color: isDark
-                      ? AppColors.neutralGray500
-                      : AppColors.neutralGray500,
+                  color: scheme.onSurfaceVariant,
                 ),
               ),
               const SizedBox(height: 32),
@@ -80,8 +74,8 @@ class RouterErrorPage extends StatelessWidget {
                     child: ElevatedButton(
                       onPressed: () => context.go('/splash'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryRed,
-                        foregroundColor: AppColors.neutralWhite,
+                        backgroundColor: scheme.primary,
+                        foregroundColor: scheme.onPrimary,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -108,11 +102,7 @@ class RouterErrorPage extends StatelessWidget {
                         }
                       },
                       style: OutlinedButton.styleFrom(
-                        side: BorderSide(
-                          color: isDark
-                              ? AppColors.neutralGray600
-                              : AppColors.neutralGray300,
-                        ),
+                        side: BorderSide(color: scheme.outline),
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -123,9 +113,7 @@ class RouterErrorPage extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: isDark
-                              ? AppColors.neutralGray300
-                              : AppColors.neutralGray700,
+                          color: scheme.onSurface,
                         ),
                       ),
                     ),

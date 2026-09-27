@@ -38,7 +38,6 @@ void main() {
             _refund(id: 'refund-old-1', status: RefundStatus.refunded),
             _refund(id: 'refund-old-2', status: RefundStatus.sellerRejected),
           ],
-          isDark: false,
           currentUserId: 'buyer-1',
           sellerId: 'seller-1',
         ),
@@ -63,7 +62,6 @@ void main() {
           refunds: [
             _refund(id: 'refund-latest', status: RefundStatus.sellerRejected),
           ],
-          isDark: false,
           currentUserId: 'buyer-1',
           sellerId: 'seller-1',
         ),
@@ -79,7 +77,6 @@ void main() {
       _wrap(
         const OrderRefundListSection(
           refunds: [],
-          isDark: false,
           currentUserId: 'buyer-1',
           sellerId: 'seller-1',
         ),

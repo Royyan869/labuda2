@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/core/media/media_upload_config.dart';
 import 'package:labuda/core/media/media_upload_orchestrator.dart';
 
@@ -41,24 +40,38 @@ class MediaGridUploader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     if (mediaUrls.isEmpty) {
       return GestureDetector(
         onTap: () => _openPicker(context),
         child: Container(
           height: 150,
           decoration: BoxDecoration(
-            color: AppColors.neutralGray100,
+            color: scheme.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.neutralGray300),
+            border: Border.all(color: scheme.outlineVariant),
           ),
-          child: const Center(
+          child: Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.add_photo_alternate, size: 40),
+                Icon(
+                  Icons.add_photo_alternate,
+                  size: 40,
+                  color: scheme.onSurfaceVariant,
+                ),
                 SizedBox(height: 8),
-                Text('Tap untuk upload foto/video'),
-                Text('(Minimal 1 media)', style: TextStyle(fontSize: 12)),
+                Text(
+                  'Tap untuk upload foto/video',
+                  style: TextStyle(color: scheme.onSurface),
+                ),
+                Text(
+                  '(Minimal 1 media)',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
               ],
             ),
           ),
@@ -85,8 +98,12 @@ class MediaGridUploader extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8),
                 child: isVideo
                     ? Container(
-                        color: AppColors.neutralGray800,
-                        child: const Icon(Icons.videocam, color: Colors.white, size: 32),
+                        color: scheme.scrim,
+                        child: Icon(
+                          Icons.videocam,
+                          color: scheme.onPrimary,
+                          size: 32,
+                        ),
                       )
                     : Image.network(url, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.broken_image)),
               ),
@@ -97,13 +114,26 @@ class MediaGridUploader extends StatelessWidget {
                   onTap: () => onMediaRemoved(index),
                   child: Container(
                     padding: const EdgeInsets.all(4),
-                    decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
-                    child: const Icon(Icons.close, size: 16, color: Colors.white),
+                    decoration: BoxDecoration(
+                      color: scheme.scrim.withValues(alpha: 0.54),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.close,
+                      size: 16,
+                      color: scheme.onPrimary,
+                    ),
                   ),
                 ),
               ),
               if (isVideo)
-                const Center(child: Icon(Icons.play_circle_fill, size: 28, color: Colors.white70)),
+                Center(
+                  child: Icon(
+                    Icons.play_circle_fill,
+                    size: 28,
+                    color: scheme.onPrimary.withValues(alpha: 0.7),
+                  ),
+                ),
             ],
           );
         }
@@ -111,11 +141,11 @@ class MediaGridUploader extends StatelessWidget {
           onTap: () => _openPicker(context),
           child: Container(
             decoration: BoxDecoration(
-              color: AppColors.neutralGray100,
+              color: scheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColors.neutralGray300),
+              border: Border.all(color: scheme.outlineVariant),
             ),
-            child: const Icon(Icons.add, size: 32),
+            child: Icon(Icons.add, size: 32, color: scheme.onSurfaceVariant),
           ),
         );
       },
@@ -151,6 +181,7 @@ class CompactMediaStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -169,7 +200,15 @@ class CompactMediaStrip extends StatelessWidget {
                     ClipRRect(
                       borderRadius: BorderRadius.circular(8),
                       child: isVideo
-                          ? Container(width: 72, height: 72, color: AppColors.neutralGray800, child: const Icon(Icons.videocam, color: Colors.white))
+                          ? Container(
+                              width: 72,
+                              height: 72,
+                              color: scheme.scrim,
+                              child: Icon(
+                                Icons.videocam,
+                                color: scheme.onPrimary,
+                              ),
+                            )
                           : Image.network(url, width: 72, height: 72, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.broken_image)),
                     ),
                     Positioned(
@@ -178,8 +217,15 @@ class CompactMediaStrip extends StatelessWidget {
                         onTap: () => onMediaRemoved(i),
                         child: Container(
                           padding: const EdgeInsets.all(2),
-                          decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
-                          child: const Icon(Icons.close, size: 12, color: Colors.white),
+                          decoration: BoxDecoration(
+                            color: scheme.scrim.withValues(alpha: 0.54),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.close,
+                            size: 12,
+                            color: scheme.onPrimary,
+                          ),
                         ),
                       ),
                     ),

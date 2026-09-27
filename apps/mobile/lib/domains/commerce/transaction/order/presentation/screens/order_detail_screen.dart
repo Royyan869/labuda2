@@ -91,7 +91,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen>
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
     final orderStream = ref.watch(watchOrderProvider(widget.orderId));
     final authState = ref.watch(authControllerProvider);
     final currentUserId = authState is AuthStateAuthenticated
@@ -99,9 +99,8 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen>
         : null;
 
     return Scaffold(
-      backgroundColor: isDark
-          ? core.AppColors.darkGray900
-          : core.AppColors.neutralGray50,
+      // Page canvas — canonical lowest tone in both modes (checkout precedent).
+      backgroundColor: colorScheme.surfaceContainerLowest,
       appBar: AppBar(
         title: const Text('Order Details'),
         leading: IconButton(
@@ -112,9 +111,6 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen>
             }
           },
         ),
-        backgroundColor: isDark
-            ? core.AppColors.darkGray800
-            : core.AppColors.neutralWhite,
         surfaceTintColor: Colors.transparent,
         scrolledUnderElevation: 0,
       ),
@@ -151,7 +147,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen>
                             },
                           ),
 
-                        OrderStatusTimeline(order: order, isDark: isDark),
+                        OrderStatusTimeline(order: order),
                         const SizedBox(height: 16),
 
                         // ===== OVERDUE AWARENESS (SELLER/BUYER) =====
@@ -163,7 +159,6 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen>
                         if (order.status == OrderStatus.paid)
                           _OrderPreparationSection(
                             order: order,
-                            isDark: isDark,
                             onContactSeller: () =>
                                 _handleContactSeller(context, order),
                             onContactSupport: () =>
@@ -182,7 +177,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen>
                             currentUserId: currentUserId,
                           ),
 
-                        OrderInfoCard(order: order, isDark: isDark),
+                        OrderInfoCard(order: order),
                         const SizedBox(height: 16),
 
                         // Seller/Buyer Info Card
@@ -190,31 +185,30 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen>
                           OrderUserInfoCard(
                             order: order,
                             currentUserId: currentUserId,
-                            isDark: isDark,
                           ),
                         if (currentUserId != null) const SizedBox(height: 16),
 
-                        OrderItemsCard(order: order, isDark: isDark),
+                        OrderItemsCard(order: order),
                         const SizedBox(height: 16),
-                        OrderShippingInfoCard(order: order, isDark: isDark),
+                        OrderShippingInfoCard(order: order),
                         const SizedBox(height: 16),
-                        OrderPaymentInfoCard(order: order, isDark: isDark),
+                        OrderPaymentInfoCard(order: order),
                         const SizedBox(height: 16),
 
                         // Rincian Pembayaran (paling bawah sebelum refund)
                         if (isSeller) ...[
-                          OrderSellerPricingCard(order: order, isDark: isDark),
+                          OrderSellerPricingCard(order: order),
                           const SizedBox(height: 16),
                         ],
                         if (!isSeller) ...[
-                          OrderBuyerPricingCard(order: order, isDark: isDark),
+                          OrderBuyerPricingCard(order: order),
                           const SizedBox(height: 16),
                         ],
 
                         // ===== POST-COMPLETION CTA (SELLER ONLY) =====
                         // Show "Lihat Penghasilan" button for seller when order is completed
                         if (isSeller && order.status == OrderStatus.completed)
-                          _SellerEarningsCTA(order: order, isDark: isDark),
+                          _SellerEarningsCTA(order: order),
 
                         const SizedBox(height: 8),
                         // ===== REFUND STATUS CARD (BUYER) =====
@@ -224,7 +218,6 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen>
                         // ===== REFUND LIST (SELLER/BUYER) =====
                         OrderRefundListSection(
                           refunds: refunds,
-                          isDark: isDark,
                           currentUserId: currentUserId,
                           sellerId: order.sellerId,
                           onActionComplete: _refreshOrder,
@@ -285,7 +278,11 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              const Icon(
+                Icons.error_outline,
+                size: 48,
+                color: core.AppColors.statusError,
+              ),
               const SizedBox(height: 16),
               const Text('Data belum bisa dimuat.'),
               const SizedBox(height: 16),
@@ -449,16 +446,14 @@ class _DecisionMissingWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        color: colorScheme.surface,
         border: Border(
-          top: BorderSide(
-            color: isDark ? const Color(0xFF333333) : const Color(0xFFE0E0E0),
-          ),
+          top: BorderSide(color: colorScheme.outlineVariant),
         ),
       ),
       child: SafeArea(
@@ -466,25 +461,31 @@ class _DecisionMissingWidget extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, color: Colors.orange, size: 32),
+            Icon(Icons.error_outline, color: core.AppColors.warning, size: 32),
             const SizedBox(height: 12),
             Text(
               'Action Configuration Missing',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: isDark ? Colors.white : Colors.black87,
+                color: colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               'Order status: $orderStatus',
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              style: TextStyle(
+                fontSize: 12,
+                color: colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 4),
             Text(
               'Please contact support',
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              style: TextStyle(
+                fontSize: 12,
+                color: colorScheme.onSurfaceVariant,
+              ),
             ),
           ],
         ),
@@ -497,22 +498,20 @@ class _DecisionMissingWidget extends StatelessWidget {
 /// Shows "Lihat Penghasilan" button when order is completed
 class _SellerEarningsCTA extends StatelessWidget {
   final Order order;
-  final bool isDark;
 
-  const _SellerEarningsCTA({required this.order, required this.isDark});
+  const _SellerEarningsCTA({required this.order});
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 0),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark
-            ? const Color(0xFF1E1E1E).withValues(alpha: 0.5)
-            : Colors.green.shade50,
+        color: colorScheme.primaryContainer,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isDark ? const Color(0xFF333333) : Colors.green.shade200,
+          color: colorScheme.primary.withValues(alpha: 0.4),
           width: 1,
         ),
       ),
@@ -523,7 +522,7 @@ class _SellerEarningsCTA extends StatelessWidget {
             children: [
               Icon(
                 Icons.check_circle_outline,
-                color: isDark ? Colors.green.shade300 : Colors.green.shade700,
+                color: colorScheme.primary,
                 size: 20,
               ),
               const SizedBox(width: 8),
@@ -532,7 +531,7 @@ class _SellerEarningsCTA extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: isDark ? Colors.white : Colors.black87,
+                  color: colorScheme.onSurface,
                 ),
               ),
             ],
@@ -542,7 +541,7 @@ class _SellerEarningsCTA extends StatelessWidget {
             'Pesanan telah selesai dan diproses.',
             style: TextStyle(
               fontSize: 12,
-              color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
+              color: colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 12),
@@ -555,10 +554,8 @@ class _SellerEarningsCTA extends StatelessWidget {
               icon: const Icon(Icons.account_balance_wallet_outlined, size: 18),
               label: const Text('Lihat Penghasilan'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: isDark
-                    ? Colors.green.shade700
-                    : Colors.green.shade600,
-                foregroundColor: Colors.white,
+                backgroundColor: colorScheme.primary,
+                foregroundColor: colorScheme.onPrimary,
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
@@ -582,19 +579,18 @@ class _SellerEarningsCTA extends StatelessWidget {
 /// - Displays tier-based warnings and CTAs
 class _OrderPreparationSection extends StatelessWidget {
   final Order order;
-  final bool isDark;
   final VoidCallback? onContactSeller;
   final VoidCallback? onContactSupport;
 
   const _OrderPreparationSection({
     required this.order,
-    required this.isDark,
     this.onContactSeller,
     this.onContactSupport,
   });
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final preparationTime = order.preparationTimeSnapshot;
     final preparationNote = order.preparationNoteSnapshot;
     final readyToShipBy = order.readyToShipBy;
@@ -622,21 +618,13 @@ class _OrderPreparationSection extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: showOverdueUI
-            ? (isDark
-                  ? AppColors.statusError.withValues(alpha: 0.08)
-                  : AppColors.statusError.withValues(alpha: 0.05))
-            : (isDark
-                  ? AppColors.darkGray800
-                  : AppColors.primaryBlue.withValues(alpha: 0.05)),
+            ? AppColors.statusError.withValues(alpha: 0.06)
+            : colorScheme.secondaryContainer,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: showOverdueUI
-              ? (isDark
-                    ? AppColors.statusError.withValues(alpha: 0.4)
-                    : AppColors.statusError.withValues(alpha: 0.3))
-              : (isDark
-                    ? AppColors.primaryBlue.withValues(alpha: 0.3)
-                    : AppColors.primaryBlue.withValues(alpha: 0.2)),
+              ? AppColors.statusError.withValues(alpha: 0.4)
+              : colorScheme.secondary.withValues(alpha: 0.4),
         ),
       ),
       child: Column(
@@ -649,8 +637,8 @@ class _OrderPreparationSection extends StatelessWidget {
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: showOverdueUI
-                      ? AppColors.statusError.withValues(alpha: 0.15)
-                      : AppColors.primaryBlue.withValues(alpha: 0.15),
+                      ? colorScheme.error.withValues(alpha: 0.15)
+                      : colorScheme.secondary.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -659,8 +647,8 @@ class _OrderPreparationSection extends StatelessWidget {
                       : Icons.access_time,
                   size: 18,
                   color: showOverdueUI
-                      ? AppColors.statusError
-                      : AppColors.primaryBlue,
+                      ? colorScheme.error
+                      : colorScheme.secondary,
                 ),
               ),
               const SizedBox(width: 12),
@@ -675,9 +663,7 @@ class _OrderPreparationSection extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: isDark
-                            ? AppColors.neutralWhite
-                            : AppColors.neutralGray900,
+                        color: colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -687,9 +673,7 @@ class _OrderPreparationSection extends StatelessWidget {
                           : 'Penjual sedang menyiapkan pesanan Anda',
                       style: TextStyle(
                         fontSize: 12,
-                        color: isDark
-                            ? AppColors.neutralGray400
-                            : AppColors.neutralGray600,
+                        color: colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],
@@ -737,9 +721,7 @@ class _OrderPreparationSection extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: isDark
-                    ? AppColors.darkGray700.withValues(alpha: 0.5)
-                    : AppColors.neutralGray100,
+                color: colorScheme.surfaceContainerHigh,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
@@ -756,9 +738,7 @@ class _OrderPreparationSection extends StatelessWidget {
                       _getOverdueWarningMessage(overdueTier),
                       style: TextStyle(
                         fontSize: 13,
-                        color: isDark
-                            ? AppColors.neutralGray300
-                            : AppColors.neutralGray700,
+                        color: colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ),
@@ -823,9 +803,7 @@ class _OrderPreparationSection extends StatelessWidget {
                 preparationTime.description,
                 style: TextStyle(
                   fontSize: 13,
-                  color: isDark
-                      ? AppColors.neutralGray400
-                      : AppColors.neutralGray600,
+                  color: colorScheme.onSurfaceVariant,
                 ),
               ),
             ],
@@ -837,18 +815,16 @@ class _OrderPreparationSection extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: isDark
-                    ? AppColors.darkGray700.withValues(alpha: 0.5)
-                    : AppColors.neutralGray100,
+                color: colorScheme.surfaceContainerHigh,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.info_outline,
                     size: 14,
-                    color: AppColors.primaryBlue,
+                    color: colorScheme.secondary,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -856,9 +832,7 @@ class _OrderPreparationSection extends StatelessWidget {
                       preparationNote,
                       style: TextStyle(
                         fontSize: 12,
-                        color: isDark
-                            ? AppColors.neutralGray300
-                            : AppColors.neutralGray700,
+                        color: colorScheme.onSurfaceVariant,
                         fontStyle: FontStyle.italic,
                       ),
                     ),
@@ -874,9 +848,7 @@ class _OrderPreparationSection extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: isDark
-                    ? AppColors.darkGray700.withValues(alpha: 0.5)
-                    : AppColors.neutralGray100,
+                color: colorScheme.surfaceContainerHigh,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
@@ -884,19 +856,15 @@ class _OrderPreparationSection extends StatelessWidget {
                   Icon(
                     Icons.event,
                     size: 14,
-                    color: isDark
-                        ? AppColors.neutralGray400
-                        : AppColors.neutralGray600,
+                    color: colorScheme.onSurfaceVariant,
                   ),
                   const SizedBox(width: 6),
                   Text(
                     'Target siap kirim: ${_formatDate(readyToShipBy)}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: isDark
-                          ? AppColors.neutralGray400
-                          : AppColors.neutralGray600,
-                    ),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                   ),
                 ],
               ),
@@ -977,6 +945,8 @@ class _OrderPreparationSection extends StatelessWidget {
     required bool isPrimary,
     VoidCallback? onTap,
   }) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -984,15 +954,11 @@ class _OrderPreparationSection extends StatelessWidget {
         decoration: BoxDecoration(
           color: isPrimary
               ? AppColors.statusError
-              : (isDark ? AppColors.darkGray700 : AppColors.neutralGray200),
+              : colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(8),
           border: isPrimary
               ? null
-              : Border.all(
-                  color: isDark
-                      ? AppColors.darkGray600
-                      : AppColors.neutralGray300,
-                ),
+              : Border.all(color: colorScheme.outlineVariant),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -1000,7 +966,9 @@ class _OrderPreparationSection extends StatelessWidget {
             Icon(
               icon,
               size: 16,
-              color: isPrimary ? Colors.white : AppColors.neutralGray700,
+              color: isPrimary
+                  ? colorScheme.onError
+                  : colorScheme.onSurfaceVariant,
             ),
             const SizedBox(width: 6),
             Text(
@@ -1008,7 +976,9 @@ class _OrderPreparationSection extends StatelessWidget {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: isPrimary ? Colors.white : AppColors.neutralGray700,
+                color: isPrimary
+                    ? colorScheme.onError
+                    : colorScheme.onSurfaceVariant,
               ),
             ),
           ],

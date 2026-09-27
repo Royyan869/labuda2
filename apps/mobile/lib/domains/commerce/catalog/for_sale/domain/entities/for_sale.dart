@@ -163,7 +163,7 @@ class ForSale extends Equatable {
   ///
   /// RENDER RULE: SellerTierBadge hides for null/basic/unknown. Additional
   /// mobile gate: MUST NOT render when [sellerTrustLifecycle] is not active
-  /// (expired subscription) — see _ForSaleSellerCard for enforcement.
+  /// (expired subscription) — see CommerceDetailSellerCard for enforcement.
   final String? sellerTier;
 
   /// Canonical per-viewer action authority for the detail surface.

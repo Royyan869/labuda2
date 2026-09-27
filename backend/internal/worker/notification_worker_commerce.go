@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	auctionentity "github.com/labuda/backend/internal/commerce/auction/entity"
 	dbpkg "github.com/labuda/backend/pkg/db"
 	"go.uber.org/zap"
 )
@@ -536,6 +537,61 @@ func (h *NotificationEventHandler) handleAuctionEndedNoWinner(ctx context.Contex
 		ctx,
 		sellerID, uuid.Nil, // system-initiated — no human actor
 		"auction.ended_no_winner",
+		auctionID,
+		data,
+	)
+}
+
+// handleAuctionCancelled processes auction.cancelled events (Scope B).
+//
+// ROUTING AUTHORITY: entity.CancelReason.NotifiesSeller() — the ONLY cancel
+// reason that notifies today is subscription_expired (system-initiated
+// auto-cancel when the seller's market authority lapsed at activation
+// time). Seller self-cancels need no echo; moderation/admin outcomes
+// travel their canonical channels (moderation.auction.removed / admin
+// decision UX); legacy reasonless events fail closed as silent no-ops.
+//
+// Notification type: "auction.cancelled.seller" — dot suffix per the
+// payment-style naming for per-recipient variants (e.g.
+// order.overdue_reminder.seller).
+func (h *NotificationEventHandler) handleAuctionCancelled(ctx context.Context, payload []byte) (notificationInfo, error) {
+	var p AuctionLifecyclePayload
+	if err := json.Unmarshal(payload, &p); err != nil {
+		return notificationInfo{}, fmt.Errorf("unmarshal payload failed: %w", err)
+	}
+
+	auctionID, err := uuid.Parse(p.AuctionID)
+	if err != nil {
+		return notificationInfo{}, fmt.Errorf("invalid auction_id: %w", err)
+	}
+
+	sellerID, err := uuid.Parse(p.SellerID)
+	if err != nil {
+		return notificationInfo{}, fmt.Errorf("invalid seller_id: %w", err)
+	}
+
+	// Authority gate: only seller-notifying reasons produce a notification.
+	// Everything else is a handled success with zero side effects (idempotent
+	// replay-safe; no dead-letter churn for legacy reasonless events).
+	reason := auctionentity.CancelReason(p.CancelReason)
+	if !reason.NotifiesSeller() {
+		h.log.Info("auction.cancelled: reason does not notify seller, skipping",
+			zap.String("auction_id", auctionID.String()),
+			zap.String("cancel_reason", string(reason)),
+		)
+		return notificationInfo{}, nil
+	}
+
+	data := map[string]interface{}{
+		"auctionId": auctionID.String(),
+		// Internal routing reason surfaced for mobile deeplink context only.
+		"cancelReason": string(reason),
+	}
+
+	return h.insertNotificationWithPolicy(
+		ctx,
+		sellerID, uuid.Nil, // system-initiated — no human actor
+		"auction.cancelled.seller",
 		auctionID,
 		data,
 	)

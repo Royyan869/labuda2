@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 
 /// Authentication button with loading state
 ///
@@ -81,16 +80,16 @@ class AuthButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     final isActive = isEnabled && !isLoading;
 
     Widget child = isLoading
-        ? const SizedBox(
+        ? SizedBox(
             height: 20,
             width: 20,
             child: CircularProgressIndicator(
               strokeWidth: 2,
-              valueColor: AlwaysStoppedAnimation<Color>(AppColors.neutralWhite),
+              valueColor: AlwaysStoppedAnimation<Color>(scheme.onPrimary),
             ),
           )
         : Row(
@@ -114,31 +113,27 @@ class AuthButton extends StatelessWidget {
     return SizedBox(
       width: width ?? double.infinity,
       height: height,
-      child: _buildButton(context, isDark, isActive, child),
+      child: _buildButton(context, isActive, child),
     );
   }
 
   Widget _buildButton(
     BuildContext context,
-    bool isDark,
     bool isActive,
     Widget child,
   ) {
+    final scheme = Theme.of(context).colorScheme;
     switch (type) {
       case AuthButtonType.primary:
         return ElevatedButton(
           onPressed: isActive ? onPressed : null,
           style: ElevatedButton.styleFrom(
             backgroundColor: isActive
-                ? AppColors.primaryRed
-                : (isDark
-                      ? AppColors.neutralGray600
-                      : AppColors.neutralGray300),
+                ? scheme.primary
+                : scheme.surfaceContainerHighest,
             foregroundColor: isActive
-                ? AppColors.neutralWhite
-                : (isDark
-                      ? AppColors.neutralGray500
-                      : AppColors.neutralGray500),
+                ? scheme.onPrimary
+                : scheme.onSurfaceVariant,
             elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -152,14 +147,10 @@ class AuthButton extends StatelessWidget {
           onPressed: isActive ? onPressed : null,
           style: OutlinedButton.styleFrom(
             foregroundColor: isActive
-                ? (isDark ? AppColors.neutralWhite : AppColors.neutralGray800)
-                : (isDark
-                      ? AppColors.neutralGray500
-                      : AppColors.neutralGray400),
+                ? scheme.onSurface
+                : scheme.onSurfaceVariant,
             side: BorderSide(
-              color: isActive
-                  ? (isDark ? AppColors.darkGray600 : AppColors.neutralGray300)
-                  : (isDark ? AppColors.darkGray600 : AppColors.neutralGray300),
+              color: scheme.outlineVariant,
               width: 1.5,
             ),
             shape: RoundedRectangleBorder(

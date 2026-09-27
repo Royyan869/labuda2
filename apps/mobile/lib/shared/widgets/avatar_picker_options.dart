@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/src/theme/app_colors.dart';
 
 /// Avatar picker options UI component
 ///
@@ -26,13 +25,13 @@ class AvatarPickerOptions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     if (isLoading) {
-      return const Column(
+      return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          CircularProgressIndicator(color: AppColors.primaryRed),
+          CircularProgressIndicator(color: scheme.primary),
           SizedBox(height: 20),
           Text('Processing image...', style: TextStyle(fontSize: 14)),
         ],
@@ -46,7 +45,6 @@ class AvatarPickerOptions extends StatelessWidget {
           icon: Icons.camera_alt_outlined,
           label: 'Take Photo',
           description: 'Use camera to take a new photo',
-          isDark: isDark,
           onTap: onTakePhoto,
         ),
         const SizedBox(height: 16),
@@ -54,7 +52,6 @@ class AvatarPickerOptions extends StatelessWidget {
           icon: Icons.photo_library_outlined,
           label: 'Choose from Gallery',
           description: 'Select an existing photo',
-          isDark: isDark,
           onTap: onChooseGallery,
         ),
         if (showRemoveOption && onRemovePhoto != null) ...[
@@ -63,7 +60,6 @@ class AvatarPickerOptions extends StatelessWidget {
             icon: Icons.delete_outline,
             label: 'Remove Photo',
             description: 'Use default avatar',
-            isDark: isDark,
             isDestructive: true,
             onTap: onRemovePhoto!,
           ),
@@ -78,7 +74,6 @@ class AvatarPickerOption extends StatelessWidget {
   final IconData icon;
   final String label;
   final String description;
-  final bool isDark;
   final VoidCallback onTap;
   final bool isDestructive;
 
@@ -87,16 +82,14 @@ class AvatarPickerOption extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.description,
-    required this.isDark,
     required this.onTap,
     this.isDestructive = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final iconColor = isDestructive
-        ? AppColors.statusError
-        : AppColors.primaryRed;
+    final scheme = Theme.of(context).colorScheme;
+    final iconColor = isDestructive ? scheme.error : scheme.primary;
 
     return Material(
       color: Colors.transparent,
@@ -106,9 +99,7 @@ class AvatarPickerOption extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            border: Border.all(
-              color: isDark ? AppColors.darkGray600 : AppColors.neutralGray200,
-            ),
+            border: Border.all(color: scheme.outlineVariant),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Row(
@@ -116,7 +107,7 @@ class AvatarPickerOption extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: iconColor.withValues(alpha: 0.1),
+                  color: iconColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(icon, color: iconColor, size: 24),
@@ -132,10 +123,8 @@ class AvatarPickerOption extends StatelessWidget {
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
                         color: isDestructive
-                            ? AppColors.statusError
-                            : (isDark
-                                  ? AppColors.neutralGray200
-                                  : AppColors.neutralGray800),
+                            ? scheme.error
+                            : scheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -143,9 +132,7 @@ class AvatarPickerOption extends StatelessWidget {
                       description,
                       style: TextStyle(
                         fontSize: 14,
-                        color: isDark
-                            ? AppColors.neutralGray400
-                            : AppColors.neutralGray500,
+                        color: scheme.onSurfaceVariant,
                       ),
                     ),
                   ],
@@ -153,9 +140,7 @@ class AvatarPickerOption extends StatelessWidget {
               ),
               Icon(
                 Icons.arrow_forward_ios,
-                color: isDark
-                    ? AppColors.neutralGray400
-                    : AppColors.neutralGray500,
+                color: scheme.onSurfaceVariant,
                 size: 16,
               ),
             ],

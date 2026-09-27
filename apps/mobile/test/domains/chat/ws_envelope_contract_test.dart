@@ -34,15 +34,28 @@ void main() {
     );
   });
 
-  test('WebSocketEventType maps hide/restore chat signals', () {
-    expect(
-      WebSocketEventType.fromString('chat.message.hidden'),
-      WebSocketEventType.messageHidden,
-    );
-    expect(
-      WebSocketEventType.fromString('chat.message.restored'),
-      WebSocketEventType.messageRestored,
-    );
+  test('WebSocketEventType rejects the killed message-level signals', () {
+    // NEGATIVE CONTRACT (P1-A): these names have never been emitted by the
+    // backend and their handlers were removed. They must resolve to
+    // `unknown` so any reintroduction shows up as observable contract drift
+    // instead of silently reviving a dead design.
+    const killed = [
+      'chat.message.hidden',
+      'chat.message.restored',
+      'message.read',
+      'message.new',
+      'typing.started',
+      'typing.stopped',
+      'user.online',
+      'user.offline',
+    ];
+    for (final name in killed) {
+      expect(
+        WebSocketEventType.fromString(name),
+        WebSocketEventType.unknown,
+        reason: '$name must stay dead',
+      );
+    }
   });
 
   test('WebSocketEventType maps room summary signals', () {

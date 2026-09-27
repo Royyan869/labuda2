@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/widgets/mentions/mention_text_field.dart';
 
 /// Widget for post content text input area with mention support
@@ -13,18 +12,17 @@ class ContentContentInput extends StatelessWidget {
   final TextEditingController controller;
   final ValueChanged<String> onChanged;
   final ValueChanged<List<String>>? onMentionsChanged;
-  final bool isDark;
 
   const ContentContentInput({
     super.key,
     required this.controller,
     required this.onChanged,
     this.onMentionsChanged,
-    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     const hintText =
         "What's on your mind?\n\nShare your koi stories, tips... Use @ to mention users!";
 
@@ -35,13 +33,13 @@ class ContentContentInput extends StatelessWidget {
       hintText: hintText,
       style: TextStyle(
         fontSize: 16,
-        color: isDark ? AppColors.neutralGray200 : AppColors.neutralGray800,
+        color: scheme.onSurface,
         height: 1.5,
       ),
       decoration: InputDecoration(
         hintText: hintText,
         hintStyle: TextStyle(
-          color: isDark ? AppColors.neutralGray500 : AppColors.neutralGray400,
+          color: scheme.onSurfaceVariant,
           fontSize: 16,
         ),
         border: InputBorder.none,

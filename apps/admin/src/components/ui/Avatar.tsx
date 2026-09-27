@@ -57,14 +57,14 @@ export function Avatar({ src, userId, name, size = 'sm', className }: AvatarProp
   return (
     <div
       className={cn(
-        'flex items-center justify-center rounded-full bg-gray-200 shrink-0',
+        'flex items-center justify-center rounded-full bg-[hsl(var(--surface-muted))] shrink-0',
         SIZES[size],
         className
       )}
       aria-label={name || userId || 'user avatar'}
       role="img"
     >
-      <User className={cn('text-gray-500', ICON_SIZES[size])} />
+      <User className={cn('text-[hsl(var(--muted-foreground))]', ICON_SIZES[size])} />
     </div>
   )
 }

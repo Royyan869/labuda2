@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 
 /// Dialog konfirmasi sebelum memblokir user
 ///
@@ -41,10 +40,10 @@ class BlockConfirmationDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Dialog(
-      backgroundColor: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
+      backgroundColor: scheme.surfaceContainerHigh,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
         width: 340,
@@ -57,12 +56,12 @@ class BlockConfirmationDialog extends StatelessWidget {
               width: 56,
               height: 56,
               decoration: BoxDecoration(
-                color: AppColors.primaryRed.withValues(alpha: 0.1),
+                color: scheme.error.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.block,
-                color: AppColors.primaryRed,
+                color: scheme.error,
                 size: 28,
               ),
             ),
@@ -74,9 +73,7 @@ class BlockConfirmationDialog extends StatelessWidget {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: isDark
-                    ? AppColors.neutralWhite
-                    : AppColors.neutralGray900,
+                color: scheme.onSurface,
               ),
               textAlign: TextAlign.center,
             ),
@@ -84,27 +81,27 @@ class BlockConfirmationDialog extends StatelessWidget {
 
             // Consequences list
             _buildConsequenceItem(
+              context,
               icon: Icons.visibility_off_outlined,
               text: 'You will not see content from this user',
-              isDark: isDark,
             ),
             const SizedBox(height: 8),
             _buildConsequenceItem(
+              context,
               icon: Icons.person_off_outlined,
               text: 'This user will not be able to see your content',
-              isDark: isDark,
             ),
             const SizedBox(height: 8),
             _buildConsequenceItem(
+              context,
               icon: Icons.chat_bubble_outline,
               text: 'Chat with this user will be hidden',
-              isDark: isDark,
             ),
             const SizedBox(height: 8),
             _buildConsequenceItem(
+              context,
               icon: Icons.people_outline,
               text: 'Follow relationship will be removed',
-              isDark: isDark,
             ),
             const SizedBox(height: 24),
 
@@ -117,13 +114,9 @@ class BlockConfirmationDialog extends StatelessWidget {
                         ? null
                         : () => Navigator.pop(context, false),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: isDark
-                          ? AppColors.neutralGray300
-                          : AppColors.neutralGray700,
+                      foregroundColor: scheme.onSurface,
                       side: BorderSide(
-                        color: isDark
-                            ? AppColors.darkGray600
-                            : AppColors.neutralGray300,
+                        color: scheme.outlineVariant,
                       ),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
@@ -140,20 +133,20 @@ class BlockConfirmationDialog extends StatelessWidget {
                         ? null
                         : () => Navigator.pop(context, true),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryRed,
-                      foregroundColor: AppColors.neutralWhite,
+                      backgroundColor: scheme.error,
+                      foregroundColor: scheme.onError,
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
                     child: isLoading
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 20,
                             height: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: AppColors.neutralWhite,
+                              color: scheme.onError,
                             ),
                           )
                         : const Text('Block'),
@@ -167,18 +160,19 @@ class BlockConfirmationDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildConsequenceItem({
+  Widget _buildConsequenceItem(
+    BuildContext context, {
     required IconData icon,
     required String text,
-    required bool isDark,
   }) {
+    final scheme = Theme.of(context).colorScheme;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Icon(
           icon,
           size: 18,
-          color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray500,
+          color: scheme.onSurfaceVariant,
         ),
         const SizedBox(width: 10),
         Expanded(
@@ -186,9 +180,7 @@ class BlockConfirmationDialog extends StatelessWidget {
             text,
             style: TextStyle(
               fontSize: 14,
-              color: isDark
-                  ? AppColors.neutralGray300
-                  : AppColors.neutralGray600,
+              color: scheme.onSurface,
               height: 1.3,
             ),
           ),

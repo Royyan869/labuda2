@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:labuda/core/src/theme/app_colors.dart';
 
 /// Fullscreen Video Player Widget untuk Media Viewer
 ///
@@ -58,10 +57,16 @@ class _MediaViewerVideoPlayerState extends State<MediaViewerVideoPlayer> {
             aspectRatio: _videoPlayerController!.value.aspectRatio,
             // Fullscreen optimized controls
             materialProgressColors: ChewieProgressColors(
-              playedColor: AppColors.primaryRed,
-              handleColor: AppColors.primaryRed,
-              backgroundColor: AppColors.neutralGray400.withValues(alpha: 0.3),
-              bufferedColor: AppColors.neutralGray400.withValues(alpha: 0.5),
+              playedColor: Theme.of(context).colorScheme.primary,
+              handleColor: Theme.of(context).colorScheme.primary,
+              backgroundColor: Theme.of(context)
+                  .colorScheme
+                  .onSurfaceVariant
+                  .withValues(alpha: 0.3),
+              bufferedColor: Theme.of(context)
+                  .colorScheme
+                  .onSurfaceVariant
+                  .withValues(alpha: 0.5),
             ),
             placeholder: _buildShimmerPlaceholder(),
             autoInitialize: true,
@@ -117,7 +122,7 @@ class _MediaViewerVideoPlayerState extends State<MediaViewerVideoPlayer> {
     return Container(
       width: double.infinity,
       height: double.infinity,
-      color: AppColors.dark,
+      color: Theme.of(context).colorScheme.scrim,
       child: _isInitialized && _chewieController != null && !_hasError
           ? SizedBox(
               width: double.infinity,
@@ -131,23 +136,28 @@ class _MediaViewerVideoPlayerState extends State<MediaViewerVideoPlayer> {
   }
 
   Widget _buildShimmerPlaceholder() {
+    final scheme = Theme.of(context).colorScheme;
     return Shimmer.fromColors(
-      baseColor: AppColors.darkGray600,
-      highlightColor: AppColors.darkGray500,
+      baseColor: scheme.outlineVariant,
+      highlightColor: scheme.onSurfaceVariant,
       child: Container(
         width: double.infinity,
         height: double.infinity,
-        color: AppColors.darkGray600,
-        child: const Center(
+        color: scheme.outlineVariant,
+        child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.video_file_outlined, size: 80, color: Colors.white38),
+              Icon(
+                Icons.video_file_outlined,
+                size: 80,
+                color: scheme.onPrimary.withValues(alpha: 0.38),
+              ),
               SizedBox(height: 16),
               Text(
                 'Loading Video...',
                 style: TextStyle(
-                  color: AppColors.light,
+                  color: scheme.onPrimary,
                   fontSize: 18,
                   fontWeight: FontWeight.w500,
                 ),
@@ -156,9 +166,9 @@ class _MediaViewerVideoPlayerState extends State<MediaViewerVideoPlayer> {
               SizedBox(
                 width: 200,
                 child: LinearProgressIndicator(
-                  backgroundColor: Colors.white24,
+                  backgroundColor: scheme.onPrimary.withValues(alpha: 0.24),
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    AppColors.primaryRed,
+                    scheme.primary,
                   ),
                 ),
               ),
@@ -170,20 +180,25 @@ class _MediaViewerVideoPlayerState extends State<MediaViewerVideoPlayer> {
   }
 
   Widget _buildErrorState() {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       width: double.infinity,
       height: double.infinity,
-      color: AppColors.dark,
+      color: scheme.scrim,
       child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, size: 80, color: Colors.white70),
+            Icon(
+              Icons.error_outline,
+              size: 80,
+              color: scheme.onPrimary.withValues(alpha: 0.7),
+            ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Video Failed to Load',
               style: TextStyle(
-                color: AppColors.light,
+                color: scheme.onPrimary,
                 fontSize: 18,
                 fontWeight: FontWeight.w500,
               ),
@@ -192,7 +207,7 @@ class _MediaViewerVideoPlayerState extends State<MediaViewerVideoPlayer> {
             Text(
               'Unable to play this video',
               style: TextStyle(
-                color: AppColors.light.withValues(alpha: 0.7),
+                color: scheme.onPrimary.withValues(alpha: 0.7),
                 fontSize: 14,
               ),
             ),
@@ -208,8 +223,8 @@ class _MediaViewerVideoPlayerState extends State<MediaViewerVideoPlayer> {
               icon: const Icon(Icons.refresh, size: 20),
               label: const Text('Retry'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryRed,
-                foregroundColor: AppColors.light,
+                backgroundColor: scheme.primary,
+                foregroundColor: scheme.onPrimary,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 24,
                   vertical: 12,
@@ -265,8 +280,8 @@ class _CustomMaterialControlsState extends State<_CustomMaterialControls> {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Colors.black.withValues(alpha: 0.0),
-                  Colors.black.withValues(alpha: 0.7),
+                  Theme.of(context).colorScheme.scrim.withValues(alpha: 0.0),
+                  Theme.of(context).colorScheme.scrim.withValues(alpha: 0.7),
                 ],
                 stops: const [0.5, 1.0],
               ),
@@ -312,14 +327,16 @@ class _CustomMaterialControlsState extends State<_CustomMaterialControls> {
           duration: const Duration(milliseconds: 300),
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.5),
+              color: Theme.of(
+                context,
+              ).colorScheme.scrim.withValues(alpha: 0.5),
               shape: BoxShape.circle,
             ),
             child: IconButton(
               iconSize: 48,
               icon: Icon(
                 _controller!.value.isPlaying ? Icons.pause : Icons.play_arrow,
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.onPrimary,
               ),
               onPressed: _togglePlayPause,
             ),
@@ -342,9 +359,15 @@ class _CustomMaterialControlsState extends State<_CustomMaterialControls> {
           _controller!,
           allowScrubbing: true,
           colors: VideoProgressColors(
-            playedColor: AppColors.primaryRed,
-            bufferedColor: AppColors.neutralGray400.withValues(alpha: 0.5),
-            backgroundColor: AppColors.neutralGray400.withValues(alpha: 0.3),
+            playedColor: Theme.of(context).colorScheme.primary,
+            bufferedColor: Theme.of(context)
+                .colorScheme
+                .onSurfaceVariant
+                .withValues(alpha: 0.5),
+            backgroundColor: Theme.of(context)
+                .colorScheme
+                .onSurfaceVariant
+                .withValues(alpha: 0.3),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
         );
@@ -368,7 +391,10 @@ class _CustomMaterialControlsState extends State<_CustomMaterialControls> {
               // Time display
               Text(
                 '${_formatDuration(position)} / ${_formatDuration(duration)}',
-                style: const TextStyle(color: Colors.white, fontSize: 12),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onPrimary,
+                  fontSize: 12,
+                ),
               ),
               const Spacer(),
 
@@ -378,7 +404,7 @@ class _CustomMaterialControlsState extends State<_CustomMaterialControls> {
                   _controller!.value.volume > 0
                       ? Icons.volume_up
                       : Icons.volume_off,
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.onPrimary,
                   size: 20,
                 ),
                 onPressed: () {
@@ -396,7 +422,11 @@ class _CustomMaterialControlsState extends State<_CustomMaterialControls> {
 
               // Playback speed button
               IconButton(
-                icon: const Icon(Icons.speed, color: Colors.white, size: 20),
+                icon: Icon(
+                  Icons.speed,
+                  color: Theme.of(context).colorScheme.onPrimary,
+                  size: 20,
+                ),
                 onPressed: _showPlaybackSpeedMenu,
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
@@ -407,9 +437,9 @@ class _CustomMaterialControlsState extends State<_CustomMaterialControls> {
               // Fullscreen button (only show if callback provided)
               if (widget.onFullscreenTap != null)
                 IconButton(
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.fullscreen,
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onPrimary,
                     size: 20,
                   ),
                   onPressed: widget.onFullscreenTap,
@@ -428,7 +458,7 @@ class _CustomMaterialControlsState extends State<_CustomMaterialControls> {
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.darkGray700,
+      backgroundColor: Theme.of(context).colorScheme.scrim,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -441,26 +471,35 @@ class _CustomMaterialControlsState extends State<_CustomMaterialControls> {
                 padding: const EdgeInsets.all(16),
                 child: Text(
                   'Playback Speed',
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onPrimary,
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
-              const Divider(color: AppColors.neutralGray600, height: 1),
+              Divider(
+                color: Theme.of(context).colorScheme.outlineVariant,
+                height: 1,
+              ),
               ...[0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map((speed) {
                 final isSelected = _controller!.value.playbackSpeed == speed;
                 return ListTile(
                   leading: Icon(
                     isSelected ? Icons.check_circle : Icons.circle_outlined,
-                    color: isSelected ? AppColors.primaryRed : Colors.white70,
+                    color: isSelected
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context).colorScheme.onPrimary.withValues(
+                            alpha: 0.7,
+                          ),
                     size: 20,
                   ),
                   title: Text(
                     '${speed}x',
                     style: TextStyle(
-                      color: isSelected ? AppColors.primaryRed : Colors.white,
+                      color: isSelected
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.onPrimary,
                       fontWeight: isSelected
                           ? FontWeight.bold
                           : FontWeight.normal,

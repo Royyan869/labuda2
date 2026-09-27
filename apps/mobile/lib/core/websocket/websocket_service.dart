@@ -18,7 +18,6 @@ class WebSocketService {
   Timer? _pingTimer;
 
   final String baseUrl;
-  String? _authToken;
   bool _isConnecting = false;
   int _reconnectAttempts = 0;
   ConnectionState _state = ConnectionState.disconnected;
@@ -62,7 +61,6 @@ class WebSocketService {
 
     final int generation = ++_connectGeneration;
     _isConnecting = true;
-    _authToken = authToken;
     _updateState(ConnectionState.connecting);
 
     try {
@@ -418,9 +416,10 @@ class WebSocketService {
   void handleMessageForTest(dynamic frame) => _handleMessage(frame);
 
   Future<void> disconnect() async {
-    // Phase 5: bump generation to invalidate any in-flight handshake, clear token to prevent stale reconnect.
+    // Phase 5: bump generation to invalidate any in-flight handshake and
+    // prevent stale reconnect (reconnect resolves fresh tokens via the
+    // Labuda token provider — there is no stored-token fallback).
     _connectGeneration++;
-    _authToken = null;
     _isConnecting = false;
     _reconnectTimer?.cancel();
     _pingTimer?.cancel();
@@ -442,28 +441,6 @@ class WebSocketService {
       _updateState(ConnectionState.disconnected);
     } catch (_) {}
     developer.log('WebSocket disconnected', name: 'WebSocketService');
-  }
-
-  // Send chat message
-  Future<void> sendChatMessage(String chatId, String content) async {
-    final message = WebSocketMessage(
-      type: MessageType.chat,
-      from: '', // Will be set by server
-      data: {'chat_id': chatId, 'content': content},
-    );
-
-    await send(message, requireAck: true);
-  }
-
-  // Send typing indicator
-  Future<void> sendTyping(String chatId, bool isTyping) async {
-    final message = WebSocketMessage(
-      type: MessageType.typing,
-      from: '',
-      data: {'chat_id': chatId, 'is_typing': isTyping},
-    );
-
-    await send(message);
   }
 
 }

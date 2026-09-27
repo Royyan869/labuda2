@@ -27,11 +27,11 @@ class _FollowButtonState extends ConsumerState<FollowButton> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     final authState = ref.watch(authControllerProvider);
 
     if (authState is AuthStateLoading) {
-      return _buildPlaceholderButton(isDark, disabled: true);
+      return _buildPlaceholderButton(scheme, disabled: true);
     }
 
     if (authState is! AuthStateAuthenticated) {
@@ -59,7 +59,7 @@ class _FollowButtonState extends ConsumerState<FollowButton> {
       });
       return _buildFollowButton(
         context,
-        isDark,
+        scheme,
         currentUserId,
         currentUserName,
         false,
@@ -68,16 +68,16 @@ class _FollowButtonState extends ConsumerState<FollowButton> {
 
     return _buildFollowButton(
       context,
-      isDark,
+      scheme,
       currentUserId,
       currentUserName,
       isFollowing,
     );
   }
 
-  Widget _buildPlaceholderButton(bool isDark, {bool disabled = false}) {
-    final bg = isDark ? AppColors.darkGray700 : AppColors.neutralGray100;
-    final fg = isDark ? AppColors.neutralWhite : AppColors.neutralGray700;
+  Widget _buildPlaceholderButton(ColorScheme scheme, {bool disabled = false}) {
+    final bg = scheme.surfaceContainerHighest;
+    final fg = scheme.onSurface;
     return Opacity(
       opacity: disabled ? 0.4 : 1.0,
       child: Container(
@@ -107,17 +107,13 @@ class _FollowButtonState extends ConsumerState<FollowButton> {
 
   Widget _buildFollowButton(
     BuildContext context,
-    bool isDark,
+    ColorScheme scheme,
     String currentUserId,
     String currentUserName,
     bool isFollowing,
   ) {
-    final bg = isFollowing
-        ? (isDark ? AppColors.darkGray700 : AppColors.neutralGray100)
-        : AppColors.primaryRed;
-    final fg = isFollowing
-        ? (isDark ? AppColors.neutralWhite : AppColors.neutralGray700)
-        : AppColors.neutralWhite;
+    final bg = isFollowing ? scheme.surfaceContainerHighest : scheme.primary;
+    final fg = isFollowing ? scheme.onSurface : scheme.onPrimary;
 
     return Opacity(
       opacity: _isLoading ? 0.6 : 1.0,

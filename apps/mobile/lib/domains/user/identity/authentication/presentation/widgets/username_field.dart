@@ -16,7 +16,6 @@ import 'package:labuda/shared/helpers/canonical_username_validator.dart';
 ///   screen's error slot.
 class UsernameField extends StatefulWidget {
   final TextEditingController controller;
-  final bool isDark;
 
   /// Local format-only result: (isValidFormat, isFilled). Availability is
   /// never claimed here — the second parameter is always false and exists
@@ -26,7 +25,6 @@ class UsernameField extends StatefulWidget {
   const UsernameField({
     super.key,
     required this.controller,
-    required this.isDark,
     required this.onValidationChanged,
   });
 
@@ -88,9 +86,9 @@ class _UsernameFieldState extends State<UsernameField> {
     widget.onValidationChanged(valid, false);
   }
 
-  Color get _getBorderColor {
+  Color _getBorderColor(BuildContext context) {
     if (_formatValid == false) return AppColors.error;
-    return widget.isDark ? AppColors.darkGray600 : AppColors.neutralGray300;
+    return Theme.of(context).colorScheme.outlineVariant;
   }
 
   Widget? get _getSuffixIcon {
@@ -111,13 +109,14 @@ class _UsernameFieldState extends State<UsernameField> {
     return 'Unique username for your profile';
   }
 
-  Color get _getHelperTextColor {
+  Color _getHelperTextColor(BuildContext context) {
     if (_formatValid == false) return AppColors.error;
-    return widget.isDark ? AppColors.neutralGray500 : AppColors.neutralGray400;
+    return Theme.of(context).colorScheme.onSurfaceVariant;
   }
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -129,35 +128,31 @@ class _UsernameFieldState extends State<UsernameField> {
             hintText: 'Choose a unique username',
             prefixIcon: Icon(
               Icons.alternate_email,
-              color: widget.isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray500,
+              color: scheme.onSurfaceVariant,
             ),
             suffixIcon: _getSuffixIcon,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: _getBorderColor),
+              borderSide: BorderSide(color: _getBorderColor(context)),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: _getBorderColor),
+              borderSide: BorderSide(color: _getBorderColor(context)),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: _getBorderColor, width: 2),
+              borderSide: BorderSide(color: _getBorderColor(context), width: 2),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.error),
+              borderSide: BorderSide(color: scheme.error),
             ),
             focusedErrorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.error, width: 2),
+              borderSide: BorderSide(color: scheme.error, width: 2),
             ),
             filled: true,
-            fillColor: widget.isDark
-                ? AppColors.darkGray700
-                : AppColors.neutralGray50,
+            fillColor: scheme.surfaceContainerHigh,
           ),
           validator: (value) {
             if (value == null || value.isEmpty) {
@@ -181,7 +176,7 @@ class _UsernameFieldState extends State<UsernameField> {
                     _getHelperText!,
                     style: TextStyle(
                       fontSize: 12,
-                      color: _getHelperTextColor,
+                      color: _getHelperTextColor(context),
                       fontWeight: FontWeight.normal,
                     ),
                     maxLines: 1,

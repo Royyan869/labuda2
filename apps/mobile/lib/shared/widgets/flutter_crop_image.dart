@@ -96,7 +96,7 @@ class _FlutterImageCropperState extends State<FlutterImageCropper> {
     final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
-      backgroundColor: AppColors.dark,
+      backgroundColor: Theme.of(context).colorScheme.scrim,
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : Stack(
@@ -125,8 +125,10 @@ class _FlutterImageCropperState extends State<FlutterImageCropper> {
                   },
                   aspectRatio: widget.aspectRatio,
                   withCircleUi: widget.withCircleUi,
-                  baseColor: AppColors.dark,
-                  maskColor: Colors.black.withValues(alpha: 0.5),
+                  baseColor: Theme.of(context).colorScheme.scrim,
+                  maskColor: Theme.of(
+                    context,
+                  ).colorScheme.scrim.withValues(alpha: 0.5),
                   radius: 0,
                   cornerDotBuilder: (size, edgeAlignment) => const DotControl(),
                   interactive: true,
@@ -140,7 +142,9 @@ class _FlutterImageCropperState extends State<FlutterImageCropper> {
                   left: 0,
                   right: 0,
                   child: Container(
-                    color: Colors.black87,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.scrim.withValues(alpha: 0.87),
                     padding: const EdgeInsets.symmetric(
                       horizontal: 8,
                       vertical: 8,
@@ -149,21 +153,24 @@ class _FlutterImageCropperState extends State<FlutterImageCropper> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.close, color: AppColors.light),
+                          icon: Icon(
+                            Icons.close,
+                            color: Theme.of(context).colorScheme.onPrimary,
+                          ),
                           onPressed: () => Navigator.of(context).pop(),
                         ),
                         Text(
                           widget.title,
-                          style: const TextStyle(
-                            color: AppColors.light,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onPrimary,
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                         IconButton(
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.check,
-                            color: AppColors.success,
+                            color: AppColors.statusSuccess,
                           ),
                           onPressed: _crop,
                         ),
@@ -184,10 +191,13 @@ class _FlutterImageCropperState extends State<FlutterImageCropper> {
                       color: Colors.black87,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Pinch to zoom • Drag to move',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: AppColors.light, fontSize: 13),
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onPrimary,
+                        fontSize: 13,
+                      ),
                     ),
                   ),
                 ),

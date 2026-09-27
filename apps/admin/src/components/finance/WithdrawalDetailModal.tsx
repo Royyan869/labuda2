@@ -44,9 +44,9 @@ const ACTION_CONFIRMATIONS = {
   'confirm-approve': {
     title: 'Approve Withdrawal',
     icon: CheckCircle,
-    iconColor: 'text-green-600',
-    bgColor: 'bg-green-50',
-    borderColor: 'border-green-200',
+    iconColor: 'text-success',
+    bgColor: 'bg-success-bg',
+    borderColor: 'border-success',
     message: (
       <>
         <p className="font-semibold text-lg mb-2">You are about to approve this withdrawal request.</p>
@@ -57,9 +57,9 @@ const ACTION_CONFIRMATIONS = {
   'confirm-reject': {
     title: 'Reject Withdrawal',
     icon: XCircle,
-    iconColor: 'text-red-600',
-    bgColor: 'bg-red-50',
-    borderColor: 'border-red-200',
+    iconColor: 'text-destructive',
+    bgColor: 'bg-destructive-bg',
+    borderColor: 'border-destructive',
     message: (
       <>
         <p className="font-semibold text-lg mb-2">You are about to reject this withdrawal request.</p>
@@ -70,14 +70,14 @@ const ACTION_CONFIRMATIONS = {
   'confirm-mark-processed': {
     title: 'Mark Withdrawal as Paid',
     icon: CreditCard,
-    iconColor: 'text-blue-600',
-    bgColor: 'bg-blue-50',
-    borderColor: 'border-blue-200',
+    iconColor: 'text-info',
+    bgColor: 'bg-info-bg',
+    borderColor: 'border-info',
     message: (
       <>
         <p className="font-semibold text-lg mb-2">You are about to mark this withdrawal as manually paid.</p>
-        <p className="text-sm font-semibold text-red-600 mb-2">⚠️ CRITICAL: Use this ONLY if you have manually sent the funds outside the payment gateway.</p>
-        <p className="text-xs text-gray-600">This action cannot be undone. The seller will receive the funds and the withdrawal will be marked as completed.</p>
+        <p className="text-sm font-semibold text-destructive mb-2">⚠️ CRITICAL: Use this ONLY if you have manually sent the funds outside the payment gateway.</p>
+        <p className="text-xs text-muted-foreground">This action cannot be undone. The seller will receive the funds and the withdrawal will be marked as completed.</p>
       </>
     ),
   },
@@ -236,15 +236,15 @@ export function WithdrawalDetailModal({ isOpen, onClose, withdrawalData, onSucce
                 <confirmConfig.icon className={`h-6 w-6 flex-shrink-0 mt-0.5 ${confirmConfig.iconColor}`} />
                 <div className="flex-1">
                   <h3 className={`font-semibold ${confirmConfig.iconColor}`}>{confirmConfig.title}</h3>
-                  <div className="mt-2 text-gray-700">
+                  <div className="mt-2 text-foreground">
                     {confirmConfig.message}
                   </div>
 
                   {/* Rejection reason input */}
                   {actionState === 'confirm-reject' && (
                     <div className="mt-4">
-                      <label htmlFor="reject-reason" className="block text-sm font-medium text-gray-700 mb-1">
-                        Reason for Rejection <span className="text-red-600">*</span>
+                      <label htmlFor="reject-reason" className="block text-sm font-medium text-foreground mb-1">
+                        Reason for Rejection <span className="text-destructive">*</span>
                       </label>
                       <textarea
                         id="reject-reason"
@@ -252,7 +252,7 @@ export function WithdrawalDetailModal({ isOpen, onClose, withdrawalData, onSucce
                         onChange={(e) => setRejectionReason(e.target.value)}
                         placeholder="e.g., Invalid bank account details, insufficient verification, etc."
                         rows={3}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                        className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                         autoFocus
                       />
                     </div>
@@ -260,12 +260,12 @@ export function WithdrawalDetailModal({ isOpen, onClose, withdrawalData, onSucce
 
                   {/* Double confirmation for mark-processed */}
                   {actionState === 'confirm-mark-processed' && (
-                    <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                      <label className="flex items-center gap-2 text-sm font-medium text-red-700">
+                    <div className="mt-4 p-3 bg-destructive-bg border border-destructive rounded-lg">
+                      <label className="flex items-center gap-2 text-sm font-medium text-destructive">
                         <input
                           type="checkbox"
                           id="confirm-manual-payment"
-                          className="rounded border-red-300 text-red-600 focus:ring-red-500"
+                          className="rounded border-destructive text-destructive focus:ring-ring"
                           onChange={(e) => {
                             const button = document.getElementById('confirm-mark-processed-btn') as HTMLButtonElement
                             if (button) button.disabled = !e.target.checked
@@ -313,7 +313,7 @@ export function WithdrawalDetailModal({ isOpen, onClose, withdrawalData, onSucce
             <>
               {/* Stale data warning */}
               {isDataStale && (
-                <div className="bg-amber-50 border border-amber-200 text-amber-800 p-3 rounded-lg flex items-center gap-2">
+                <div className="bg-warning-bg border border-warning text-warning800 p-3 rounded-lg flex items-center gap-2">
                   <AlertTriangle className="h-4 w-4 flex-shrink-0" />
                   <span className="text-sm">This withdrawal&apos;s status has changed. Refresh to see the latest data.</span>
                   <Button
@@ -333,7 +333,7 @@ export function WithdrawalDetailModal({ isOpen, onClose, withdrawalData, onSucce
 
               {/* Error Message */}
               {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg flex items-center gap-2">
+                <div className="bg-destructive-bg border border-destructive text-destructive p-3 rounded-lg flex items-center gap-2">
                   <AlertTriangle className="h-4 w-4 flex-shrink-0" />
                   <span className="text-sm">{error}</span>
                 </div>
@@ -347,7 +347,7 @@ export function WithdrawalDetailModal({ isOpen, onClose, withdrawalData, onSucce
                   </Badge>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-sm text-gray-500">
+                  <span className="text-sm text-muted-foreground">
                     Withdrawal ID: <span className="font-mono">{displayData.id}</span>
                   </span>
                   <button
@@ -356,7 +356,7 @@ export function WithdrawalDetailModal({ isOpen, onClose, withdrawalData, onSucce
                       setIsDataStale(false)
                       refetch()
                     }}
-                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                    className="text-muted-foreground hover:text-muted-foreground transition-colors"
                     title="Refresh withdrawal data"
                   >
                     <RefreshCw className="h-4 w-4" />
@@ -373,22 +373,22 @@ export function WithdrawalDetailModal({ isOpen, onClose, withdrawalData, onSucce
                         <DollarSign className="h-8 w-8 text-primary" />
                       </div>
                       <div>
-                        <p className="text-sm text-gray-600">Jumlah diterima seller</p>
+                        <p className="text-sm text-muted-foreground">Jumlah diterima seller</p>
                         <p className="text-3xl font-bold text-primary">{formatRupiah(displayData.amount)}</p>
                       </div>
                     </div>
-                    <div className="grid gap-3 rounded-lg bg-gray-50 p-4 md:grid-cols-3">
+                    <div className="grid gap-3 rounded-lg bg-surface-muted p-4 md:grid-cols-3">
                       <div>
-                        <p className="text-xs uppercase tracking-wide text-gray-500">Biaya penarikan</p>
-                        <p className="mt-1 text-lg font-semibold text-gray-900">{formatRupiah(displayData.fee_amount)}</p>
+                        <p className="text-xs uppercase tracking-wide text-muted-foreground">Biaya penarikan</p>
+                        <p className="mt-1 text-lg font-semibold text-foreground">{formatRupiah(displayData.fee_amount)}</p>
                       </div>
                       <div>
-                        <p className="text-xs uppercase tracking-wide text-gray-500">Total dipotong saldo</p>
-                        <p className="mt-1 text-lg font-semibold text-gray-900">{formatRupiah(displayData.total_debit_amount)}</p>
+                        <p className="text-xs uppercase tracking-wide text-muted-foreground">Total dipotong saldo</p>
+                        <p className="mt-1 text-lg font-semibold text-foreground">{formatRupiah(displayData.total_debit_amount)}</p>
                       </div>
                       <div>
-                        <p className="text-xs uppercase tracking-wide text-gray-500">Gateway payout</p>
-                        <p className="mt-1 text-lg font-semibold text-gray-900">{formatRupiah(displayData.amount)}</p>
+                        <p className="text-xs uppercase tracking-wide text-muted-foreground">Gateway payout</p>
+                        <p className="mt-1 text-lg font-semibold text-foreground">{formatRupiah(displayData.amount)}</p>
                       </div>
                     </div>
                   </div>
@@ -412,22 +412,22 @@ export function WithdrawalDetailModal({ isOpen, onClose, withdrawalData, onSucce
                         className="w-12 h-12 rounded-full object-cover"
                       />
                     ) : (
-                      <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">
-                        <User className="h-6 w-6 text-gray-500" />
+                      <div className="w-12 h-12 rounded-full bg-surface-muted flex items-center justify-center">
+                        <User className="h-6 w-6 text-muted-foreground" />
                       </div>
                     )}
                     <div className="flex-1">
                       {hasSellerUsername ? (
                         <>
                           <p className="font-medium text-lg">@{sellerUsername}</p>
-                          {sellerFarmName && <p className="text-sm text-gray-600">{sellerFarmName}</p>}
-                          <p className="font-mono text-sm text-gray-500">{displayData.seller_id}</p>
+                          {sellerFarmName && <p className="text-sm text-muted-foreground">{sellerFarmName}</p>}
+                          <p className="font-mono text-sm text-muted-foreground">{displayData.seller_id}</p>
                         </>
                       ) : (
-                        <p className="font-medium text-lg text-gray-500">{displayData.seller_id}</p>
+                        <p className="font-medium text-lg text-muted-foreground">{displayData.seller_id}</p>
                       )}
                       {withdrawal?.seller_email && (
-                        <p className="text-sm text-gray-600">{withdrawal.seller_email}</p>
+                        <p className="text-sm text-muted-foreground">{withdrawal.seller_email}</p>
                       )}
                     </div>
                   </div>
@@ -435,36 +435,36 @@ export function WithdrawalDetailModal({ isOpen, onClose, withdrawalData, onSucce
               </Card>
 
               {/* Bank Information - Critical for review */}
-              <Card className="border-amber-200">
+              <Card className="border-warning">
                 <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2 text-amber-700">
+                  <CardTitle className="text-lg flex items-center gap-2 text-warning700">
                     <Building2 className="h-5 w-5" />
                     Bank Account Information
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3 bg-amber-50 p-4 rounded-lg">
+                  <div className="space-y-3 bg-warning-bg p-4 rounded-lg">
                     <div className="flex justify-between">
-                      <span className="text-sm font-medium text-gray-700">Bank Name</span>
+                      <span className="text-sm font-medium text-foreground">Bank Name</span>
                       <span className="font-semibold">{displayData.bank_name_snapshot}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm font-medium text-gray-700">Account Holder</span>
+                      <span className="text-sm font-medium text-foreground">Account Holder</span>
                       <span className="font-semibold">{displayData.account_holder_snapshot}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm font-medium text-gray-700">Account Number</span>
+                      <span className="text-sm font-medium text-foreground">Account Number</span>
                       <span className="font-mono font-semibold">{displayData.account_number_snapshot}</span>
                     </div>
 
                     {/* External Reference Warning */}
                     {displayData.external_reference_id && (
-                      <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="mt-4 p-3 bg-info-bg border border-info rounded-lg">
                         <div className="flex items-start gap-2">
-                          <CreditCard className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                          <CreditCard className="h-4 w-4 text-info mt-0.5 flex-shrink-0" />
                           <div className="flex-1">
-                            <p className="text-sm font-medium text-blue-700">Payment Gateway Reference</p>
-                            <p className="text-xs text-blue-600 mt-1">
+                            <p className="text-sm font-medium text-info">Payment Gateway Reference</p>
+                            <p className="text-xs text-info mt-1">
                               This payout has been submitted to the payment gateway (Ref: {displayData.external_reference_id}).
                               Manual completion is disabled - must wait for webhook settlement.
                             </p>
@@ -473,7 +473,7 @@ export function WithdrawalDetailModal({ isOpen, onClose, withdrawalData, onSucce
                       </div>
                     )}
                   </div>
-                  <p className="text-xs text-amber-700 mt-3 flex items-center gap-1">
+                  <p className="text-xs text-warning700 mt-3 flex items-center gap-1">
                     <AlertTriangle className="h-3 w-3" />
                     Verify these details match the seller&apos;s verified bank account before approving.
                   </p>
@@ -491,22 +491,22 @@ export function WithdrawalDetailModal({ isOpen, onClose, withdrawalData, onSucce
                 <CardContent>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <p className="text-sm text-gray-600">Created At</p>
+                      <p className="text-sm text-muted-foreground">Created At</p>
                       <p className="text-sm font-medium">{formatDate(displayData.created_at)}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600">Last Updated</p>
+                      <p className="text-sm text-muted-foreground">Last Updated</p>
                       <p className="text-sm font-medium">{withdrawal?.updated_at ? formatDate(withdrawal.updated_at) : formatDate(displayData.created_at)}</p>
                     </div>
                     {withdrawal?.submitted_at && (
                       <div>
-                        <p className="text-sm text-gray-600">Submitted to Gateway</p>
+                        <p className="text-sm text-muted-foreground">Submitted to Gateway</p>
                         <p className="text-sm font-medium">{formatDate(withdrawal.submitted_at)}</p>
                       </div>
                     )}
                     {withdrawal?.settled_at && (
                       <div>
-                        <p className="text-sm text-gray-600">Settled</p>
+                        <p className="text-sm text-muted-foreground">Settled</p>
                         <p className="text-sm font-medium">{formatDate(withdrawal.settled_at)}</p>
                       </div>
                     )}
@@ -514,16 +514,16 @@ export function WithdrawalDetailModal({ isOpen, onClose, withdrawalData, onSucce
 
                   {/* Gateway Reference */}
                   {withdrawal?.gateway_reference_id && (
-                    <div className="mt-4 pt-4 border-t border-gray-100">
-                      <p className="text-sm text-gray-600">Gateway Reference</p>
+                    <div className="mt-4 pt-4 border-t border-border">
+                      <p className="text-sm text-muted-foreground">Gateway Reference</p>
                       <p className="text-sm font-mono font-medium">{withdrawal.gateway_reference_id}</p>
                     </div>
                   )}
 
                   {/* Retry count */}
                   {withdrawal?.retry_count !== undefined && withdrawal.retry_count > 0 && (
-                    <div className="mt-4 pt-4 border-t border-gray-100">
-                      <p className="text-sm text-gray-600">Retry Attempts</p>
+                    <div className="mt-4 pt-4 border-t border-border">
+                      <p className="text-sm text-muted-foreground">Retry Attempts</p>
                       <p className="text-sm font-medium">{withdrawal.retry_count}</p>
                     </div>
                   )}
@@ -532,9 +532,9 @@ export function WithdrawalDetailModal({ isOpen, onClose, withdrawalData, onSucce
 
               {/* Failure Reason (if applicable) */}
               {displayData.failure_reason && (
-                <Card className="border-red-200">
+                <Card className="border-destructive">
                   <CardHeader>
-                    <CardTitle className="text-lg text-red-600 flex items-center gap-2">
+                    <CardTitle className="text-lg text-destructive flex items-center gap-2">
                       <AlertTriangle className="h-5 w-5" />
                       Failure Information
                     </CardTitle>
@@ -542,8 +542,8 @@ export function WithdrawalDetailModal({ isOpen, onClose, withdrawalData, onSucce
                   <CardContent>
                     <div className="space-y-2">
                       <div>
-                        <p className="text-sm text-gray-600">Reason</p>
-                        <p className="text-sm bg-red-50 p-3 rounded border border-red-200">
+                        <p className="text-sm text-muted-foreground">Reason</p>
+                        <p className="text-sm bg-destructive-bg p-3 rounded border border-destructive">
                           {displayData.failure_reason}
                         </p>
                       </div>
@@ -557,15 +557,15 @@ export function WithdrawalDetailModal({ isOpen, onClose, withdrawalData, onSucce
           {/* Footer with action buttons (only in idle state) */}
           {actionState === 'idle' && (
             <ModalFooter className="flex items-center justify-between">
-              <div className="text-sm text-gray-500">
+              <div className="text-sm text-muted-foreground">
                 {canModify ? (
                   <span className="flex items-center gap-1">
-                    <AlertTriangle className="h-4 w-4 text-amber-500" />
+                    <AlertTriangle className="h-4 w-4 text-warning500" />
                     Review all information before taking action
                   </span>
                 ) : (
                   <span className="flex items-center gap-1">
-                    <Ban className="h-4 w-4 text-gray-400" />
+                    <Ban className="h-4 w-4 text-muted-foreground" />
                     This withdrawal cannot be modified
                   </span>
                 )}

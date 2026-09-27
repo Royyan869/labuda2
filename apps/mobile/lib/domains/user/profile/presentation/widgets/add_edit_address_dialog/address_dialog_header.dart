@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 
 /// Header for add/edit address dialog
 class AddressDialogHeader extends StatelessWidget {
@@ -14,12 +13,12 @@ class AddressDialogHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray700 : AppColors.neutralGray50,
+        color: scheme.onSurfaceVariant,
         borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(20),
           topRight: Radius.circular(20),
@@ -30,12 +29,12 @@ class AddressDialogHeader extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: AppColors.primaryRed.withValues(alpha: 0.1),
+              color: scheme.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Icon(
-              Icons.location_on,
-              color: AppColors.primaryRed,
+child: Icon(
+               Icons.location_on,
+               color: scheme.primary,
               size: 24,
             ),
           ),
@@ -46,9 +45,7 @@ class AddressDialogHeader extends StatelessWidget {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: isDark
-                    ? AppColors.neutralWhite
-                    : AppColors.neutralGray900,
+                color: scheme.onSurfaceVariant,
               ),
             ),
           ),
@@ -56,9 +53,7 @@ class AddressDialogHeader extends StatelessWidget {
             onPressed: onClose,
             icon: Icon(
               Icons.close,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray600,
+              color: scheme.onSurfaceVariant,
             ),
           ),
         ],

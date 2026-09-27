@@ -51,4 +51,24 @@ class PaymentRemoteDatasource extends BaseApiRepository {
           PaymentMethodOptionsDto.fromJson(data as Map<String, dynamic>),
     );
   }
+
+  /// On-demand payment status sync (POST /payments/:id/sync).
+  ///
+  /// Asks the backend to run its canonical gateway-inquiry → settle →
+  /// domain-finalization pipeline for THIS payment right now, instead of only
+  /// re-reading the local row. This is what "Cek status pembayaran" should
+  /// call: a webhook cannot reach a non-public backend, and the discovery
+  /// worker only scans pending payments after its eligibility age.
+  ///
+  /// Returns the post-sync status projection:
+  /// - `status`: payments.status after the sync (pending/settlement/capture/...)
+  /// - `provider_state`: gateway state observed by the inquiry
+  /// - `settled`: true when the row is settlement/capture after the sync
+  /// - `mutated`: true when THIS call produced the transition
+  Future<Result<Map<String, dynamic>>> syncPayment(String paymentId) async {
+    return executeRequest(
+      () => apiClient.post('/payments/$paymentId/sync'),
+      parser: (data) => data as Map<String, dynamic>,
+    );
+  }
 }

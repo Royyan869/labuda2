@@ -23,8 +23,8 @@ class OrderConfirmationSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     // Only show for shipped/delivered orders
     if (order.status != OrderStatus.shipped &&
@@ -36,10 +36,10 @@ class OrderConfirmationSection extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: _getBorderColorForStatus(order.status),
+          color: _getBorderColorForStatus(order.status, colorScheme),
           width: 1.5,
         ),
       ),
@@ -53,12 +53,15 @@ class OrderConfirmationSection extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: _getIconBgColorForStatus(order.status),
+                  color: _getIconBgColorForStatus(
+                    order.status,
+                    colorScheme,
+                  ),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   _getIconForStatus(order.status),
-                  color: _getIconColorForStatus(order.status),
+                  color: _getIconColorForStatus(order.status, colorScheme),
                   size: 20,
                 ),
               ),
@@ -76,7 +79,7 @@ class OrderConfirmationSection extends StatelessWidget {
                     Text(
                       _getSubtitleForStatus(order.status),
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.grey,
+                        color: colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],
@@ -91,7 +94,6 @@ class OrderConfirmationSection extends StatelessWidget {
             _InfoRow(
               label: 'Tanggal Dikirim',
               value: AppFormatters.formatDateTime(order.shippedAt!),
-              isDark: isDark,
             ),
           ],
 
@@ -101,7 +103,6 @@ class OrderConfirmationSection extends StatelessWidget {
             _InfoRow(
               label: 'Tanggal Terkirim',
               value: AppFormatters.formatDateTime(order.deliveredAt!),
-              isDark: isDark,
             ),
           ],
 
@@ -111,7 +112,6 @@ class OrderConfirmationSection extends StatelessWidget {
             const SizedBox(height: 8),
             _HonestShippingReferenceRow(
               shipping: order.shippingInfo,
-              isDark: isDark,
             ),
           ],
 
@@ -121,7 +121,6 @@ class OrderConfirmationSection extends StatelessWidget {
             const SizedBox(height: 8),
             _ShippingNoteSection(
               note: order.shippingInfo.shippingNote!,
-              isDark: isDark,
             ),
           ],
 
@@ -171,36 +170,36 @@ class OrderConfirmationSection extends StatelessWidget {
     );
   }
 
-  Color _getBorderColorForStatus(OrderStatus status) {
+  Color _getBorderColorForStatus(OrderStatus status, ColorScheme colorScheme) {
     switch (status) {
       case OrderStatus.shipped:
         return core.AppColors.statusInfo.withValues(alpha: 0.5);
       case OrderStatus.delivered:
-        return core.AppColors.primaryRed.withValues(alpha: 0.5);
+        return colorScheme.primary.withValues(alpha: 0.5);
       default:
-        return const Color(0xFFE0E0E0);
+        return colorScheme.outlineVariant;
     }
   }
 
-  Color _getIconBgColorForStatus(OrderStatus status) {
+  Color _getIconBgColorForStatus(OrderStatus status, ColorScheme colorScheme) {
     switch (status) {
       case OrderStatus.shipped:
         return core.AppColors.statusInfo.withValues(alpha: 0.1);
       case OrderStatus.delivered:
-        return core.AppColors.primaryRed.withValues(alpha: 0.1);
+        return colorScheme.primary.withValues(alpha: 0.1);
       default:
-        return Colors.grey.withValues(alpha: 0.1);
+        return colorScheme.onSurfaceVariant.withValues(alpha: 0.1);
     }
   }
 
-  Color _getIconColorForStatus(OrderStatus status) {
+  Color _getIconColorForStatus(OrderStatus status, ColorScheme colorScheme) {
     switch (status) {
       case OrderStatus.shipped:
         return core.AppColors.statusInfo;
       case OrderStatus.delivered:
-        return core.AppColors.primaryRed;
+        return colorScheme.primary;
       default:
-        return Colors.grey;
+        return colorScheme.onSurfaceVariant;
     }
   }
 
@@ -242,18 +241,17 @@ class OrderConfirmationSection extends StatelessWidget {
 class _InfoRow extends StatelessWidget {
   final String label;
   final String value;
-  final bool isDark;
   final bool isMonospace = false;
 
   const _InfoRow({
     required this.label,
     required this.value,
-    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -262,14 +260,16 @@ class _InfoRow extends StatelessWidget {
           width: 100,
           child: Text(
             label,
-            style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
           ),
         ),
         Expanded(
           child: Text(
             value,
             style: theme.textTheme.bodySmall?.copyWith(
-              color: isDark ? Colors.white : Colors.black87,
+              color: colorScheme.onSurface,
               fontFamily: isMonospace ? 'monospace' : null,
             ),
           ),
@@ -284,16 +284,13 @@ class _InfoRow extends StatelessWidget {
 /// Displays shipping reference with honest labeling based on reference type
 class _HonestShippingReferenceRow extends StatelessWidget {
   final ShippingInfo shipping;
-  final bool isDark;
 
-  const _HonestShippingReferenceRow({
-    required this.shipping,
-    required this.isDark,
-  });
+  const _HonestShippingReferenceRow({required this.shipping});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final referenceType = shipping.referenceType ?? 'tracking';
     final reference = shipping.trackingNumber!;
 
@@ -325,20 +322,22 @@ class _HonestShippingReferenceRow extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(getIcon(), size: 16, color: Colors.grey),
+        Icon(getIcon(), size: 16, color: colorScheme.onSurfaceVariant),
         const SizedBox(width: 8),
         SizedBox(
           width: 92,
           child: Text(
             getLabel(),
-            style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
           ),
         ),
         Expanded(
           child: Text(
             reference,
             style: theme.textTheme.bodySmall?.copyWith(
-              color: isDark ? Colors.white : Colors.black87,
+              color: colorScheme.onSurface,
               fontFamily: 'monospace',
             ),
           ),
@@ -353,37 +352,33 @@ class _HonestShippingReferenceRow extends StatelessWidget {
 /// Displays seller's shipping note to provide buyer context
 class _ShippingNoteSection extends StatelessWidget {
   final String note;
-  final bool isDark;
 
-  const _ShippingNoteSection({required this.note, required this.isDark});
+  const _ShippingNoteSection({required this.note});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: isDark
-            ? const Color(0xFF2A2A2A)
-            : core.AppColors.primaryBlue.withValues(alpha: 0.05),
+        color: colorScheme.secondaryContainer,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: isDark
-              ? const Color(0xFF333333)
-              : core.AppColors.primaryBlue.withValues(alpha: 0.2),
+          color: colorScheme.secondary.withValues(alpha: 0.4),
         ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.info_outline, size: 14, color: core.AppColors.primaryBlue),
+          Icon(Icons.info_outline, size: 14, color: colorScheme.secondary),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               note,
               style: theme.textTheme.bodySmall?.copyWith(
-                color: isDark ? Colors.white70 : Colors.black87,
+                color: colorScheme.onSurface,
                 fontStyle: FontStyle.italic,
               ),
             ),

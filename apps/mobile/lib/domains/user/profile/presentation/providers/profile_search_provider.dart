@@ -19,20 +19,11 @@ final multipleProfilesProvider =
       }
     });
 
-// Search profiles provider
-final searchProfilesProvider =
-    FutureProvider.family<List<ProfileEntity>, String>((ref, query) async {
-      if (query.trim().isEmpty) return [];
-
-      final repository = ref.read(profileRepositoryProvider);
-      final result = await repository.searchProfiles(query);
-
-      if (result.isSuccess) {
-        return result.data!;
-      } else {
-        throw Exception(result.error);
-      }
-    });
+// NOTE (C1B2): `searchProfilesProvider` was purged — it routed user search
+// through the dead `GET /users/search` endpoint (no such backend route; the
+// canonical authority is the search domain's `newChatUserSearchProvider`
+// over `GET /search/users`). Profile-domain consumers keep using
+// `profileNotifier.searchProfiles` where they still exist.
 
 // Trending profiles provider
 final trendingProfilesProvider = FutureProvider<List<ProfileEntity>>((

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/src/theme/app_colors.dart';
+import 'package:labuda/core/core.dart';
 
 /// Rating overview section showing overall rating and breakdown
 class RatingOverviewSection extends StatelessWidget {
@@ -16,15 +16,15 @@ class RatingOverviewSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
+        color: scheme.surface,
         border: Border(
           bottom: BorderSide(
-            color: isDark ? AppColors.darkGray600 : AppColors.neutralGray200,
+            color: scheme.outlineVariant,
           ),
         ),
       ),
@@ -40,20 +40,16 @@ class RatingOverviewSection extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 36,
                     fontWeight: FontWeight.bold,
-                    color: isDark
-                        ? AppColors.neutralWhite
-                        : AppColors.neutralGray900,
+                    color: scheme.onSurface,
                   ),
                 ),
-                _buildStarRating(averageRating, 16),
+                _buildStarRating(context, averageRating, 16),
                 const SizedBox(height: 3),
                 Text(
                   '$totalReviews reviews',
                   style: TextStyle(
                     fontSize: 12,
-                    color: isDark
-                        ? AppColors.neutralGray300
-                        : AppColors.neutralGray600,
+                    color: scheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -81,21 +77,17 @@ class RatingOverviewSection extends StatelessWidget {
                         '$starCount',
                         style: TextStyle(
                           fontSize: 11,
-                          color: isDark
-                              ? AppColors.neutralGray300
-                              : AppColors.neutralGray600,
+                          color: scheme.onSurfaceVariant,
                         ),
                       ),
-                      const Icon(Icons.star, size: 11, color: Colors.amber),
+                      Icon(Icons.star, size: 11, color: AppColors.koiGold),
                       const SizedBox(width: 6),
                       Expanded(
                         child: LinearProgressIndicator(
                           value: percentage,
-                          backgroundColor: isDark
-                              ? AppColors.darkGray600
-                              : AppColors.neutralGray200,
+                          backgroundColor: scheme.surfaceContainerHighest,
                           valueColor: const AlwaysStoppedAnimation<Color>(
-                            Colors.amber,
+                            AppColors.koiGold,
                           ),
                         ),
                       ),
@@ -106,9 +98,7 @@ class RatingOverviewSection extends StatelessWidget {
                           '$count',
                           style: TextStyle(
                             fontSize: 11,
-                            color: isDark
-                                ? AppColors.neutralGray300
-                                : AppColors.neutralGray600,
+                            color: scheme.onSurfaceVariant,
                           ),
                           textAlign: TextAlign.end,
                         ),
@@ -124,7 +114,7 @@ class RatingOverviewSection extends StatelessWidget {
     );
   }
 
-  Widget _buildStarRating(double rating, double size) {
+  Widget _buildStarRating(BuildContext context, double rating, double size) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: List.generate(5, (index) {
@@ -135,7 +125,7 @@ class RatingOverviewSection extends StatelessWidget {
               ? Icons.star_half
               : Icons.star_border,
           size: size,
-          color: Colors.amber,
+          color: AppColors.koiGold,
         );
       }),
     );

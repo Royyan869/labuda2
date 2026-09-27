@@ -27,7 +27,7 @@ class LinkListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Material(
       color: Colors.transparent,
@@ -38,15 +38,13 @@ class LinkListItem extends StatelessWidget {
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: isSelected
-                ? (isDark
-                      ? AppColors.primaryRed.withValues(alpha: 0.15)
-                      : AppColors.primaryRed.withValues(alpha: 0.08))
-                : (isDark ? AppColors.darkGray700 : AppColors.neutralGray50),
+                ? scheme.primary.withValues(alpha: 0.1)
+                : scheme.surfaceContainerLow,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: isSelected
-                  ? AppColors.primaryRed
-                  : (isDark ? AppColors.darkGray600 : AppColors.neutralGray200),
+                  ? scheme.primary
+                  : scheme.outlineVariant,
               width: isSelected ? 2 : 1,
             ),
           ),
@@ -64,27 +62,19 @@ class LinkListItem extends StatelessWidget {
                     placeholder: (context, url) => Container(
                       width: 60,
                       height: 60,
-                      color: isDark
-                          ? AppColors.darkGray600
-                          : AppColors.neutralGray200,
+                      color: scheme.surfaceContainerHighest,
                       child: Icon(
                         Icons.image,
-                        color: isDark
-                            ? AppColors.neutralGray400
-                            : AppColors.neutralGray500,
+                        color: scheme.onSurfaceVariant,
                       ),
                     ),
                     errorWidget: (context, url, error) => Container(
                       width: 60,
                       height: 60,
-                      color: isDark
-                          ? AppColors.darkGray600
-                          : AppColors.neutralGray200,
+                      color: scheme.surfaceContainerHighest,
                       child: Icon(
                         Icons.broken_image,
-                        color: isDark
-                            ? AppColors.neutralGray400
-                            : AppColors.neutralGray500,
+                        color: scheme.onSurfaceVariant,
                       ),
                     ),
                   ),
@@ -108,7 +98,7 @@ class LinkListItem extends StatelessWidget {
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: (badgeColor ?? AppColors.primaryRed)
+                              color: (badgeColor ?? scheme.primary)
                                   .withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(4),
                             ),
@@ -117,7 +107,7 @@ class LinkListItem extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w600,
-                                color: badgeColor ?? AppColors.primaryRed,
+                                color: badgeColor ?? scheme.primary,
                               ),
                             ),
                           ),
@@ -129,9 +119,7 @@ class LinkListItem extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
-                              color: isDark
-                                  ? Colors.white
-                                  : AppColors.neutralGray900,
+                              color: scheme.onSurface,
                             ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
@@ -148,9 +136,7 @@ class LinkListItem extends StatelessWidget {
                             subtitle,
                             style: TextStyle(
                               fontSize: 12,
-                              color: isDark
-                                  ? AppColors.neutralGray400
-                                  : AppColors.neutralGray600,
+                              color: scheme.onSurfaceVariant,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -178,13 +164,13 @@ class LinkListItem extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
-                    color: AppColors.primaryRed,
+                    color: scheme.primary,
                     shape: BoxShape.circle,
                   ),
-                  child: const Center(
+                  child: Center(
                     child: Icon(
                       Icons.check_circle,
-                      color: Colors.white,
+                      color: scheme.onPrimary,
                       size: 28,
                     ),
                   ),

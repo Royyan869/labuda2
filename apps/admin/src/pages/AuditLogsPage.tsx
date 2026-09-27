@@ -63,7 +63,7 @@ export function AuditLogsPage() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
-          <p className="mt-4 text-gray-600">Loading audit logs...</p>
+          <p className="mt-4 text-muted-foreground">Loading audit logs...</p>
         </div>
       </div>
     )
@@ -73,12 +73,12 @@ export function AuditLogsPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Admin Activity Logs</h1>
-          <p className="text-gray-600 mt-1">Track all admin actions for accountability</p>
+          <h1 className="text-3xl font-bold text-foreground">Admin Activity Logs</h1>
+          <p className="text-muted-foreground mt-1">Track all admin actions for accountability</p>
         </div>
         <Card>
           <CardContent className="p-6">
-            <div className="text-center text-red-600">
+            <div className="text-center text-destructive">
               <p>Error loading audit logs: {error.message}</p>
             </div>
           </CardContent>
@@ -118,8 +118,8 @@ export function AuditLogsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Admin Activity Logs</h1>
-          <p className="text-gray-600 mt-1">Track all admin actions for accountability and compliance</p>
+          <h1 className="text-3xl font-bold text-foreground">Admin Activity Logs</h1>
+          <p className="text-muted-foreground mt-1">Track all admin actions for accountability and compliance</p>
         </div>
       </div>
 
@@ -128,12 +128,12 @@ export function AuditLogsPage() {
         <CardContent className="pt-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Total Logged Actions</p>
+              <p className="text-sm font-medium text-muted-foreground">Total Logged Actions</p>
               <p className="text-3xl font-bold text-primary mt-1">{count}</p>
-              <p className="text-xs text-gray-500 mt-1">Read-only audit trail</p>
+              <p className="text-xs text-muted-foreground mt-1">Read-only audit trail</p>
             </div>
-            <div className="p-4 rounded-lg bg-blue-100">
-              <FileText className="h-8 w-8 text-blue-600" />
+            <div className="p-4 rounded-lg bg-info-bg">
+              <FileText className="h-8 w-8 text-info" />
             </div>
           </div>
         </CardContent>
@@ -143,8 +143,8 @@ export function AuditLogsPage() {
       <Card>
         <CardContent className="pt-6">
           <div className="flex flex-wrap items-center gap-4">
-            <Filter className="h-5 w-5 text-gray-500" />
-            <label htmlFor="action-filter" className="text-sm font-medium text-gray-700">
+            <Filter className="h-5 w-5 text-muted-foreground" />
+            <label htmlFor="action-filter" className="text-sm font-medium text-foreground">
               Action:
             </label>
             <select
@@ -154,7 +154,7 @@ export function AuditLogsPage() {
                 setActionFilter(e.target.value as AuditActionType | '')
                 setPage(1)
               }}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             >
               {ACTION_FILTERS.map((filter) => (
                 <option key={filter.value} value={filter.value}>
@@ -163,7 +163,7 @@ export function AuditLogsPage() {
               ))}
             </select>
 
-            <label htmlFor="target-filter" className="text-sm font-medium text-gray-700 ml-4">
+            <label htmlFor="target-filter" className="text-sm font-medium text-foreground ml-4">
               Target:
             </label>
             <select
@@ -173,7 +173,7 @@ export function AuditLogsPage() {
                 setTargetFilter(e.target.value as AuditTargetType | '')
                 setPage(1)
               }}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             >
               {TARGET_FILTERS.map((filter) => (
                 <option key={filter.value} value={filter.value}>
@@ -193,14 +193,14 @@ export function AuditLogsPage() {
         <CardContent>
           {logs.length === 0 ? (
             <div className="text-center py-12">
-              <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Logs Found</h3>
-              <p className="text-gray-600">
+              <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-foreground mb-2">No Logs Found</h3>
+              <p className="text-muted-foreground">
                 No audit logs match the current filters.
               </p>
             </div>
           ) : (
-            <div className="border border-gray-200 rounded-lg overflow-hidden">
+            <div className="border border-border rounded-lg overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -215,7 +215,7 @@ export function AuditLogsPage() {
                 <TableBody>
                   {logs.map((log) => (
                     <TableRow key={log.id}>
-                      <TableCell className="text-sm text-gray-600 whitespace-nowrap">
+                      <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                         {formatDateTime(log.created_at)}
                       </TableCell>
                       <TableCell className="font-mono text-sm">
@@ -239,7 +239,7 @@ export function AuditLogsPage() {
                           <div className="max-w-md">
                             <button
                               onClick={() => toggleMetadata(log.id)}
-                              className="flex items-center text-xs text-gray-500 hover:text-gray-700"
+                              className="flex items-center text-xs text-muted-foreground hover:text-foreground"
                             >
                               {expandedMetadata[log.id] ? (
                                 <ChevronUp className="h-3 w-3 mr-1" />
@@ -249,11 +249,11 @@ export function AuditLogsPage() {
                               {expandedMetadata[log.id] ? 'Hide' : 'Show'} details
                             </button>
                             {expandedMetadata[log.id] && (
-                              <div className="mt-2 p-2 bg-gray-50 rounded text-xs font-mono">
+                              <div className="mt-2 p-2 bg-surface-muted rounded text-xs font-mono">
                                 {Object.entries(log.metadata).map(([key, value]) => (
                                   <div key={key} className="flex gap-2 py-0.5">
-                                    <span className="text-gray-500">{key}:</span>
-                                    <span className="text-gray-700 break-all">
+                                    <span className="text-muted-foreground">{key}:</span>
+                                    <span className="text-foreground break-all">
                                       {formatMetadataValue(value)}
                                     </span>
                                   </div>
@@ -262,7 +262,7 @@ export function AuditLogsPage() {
                             )}
                           </div>
                         ) : (
-                          <span className="text-xs text-gray-400">No details</span>
+                          <span className="text-xs text-muted-foreground">No details</span>
                         )}
                       </TableCell>
                     </TableRow>

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/social/rating/rating.dart';
 
 /// CANONICAL Rating List Screen
@@ -111,7 +112,7 @@ class _RatingListScreenState extends ConsumerState<RatingListScreen> {
       children: List.generate(5, (index) {
         return Icon(
           index < rating ? Icons.star : Icons.star_border,
-          color: Colors.amber,
+          color: AppColors.koiGold,
           size: 20,
         );
       }),

@@ -2,27 +2,21 @@ part of 'order_widgets_impl.dart';
 
 class OrderShippingInfoCard extends StatelessWidget {
   final Order order;
-  final bool isDark;
 
-  const OrderShippingInfoCard({
-    super.key,
-    required this.order,
-    required this.isDark,
-  });
+  const OrderShippingInfoCard({super.key, required this.order});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final shipping = order.shippingInfo;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDark ? const Color(0xFF333333) : const Color(0xFFE0E0E0),
-        ),
+        border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -32,7 +26,7 @@ class OrderShippingInfoCard extends StatelessWidget {
               Icon(
                 Icons.local_shipping_outlined,
                 size: 20,
-                color: core.AppColors.primaryBlue,
+                color: colorScheme.secondary,
               ),
               const SizedBox(width: 8),
               Text(
@@ -49,7 +43,6 @@ class OrderShippingInfoCard extends StatelessWidget {
             icon: Icons.person_outline,
             label: 'Penerima',
             value: shipping.recipientName,
-            isDark: isDark,
           ),
           const SizedBox(height: 12),
           // Phone
@@ -57,7 +50,6 @@ class OrderShippingInfoCard extends StatelessWidget {
             icon: Icons.phone_outlined,
             label: 'Telepon',
             value: shipping.phone,
-            isDark: isDark,
           ),
           const SizedBox(height: 12),
           // Address
@@ -68,7 +60,6 @@ class OrderShippingInfoCard extends StatelessWidget {
             cityName: shipping.cityName,
             districtName: shipping.districtName,
             postalCode: shipping.postalCode,
-            isDark: isDark,
           ),
           // Shipping method
           if (shipping.courierName != null) ...[
@@ -77,26 +68,25 @@ class OrderShippingInfoCard extends StatelessWidget {
               icon: Icons.delivery_dining_outlined,
               label: 'Kurir',
               value: shipping.courierName!,
-              isDark: isDark,
             ),
           ],
           // Tracking number
           if (shipping.trackingNumber != null &&
               shipping.trackingNumber!.isNotEmpty) ...[
             const SizedBox(height: 12),
-            _ShippingReferenceRow(shipping: shipping, isDark: isDark),
+            _ShippingReferenceRow(shipping: shipping),
           ],
 
           // SHIPPING CONFIRMATION TRUTH: Shipping note from seller
           if (shipping.shippingNote != null &&
               shipping.shippingNote!.isNotEmpty) ...[
             const SizedBox(height: 12),
-            _ShippingNoteSection(note: shipping.shippingNote!, isDark: isDark),
+            _ShippingNoteSection(note: shipping.shippingNote!),
           ],
 
           // PHASE 3 HARDENING: Contextual help for shipping issues
           const SizedBox(height: 16),
-          _ShippingHelpSection(order: order, isDark: isDark),
+          _ShippingHelpSection(order: order),
         ],
       ),
     );
@@ -111,9 +101,8 @@ class OrderShippingInfoCard extends StatelessWidget {
 /// - "other" → "Referensi Pengiriman" with description icon
 class _ShippingReferenceRow extends StatelessWidget {
   final ShippingInfo shipping;
-  final bool isDark;
 
-  const _ShippingReferenceRow({required this.shipping, required this.isDark});
+  const _ShippingReferenceRow({required this.shipping});
 
   @override
   Widget build(BuildContext context) {
@@ -151,7 +140,6 @@ class _ShippingReferenceRow extends StatelessWidget {
         icon: getIcon(),
         label: getLabel(),
         phone: reference,
-        isDark: isDark,
       );
     }
 
@@ -160,7 +148,6 @@ class _ShippingReferenceRow extends StatelessWidget {
       icon: getIcon(),
       label: getLabel(),
       value: reference,
-      isDark: isDark,
       isMonospace: true,
       showCopy: true,
     );
@@ -172,13 +159,11 @@ class _PhoneShippingRow extends StatelessWidget {
   final IconData icon;
   final String label;
   final String phone;
-  final bool isDark;
 
   const _PhoneShippingRow({
     required this.icon,
     required this.label,
     required this.phone,
-    required this.isDark,
   });
 
   @override
@@ -245,25 +230,21 @@ class _PhoneShippingRow extends StatelessWidget {
 /// like "berangkat malam ini", "dititip ke sopir travel"
 class _ShippingNoteSection extends StatelessWidget {
   final String note;
-  final bool isDark;
 
-  const _ShippingNoteSection({required this.note, required this.isDark});
+  const _ShippingNoteSection({required this.note});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isDark
-            ? const Color(0xFF2A2A2A)
-            : core.AppColors.primaryBlue.withValues(alpha: 0.05),
+        color: colorScheme.secondaryContainer,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: isDark
-              ? const Color(0xFF333333)
-              : core.AppColors.primaryBlue.withValues(alpha: 0.2),
+          color: colorScheme.secondary.withValues(alpha: 0.4),
         ),
       ),
       child: Column(
@@ -274,14 +255,14 @@ class _ShippingNoteSection extends StatelessWidget {
               Icon(
                 Icons.note_alt_outlined,
                 size: 14,
-                color: core.AppColors.primaryBlue,
+                color: colorScheme.secondary,
               ),
               const SizedBox(width: 6),
               Text(
                 'Catatan Pengiriman',
                 style: theme.textTheme.bodySmall?.copyWith(
                   fontWeight: FontWeight.w500,
-                  color: core.AppColors.primaryBlue,
+                  color: colorScheme.secondary,
                 ),
               ),
             ],
@@ -290,7 +271,7 @@ class _ShippingNoteSection extends StatelessWidget {
           Text(
             note,
             style: theme.textTheme.bodySmall?.copyWith(
-              color: isDark ? Colors.white70 : Colors.black87,
+              color: colorScheme.onSurface,
               fontStyle: FontStyle.italic,
             ),
           ),
@@ -304,7 +285,6 @@ class _ShippingInfoRow extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
-  final bool isDark;
   final bool isMonospace;
   final bool showCopy;
 
@@ -312,7 +292,6 @@ class _ShippingInfoRow extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.value,
-    required this.isDark,
     this.isMonospace = false,
     this.showCopy = false,
   });
@@ -320,11 +299,12 @@ class _ShippingInfoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 18, color: Colors.grey),
+        Icon(icon, size: 18, color: colorScheme.onSurfaceVariant),
         const SizedBox(width: 8),
         Expanded(
           child: Column(
@@ -332,7 +312,9 @@ class _ShippingInfoRow extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
               ),
               Row(
                 children: [
@@ -340,7 +322,7 @@ class _ShippingInfoRow extends StatelessWidget {
                     child: Text(
                       value,
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: isDark ? Colors.white : Colors.black87,
+                        color: colorScheme.onSurface,
                         fontFamily: isMonospace ? 'monospace' : null,
                       ),
                     ),
@@ -355,7 +337,7 @@ class _ShippingInfoRow extends StatelessWidget {
                         child: Icon(
                           Icons.copy,
                           size: 16,
-                          color: core.AppColors.primaryBlue,
+                          color: colorScheme.secondary,
                         ),
                       ),
                     ),
@@ -376,7 +358,6 @@ class _ShippingAddressRow extends StatelessWidget {
   final String? cityName;
   final String? districtName;
   final String? postalCode;
-  final bool isDark;
 
   const _ShippingAddressRow({
     required this.icon,
@@ -385,12 +366,12 @@ class _ShippingAddressRow extends StatelessWidget {
     this.cityName,
     this.districtName,
     this.postalCode,
-    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     // Build full address string
     final addressParts = <String>[address];
@@ -402,7 +383,7 @@ class _ShippingAddressRow extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 18, color: Colors.grey),
+        Icon(icon, size: 18, color: colorScheme.onSurfaceVariant),
         const SizedBox(width: 8),
         Expanded(
           child: Column(
@@ -410,12 +391,14 @@ class _ShippingAddressRow extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
               ),
               Text(
                 fullAddress,
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: isDark ? Colors.white : Colors.black87,
+                  color: colorScheme.onSurface,
                 ),
               ),
             ],
@@ -432,12 +415,12 @@ class _ShippingAddressRow extends StatelessWidget {
 
 class _ShippingHelpSection extends ConsumerWidget {
   final Order order;
-  final bool isDark;
 
-  const _ShippingHelpSection({required this.order, required this.isDark});
+  const _ShippingHelpSection({required this.order});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colorScheme = Theme.of(context).colorScheme;
     final authState = ref.watch(core.authControllerProvider);
     final userId = authState is core.AuthStateAuthenticated
         ? authState.user.id
@@ -452,7 +435,7 @@ class _ShippingHelpSection extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: core.AppColors.primaryBlue.withValues(alpha: 0.05),
+        color: colorScheme.secondaryContainer,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
@@ -463,7 +446,7 @@ class _ShippingHelpSection extends ConsumerWidget {
               Icon(
                 Icons.help_outline,
                 size: 16,
-                color: core.AppColors.primaryBlue,
+                color: colorScheme.secondary,
               ),
               const SizedBox(width: 6),
               Text(
@@ -471,9 +454,7 @@ class _ShippingHelpSection extends ConsumerWidget {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: isDark
-                      ? core.AppColors.neutralWhite
-                      : core.AppColors.neutralGray900,
+                  color: colorScheme.onSurface,
                 ),
               ),
             ],
@@ -494,7 +475,6 @@ class _ShippingHelpSection extends ConsumerWidget {
                       currentUserId: userId,
                     );
                   },
-                  isDark: isDark,
                 ),
               ),
               const SizedBox(width: 8),
@@ -513,7 +493,6 @@ class _ShippingHelpSection extends ConsumerWidget {
                           );
                         }
                       : null,
-                  isDark: isDark,
                 ),
               ),
             ],
@@ -528,17 +507,16 @@ class _HelpActionChip extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback? onTap;
-  final bool isDark;
 
   const _HelpActionChip({
     required this.icon,
     required this.label,
     required this.onTap,
-    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(6),
@@ -546,8 +524,8 @@ class _HelpActionChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         decoration: BoxDecoration(
           color: onTap != null
-              ? core.AppColors.primaryBlue.withValues(alpha: 0.1)
-              : core.AppColors.neutralGray200,
+              ? colorScheme.secondary.withValues(alpha: 0.1)
+              : colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(6),
         ),
         child: Row(
@@ -557,8 +535,8 @@ class _HelpActionChip extends StatelessWidget {
               icon,
               size: 12,
               color: onTap != null
-                  ? core.AppColors.primaryBlue
-                  : core.AppColors.neutralGray400,
+                  ? colorScheme.secondary
+                  : colorScheme.onSurfaceVariant,
             ),
             const SizedBox(width: 4),
             Text(
@@ -567,8 +545,8 @@ class _HelpActionChip extends StatelessWidget {
                 fontSize: 10,
                 fontWeight: FontWeight.w500,
                 color: onTap != null
-                    ? core.AppColors.primaryBlue
-                    : core.AppColors.neutralGray400,
+                    ? colorScheme.secondary
+                    : colorScheme.onSurfaceVariant,
               ),
             ),
           ],

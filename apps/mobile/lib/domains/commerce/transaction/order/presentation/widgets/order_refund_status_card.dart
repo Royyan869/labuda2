@@ -8,16 +8,16 @@ class RefundStatusCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final colorScheme = theme.colorScheme;
 
     return Container(
       padding: const EdgeInsets.all(16),
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: _getRefundStatusColor().withValues(alpha: 0.3),
+          color: _getRefundStatusColor(colorScheme).withValues(alpha: 0.3),
           width: 1.5,
         ),
       ),
@@ -30,7 +30,7 @@ class RefundStatusCard extends StatelessWidget {
               Icon(
                 _getRefundStatusIcon(),
                 size: 20,
-                color: _getRefundStatusColor(),
+                color: _getRefundStatusColor(colorScheme),
               ),
               const SizedBox(width: 8),
               Text(
@@ -49,7 +49,6 @@ class RefundStatusCard extends StatelessWidget {
             label: 'Alasan',
             value: refund.reason.displayName,
             emoji: refund.reason.emoji,
-            isDark: isDark,
           ),
           // Description
           if (refund.description != null && refund.description!.isNotEmpty) ...[
@@ -57,7 +56,6 @@ class RefundStatusCard extends StatelessWidget {
             _RefundInfoRow(
               label: 'Deskripsi',
               value: refund.description!,
-              isDark: isDark,
             ),
           ],
           // Amount
@@ -65,26 +63,23 @@ class RefundStatusCard extends StatelessWidget {
           _RefundInfoRow(
             label: 'Jumlah',
             value: AppFormatters.formatCurrency(refund.refundAmount),
-            isDark: isDark,
             isBold: true,
-            valueColor: core.AppColors.primaryRed,
+            valueColor: colorScheme.primary,
           ),
           // Date
           const SizedBox(height: 8),
           _RefundInfoRow(
             label: 'Tanggal',
             value: AppFormatters.formatDateTime(refund.createdAt),
-            isDark: isDark,
           ),
           // Status-specific info
           if (refund.status == RefundStatus.pendingSellerReview)
-            _PendingReviewBanner(isDark: isDark),
+            const _PendingReviewBanner(),
           if (refund.sellerNotes != null && refund.sellerNotes!.isNotEmpty) ...[
             const SizedBox(height: 8),
             _RefundNoteBanner(
               note: refund.sellerNotes!,
               role: 'Penjual',
-              isDark: isDark,
             ),
           ],
           if (refund.adminNotes != null && refund.adminNotes!.isNotEmpty) ...[
@@ -92,7 +87,6 @@ class RefundStatusCard extends StatelessWidget {
             _RefundNoteBanner(
               note: refund.adminNotes!,
               role: 'Admin',
-              isDark: isDark,
             ),
           ],
         ],
@@ -100,7 +94,7 @@ class RefundStatusCard extends StatelessWidget {
     );
   }
 
-  Color _getRefundStatusColor() {
+  Color _getRefundStatusColor(ColorScheme colorScheme) {
     switch (refund.status) {
       case RefundStatus.pendingSellerReview:
         return core.AppColors.statusWarning;
@@ -108,7 +102,7 @@ class RefundStatusCard extends StatelessWidget {
       case RefundStatus.adminApproved:
         return core.AppColors.statusSuccess;
       case RefundStatus.escalatedToAdmin:
-        return core.AppColors.primaryBlue;
+        return colorScheme.secondary;
       case RefundStatus.sellerRejected:
       case RefundStatus.rejected:
         return core.AppColors.statusError;
@@ -139,7 +133,6 @@ class _RefundInfoRow extends StatelessWidget {
   final String label;
   final String value;
   final String? emoji;
-  final bool isDark;
   final bool isBold;
   final Color? valueColor;
 
@@ -147,7 +140,6 @@ class _RefundInfoRow extends StatelessWidget {
     required this.label,
     required this.value,
     this.emoji,
-    required this.isDark,
     this.isBold = false,
     this.valueColor,
   });
@@ -155,6 +147,7 @@ class _RefundInfoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -163,14 +156,16 @@ class _RefundInfoRow extends StatelessWidget {
           width: 80,
           child: Text(
             label,
-            style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
           ),
         ),
         Expanded(
           child: Text(
             '${emoji ?? ''} $value'.trim(),
             style: theme.textTheme.bodySmall?.copyWith(
-              color: valueColor ?? (isDark ? Colors.white : Colors.black87),
+              color: valueColor ?? colorScheme.onSurface,
               fontWeight: isBold ? FontWeight.w600 : FontWeight.normal,
             ),
           ),
@@ -188,11 +183,12 @@ class _RefundStatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: _getBadgeColor().withValues(alpha: 0.1),
+        color: _getBadgeColor(colorScheme).withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -203,7 +199,7 @@ class _RefundStatusBadge extends StatelessWidget {
           Text(
             status.displayName,
             style: theme.textTheme.bodySmall?.copyWith(
-              color: _getBadgeColor(),
+              color: _getBadgeColor(colorScheme),
               fontWeight: FontWeight.w600,
               fontSize: 11,
             ),
@@ -213,7 +209,7 @@ class _RefundStatusBadge extends StatelessWidget {
     );
   }
 
-  Color _getBadgeColor() {
+  Color _getBadgeColor(ColorScheme colorScheme) {
     switch (status) {
       case RefundStatus.pendingSellerReview:
         return core.AppColors.statusWarning;
@@ -221,7 +217,7 @@ class _RefundStatusBadge extends StatelessWidget {
       case RefundStatus.adminApproved:
         return core.AppColors.statusSuccess;
       case RefundStatus.escalatedToAdmin:
-        return core.AppColors.primaryBlue;
+        return colorScheme.secondary;
       case RefundStatus.sellerRejected:
       case RefundStatus.rejected:
         return core.AppColors.statusError;
@@ -232,9 +228,7 @@ class _RefundStatusBadge extends StatelessWidget {
 }
 
 class _PendingReviewBanner extends StatelessWidget {
-  final bool isDark;
-
-  const _PendingReviewBanner({required this.isDark});
+  const _PendingReviewBanner();
 
   @override
   Widget build(BuildContext context) {
@@ -272,24 +266,18 @@ class _PendingReviewBanner extends StatelessWidget {
 class _RefundNoteBanner extends StatelessWidget {
   final String note;
   final String role;
-  final bool isDark;
 
-  const _RefundNoteBanner({
-    required this.note,
-    required this.role,
-    required this.isDark,
-  });
+  const _RefundNoteBanner({required this.note, required this.role});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isDark
-            ? Colors.grey.shade800.withValues(alpha: 0.3)
-            : Colors.grey.shade100,
+        color: colorScheme.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
@@ -298,7 +286,7 @@ class _RefundNoteBanner extends StatelessWidget {
           Text(
             'Catatan $role:',
             style: theme.textTheme.bodySmall?.copyWith(
-              color: Colors.grey,
+              color: colorScheme.onSurfaceVariant,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -306,7 +294,7 @@ class _RefundNoteBanner extends StatelessWidget {
           Text(
             note,
             style: theme.textTheme.bodySmall?.copyWith(
-              color: isDark ? Colors.white : Colors.black87,
+              color: colorScheme.onSurface,
             ),
           ),
         ],

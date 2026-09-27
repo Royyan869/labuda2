@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 import 'app_bottom_sheet_base.dart';
 
 /// List Selection Item Class
@@ -95,7 +94,7 @@ class _ListSelectionContentState<T> extends State<_ListSelectionContent<T>> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -109,9 +108,7 @@ class _ListSelectionContentState<T> extends State<_ListSelectionContent<T>> {
               hintText: widget.searchHint ?? 'Search...',
               prefixIcon: const Icon(Icons.search),
               filled: true,
-              fillColor: isDark
-                  ? AppColors.darkGray700
-                  : AppColors.neutralGray50,
+              fillColor: scheme.surfaceContainerHigh,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
@@ -132,7 +129,7 @@ class _ListSelectionContentState<T> extends State<_ListSelectionContent<T>> {
           itemCount: filteredItems.length,
           separatorBuilder: (context, index) => Divider(
             height: 1,
-            color: isDark ? AppColors.darkGray600 : AppColors.neutralGray200,
+            color: scheme.outlineVariant,
           ),
           itemBuilder: (context, index) {
             final item = filteredItems[index];
@@ -156,10 +153,8 @@ class _ListSelectionContentState<T> extends State<_ListSelectionContent<T>> {
                         Icon(
                           item.icon,
                           color: item.enabled
-                              ? (isDark
-                                    ? AppColors.neutralGray300
-                                    : AppColors.neutralGray600)
-                              : AppColors.neutralGray400,
+                              ? scheme.onSurfaceVariant
+                              : scheme.outline,
                           size: 24,
                         ),
                         const SizedBox(width: 16),
@@ -176,10 +171,8 @@ class _ListSelectionContentState<T> extends State<_ListSelectionContent<T>> {
                                 fontSize: 16,
                                 fontWeight: FontWeight.w500,
                                 color: item.enabled
-                                    ? (isDark
-                                          ? AppColors.neutralWhite
-                                          : AppColors.neutralGray900)
-                                    : AppColors.neutralGray400,
+                                    ? scheme.onSurface
+                                    : scheme.onSurfaceVariant,
                               ),
                             ),
                             if (item.subtitle != null) ...[
@@ -188,9 +181,7 @@ class _ListSelectionContentState<T> extends State<_ListSelectionContent<T>> {
                                 item.subtitle!,
                                 style: TextStyle(
                                   fontSize: 14,
-                                  color: isDark
-                                      ? AppColors.neutralGray400
-                                      : AppColors.neutralGray600,
+                                  color: scheme.onSurfaceVariant,
                                 ),
                               ),
                             ],
@@ -202,7 +193,7 @@ class _ListSelectionContentState<T> extends State<_ListSelectionContent<T>> {
                       if (isSelected) ...[
                         Icon(
                           Icons.check_circle,
-                          color: AppColors.primaryBlue,
+                          color: scheme.secondary,
                           size: 24,
                         ),
                       ],
@@ -222,18 +213,14 @@ class _ListSelectionContentState<T> extends State<_ListSelectionContent<T>> {
               Icon(
                 Icons.search_off,
                 size: 48,
-                color: isDark
-                    ? AppColors.neutralGray500
-                    : AppColors.neutralGray400,
+                color: scheme.outline,
               ),
               const SizedBox(height: 16),
               Text(
                 'No items found',
                 style: TextStyle(
                   fontSize: 16,
-                  color: isDark
-                      ? AppColors.neutralGray400
-                      : AppColors.neutralGray600,
+                  color: scheme.onSurfaceVariant,
                 ),
               ),
             ],

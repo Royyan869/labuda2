@@ -85,7 +85,7 @@ export function PromoteAdminPanel({ onPromoted }: PromoteAdminPanelProps) {
           <UserPlus className="h-5 w-5" />
           Promote an existing user to admin
         </CardTitle>
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-muted-foreground">
           Normal recruitment path: promote membership here, then grant capabilities. Admin membership alone grants no
           capabilities.
         </p>
@@ -99,13 +99,13 @@ export function PromoteAdminPanel({ onPromoted }: PromoteAdminPanelProps) {
           }}
         >
           <div className="relative flex-1 max-w-md">
-            <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
               value={query}
               onChange={e => setQuery(e.target.value)}
               placeholder="Search by name or email..."
-              className="pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary w-full"
+              className="pl-9 pr-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary w-full"
             />
           </div>
           <Button type="submit" size="sm" variant="secondary" disabled={searching}>
@@ -114,18 +114,18 @@ export function PromoteAdminPanel({ onPromoted }: PromoteAdminPanelProps) {
         </form>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg flex items-center gap-2">
+          <div className="bg-[hsl(var(--destructive-bg))] border border-[hsl(var(--destructive))] text-[hsl(var(--destructive))] p-3 rounded-lg flex items-center gap-2">
             <AlertTriangle className="h-4 w-4 flex-shrink-0" />
             <span className="text-sm">{error}</span>
           </div>
         )}
 
         {notice && (
-          <div className="bg-green-50 border border-green-200 text-green-800 p-3 rounded-lg text-sm">{notice}</div>
+          <div className="bg-[hsl(var(--success-bg))] border border-[hsl(var(--success))] text-[hsl(var(--success))] p-3 rounded-lg text-sm">{notice}</div>
         )}
 
         {searched && results.length === 0 && !error && (
-          <p className="text-sm text-gray-500">No promotable users match that search.</p>
+          <p className="text-sm text-muted-foreground">No promotable users match that search.</p>
         )}
 
         {results.length > 0 && (
@@ -133,13 +133,13 @@ export function PromoteAdminPanel({ onPromoted }: PromoteAdminPanelProps) {
             {results.map(u => (
               <div
                 key={u.id}
-                className="flex items-center justify-between gap-3 p-3 rounded-lg border border-gray-200"
+                className="flex items-center justify-between gap-3 p-3 rounded-lg border border-border"
               >
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">
+                  <p className="text-sm font-medium text-foreground truncate">
                     {u.username ? `@${u.username}` : u.id.slice(0, 8)}
                   </p>
-                  <p className="text-xs font-mono text-gray-500 truncate">{u.email}</p>
+                  <p className="text-xs font-mono text-muted-foreground truncate">{u.email}</p>
                 </div>
                 <div className="flex items-center gap-3 flex-shrink-0">
                   <Badge variant={u.account_status === 'active' ? 'success' : 'warning'}>

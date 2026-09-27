@@ -115,7 +115,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     final authState = ref.watch(authControllerProvider);
 
     String? email;
@@ -128,17 +128,11 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
-          gradient: isDark
-              ? LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [AppColors.darkGray900, AppColors.darkGray800],
-                )
-              : const LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [AppColors.neutralGray50, AppColors.neutralWhite],
-                ),
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [scheme.surfaceContainerLow, scheme.surface],
+          ),
         ),
         child: SafeArea(
           child: Center(
@@ -164,9 +158,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                     'Verifikasi Email',
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: isDark
-                          ? AppColors.neutralWhite
-                          : AppColors.darkGray800,
+                      color: scheme.onSurface,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -180,9 +172,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                             'Buka tautan itu, lalu kembali ke sini untuk '
                             'melanjutkan masuk.',
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: isDark
-                          ? AppColors.neutralGray300
-                          : AppColors.neutralGray600,
+                      color: scheme.onSurfaceVariant,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -191,14 +181,10 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: isDark
-                            ? AppColors.darkGray700.withValues(alpha: 0.5)
-                            : AppColors.neutralGray50,
+                        color: scheme.surfaceContainerLow,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: isDark
-                              ? AppColors.darkGray600
-                              : AppColors.neutralGray200,
+                          color: scheme.outlineVariant,
                         ),
                       ),
                       child: Row(
@@ -206,9 +192,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                           Icon(
                             Icons.email_outlined,
                             size: 20,
-                            color: isDark
-                                ? AppColors.neutralGray400
-                                : AppColors.neutralGray600,
+                            color: scheme.onSurfaceVariant,
                           ),
                           const SizedBox(width: 12),
                           Expanded(
@@ -217,9 +201,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
-                                color: isDark
-                                    ? AppColors.neutralGray200
-                                    : AppColors.neutralGray800,
+                                color: scheme.onSurface,
                               ),
                             ),
                           ),
@@ -232,23 +214,22 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                     child: ElevatedButton(
                       onPressed: _isChecking ? null : _checkVerification,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryRed,
-                        foregroundColor: AppColors.light,
-                        disabledBackgroundColor: isDark
-                            ? AppColors.darkGray600
-                            : AppColors.neutralGray300,
+                        backgroundColor: scheme.primary,
+                        foregroundColor: scheme.onPrimary,
+                        disabledBackgroundColor:
+                            scheme.surfaceContainerHighest,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                       child: _isChecking
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 20,
                               height: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: AppColors.light,
+                                color: scheme.onPrimary,
                               ),
                             )
                           : const Text('Saya Sudah Verifikasi'),
@@ -268,9 +249,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         side: BorderSide(
-                          color: isDark
-                              ? AppColors.neutralGray600
-                              : AppColors.neutralGray300,
+                          color: scheme.outlineVariant,
                         ),
                       ),
                       child: Text(
@@ -278,9 +257,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                             ? 'Kirim Ulang dalam 00:${_cooldownSeconds.toString().padLeft(2, '0')}'
                             : 'Kirim Ulang Email',
                         style: TextStyle(
-                          color: isDark
-                              ? AppColors.neutralGray300
-                              : AppColors.neutralGray700,
+                          color: scheme.onSurface,
                         ),
                       ),
                     ),
@@ -297,9 +274,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                         'Ganti Akun',
                         style: TextStyle(
                           fontSize: 16,
-                          color: isDark
-                              ? AppColors.neutralGray400
-                              : AppColors.neutralGray500,
+                          color: scheme.onSurfaceVariant,
                         ),
                       ),
                     ),

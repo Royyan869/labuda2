@@ -143,18 +143,24 @@ func (s ForSaleStatus) IsRepostable() bool {
 // for_sale status. The public vocabulary is intentionally narrow:
 //
 //	active       — buyable now
-//	unavailable  — not buyable (draft / sold / withdrawn or any unknown state)
+//	sold         — sold (honest buyer-facing outcome; owner decision: the
+//	               fact that an item sold is public business truth, while
+//	               the reason an item was pulled stays private)
+//	unavailable  — not buyable, reason withheld (draft / withdrawn or any
+//	               unknown state)
 //	removed      — reserved for moderation/hard-delete; ForSaleStatus does not
 //	               model these today so this method never returns "removed".
 //
-// Internal enum values (draft, sold, withdrawn, …) MUST NOT cross the public
+// Internal enum values (draft, withdrawn, …) MUST NOT cross the public
 // boundary. Public surfaces should call this method and emit the result instead
 // of String() / raw enum text.
 func (s ForSaleStatus) PublicLifecycle() string {
 	switch s {
 	case ForSaleStatusActive:
 		return "active"
-	case ForSaleStatusDraft, ForSaleStatusSold, ForSaleStatusWithdrawn:
+	case ForSaleStatusSold:
+		return "sold"
+	case ForSaleStatusDraft, ForSaleStatusWithdrawn:
 		return "unavailable"
 	default:
 		return "unavailable"

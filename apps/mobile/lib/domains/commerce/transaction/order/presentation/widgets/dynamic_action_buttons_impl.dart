@@ -108,21 +108,19 @@ class _ActionButtonsContainer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
     final selectedPrimaryAction = primaryAction;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        color: colorScheme.surface,
         borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(12),
           topRight: Radius.circular(12),
         ),
         border: Border(
-          top: BorderSide(
-            color: isDark ? const Color(0xFF333333) : const Color(0xFFE0E0E0),
-          ),
+          top: BorderSide(color: colorScheme.outlineVariant),
         ),
       ),
       child: SafeArea(
@@ -155,7 +153,9 @@ class _ActionButtonsContainer extends StatelessWidget {
               onPressed: callbacks.onRequestSupport,
               icon: const Icon(Icons.support_agent, size: 16),
               label: const Text('Butuh Bantuan?'),
-              style: TextButton.styleFrom(foregroundColor: Colors.grey[600]),
+              style: TextButton.styleFrom(
+                foregroundColor: colorScheme.onSurfaceVariant,
+              ),
             ),
 
             // Chat Seller button (BATCH 2B - DIRECT ORDER → CHAT CONTINUITY)
@@ -166,7 +166,7 @@ class _ActionButtonsContainer extends StatelessWidget {
                 icon: const Icon(Icons.chat_bubble_outline, size: 16),
                 label: const Text('Chat Penjual'),
                 style: TextButton.styleFrom(
-                  foregroundColor: core.AppColors.primaryRed,
+                  foregroundColor: colorScheme.primary,
                 ),
               ),
           ],
@@ -185,11 +185,12 @@ class _PrimaryActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return ElevatedButton.icon(
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
-        backgroundColor: core.AppColors.primaryRed,
-        foregroundColor: Colors.white,
+        backgroundColor: colorScheme.primary,
+        foregroundColor: colorScheme.onPrimary,
         padding: const EdgeInsets.symmetric(vertical: 16),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
@@ -286,7 +287,7 @@ class _SecondaryActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
     final isDestructive = _isDestructiveAction(action.type);
 
     return Padding(
@@ -296,11 +297,11 @@ class _SecondaryActionButton extends StatelessWidget {
         style: OutlinedButton.styleFrom(
           foregroundColor: isDestructive
               ? core.AppColors.statusError
-              : (isDark ? Colors.white : Colors.black87),
+              : colorScheme.onSurface,
           side: BorderSide(
             color: isDestructive
                 ? core.AppColors.statusError.withValues(alpha: 0.3)
-                : (isDark ? const Color(0xFF333333) : const Color(0xFFE0E0E0)),
+                : colorScheme.outlineVariant,
           ),
           padding: const EdgeInsets.symmetric(vertical: 12),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -395,22 +396,22 @@ class _MinimalSupportAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDark ? const Color(0xFF333333) : const Color(0xFFE0E0E0),
-        ),
+        border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: TextButton.icon(
         onPressed: onRequestSupport,
         icon: const Icon(Icons.support_agent, size: 16),
         label: const Text('Butuh Bantuan?'),
-        style: TextButton.styleFrom(foregroundColor: Colors.grey[600]),
+        style: TextButton.styleFrom(
+          foregroundColor: colorScheme.onSurfaceVariant,
+        ),
       ),
     );
   }

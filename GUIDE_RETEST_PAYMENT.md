@@ -18,6 +18,7 @@ Checklist retest manual **per metode pembayaran**. Konteks: semua metode lewat *
 | A3 | Biarkan webview terbuka, bayar via simulator m-banking | Tidak ada auto-close paksa (by design); settle terdeteksi lewat polling/workers | |
 | A4 | Bayar → kembali ke Snap → tekan selesai | Redirect `/payment/finish` → **webview close sendiri** | |
 | A5 | Aktivasi seller (akun baru): settle VA | Dialog "Memproses pembayaran" berubah sukses *"Selamat! Anda sekarang penjual"*; jika melewati window polling, tutup dialog → **"Cek status pembayaran"** → konfirmasi manual; juga terdeteksi otomatis saat app resume | |
+| A6 | PAYMENT_SYNC_ON_DEMAND: "Cek status pembayaran" dan polling otomatis memanggil `POST /payments/:id/sync` — backend langsung menanyakan Midtrans (tanpa menunggu webhook/worker). Settle → sukses dalam hitungan detik setelah pembayaran, meski backend lokal tanpa webhook publik | |
 
 ## B. QRIS (metode `qris`, kanal other_qris)
 | # | Langkah | Harapan | Hasil |
@@ -59,3 +60,11 @@ Checklist retest manual **per metode pembayaran**. Konteks: semua metode lewat *
 - ❌ pada C2 adalah **bug P1** — seharusnya sudah diperbaiki (deep-link handoff + banner); kalau masih gagal, laporkan.
 - Setelah 60 detik polling: dialog kini **selalu** punya tombol "Cek status pembayaran" + loop re-entry (Batch 2 selesai) — gunakan itu; ⚠️ hanya jika tombol tidak muncul.
 - Simpan screenshot setiap anomali beserta `order_id`/`payment_number` untuk trace ke log backend (`payment_webhook_notifications`, log discovery worker).
+
+## PAYMENT_SYNC_ON_DEMAND (fix "sudah bayar tapi belum aktif")
+Setiap penekanan "Cek status pembayaran" (dan setiap tick polling 3s saat dialog terbuka) kini menjalankan `POST /payments/:id/sync`: backend memanggil Midtrans status inquiry untuk payment tsb, lalu settle + aktivasi lewat pipeline canonical yang sama dengan discovery worker (idempotent). Prasyarat agar on-demand sync bekerja di environment dev:
+1. **Midtrans server key valid** di backend (inquiry butuh akses API).
+2. **Payment belum expired** (`payments.expired_at > NOW()`; window 24 jam).
+3. Setelah sync sukses, dialog polling mendeteksi `has_market_authority=true` pada refresh berikutnya dan menampilkan sukses.
+
+Discovery worker scan loop tetap berjalan sebagai net kedua; kecepatannya dikendalikan `DISCOVERY_INQUIRY_ELIGIBILITY_AGE` (detik; default 600 — di dev disarankan 15; lihat `.env.example`).

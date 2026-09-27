@@ -43,7 +43,7 @@ class AccountRestrictedScreen extends ConsumerWidget {
               Icon(
                 isBanned ? Icons.block : Icons.pause_circle_outline,
                 size: 80,
-                color: isBanned ? Colors.red.shade700 : Colors.orange.shade700,
+                color: isBanned ? theme.colorScheme.error : theme.colorScheme.tertiary,
               ),
               const SizedBox(height: 24),
 

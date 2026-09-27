@@ -83,11 +83,11 @@ class CreateContentBottomSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
+        color: scheme.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: SafeArea(
@@ -100,9 +100,7 @@ class CreateContentBottomSheet extends StatelessWidget {
               height: 4,
               margin: const EdgeInsets.only(top: 12, bottom: 8),
               decoration: BoxDecoration(
-                color: isDark
-                    ? AppColors.neutralGray600
-                    : AppColors.neutralGray300,
+                color: scheme.onSurfaceVariant,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -115,15 +113,13 @@ class CreateContentBottomSheet extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w600,
-                  color: isDark
-                      ? AppColors.neutralWhite
-                      : AppColors.neutralGray900,
+                  color: scheme.onSurfaceVariant,
                 ),
               ),
             ),
 
             // Options list - Vertical layout
-            _buildOptionsList(context, isDark),
+            _buildOptionsList(context, scheme),
 
             const SizedBox(height: 16),
           ],
@@ -132,7 +128,7 @@ class CreateContentBottomSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildOptionsList(BuildContext context, bool isDark) {
+  Widget _buildOptionsList(BuildContext context, ColorScheme scheme) {
     final isIdentityUnknown =
         sellerIdentityStatus == SellerIdentityStatus.unknown;
     final isCapabilityUnknown =
@@ -154,7 +150,7 @@ class CreateContentBottomSheet extends StatelessWidget {
         icon: Icons.post_add_outlined,
         label: 'Buat Konten',
         description: 'Cerita, showcase, atau update',
-        color: AppColors.primaryRed,
+        color: scheme.primary,
         onTap: () {
           Navigator.pop(context);
           onCreateContent();
@@ -168,7 +164,7 @@ class CreateContentBottomSheet extends StatelessWidget {
           label: 'Checking seller status',
           description:
               'Seller tools will appear once your account data is ready.',
-          color: AppColors.neutralGray400,
+          color: scheme.onSurfaceVariant,
           onTap: null,
         ),
 
@@ -222,7 +218,7 @@ class CreateContentBottomSheet extends StatelessWidget {
           description: isSubscriptionExpired
               ? 'Langganan berakhir - perpanjang untuk menjual'
               : 'Langganan belum aktif - aktifkan untuk menjual',
-          color: AppColors.neutralGray400,
+          color: scheme.onSurfaceVariant,
           onTap: null, // Disabled - no active subscription
         ),
         _CreateOption(
@@ -231,7 +227,7 @@ class CreateContentBottomSheet extends StatelessWidget {
           description: isSubscriptionExpired
               ? 'Langganan berakhir - perpanjang untuk lelang'
               : 'Langganan belum aktif - aktifkan untuk lelang',
-          color: AppColors.neutralGray400,
+          color: scheme.onSurfaceVariant,
           onTap: null, // Disabled - no active subscription
         ),
         if (onRenewSubscription != null)
@@ -243,7 +239,7 @@ class CreateContentBottomSheet extends StatelessWidget {
             description: isSubscriptionExpired
                 ? 'Perbarui langganan untuk jual dan lelang koi'
                 : 'Berlangganan untuk mulai jual dan lelang koi',
-            color: AppColors.primaryRed,
+            color: scheme.primary,
             onTap: () {
               Navigator.pop(context);
               onRenewSubscription!();
@@ -260,12 +256,12 @@ class CreateContentBottomSheet extends StatelessWidget {
       separatorBuilder: (context, index) => const SizedBox(height: 4),
       itemBuilder: (context, index) {
         final option = options[index];
-        return _buildOptionItem(option, isDark);
+        return _buildOptionItem(option, scheme);
       },
     );
   }
 
-  Widget _buildOptionItem(_CreateOption option, bool isDark) {
+  Widget _buildOptionItem(_CreateOption option, ColorScheme scheme) {
     final isEnabled = option.onTap != null;
 
     return Material(
@@ -284,18 +280,14 @@ class CreateContentBottomSheet extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: isEnabled
                       ? option.color.withValues(alpha: 0.1)
-                      : (isDark
-                            ? AppColors.neutralGray700
-                            : AppColors.neutralGray200),
+                      : (scheme.onSurfaceVariant),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   option.icon,
                   color: isEnabled
                       ? option.color
-                      : (isDark
-                            ? AppColors.neutralGray500
-                            : AppColors.neutralGray400),
+                      : (scheme.onSurfaceVariant),
                   size: 24,
                 ),
               ),
@@ -313,12 +305,8 @@ class CreateContentBottomSheet extends StatelessWidget {
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                         color: isEnabled
-                            ? (isDark
-                                  ? AppColors.neutralWhite
-                                  : AppColors.neutralGray900)
-                            : (isDark
-                                  ? AppColors.neutralGray500
-                                  : AppColors.neutralGray400),
+                            ? (scheme.onSurfaceVariant)
+                            : (scheme.onSurfaceVariant),
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -326,9 +314,7 @@ class CreateContentBottomSheet extends StatelessWidget {
                       option.description,
                       style: TextStyle(
                         fontSize: 13,
-                        color: isDark
-                            ? AppColors.neutralGray400
-                            : AppColors.neutralGray600,
+                        color: scheme.onSurfaceVariant,
                       ),
                     ),
                   ],
@@ -340,9 +326,7 @@ class CreateContentBottomSheet extends StatelessWidget {
                 Icon(
                   Icons.arrow_forward_ios,
                   size: 16,
-                  color: isDark
-                      ? AppColors.neutralGray500
-                      : AppColors.neutralGray400,
+                  color: scheme.onSurfaceVariant,
                 ),
             ],
           ),

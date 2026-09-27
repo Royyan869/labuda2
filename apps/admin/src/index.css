@@ -6,16 +6,62 @@
   :root {
     --primary: 220 14% 96%;
     --primary-foreground: 220.9 39.3% 11%;
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 210 20% 98%;
+    --foreground: 222.2 47.4% 11.2%;
+    --surface: 0 0% 100%;
+    --surface-muted: 210 20% 96%;
+    --border: 214.3 31.8% 91.4%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --ring: 0 72% 51%;
+    --destructive: 0 72% 51%;
+    --destructive-bg: 0 86% 97%;
+    --success: 142 71% 35%;
+    --success-bg: 138 76% 97%;
+    --warning: 38 92% 40%;
+    --warning-bg: 48 100% 96%;
+    --info: 221 83% 53%;
+    --info-bg: 214 100% 97%;
+    --chart-1: 221 83% 53%;
+    --chart-2: 142 71% 35%;
+    --chart-3: 270 60% 55%;
+    --chart-4: 239 84% 67%;
+    --chart-5: 173 80% 40%;
+    --chart-6: 38 92% 40%;
+    --chart-7: 160 84% 39%;
+  }
+
+  .dark {
+    --background: 222.2 47.4% 11.2%;
+    --foreground: 210 40% 98%;
+    --surface: 217.2 32.6% 17.5%;
+    --surface-muted: 217.2 32.6% 14%;
+    --border: 217.2 32.6% 28%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --ring: 0 72% 61%;
+    --destructive: 0 72% 61%;
+    --destructive-bg: 0 45% 22%;
+    --success: 142 71% 55%;
+    --success-bg: 142 35% 20%;
+    --warning: 38 92% 60%;
+    --warning-bg: 38 35% 22%;
+    --info: 221 83% 65%;
+    --info-bg: 221 35% 22%;
+    --chart-1: 221 83% 65%;
+    --chart-2: 142 71% 55%;
+    --chart-3: 270 70% 70%;
+    --chart-4: 239 90% 78%;
+    --chart-5: 173 70% 55%;
+    --chart-6: 38 92% 60%;
+    --chart-7: 160 70% 55%;
   }
 
   * {
-    @apply border-gray-200;
+    border-color: hsl(var(--border));
   }
 
   body {
-    @apply bg-gray-50 text-gray-900;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
     font-feature-settings: "rlig" 1, "calt" 1;
     margin: 0;
     min-height: 100vh;

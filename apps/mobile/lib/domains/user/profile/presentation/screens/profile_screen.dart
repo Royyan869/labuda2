@@ -226,7 +226,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     final authState = ref.watch(authControllerProvider);
     final actualUserId = _getActualUserId(authState);
     final isOwnProfile = _isOwnProfile(authState);
@@ -254,7 +254,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
 
           return _buildProfileScaffold(
             context: context,
-            isDark: isDark,
+            scheme: scheme,
             authState: authState,
             actualUserId: actualUserId,
             isOwnProfile: false,
@@ -288,7 +288,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
 
     return _buildProfileScaffold(
       context: context,
-      isDark: isDark,
+      scheme: scheme,
       authState: authState,
       actualUserId: actualUserId,
       isOwnProfile: true,
@@ -300,7 +300,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
 
   Widget _buildProfileScaffold({
     required BuildContext context,
-    required bool isDark,
+    required ColorScheme scheme,
     required AuthState authState,
     required String actualUserId,
     required bool isOwnProfile,
@@ -333,13 +333,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
               expandedHeight: headerExpandedHeight,
               pinned: true,
               elevation: _collapseProgress > 0.8 ? 2 : 0,
-              backgroundColor: isDark
-                  ? AppColors.darkGray800
-                  : AppColors.neutralWhite,
-              leading: _buildBackButton(isDark),
+backgroundColor: scheme.surface,
+              leading: _buildBackButton(scheme),
               // Title removed - using FlexibleSpaceBar.title for smooth walk animation
               actions: _buildAppBarActions(
-                isDark,
+                scheme,
                 isOwnProfile,
                 actualUserId,
                 authState,
@@ -347,7 +345,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
               ),
               flexibleSpace: _buildExpandedHeader(
                 context,
-                isDark,
+                scheme,
                 actualUserId,
                 isSeller,
                 isOwnProfile,
@@ -367,7 +365,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
             // Profile info (farm/location/bio) + Stats section
             SliverToBoxAdapter(
               child: _buildProfileInfoAndStats(
-                isDark: isDark,
+                scheme: scheme,
                 userId: actualUserId,
                 isSeller: isSeller,
                 profileData: profileData,
@@ -381,15 +379,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
               delegate: _SliverTabBarDelegate(
                 TabBar(
                   controller: _tabController,
-                  labelColor: AppColors.primaryRed,
-                  unselectedLabelColor: isDark
-                      ? AppColors.neutralGray400
-                      : AppColors.neutralGray500,
-                  indicatorColor: AppColors.primaryRed,
+                  labelColor: scheme.primary,
+                  unselectedLabelColor: scheme.onSurfaceVariant,
+                  indicatorColor: scheme.primary,
                   indicatorWeight: 2,
                   tabs: _getTabs(isSeller),
                 ),
-                isDark: isDark,
+                scheme: scheme,
               ),
             ),
 
@@ -400,11 +396,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                 delegate: _SliverSubTabBarDelegate(
                   TabBar(
                     controller: _subTabController,
-                    labelColor: AppColors.primaryRed,
-                    unselectedLabelColor: isDark
-                        ? AppColors.neutralGray400
-                        : AppColors.neutralGray500,
-                    indicatorColor: AppColors.primaryRed,
+                    labelColor: scheme.primary,
+                    unselectedLabelColor: scheme.onSurfaceVariant,
+                    indicatorColor: scheme.primary,
                     indicatorWeight: 2,
                     labelPadding: const EdgeInsets.symmetric(horizontal: 16),
                     tabs: const [
@@ -412,7 +406,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                       Tab(text: 'Lelang', height: 40),
                     ],
                   ),
-                  isDark: isDark,
+                  scheme: scheme,
                 ),
               ),
           ];
@@ -504,21 +498,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     return '${firstLine.substring(0, maxUserFacingLength)}…';
   }
 
-  Widget _buildBackButton(bool isDark) {
+  Widget _buildBackButton(ColorScheme scheme) {
     return IconButton(
       icon: Container(
         padding: const EdgeInsets.all(6),
         decoration: BoxDecoration(
           color: _collapseProgress < 0.5
-              ? AppColors.neutralBlack.withValues(alpha: 0.3)
+              ? scheme.shadow.withValues(alpha: 0.3)
               : Colors.transparent,
           shape: BoxShape.circle,
         ),
         child: Icon(
           Icons.arrow_back,
           color: _collapseProgress < 0.5
-              ? AppColors.neutralWhite
-              : (isDark ? AppColors.neutralWhite : AppColors.neutralGray900),
+              ? scheme.onPrimary
+              : (scheme.onSurface),
           size: 20,
         ),
       ),
@@ -529,18 +523,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   }
 
   List<Widget> _buildAppBarActions(
-    bool isDark,
+    ColorScheme scheme,
     bool isOwnProfile,
     String userId,
     AuthState authState,
     ContentLifecycle lifecycle,
   ) {
     final iconColor = _collapseProgress < 0.5
-        ? AppColors.neutralWhite
-        : (isDark ? AppColors.neutralWhite : AppColors.neutralGray900);
+        ? scheme.onPrimary
+        : (scheme.onSurface);
 
     final bgColor = _collapseProgress < 0.5
-        ? AppColors.neutralBlack.withValues(alpha: 0.3)
+        ? scheme.shadow.withValues(alpha: 0.3)
         : Colors.transparent;
 
     // E5.2 — Share is target-user action; suppress on degraded. Block/report
@@ -579,7 +573,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
 
   Widget _buildExpandedHeader(
     BuildContext context,
-    bool isDark,
+    ColorScheme scheme,
     String userId,
     bool isSeller,
     bool isOwnProfile,
@@ -610,7 +604,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
         // Flying avatar with name & username - animates from expanded to AppBar
         _buildFlyingAvatarWithInfo(
           context,
-          isDark,
+          scheme,
           profileData,
           isSeller,
           userId,
@@ -623,7 +617,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   /// Avatar, nama, dan username yang terbang bersama dari expanded ke AppBar
   Widget _buildFlyingAvatarWithInfo(
     BuildContext context,
-    bool isDark,
+    ColorScheme scheme,
     Map<String, dynamic> profileData,
     bool isSeller,
     String userId,
@@ -710,14 +704,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     // Color interpolation for better visibility when collapsed
     // Name: stays high contrast
     // Username: gets darker/more visible when collapsed
-    final nameColor = isDark
-        ? AppColors.neutralWhite
-        : AppColors.neutralGray900;
+    final nameColor = scheme.onSurface;
 
     // Username color transitions to same as name when collapsed for better visibility
-    final secondaryExpandedColor = isDark
-        ? AppColors.neutralGray400
-        : AppColors.neutralGray500;
+    final secondaryExpandedColor = scheme.onSurfaceVariant;
     final secondaryCollapsedColor = secondaryExpandedColor;
     final secondaryColor = Color.lerp(
       secondaryExpandedColor,
@@ -792,7 +782,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   /// Profile info (farm/location/bio) + Stats section
   /// Semua konten ini ikut scroll, tidak collapse
   Widget _buildProfileInfoAndStats({
-    required bool isDark,
+    required ColorScheme scheme,
     required String userId,
     required bool isSeller,
     required Map<String, dynamic> profileData,
@@ -802,7 +792,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     final isOwnProfile = _isOwnProfile(authState);
 
     return Container(
-      color: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
+      color: scheme.surface,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -858,9 +848,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                         Icon(
                           Icons.location_on_outlined,
                           size: 14,
-                          color: isDark
-                              ? AppColors.neutralGray400
-                              : AppColors.neutralGray500,
+color: scheme.onSurfaceVariant,
                         ),
                         const SizedBox(width: 4),
                         Expanded(
@@ -868,9 +856,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                             profileData['location'],
                             style: TextStyle(
                               fontSize: 12,
-                              color: isDark
-                                  ? AppColors.neutralGray400
-                                  : AppColors.neutralGray500,
+color: scheme.onSurfaceVariant,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -888,9 +874,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                       profileData['bio'],
                       style: TextStyle(
                         fontSize: 13,
-                        color: isDark
-                            ? AppColors.neutralGray300
-                            : AppColors.neutralGray700,
+color: scheme.onSurfaceVariant,
                         height: 1.3,
                       ),
                     ),
@@ -1291,12 +1275,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
 
   /// Show follow-up dialog after reporting offering additional protection
   void _showReportFollowUpDialog(String targetUserId, String displayName) {
+    final scheme = Theme.of(context).colorScheme;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        icon: const Icon(
-          Icons.shield_outlined,
-          color: AppColors.primaryRed,
+icon: Icon(
+           Icons.shield_outlined,
+           color: scheme.primary,
           size: 48,
         ),
         title: const Text('Report Submitted'),
@@ -1314,7 +1299,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
               _handleBlockUser();
             },
             style: FilledButton.styleFrom(
-              backgroundColor: AppColors.primaryRed,
+              backgroundColor: scheme.primary,
             ),
             child: const Text('Block User'),
           ),
@@ -1327,9 +1312,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
 /// Delegate for sticky TabBar
 class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
   final TabBar tabBar;
-  final bool isDark;
+  final ColorScheme scheme;
 
-  _SliverTabBarDelegate(this.tabBar, {required this.isDark});
+  _SliverTabBarDelegate(this.tabBar, {required this.scheme});
 
   @override
   double get minExtent => tabBar.preferredSize.height;
@@ -1345,10 +1330,10 @@ class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
   ) {
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
+        color: scheme.surface,
         border: Border(
           bottom: BorderSide(
-            color: isDark ? AppColors.darkGray600 : AppColors.neutralGray200,
+            color: scheme.outlineVariant,
             width: 1,
           ),
         ),
@@ -1359,16 +1344,16 @@ class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   bool shouldRebuild(_SliverTabBarDelegate oldDelegate) {
-    return tabBar != oldDelegate.tabBar || isDark != oldDelegate.isDark;
+    return tabBar != oldDelegate.tabBar || scheme != oldDelegate.scheme;
   }
 }
 
 /// Delegate for sticky Sub-TabBar
 class _SliverSubTabBarDelegate extends SliverPersistentHeaderDelegate {
   final TabBar tabBar;
-  final bool isDark;
+  final ColorScheme scheme;
 
-  _SliverSubTabBarDelegate(this.tabBar, {required this.isDark});
+  _SliverSubTabBarDelegate(this.tabBar, {required this.scheme});
 
   @override
   double get minExtent => 40;
@@ -1383,13 +1368,13 @@ class _SliverSubTabBarDelegate extends SliverPersistentHeaderDelegate {
     bool overlapsContent,
   ) {
     return Container(
-      color: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
+      color: scheme.surface,
       child: tabBar,
     );
   }
 
   @override
   bool shouldRebuild(_SliverSubTabBarDelegate oldDelegate) {
-    return tabBar != oldDelegate.tabBar || isDark != oldDelegate.isDark;
+    return tabBar != oldDelegate.tabBar || scheme != oldDelegate.scheme;
   }
 }

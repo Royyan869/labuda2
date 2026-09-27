@@ -27,49 +27,44 @@ class ThemeSelector extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeState = ref.watch(themeControllerProvider);
-    final isDark = themeState.isDarkMode(context);
     final l10n = AppLocalizations.of(context)!;
     final currentTheme = themeState.themeMode;
 
     if (isCompact) {
-      return _buildCompactSelector(context, ref, isDark, currentTheme);
+      return _buildCompactSelector(context, ref, currentTheme);
     }
 
-    return _buildFullSelector(context, ref, isDark, l10n, currentTheme);
+    return _buildFullSelector(context, ref, l10n, currentTheme);
   }
 
   Widget _buildFullSelector(
     BuildContext context,
     WidgetRef ref,
-    bool isDark,
     AppLocalizations? l10n,
     ThemeMode currentTheme,
   ) {
+    final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: padding ?? EdgeInsets.zero,
       child: ListTile(
         leading: showLeadingIcon
             ? Icon(
-                _getThemeIcon(currentTheme, isDark),
-                color: isDark
-                    ? AppColors.neutralGray300
-                    : AppColors.neutralGray600,
+                currentTheme.icon,
+                color: scheme.onSurfaceVariant,
               )
             : null,
         title: Text(
           l10n?.theme ?? 'Theme',
           style: TextStyle(
-            color: isDark ? AppColors.neutralGray200 : AppColors.neutralGray800,
+            color: scheme.onSurface,
             fontWeight: FontWeight.w500,
           ),
         ),
         trailing: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: isDark ? AppColors.darkGray700 : AppColors.neutralGray100,
-            border: Border.all(
-              color: isDark ? AppColors.darkGray600 : AppColors.neutralGray300,
-            ),
+            color: scheme.surfaceContainerHighest,
+            border: Border.all(color: scheme.outlineVariant),
             borderRadius: BorderRadius.circular(8),
           ),
           child: DropdownButtonHideUnderline(
@@ -78,14 +73,10 @@ class ThemeSelector extends ConsumerWidget {
               isDense: true,
               icon: Icon(
                 Icons.keyboard_arrow_down,
-                color: isDark
-                    ? AppColors.neutralGray400
-                    : AppColors.neutralGray600,
+                color: scheme.onSurfaceVariant,
                 size: 16,
               ),
-              dropdownColor: isDark
-                  ? AppColors.darkGray700
-                  : AppColors.neutralWhite,
+              dropdownColor: scheme.surfaceContainerHigh,
               items: ThemeMode.values.map((themeMode) {
                 return DropdownMenuItem<ThemeMode>(
                   value: themeMode,
@@ -95,17 +86,13 @@ class ThemeSelector extends ConsumerWidget {
                       Icon(
                         themeMode.icon,
                         size: 16,
-                        color: isDark
-                            ? AppColors.neutralGray300
-                            : AppColors.neutralGray600,
+                        color: scheme.onSurfaceVariant,
                       ),
                       const SizedBox(width: 8),
                       Text(
                         _getThemeDisplayName(themeMode, l10n),
                         style: TextStyle(
-                          color: isDark
-                              ? AppColors.neutralGray200
-                              : AppColors.neutralGray800,
+                          color: scheme.onSurface,
                           fontSize: 14,
                         ),
                       ),
@@ -137,19 +124,17 @@ class ThemeSelector extends ConsumerWidget {
   Widget _buildCompactSelector(
     BuildContext context,
     WidgetRef ref,
-    bool isDark,
     ThemeMode currentTheme,
   ) {
     final l10n = AppLocalizations.of(context)!;
+    final scheme = Theme.of(context).colorScheme;
 
     return Container(
       padding:
           padding ?? const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray700 : AppColors.neutralGray100,
-        border: Border.all(
-          color: isDark ? AppColors.darkGray600 : AppColors.neutralGray300,
-        ),
+        color: scheme.surfaceContainerHighest,
+        border: Border.all(color: scheme.outlineVariant),
         borderRadius: BorderRadius.circular(8),
       ),
       child: DropdownButtonHideUnderline(
@@ -158,7 +143,7 @@ class ThemeSelector extends ConsumerWidget {
           isDense: true,
           icon: Icon(
             Icons.keyboard_arrow_down,
-            color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray600,
+            color: scheme.onSurfaceVariant,
             size: 16,
           ),
           items: ThemeMode.values.map((themeMode) {
@@ -170,17 +155,13 @@ class ThemeSelector extends ConsumerWidget {
                   Icon(
                     themeMode.icon,
                     size: 16,
-                    color: isDark
-                        ? AppColors.neutralGray300
-                        : AppColors.neutralGray600,
+                    color: scheme.onSurfaceVariant,
                   ),
                   const SizedBox(width: 6),
                   Text(
                     _getThemeDisplayName(themeMode, l10n),
                     style: TextStyle(
-                      color: isDark
-                          ? AppColors.neutralGray200
-                          : AppColors.neutralGray800,
+                      color: scheme.onSurface,
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                     ),
@@ -197,17 +178,6 @@ class ThemeSelector extends ConsumerWidget {
         ),
       ),
     );
-  }
-
-  IconData _getThemeIcon(ThemeMode themeMode, bool isDark) {
-    switch (themeMode) {
-      case ThemeMode.light:
-        return Icons.light_mode;
-      case ThemeMode.dark:
-        return Icons.dark_mode;
-      case ThemeMode.system:
-        return isDark ? Icons.dark_mode : Icons.light_mode;
-    }
   }
 
   String _getThemeDisplayName(ThemeMode themeMode, AppLocalizations? l10n) {
@@ -231,20 +201,20 @@ class ThemeSelectorTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeState = ref.watch(themeControllerProvider);
-    final isDark = themeState.isDarkMode(context);
+    final scheme = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context)!;
     final currentTheme = themeState.themeMode;
 
     return ListTile(
       leading: Icon(
-        _getThemeIcon(currentTheme, isDark),
-        color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray600,
+        currentTheme.icon,
+        color: scheme.onSurfaceVariant,
         size: 24,
       ),
       title: Text(
         l10n.theme,
         style: TextStyle(
-          color: isDark ? AppColors.neutralGray200 : AppColors.neutralGray900,
+          color: scheme.onSurface,
           fontSize: 16,
           fontWeight: FontWeight.w500,
         ),
@@ -252,30 +222,19 @@ class ThemeSelectorTile extends ConsumerWidget {
       subtitle: Text(
         _getThemeDisplayName(currentTheme, l10n),
         style: TextStyle(
-          color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray600,
+          color: scheme.onSurfaceVariant,
           fontSize: 14,
         ),
       ),
       trailing: Icon(
         Icons.chevron_right,
-        color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray500,
+        color: scheme.onSurfaceVariant,
       ),
       contentPadding:
           contentPadding ??
           const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
-      onTap: () => _showThemeBottomSheet(context, ref),
+      onTap: () => showThemeSelectionSheet(context, ref),
     );
-  }
-
-  IconData _getThemeIcon(ThemeMode themeMode, bool isDark) {
-    switch (themeMode) {
-      case ThemeMode.light:
-        return Icons.light_mode;
-      case ThemeMode.dark:
-        return Icons.dark_mode;
-      case ThemeMode.system:
-        return Icons.brightness_auto;
-    }
   }
 
   String _getThemeDisplayName(ThemeMode themeMode, AppLocalizations? l10n) {
@@ -288,120 +247,125 @@ class ThemeSelectorTile extends ConsumerWidget {
         return 'System Default';
     }
   }
+}
 
-  void _showThemeBottomSheet(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final l10n = AppLocalizations.of(context)!;
-    final currentTheme = ref.read(themeControllerProvider).themeMode;
+/// Canonical theme picker sheet — single authority.
+///
+/// Replaces the copy-pasted sheet that lived in `welcome_screen.dart`
+/// (deleted): one bottom sheet, scheme-driven, no brightness branches.
+void showThemeSelectionSheet(BuildContext context, WidgetRef ref) {
+  final scheme = Theme.of(context).colorScheme;
+  final l10n = AppLocalizations.of(context)!;
+  final currentTheme = ref.read(themeControllerProvider).themeMode;
 
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (BuildContext context) {
-        return Container(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Handle bar
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? AppColors.neutralGray600
-                        : AppColors.neutralGray300,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Title
-              Text(
-                l10n.theme,
-                style: TextStyle(
-                  color: isDark
-                      ? AppColors.neutralGray200
-                      : AppColors.neutralGray900,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Theme options
-              ...ThemeMode.values.map((themeMode) {
-                final isSelected = themeMode == currentTheme;
-                return ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: Icon(
-                    _getThemeIcon(themeMode, isDark),
-                    color: isSelected
-                        ? AppColors.primaryRed
-                        : (isDark
-                              ? AppColors.neutralGray400
-                              : AppColors.neutralGray600),
-                    size: 24,
-                  ),
-                  title: Text(
-                    _getThemeDisplayName(themeMode, l10n),
-                    style: TextStyle(
-                      color: isDark
-                          ? AppColors.neutralGray200
-                          : AppColors.neutralGray900,
-                      fontSize: 16,
-                      fontWeight: isSelected
-                          ? FontWeight.w600
-                          : FontWeight.w500,
-                    ),
-                  ),
-                  subtitle: themeMode == ThemeMode.system
-                      ? Text(
-                          'Follow system setting',
-                          style: TextStyle(
-                            color: isDark
-                                ? AppColors.neutralGray500
-                                : AppColors.neutralGray500,
-                            fontSize: 12,
-                          ),
-                        )
-                      : null,
-                  trailing: isSelected
-                      ? Icon(
-                          Icons.check_circle,
-                          color: AppColors.primaryRed,
-                          size: 20,
-                        )
-                      : null,
-                  onTap: () {
-                    if (themeMode != currentTheme) {
-                      ref
-                          .read(themeControllerProvider.notifier)
-                          .setThemeMode(themeMode);
-
-                      // Show success message
-                      AppSnackBar.showSuccess(
-                        context,
-                        'Theme changed to ${_getThemeDisplayName(themeMode, l10n)}',
-                        duration: const Duration(seconds: 2),
-                      );
-                    }
-                    Navigator.of(context).pop();
-                  },
-                );
-              }),
-
-              const SizedBox(height: 20),
-            ],
-          ),
-        );
-      },
-    );
+  String name(ThemeMode mode) {
+    switch (mode) {
+      case ThemeMode.light:
+        return l10n.lightTheme;
+      case ThemeMode.dark:
+        return l10n.darkTheme;
+      case ThemeMode.system:
+        return 'System Default';
+    }
   }
+
+  showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: scheme.surfaceContainerHigh,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (BuildContext context) {
+      return Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Handle bar
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: scheme.outlineVariant,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Title
+            Text(
+              l10n.theme,
+              style: TextStyle(
+                color: scheme.onSurface,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Theme options
+            ...ThemeMode.values.map((themeMode) {
+              final isSelected = themeMode == currentTheme;
+              return ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(
+                  themeMode.icon,
+                  color: isSelected
+                      ? scheme.primary
+                      : scheme.onSurfaceVariant,
+                  size: 24,
+                ),
+                title: Text(
+                  name(themeMode),
+                  style: TextStyle(
+                    color: scheme.onSurface,
+                    fontSize: 16,
+                    fontWeight: isSelected
+                        ? FontWeight.w600
+                        : FontWeight.w500,
+                  ),
+                ),
+                subtitle: themeMode == ThemeMode.system
+                    ? Text(
+                        'Follow system setting',
+                        style: TextStyle(
+                          color: scheme.onSurfaceVariant,
+                          fontSize: 12,
+                        ),
+                      )
+                    : null,
+                trailing: isSelected
+                    ? Icon(
+                        Icons.check_circle,
+                        color: scheme.primary,
+                        size: 20,
+                      )
+                    : null,
+                onTap: () {
+                  if (themeMode != currentTheme) {
+                    ref
+                        .read(themeControllerProvider.notifier)
+                        .setThemeMode(themeMode);
+
+                    // Show success message
+                    AppSnackBar.showSuccess(
+                      context,
+                      'Theme changed to ${name(themeMode)}',
+                      duration: const Duration(seconds: 2),
+                    );
+                  }
+                  Navigator.of(context).pop();
+                },
+              );
+            }),
+
+            const SizedBox(height: 20),
+          ],
+        ),
+      );
+    },
+  );
 }

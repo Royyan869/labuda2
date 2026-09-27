@@ -178,7 +178,6 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
             strengthIndicator: _newPasswordController.text.isNotEmpty
                 ? PasswordStrengthIndicator(
                     password: _newPasswordController.text,
-                    isDark: isDark,
                   )
                 : null,
             validator: (value) {

@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/social/content/presentation/widgets/content_toolbar_widget.dart';
 import 'package:labuda/domains/social/content/presentation/widgets/content_media_handler.dart';
 import 'package:labuda/domains/social/content/presentation/widgets/create_content/content_event_handlers.dart';
@@ -15,7 +14,6 @@ class ContentToolbarSection extends StatelessWidget {
   final Function(List<File> images, List<File> videos) onMediaAdded;
   final VoidCallback onTagPeople;
   final VoidCallback onAddLocation;
-  final bool isDark;
 
   const ContentToolbarSection({
     super.key,
@@ -27,17 +25,17 @@ class ContentToolbarSection extends StatelessWidget {
     required this.onMediaAdded,
     required this.onTagPeople,
     required this.onAddLocation,
-    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
+        color: scheme.surface,
         border: Border(
           top: BorderSide(
-            color: isDark ? AppColors.darkGray700 : AppColors.neutralGray200,
+            color: scheme.outlineVariant,
             width: 1,
           ),
         ),

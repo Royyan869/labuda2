@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 
 /// Expandable Text Widget seperti Facebook
 ///
@@ -95,12 +94,8 @@ class _ExpandableTextWidgetState extends State<ExpandableTextWidget>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final effectiveLinkColor =
-        widget.linkColor ??
-        (isDark
-            ? AppColors.primaryBlue.withValues(alpha: 0.8)
-            : AppColors.primaryBlue);
+        widget.linkColor ?? theme.colorScheme.secondary;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

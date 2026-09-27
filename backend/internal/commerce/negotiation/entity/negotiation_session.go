@@ -98,17 +98,6 @@ func NewNegotiationSession(
 	}
 }
 
-// Accept transitions the session from active to accepted.
-//
-// Allowed: active → accepted
-// Error: if not active
-//
-// Note: Accepted sessions can still expire (accepted → expired)
-// to prevent checkout of stale agreements.
-func (s *NegotiationSession) Accept() error {
-	return s.transitionTo(NegotiationStatusAccepted)
-}
-
 // Cancel transitions the session from active to cancelled.
 //
 // Allowed: active → cancelled
@@ -178,12 +167,6 @@ func (s *NegotiationSession) IsExpired() bool {
 // must remain outside this predicate.
 func (s *NegotiationSession) CanSettle() bool {
 	return s.Status == NegotiationStatusAccepted && !s.IsExpired() && !s.IsSettled()
-}
-
-// CanProceed returns true if the negotiation can proceed to order creation.
-// Requires: active status AND not expired.
-func (s *NegotiationSession) CanProceed() bool {
-	return s.Status == NegotiationStatusActive && !s.IsExpired()
 }
 
 // IsParticipant returns true if the given user is the buyer or seller.
@@ -461,12 +444,6 @@ type StaleProposalError struct {
 func (e *StaleProposalError) Error() string {
 	return fmt.Sprintf("stale proposal update: session_id=%s, expected_sequence=%d, actual_sequence=%d",
 		e.SessionID, e.ExpectedSequence, e.ActualSequence)
-}
-
-// currentTimeUnix returns the current Unix timestamp.
-// This is a simple wrapper for testability.
-func currentTimeUnix() int64 {
-	return time.Now().Unix()
 }
 
 // ErrMultipleAcceptedNegotiations is returned when attempting to accept a second negotiation

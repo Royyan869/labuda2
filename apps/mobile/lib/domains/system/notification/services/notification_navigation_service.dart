@@ -121,6 +121,7 @@ class NotificationNavigationService {
       case NotificationType.auctionWaitingSettlement:
       case NotificationType.auctionSellerHasWinner:
       case NotificationType.auctionEndedNoWinner:
+      case NotificationType.auctionCancelledSeller:
       case NotificationType.auctionBnrSeller:
       case NotificationType.auctionBnrWinner:
         _navigateToAuction(context, notification);

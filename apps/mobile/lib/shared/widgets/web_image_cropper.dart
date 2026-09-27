@@ -1,9 +1,7 @@
-import 'package:labuda/core/src/theme/app_colors.dart';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/shared.dart';
 
 /// Web-specific Image Cropper Widget
@@ -106,10 +104,12 @@ class _WebImageCropperState extends State<WebImageCropper> {
       final imageX = (_cropWidth - scaledWidth) / 2 + _offset.dx;
       final imageY = (_cropHeight - scaledHeight) / 2 + _offset.dy;
 
-      // Ensure we have a white background
+      // Exported-pixel background stays white in both modes (canvas data,
+      // not UI theme): onPrimary is white in both schemes — zero pixel
+      // change, authority-clean.
       canvas.drawRect(
         Rect.fromLTWH(0, 0, _cropWidth, _cropHeight),
-        Paint()..color = AppColors.light,
+        Paint()..color = Theme.of(context).colorScheme.onPrimary,
       );
 
       // Draw the image with high quality
@@ -173,12 +173,10 @@ class _WebImageCropperState extends State<WebImageCropper> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: isDark
-          ? AppColors.darkGray900
-          : AppColors.neutralGray100,
+      backgroundColor: scheme.surfaceContainerLowest,
       body: SafeArea(
         child: SizedBox(
           width: double.infinity,
@@ -188,11 +186,11 @@ class _WebImageCropperState extends State<WebImageCropper> {
               width: 500,
               height: 600,
               decoration: BoxDecoration(
-                color: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
+                color: scheme.surface,
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.dark.withValues(alpha: 0.2),
+                    color: scheme.shadow.withValues(alpha: 0.2),
                     blurRadius: 20,
                     offset: const Offset(0, 10),
                   ),
@@ -204,9 +202,7 @@ class _WebImageCropperState extends State<WebImageCropper> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: isDark
-                          ? AppColors.darkGray700
-                          : AppColors.neutralGray100,
+                      color: scheme.surfaceContainerHighest,
                       borderRadius: const BorderRadius.vertical(
                         top: Radius.circular(16),
                       ),
@@ -218,9 +214,7 @@ class _WebImageCropperState extends State<WebImageCropper> {
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
-                            color: isDark
-                                ? AppColors.neutralWhite
-                                : AppColors.neutralGray900,
+                            color: scheme.onSurface,
                           ),
                         ),
                         const Spacer(),
@@ -228,9 +222,7 @@ class _WebImageCropperState extends State<WebImageCropper> {
                           onPressed: widget.onCancel,
                           icon: Icon(
                             Icons.close,
-                            color: isDark
-                                ? AppColors.neutralGray400
-                                : AppColors.neutralGray600,
+                            color: scheme.onSurfaceVariant,
                           ),
                         ),
                       ],
@@ -240,9 +232,9 @@ class _WebImageCropperState extends State<WebImageCropper> {
                   // Crop Area
                   Expanded(
                     child: _isLoading
-                        ? const Center(
+                        ? Center(
                             child: CircularProgressIndicator(
-                              color: AppColors.primaryRed,
+                              color: scheme.primary,
                             ),
                           )
                         : Container(
@@ -255,9 +247,7 @@ class _WebImageCropperState extends State<WebImageCropper> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: isDark
-                          ? AppColors.darkGray700
-                          : AppColors.neutralGray100,
+                      color: scheme.surfaceContainerHighest,
                       borderRadius: const BorderRadius.vertical(
                         bottom: Radius.circular(16),
                       ),
@@ -269,9 +259,7 @@ class _WebImageCropperState extends State<WebImageCropper> {
                           children: [
                             Icon(
                               Icons.zoom_out,
-                              color: isDark
-                                  ? AppColors.neutralGray400
-                                  : AppColors.neutralGray600,
+                              color: scheme.onSurfaceVariant,
                               size: 20,
                             ),
                             Expanded(
@@ -282,7 +270,7 @@ class _WebImageCropperState extends State<WebImageCropper> {
                                 ), // Ensure value is always in range
                                 min: 0.5,
                                 max: 3.0,
-                                activeColor: AppColors.primaryRed,
+                                activeColor: scheme.primary,
                                 onChanged: (value) {
                                   setState(() {
                                     _scale = value.clamp(0.5, 3.0);
@@ -292,9 +280,7 @@ class _WebImageCropperState extends State<WebImageCropper> {
                             ),
                             Icon(
                               Icons.zoom_in,
-                              color: isDark
-                                  ? AppColors.neutralGray400
-                                  : AppColors.neutralGray600,
+                              color: scheme.onSurfaceVariant,
                               size: 20,
                             ),
                           ],
@@ -347,7 +333,10 @@ class _WebImageCropperState extends State<WebImageCropper> {
         width: _cropWidth,
         height: _cropHeight,
         decoration: BoxDecoration(
-          border: Border.all(color: AppColors.primaryRed, width: 2),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.primary,
+            width: 2,
+          ),
           borderRadius: borderRadius,
         ),
         child: ClipRRect(

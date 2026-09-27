@@ -38,17 +38,15 @@ class RepostAttributionBar extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     Widget attributionWidget = Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: isDark
-            ? AppColors.darkGray700.withValues(alpha: 0.5)
-            : AppColors.neutralGray100,
+        color: scheme.surfaceContainerHigh,
         border: Border(
           left: BorderSide(
-            color: AppColors.primaryRed.withValues(alpha: 0.5),
+            color: scheme.primary.withValues(alpha: 0.5),
             width: 3,
           ),
         ),
@@ -56,13 +54,13 @@ class RepostAttributionBar extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.repeat_rounded, size: 14, color: AppColors.neutralGray600),
+          Icon(Icons.repeat_rounded, size: 14, color: scheme.onSurfaceVariant),
           const SizedBox(width: 6),
           Flexible(
             child: Text(
               _buildAttributionText(),
               style: AppTypography.bodySmall.copyWith(
-                color: AppColors.neutralGray700,
+                color: scheme.onSurface,
                 fontStyle: FontStyle.italic,
               ),
             ),
@@ -98,15 +96,16 @@ class RepostIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     Widget child = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.repeat_rounded, size: 12, color: AppColors.neutralGray500),
+        Icon(Icons.repeat_rounded, size: 12, color: scheme.onSurfaceVariant),
         const SizedBox(width: 4),
         Text(
           'Repost',
           style: AppTypography.labelSmall.copyWith(
-            color: AppColors.neutralGray500,
+            color: scheme.onSurfaceVariant,
           ),
         ),
       ],

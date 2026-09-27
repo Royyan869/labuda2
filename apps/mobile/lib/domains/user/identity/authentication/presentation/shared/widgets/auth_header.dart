@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 
 /// Authentication screen header
 ///
@@ -55,20 +54,20 @@ class AuthHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     final headerContent = Column(
       children: [
         if (showLogo) ...[
           const SizedBox(height: 40),
-          _buildLogo(context, isDark),
+          _buildLogo(context),
         ],
         const SizedBox(height: 32),
         Text(
           title,
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
             fontWeight: FontWeight.bold,
-            color: isDark ? AppColors.neutralWhite : AppColors.neutralGray900,
+            color: scheme.onSurface,
           ),
           textAlign: TextAlign.center,
         ),
@@ -77,9 +76,7 @@ class AuthHeader extends StatelessWidget {
           Text(
             subtitle!,
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray600,
+              color: scheme.onSurfaceVariant,
             ),
             textAlign: TextAlign.center,
           ),
@@ -111,7 +108,8 @@ class AuthHeader extends StatelessWidget {
     return wrappedContent;
   }
 
-  Widget _buildLogo(BuildContext context, bool isDark) {
+  Widget _buildLogo(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Center(
       child: Container(
         width: 80,
@@ -120,9 +118,7 @@ class AuthHeader extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: isDark
-                  ? Colors.black.withValues(alpha: 0.3)
-                  : Colors.grey.withValues(alpha: 0.2),
+              color: scheme.shadow.withValues(alpha: 0.2),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -141,13 +137,13 @@ class AuthHeader extends StatelessWidget {
                 width: 80,
                 height: 80,
                 decoration: BoxDecoration(
-                  color: AppColors.primaryRed,
+                  color: scheme.primary,
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.lock_person,
                   size: 40,
-                  color: AppColors.neutralWhite,
+                  color: scheme.onPrimary,
                 ),
               );
             },

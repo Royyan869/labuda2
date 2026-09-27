@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { Topbar } from './Topbar'
 import { useAuthStore } from '@/store/authStore'
@@ -29,7 +30,7 @@ describe('Topbar authenticated identity presentation', () => {
       sessionToken: 'token',
     })
 
-    render(<Topbar />)
+    render(<MemoryRouter><Topbar /></MemoryRouter>)
 
     // Must display the canonical @username, not a UUID prefix
     expect(screen.getByText('@busiyono79')).toBeInTheDocument()
@@ -48,7 +49,7 @@ describe('Topbar authenticated identity presentation', () => {
       sessionToken: 'token',
     })
 
-    render(<Topbar />)
+    render(<MemoryRouter><Topbar /></MemoryRouter>)
 
     const avatarImg = screen.getByRole('img', { name: 'busiyono79' })
     expect(avatarImg).toBeInTheDocument()
@@ -66,7 +67,7 @@ describe('Topbar authenticated identity presentation', () => {
       sessionToken: 'token',
     })
 
-    render(<Topbar />)
+    render(<MemoryRouter><Topbar /></MemoryRouter>)
 
     // Canonical fallback: person icon in a circle, exposed as role="img"
     // with the identity label — never text initials.
@@ -87,7 +88,7 @@ describe('Topbar authenticated identity presentation', () => {
       sessionToken: 'token',
     })
 
-    render(<Topbar />)
+    render(<MemoryRouter><Topbar /></MemoryRouter>)
 
     // Must show @mycanonicalname, NOT @40448f54
     expect(screen.getByText('@mycanonicalname')).toBeInTheDocument()
@@ -105,7 +106,7 @@ describe('Topbar authenticated identity presentation', () => {
       sessionToken: 'token',
     })
 
-    render(<Topbar />)
+    render(<MemoryRouter><Topbar /></MemoryRouter>)
 
     // Empty username → shows "Admin" as the identity label, not UUID prefix
     expect(screen.getByText('Admin')).toBeInTheDocument()
@@ -124,7 +125,7 @@ describe('Topbar authenticated identity presentation', () => {
       sessionToken: 'token',
     })
 
-    render(<Topbar />)
+    render(<MemoryRouter><Topbar /></MemoryRouter>)
 
     // Open dropdown
     const menuButton = screen.getByRole('button')

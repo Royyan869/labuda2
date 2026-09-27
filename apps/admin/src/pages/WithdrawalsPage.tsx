@@ -76,14 +76,14 @@ export function WithdrawalsPage() {
       return (
         <div className="text-sm">
           <p className="font-medium">@{username}</p>
-          {farmName && <p className="text-xs text-gray-500">{farmName}</p>}
+          {farmName && <p className="text-xs text-muted-foreground">{farmName}</p>}
         </div>
       )
     }
 
     return (
       <div className="text-sm">
-        <p className="font-medium text-gray-500">{withdrawal.seller_id}</p>
+        <p className="font-medium text-muted-foreground">{withdrawal.seller_id}</p>
       </div>
     )
   }
@@ -93,7 +93,7 @@ export function WithdrawalsPage() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
-          <p className="mt-4 text-gray-600">Loading withdrawals...</p>
+          <p className="mt-4 text-muted-foreground">Loading withdrawals...</p>
         </div>
       </div>
     )
@@ -103,12 +103,12 @@ export function WithdrawalsPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Withdrawals</h1>
-          <p className="text-gray-600 mt-1">Manage seller withdrawal requests</p>
+          <h1 className="text-3xl font-bold text-foreground">Withdrawals</h1>
+          <p className="text-muted-foreground mt-1">Manage seller withdrawal requests</p>
         </div>
         <Card>
           <CardContent className="p-6">
-            <div className="text-center text-red-600">
+            <div className="text-center text-destructive">
               <p>Error loading withdrawals: {error.message}</p>
             </div>
           </CardContent>
@@ -122,8 +122,8 @@ export function WithdrawalsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Withdrawals</h1>
-          <p className="text-gray-600 mt-1">Manage seller withdrawal requests</p>
+          <h1 className="text-3xl font-bold text-foreground">Withdrawals</h1>
+          <p className="text-muted-foreground mt-1">Manage seller withdrawal requests</p>
         </div>
         <Button
           variant="secondary"
@@ -141,11 +141,11 @@ export function WithdrawalsPage() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Requests</p>
+                <p className="text-sm font-medium text-muted-foreground">Total Requests</p>
                 <p className="text-3xl font-bold text-primary mt-1">{total}</p>
               </div>
-              <div className="p-4 rounded-lg bg-blue-100">
-                <Wallet className="h-8 w-8 text-blue-600" />
+              <div className="p-4 rounded-lg bg-info-bg">
+                <Wallet className="h-8 w-8 text-info" />
               </div>
             </div>
           </CardContent>
@@ -154,11 +154,11 @@ export function WithdrawalsPage() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Pending Amount</p>
-                <p className="text-3xl font-bold text-amber-600 mt-1">{formatRupiah(pendingAmount)}</p>
+                <p className="text-sm font-medium text-muted-foreground">Pending Amount</p>
+                <p className="text-3xl font-bold text-warning mt-1">{formatRupiah(pendingAmount)}</p>
               </div>
-              <div className="p-4 rounded-lg bg-amber-100">
-                <DollarSign className="h-8 w-8 text-amber-600" />
+              <div className="p-4 rounded-lg bg-warning-bg">
+                <DollarSign className="h-8 w-8 text-warning" />
               </div>
             </div>
           </CardContent>
@@ -170,15 +170,15 @@ export function WithdrawalsPage() {
         <CardContent className="pt-6">
           <div className="flex items-center gap-6 flex-wrap">
             <div className="flex items-center gap-4">
-              <Filter className="h-5 w-5 text-gray-500" />
-              <label htmlFor="status-filter" className="text-sm font-medium text-gray-700">
+              <Filter className="h-5 w-5 text-muted-foreground" />
+              <label htmlFor="status-filter" className="text-sm font-medium text-foreground">
                 Status:
               </label>
               <select
                 id="status-filter"
                 value={statusFilter}
                 onChange={(e) => handleStatusChange(e.target.value as WithdrawalStatus | '')}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 {WITHDRAWAL_STATUSES.map((status) => (
                   <option key={status.value} value={status.value}>
@@ -199,16 +199,16 @@ export function WithdrawalsPage() {
         <CardContent>
           {withdrawals.length === 0 ? (
             <div className="text-center py-12">
-              <Wallet className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Withdrawals Found</h3>
-              <p className="text-gray-600">
+              <Wallet className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-foreground mb-2">No Withdrawals Found</h3>
+              <p className="text-muted-foreground">
                 {statusFilter
                   ? 'No withdrawals match the current filter.'
                   : 'No withdrawal requests in the system.'}
               </p>
             </div>
           ) : (
-            <div className="border border-gray-200 rounded-lg overflow-hidden">
+            <div className="border border-border rounded-lg overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -236,7 +236,7 @@ export function WithdrawalsPage() {
                               className="w-6 h-6 rounded-full object-cover"
                             />
                           ) : (
-                            <div className="w-6 h-6 rounded-full bg-gray-200" />
+                            <div className="w-6 h-6 rounded-full bg-border" />
                           )}
                           <div className="min-w-0 max-w-[180px]">
                             {renderSellerIdentity(withdrawal)}
@@ -246,7 +246,7 @@ export function WithdrawalsPage() {
                       <TableCell>
                         <div className="text-sm">
                           <p className="font-medium">{withdrawal.bank_name_snapshot}</p>
-                          <p className="text-gray-500">{withdrawal.account_number_snapshot}</p>
+                          <p className="text-muted-foreground">{withdrawal.account_number_snapshot}</p>
                         </div>
                       </TableCell>
                       <TableCell className="font-semibold">
@@ -257,7 +257,7 @@ export function WithdrawalsPage() {
                           {withdrawalStatusLabels[withdrawal.status] || withdrawal.status}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-sm text-gray-600">
+                      <TableCell className="text-sm text-muted-foreground">
                         {formatDate(withdrawal.created_at)}
                       </TableCell>
                       <TableCell className="text-right">
@@ -290,7 +290,7 @@ export function WithdrawalsPage() {
             <ChevronLeft className="h-4 w-4 mr-1" />
             Previous
           </Button>
-          <span className="text-sm text-gray-600 font-medium">
+          <span className="text-sm text-muted-foreground font-medium">
             Page {page} of {totalPages}
           </span>
           <Button

@@ -166,7 +166,6 @@ class _TextInputWidgetRefactoredState
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Location sharing not available'),
-        backgroundColor: AppColors.neutralGray600,
         duration: Duration(seconds: 3),
       ),
     );
@@ -199,15 +198,15 @@ class _TextInputWidgetRefactoredState
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     final actions = widget.customQuickActions ?? _getDefaultQuickActions();
 
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
+        color: scheme.surface,
         border: Border(
           top: BorderSide(
-            color: isDark ? AppColors.darkGray700 : AppColors.neutralGray200,
+            color: scheme.outlineVariant,
             width: 1,
           ),
         ),
@@ -219,7 +218,6 @@ class _TextInputWidgetRefactoredState
             TextInputReplyPreview(
               replyingTo: widget.replyingTo!,
               onCancelReply: widget.onCancelReply,
-              isDark: isDark,
             ),
 
           // Media Preview - Component usage
@@ -228,12 +226,11 @@ class _TextInputWidgetRefactoredState
               selectedMediaUrls: widget.selectedMediaUrls,
               onRemoveMedia: widget.onRemoveMedia,
               onMediaTap: _openFullScreenViewer,
-              isDark: isDark,
             ),
 
           // Extended Actions - Component usage (MOVED TO TOP)
           if (_showQuickActions && widget.config.enableQuickActions)
-            TextInputActions(actions: actions, isDark: isDark),
+            TextInputActions(actions: actions),
 
           // Main Input Area - Component usage (MOVED TO BOTTOM)
           TextInputArea(
@@ -247,7 +244,6 @@ class _TextInputWidgetRefactoredState
                 ? _toggleQuickActions
                 : null,
             onSendMessage: _sendMessage,
-            isDark: isDark,
           ),
         ],
       ),

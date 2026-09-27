@@ -363,7 +363,11 @@ void main() {
 
       await tester.pumpWidget(_wrap(container: container));
 
-      expect(find.text('Silakan login untuk melanjutkan.'), findsOneWidget);
+      // CHANNEL PARITY: hydration fails closed on the canonical loading
+      // surface (identical to the for-sale create screen) — the channel never
+      // claims "please login" before it knows the session.
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.text('Silakan login untuk melanjutkan.'), findsNothing);
       expect(find.byType(TextFormField), findsNothing);
       expect(find.text('Informasi Dasar'), findsNothing);
     });
@@ -457,7 +461,10 @@ void main() {
 
       await tester.pumpWidget(_wrap(container: container));
 
-      expect(find.text('Silakan login untuk melanjutkan.'), findsOneWidget);
+      // CHANNEL PARITY: a restricted account lands on the canonical
+      // restricted screen — never on a false login claim.
+      expect(find.byType(AccountRestrictedScreen), findsOneWidget);
+      expect(find.text('Silakan login untuk melanjutkan.'), findsNothing);
       expect(find.byType(TextFormField), findsNothing);
       expect(
         (container.read(auctionNotifierProvider.notifier)

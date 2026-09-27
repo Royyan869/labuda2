@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -19,7 +18,7 @@ class SocialMediaChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return InkWell(
       onTap: () => _launchUrl(context),
@@ -27,28 +26,22 @@ class SocialMediaChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: isDark
-              ? AppColors.darkGray600.withValues(alpha: 0.3)
-              : AppColors.neutralGray50,
+          color: scheme.surfaceContainerLow,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: isDark
-                ? AppColors.darkGray500.withValues(alpha: 0.5)
-                : AppColors.neutralGray200,
+            color: scheme.outlineVariant,
           ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 16, color: AppColors.primary),
+            Icon(icon, size: 16, color: scheme.primary),
             const SizedBox(width: 8),
             Text(
               label,
               style: TextStyle(
                 fontSize: 13,
-                color: isDark
-                    ? AppColors.neutralGray300
-                    : AppColors.neutralGray700,
+                color: scheme.onSurface,
               ),
             ),
           ],

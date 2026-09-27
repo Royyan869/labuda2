@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:labuda/core/core.dart';
+import 'package:flutter/material.dart';
 import 'package:labuda/core/src/config/google_config.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/shared/entities/post_location.dart';
@@ -10,7 +10,6 @@ class AddressMapPickerField extends StatelessWidget {
   final double? longitude;
   final String streetAddress;
   final Function(double?, double?) onCoordinatesChanged;
-  final bool isDark;
 
   const AddressMapPickerField({
     super.key,
@@ -18,13 +17,14 @@ class AddressMapPickerField extends StatelessWidget {
     this.longitude,
     required this.streetAddress,
     required this.onCoordinatesChanged,
-    required this.isDark,
+    
   });
 
   bool get hasCoordinates => latitude != null && longitude != null;
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -34,14 +34,12 @@ class AddressMapPickerField extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
             decoration: BoxDecoration(
-              color: isDark ? AppColors.darkGray700 : AppColors.neutralGray50,
+              color: scheme.onSurfaceVariant,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: hasCoordinates
                     ? AppColors.success
-                    : (isDark
-                          ? AppColors.darkGray600
-                          : AppColors.neutralGray300),
+                    : scheme.onSurfaceVariant,
                 width: hasCoordinates ? 2 : 1,
               ),
             ),
@@ -52,9 +50,7 @@ class AddressMapPickerField extends StatelessWidget {
                   size: 20,
                   color: hasCoordinates
                       ? AppColors.success
-                      : (isDark
-                            ? AppColors.neutralGray400
-                            : AppColors.neutralGray600),
+                      : scheme.onSurfaceVariant,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -70,9 +66,7 @@ class AddressMapPickerField extends StatelessWidget {
                           fontWeight: FontWeight.w500,
                           color: hasCoordinates
                               ? AppColors.success
-                              : (isDark
-                                    ? AppColors.neutralGray200
-                                    : AppColors.neutralGray900),
+                              : scheme.onSurfaceVariant,
                         ),
                       ),
                       if (hasCoordinates)
@@ -81,9 +75,7 @@ class AddressMapPickerField extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 11,
                             fontFamily: 'monospace',
-                            color: isDark
-                                ? AppColors.neutralGray400
-                                : AppColors.neutralGray600,
+                            color: scheme.onSurfaceVariant,
                           ),
                         ),
                     ],
@@ -92,9 +84,7 @@ class AddressMapPickerField extends StatelessWidget {
                 Icon(
                   Icons.chevron_right,
                   size: 20,
-                  color: isDark
-                      ? AppColors.neutralGray400
-                      : AppColors.neutralGray600,
+                  color: scheme.onSurfaceVariant,
                 ),
               ],
             ),
@@ -105,7 +95,7 @@ class AddressMapPickerField extends StatelessWidget {
           'Pinpoint location to facilitate delivery',
           style: TextStyle(
             fontSize: 11,
-            color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray500,
+            color: scheme.onSurfaceVariant,
           ),
         ),
       ],

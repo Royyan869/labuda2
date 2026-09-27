@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
-import 'package:labuda/core/core.dart';
 
 class MediaVideoItem extends StatefulWidget {
   final File video;
@@ -58,7 +57,7 @@ class _MediaVideoItemState extends State<MediaVideoItem> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Container(
       width: widget.width,
@@ -66,7 +65,7 @@ class _MediaVideoItemState extends State<MediaVideoItem> {
       margin: const EdgeInsets.only(right: 8),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        color: isDark ? AppColors.darkGray600 : AppColors.neutralGray100,
+        color: scheme.surfaceContainerHighest,
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
@@ -76,30 +75,30 @@ class _MediaVideoItemState extends State<MediaVideoItem> {
             SizedBox(
               width: double.infinity,
               height: double.infinity,
-              child: _buildVideoContent(isDark),
+              child: _buildVideoContent(scheme),
             ),
 
             // Video indicator
-            _buildVideoIndicator(),
+            _buildVideoIndicator(scheme),
 
             // Remove button
-            if (widget.onRemove != null) _buildRemoveButton(),
+            if (widget.onRemove != null) _buildRemoveButton(scheme),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildVideoContent(bool isDark) {
+  Widget _buildVideoContent(ColorScheme scheme) {
     if (_hasError) {
       return Container(
         decoration: BoxDecoration(
-          color: isDark ? AppColors.darkGray500 : AppColors.neutralGray200,
+          color: scheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Icon(
           Icons.error_outline,
-          color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray500,
+          color: scheme.onSurfaceVariant,
           size: 32,
         ),
       );
@@ -108,7 +107,7 @@ class _MediaVideoItemState extends State<MediaVideoItem> {
     if (!_isInitialized || _controller == null) {
       return Container(
         decoration: BoxDecoration(
-          color: isDark ? AppColors.darkGray500 : AppColors.neutralGray200,
+          color: scheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(12),
         ),
         child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
@@ -121,27 +120,27 @@ class _MediaVideoItemState extends State<MediaVideoItem> {
     );
   }
 
-  Widget _buildVideoIndicator() {
+  Widget _buildVideoIndicator(ColorScheme scheme) {
     return Positioned(
       bottom: 8,
       left: 8,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
         decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.7),
+          color: scheme.scrim.withValues(alpha: 0.7),
           borderRadius: BorderRadius.circular(4),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.play_arrow, color: AppColors.neutralWhite, size: 12),
+            Icon(Icons.play_arrow, color: scheme.onPrimary, size: 12),
             const SizedBox(width: 2),
             Text(
               _isInitialized && _controller != null
                   ? _formatDuration(_controller!.value.duration)
                   : '--:--',
               style: TextStyle(
-                color: AppColors.neutralWhite,
+                color: scheme.onPrimary,
                 fontSize: 10,
                 fontWeight: FontWeight.w500,
               ),
@@ -152,7 +151,7 @@ class _MediaVideoItemState extends State<MediaVideoItem> {
     );
   }
 
-  Widget _buildRemoveButton() {
+  Widget _buildRemoveButton(ColorScheme scheme) {
     return Positioned(
       top: 4,
       right: 4,
@@ -162,10 +161,10 @@ class _MediaVideoItemState extends State<MediaVideoItem> {
           width: 24,
           height: 24,
           decoration: BoxDecoration(
-            color: AppColors.error.withValues(alpha: 0.9),
+            color: scheme.error.withValues(alpha: 0.9),
             shape: BoxShape.circle,
           ),
-          child: Icon(Icons.close, color: AppColors.neutralWhite, size: 16),
+          child: Icon(Icons.close, color: scheme.onPrimary, size: 16),
         ),
       ),
     );

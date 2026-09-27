@@ -65,7 +65,7 @@ export function DisputesPage() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
-          <p className="mt-4 text-gray-600">Loading disputes...</p>
+          <p className="mt-4 text-[hsl(var(--muted-foreground))]">Loading disputes...</p>
         </div>
       </div>
     )
@@ -75,12 +75,12 @@ export function DisputesPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Disputes</h1>
-          <p className="text-gray-600 mt-1">Review and resolve buyer-seller disputes</p>
+          <h1 className="text-3xl font-bold text-[hsl(var(--foreground))]">Disputes</h1>
+          <p className="text-[hsl(var(--muted-foreground))] mt-1">Review and resolve buyer-seller disputes</p>
         </div>
         <Card>
           <CardContent className="p-6">
-            <div className="text-center text-red-600">
+            <div className="text-center text-[hsl(var(--destructive))]">
               <p>Error loading disputes: {error.message}</p>
             </div>
           </CardContent>
@@ -96,8 +96,8 @@ export function DisputesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Disputes</h1>
-          <p className="text-gray-600 mt-1">Review and resolve buyer-seller disputes</p>
+          <h1 className="text-3xl font-bold text-[hsl(var(--foreground))]">Disputes</h1>
+          <p className="text-[hsl(var(--muted-foreground))] mt-1">Review and resolve buyer-seller disputes</p>
         </div>
         <Button
           variant="secondary"
@@ -114,12 +114,12 @@ export function DisputesPage() {
         <CardContent className="pt-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Total Disputes</p>
+              <p className="text-sm font-medium text-[hsl(var(--muted-foreground))]">Total Disputes</p>
               <p className="text-3xl font-bold text-primary mt-1">{total}</p>
-              <p className="text-xs text-gray-500 mt-1">{openedCount} pending resolution</p>
+              <p className="text-xs text-[hsl(var(--muted-foreground))] mt-1">{openedCount} pending resolution</p>
             </div>
-            <div className="p-4 rounded-lg bg-orange-100">
-              <AlertTriangle className="h-8 w-8 text-orange-600" />
+            <div className="p-4 rounded-lg bg-[hsl(var(--warning-bg))]">
+              <AlertTriangle className="h-8 w-8 text-[hsl(var(--warning))]" />
             </div>
           </div>
         </CardContent>
@@ -129,15 +129,15 @@ export function DisputesPage() {
       <Card>
         <CardContent className="pt-6">
           <div className="flex items-center gap-4">
-            <Filter className="h-5 w-5 text-gray-500" />
-            <label htmlFor="status-filter" className="text-sm font-medium text-gray-700">
+            <Filter className="h-5 w-5 text-[hsl(var(--muted-foreground))]" />
+            <label htmlFor="status-filter" className="text-sm font-medium text-[hsl(var(--foreground))]">
               Status:
             </label>
             <select
               id="status-filter"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as DisputeStatus | '')}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className="px-3 py-2 border border-[hsl(var(--border))] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             >
               {DISPUTE_STATUSES.map((status) => (
                 <option key={status.value} value={status.value}>
@@ -157,16 +157,16 @@ export function DisputesPage() {
         <CardContent>
           {disputes.length === 0 ? (
             <div className="text-center py-12">
-              <AlertTriangle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Disputes Found</h3>
-              <p className="text-gray-600">
+              <AlertTriangle className="h-12 w-12 text-[hsl(var(--muted-foreground))] mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-[hsl(var(--foreground))] mb-2">No Disputes Found</h3>
+              <p className="text-[hsl(var(--muted-foreground))]">
                 {statusFilter
                   ? 'No disputes match the current filter.'
                   : 'No disputes in the system.'}
               </p>
             </div>
           ) : (
-            <div className="border border-gray-200 rounded-lg overflow-hidden">
+            <div className="border border-[hsl(var(--border))] rounded-lg overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -199,7 +199,7 @@ export function DisputesPage() {
                               className="w-6 h-6 rounded-full object-cover"
                             />
                           ) : (
-                            <div className="w-6 h-6 rounded-full bg-gray-200" />
+                            <div className="w-6 h-6 rounded-full bg-[hsl(var(--surface-muted))]" />
                           )}
                           <span className="text-sm truncate max-w-[100px]">
                             {dispute.buyer_username || 'Unknown'}
@@ -215,14 +215,14 @@ export function DisputesPage() {
                               className="w-6 h-6 rounded-full object-cover"
                             />
                           ) : (
-                            <div className="w-6 h-6 rounded-full bg-gray-200" />
+                            <div className="w-6 h-6 rounded-full bg-[hsl(var(--surface-muted))]" />
                           )}
                           <div className="min-w-0">
                             <p className="text-sm truncate max-w-[100px]">
                               {dispute.seller_username || 'Unknown'}
                             </p>
                             {dispute.seller_farm_name && (
-                              <p className="text-xs text-gray-500 truncate max-w-[100px]">
+                              <p className="text-xs text-[hsl(var(--muted-foreground))] truncate max-w-[100px]">
                                 {dispute.seller_farm_name}
                               </p>
                             )}
@@ -242,14 +242,14 @@ export function DisputesPage() {
                       <TableCell>
                         {dispute.resolution_overdue ? (
                           <div className="flex items-center gap-1">
-                            <AlertTriangle className="h-3 w-3 text-red-600" />
+                            <AlertTriangle className="h-3 w-3 text-[hsl(var(--destructive))]" />
                             <Badge variant="error" className="text-xs">
                               OVERDUE
                             </Badge>
                           </div>
                         ) : dispute.admin_response_overdue ? (
                           <div className="flex items-center gap-1">
-                            <Clock className="h-3 w-3 text-orange-600" />
+                            <Clock className="h-3 w-3 text-[hsl(var(--warning))]" />
                             <Badge variant="warning" className="text-xs">
                               Response Late
                             </Badge>
@@ -260,7 +260,7 @@ export function DisputesPage() {
                           </Badge>
                         )}
                       </TableCell>
-                      <TableCell className="text-sm text-gray-600">
+                      <TableCell className="text-sm text-[hsl(var(--muted-foreground))]">
                         {formatDate(dispute.opened_at)}
                       </TableCell>
                       <TableCell className="text-right">

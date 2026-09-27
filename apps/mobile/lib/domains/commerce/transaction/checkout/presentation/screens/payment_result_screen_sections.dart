@@ -21,24 +21,18 @@ String _paymentResultGetElapsedTimeMessage(PaymentResultState state) {
 /// "Apa Selanjutnya?" section shown after successful payment
 /// Provides buyers with clarity on what happens next in the order journey
 class _NextStepsSection extends StatelessWidget {
-  final bool isDark;
-
-  const _NextStepsSection({required this.isDark});
+  const _NextStepsSection();
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark
-            ? core.AppColors.darkGray800
-            : core.AppColors.neutralWhite,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark
-              ? core.AppColors.darkGray700
-              : core.AppColors.neutralGray200,
-        ),
+        border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -64,9 +58,7 @@ class _NextStepsSection extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: isDark
-                      ? core.AppColors.neutralWhite
-                      : core.AppColors.neutralGray900,
+                  color: colorScheme.onSurface,
                 ),
               ),
             ],
@@ -74,28 +66,25 @@ class _NextStepsSection extends StatelessWidget {
           const SizedBox(height: 16),
 
           // Next steps list
-          _NextStepItem(
+          const _NextStepItem(
             icon: Icons.store_outlined,
             title: 'Penjual mempersiapkan pesanan',
             description:
                 'Penjual akan menyiapkan ikan sesuai dengan spesifikasi pesanan',
-            isDark: isDark,
           ),
           const SizedBox(height: 12),
-          _NextStepItem(
+          const _NextStepItem(
             icon: Icons.local_shipping_outlined,
             title: 'Pengiriman diatur oleh penjual',
             description:
                 'Setelah siap, penjual akan mengirim pesanan dan mengupdate resi',
-            isDark: isDark,
           ),
           const SizedBox(height: 12),
-          _NextStepItem(
+          const _NextStepItem(
             icon: Icons.chat_bubble_outline,
             title: 'Pantau melalui Pesanan / Chat',
             description:
                 'Anda dapat memantau status pesanan dan berkomunikasi dengan penjual',
-            isDark: isDark,
           ),
         ],
       ),
@@ -108,27 +97,27 @@ class _NextStepItem extends StatelessWidget {
   final IconData icon;
   final String title;
   final String description;
-  final bool isDark;
 
   const _NextStepItem({
     required this.icon,
     required this.title,
     required this.description,
-    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: core.AppColors.primaryBlue.withValues(alpha: 0.1),
+            color: colorScheme.secondary.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, size: 16, color: core.AppColors.primaryBlue),
+          child: Icon(icon, size: 16, color: colorScheme.secondary),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -140,9 +129,7 @@ class _NextStepItem extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: isDark
-                      ? core.AppColors.neutralWhite
-                      : core.AppColors.neutralGray900,
+                  color: colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 2),
@@ -150,7 +137,7 @@ class _NextStepItem extends StatelessWidget {
                 description,
                 style: TextStyle(
                   fontSize: 12,
-                  color: core.AppColors.neutralGray600,
+                  color: colorScheme.onSurfaceVariant,
                   height: 1.4,
                 ),
               ),

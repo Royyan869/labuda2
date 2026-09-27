@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/src/theme/app_colors.dart';
 
 /// Navigation components untuk Media Viewer
 ///
@@ -24,24 +23,25 @@ class MediaViewerNavigation extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (totalItems <= 1) return const SizedBox.shrink();
+    final scheme = Theme.of(context).colorScheme;
 
     return Stack(
       children: [
         // Navigation arrows
-        _buildNavigationArrows(),
+        _buildNavigationArrows(scheme),
 
         // Bottom page indicators
         Positioned(
           bottom: 32,
           left: 0,
           right: 0,
-          child: _buildPageIndicators(),
+          child: _buildPageIndicators(scheme),
         ),
       ],
     );
   }
 
-  Widget _buildNavigationArrows() {
+  Widget _buildNavigationArrows(ColorScheme scheme) {
     return Row(
       children: [
         // Left arrow
@@ -77,13 +77,13 @@ class MediaViewerNavigation extends StatelessWidget {
     );
   }
 
-  Widget _buildPageIndicators() {
+  Widget _buildPageIndicators(ColorScheme scheme) {
     return Container(
       alignment: Alignment.center,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: AppColors.dark.withValues(alpha: 0.6),
+          color: scheme.scrim.withValues(alpha: 0.6),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Row(
@@ -97,8 +97,8 @@ class MediaViewerNavigation extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: currentIndex == index
-                    ? AppColors.light
-                    : AppColors.light.withValues(alpha: 0.4),
+                    ? scheme.onPrimary
+                    : scheme.onPrimary.withValues(alpha: 0.4),
               ),
             ),
           ),
@@ -121,16 +121,17 @@ class MediaViewerNavigationButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         width: 48,
         height: 48,
         decoration: BoxDecoration(
-          color: AppColors.dark.withValues(alpha: 0.6),
+          color: scheme.scrim.withValues(alpha: 0.6),
           shape: BoxShape.circle,
         ),
-        child: Icon(icon, color: AppColors.light, size: 28),
+        child: Icon(icon, color: scheme.onPrimary, size: 28),
       ),
     );
   }

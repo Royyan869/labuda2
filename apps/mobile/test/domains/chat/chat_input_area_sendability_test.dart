@@ -70,7 +70,6 @@ ProviderScope _wrap(Widget child) {
       currentUserIdProvider.overrideWith((ref) => _currentUserId),
       chatDetailProvider(_chatId).overrideWith(_FakeChatDetailNotifier.new),
       negotiationNotifierProvider.overrideWith(_FakeNegotiationNotifier.new),
-      typingIndicatorEnabledProvider.overrideWithValue(false),
     ],
     child: MaterialApp(
       home: Scaffold(

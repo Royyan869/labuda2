@@ -38,36 +38,36 @@ function getWebhookEventDescription(event: WebhookEventType, metadata?: Record<s
 
 function renderEventIcon(eventType: string, iconColor: string) {
   if (!isWebhookEventType(eventType)) {
-    return <div className="w-3 h-3 rounded-full bg-primary border-2 border-white shadow-sm" />
+    return <div className="w-3 h-3 rounded-full bg-primary border-2 border-background shadow-sm" />
   }
 
   switch (eventType) {
     case 'webhook.received':
       return (
-        <div className="p-1 rounded-full bg-white border-2 border-gray-200 shadow-sm">
+        <div className="p-1 rounded-full bg-background border-2 border-border shadow-sm">
           <Globe className={`h-3.5 w-3.5 ${iconColor}`} />
         </div>
       )
     case 'webhook.retry':
       return (
-        <div className="p-1 rounded-full bg-white border-2 border-gray-200 shadow-sm">
+        <div className="p-1 rounded-full bg-background border-2 border-border shadow-sm">
           <RefreshCw className={`h-3.5 w-3.5 ${iconColor}`} />
         </div>
       )
     case 'webhook.failed':
       return (
-        <div className="p-1 rounded-full bg-white border-2 border-gray-200 shadow-sm">
+        <div className="p-1 rounded-full bg-background border-2 border-border shadow-sm">
           <AlertTriangle className={`h-3.5 w-3.5 ${iconColor}`} />
         </div>
       )
     case 'webhook.processed':
       return (
-        <div className="p-1 rounded-full bg-white border-2 border-gray-200 shadow-sm">
+        <div className="p-1 rounded-full bg-background border-2 border-border shadow-sm">
           <CheckCircle className={`h-3.5 w-3.5 ${iconColor}`} />
         </div>
       )
     default:
-      return <div className="w-3 h-3 rounded-full bg-primary border-2 border-white shadow-sm" />
+      return <div className="w-3 h-3 rounded-full bg-primary border-2 border-background shadow-sm" />
   }
 }
 
@@ -86,15 +86,15 @@ function getEventIconColor(eventType: string): string {
   if (eventType.startsWith('webhook.')) {
     switch (eventType) {
       case 'webhook.received':
-        return 'text-blue-500'
+        return 'text-primary'
       case 'webhook.retry':
-        return 'text-amber-500'
+        return 'text-warning'
       case 'webhook.failed':
-        return 'text-red-500'
+        return 'text-destructive'
       case 'webhook.processed':
-        return 'text-green-500'
+        return 'text-success'
       default:
-        return 'text-gray-500'
+        return 'text-muted-foreground'
     }
   }
   return 'text-primary'
@@ -192,7 +192,7 @@ function TimelineItem({ event, isLast }: TimelineItemProps) {
       {/* Timeline connector */}
       <div className="flex flex-col items-center">
         {renderEventIcon(event.event, iconColor)}
-        {!isLast && <div className="w-0.5 flex-1 bg-gray-200 min-h-[48px]" />}
+        {!isLast && <div className="w-0.5 flex-1 bg-muted min-h-[48px]" />}
       </div>
 
       {/* Timeline content */}
@@ -201,31 +201,31 @@ function TimelineItem({ event, isLast }: TimelineItemProps) {
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1">
             {/* Human-readable description (primary) */}
-            <p className={`text-sm font-medium ${isWebhookEvent ? 'text-gray-900' : 'text-gray-900'}`}>
+            <p className={`text-sm font-medium ${isWebhookEvent ? 'text-foreground' : 'text-foreground'}`}>
               {description}
             </p>
 
             {/* Event type code (secondary, smaller) */}
-            <p className="text-xs text-gray-400 mt-0.5 font-mono">{event.event}</p>
+            <p className="text-xs text-muted-foreground mt-0.5 font-mono">{event.event}</p>
 
             {/* Timestamp */}
-            <p className="text-xs text-gray-500 mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5">
               {new Date(event.timestamp).toLocaleString('id-ID')}
             </p>
 
             {/* Actor */}
             {event.actor_name && (
               <div className="flex items-center gap-1 mt-1">
-                <User className="h-3 w-3 text-gray-400" />
-                <p className="text-xs text-gray-500">{event.actor_name}</p>
+                <User className="h-3 w-3 text-muted-foreground" />
+                <p className="text-xs text-muted-foreground">{event.actor_name}</p>
               </div>
             )}
 
             {/* Auto-release date for proof_submitted event */}
             {autoReleaseDate && (
-              <div className="flex items-center gap-1.5 mt-2 p-2 bg-blue-50 rounded-md">
-                <Calendar className="h-3 w-3 text-blue-600" />
-                <p className="text-xs text-blue-700">
+              <div className="flex items-center gap-1.5 mt-2 p-2 bg-primary/10 rounded-md">
+                <Calendar className="h-3 w-3 text-primary" />
+                <p className="text-xs text-primary">
                   Auto-release: {autoReleaseDate.toLocaleDateString('id-ID')}
                 </p>
               </div>
@@ -235,17 +235,17 @@ function TimelineItem({ event, isLast }: TimelineItemProps) {
             {isWebhookEvent && event.metadata && (
               <div className="mt-2 space-y-1">
                 {!!event.metadata.http_status && (
-                  <div className="text-xs text-gray-600">
+                  <div className="text-xs text-muted-foreground">
                     HTTP Status: <span className="font-mono">{event.metadata.http_status as string}</span>
                   </div>
                 )}
                 {!!event.metadata.retry_count && (
-                  <div className="text-xs text-amber-600">
+                  <div className="text-xs text-warning">
                     Retry attempt: {event.metadata.retry_count as string}
                   </div>
                 )}
                 {!!event.metadata.error && (
-                  <div className="text-xs text-red-600">
+                  <div className="text-xs text-destructive">
                     Error: {event.metadata.error as string}
                   </div>
                 )}
@@ -257,13 +257,13 @@ function TimelineItem({ event, isLast }: TimelineItemProps) {
           {hasMetadata && (
             <button
               onClick={() => setIsExpanded(!isExpanded)}
-              className="p-1 hover:bg-gray-100 rounded transition-colors"
+              className="p-1 hover:bg-muted rounded transition-colors"
               aria-label={isExpanded ? 'Collapse payload' : 'Expand payload'}
             >
               {isExpanded ? (
-                <ChevronDown className="h-4 w-4 text-gray-500" />
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
               ) : (
-                <ChevronRight className="h-4 w-4 text-gray-500" />
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
               )}
             </button>
           )}
@@ -271,9 +271,9 @@ function TimelineItem({ event, isLast }: TimelineItemProps) {
 
         {/* Expandable metadata payload (secondary, collapsible) */}
         {hasMetadata && isExpanded && (
-          <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
-            <p className="text-xs font-medium text-gray-500 mb-2">Raw Payload</p>
-            <pre className="text-xs font-mono text-gray-600 overflow-x-auto whitespace-pre-wrap">
+          <div className="mt-3 p-3 bg-muted rounded-lg border border-border">
+            <p className="text-xs font-medium text-muted-foreground mb-2">Raw Payload</p>
+            <pre className="text-xs font-mono text-muted-foreground overflow-x-auto whitespace-pre-wrap">
               {JSON.stringify(event.metadata, null, 2)}
             </pre>
           </div>
@@ -312,7 +312,7 @@ export function TimelinePanel({ events, loading }: TimelinePanelProps) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-gray-500">No timeline events available</p>
+          <p className="text-sm text-muted-foreground">No timeline events available</p>
         </CardContent>
       </Card>
     )
@@ -324,7 +324,7 @@ export function TimelinePanel({ events, loading }: TimelinePanelProps) {
         <CardTitle className="text-lg flex items-center gap-2">
           <Clock className="h-5 w-5" />
           Timeline
-          <span className="text-sm font-normal text-gray-500">({events.length} events)</span>
+          <span className="text-sm font-normal text-muted-foreground">({events.length} events)</span>
         </CardTitle>
       </CardHeader>
       <CardContent>

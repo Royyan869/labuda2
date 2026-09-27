@@ -1,13 +1,18 @@
 /// Auction Detail Header
 ///
-/// Header widget showing auction media and basic info
+/// The canonical DETAIL MEDIA BLOCK — identical to the ForSale gallery:
+/// the shared `MediaCarouselWidget` at 4/3, edge to edge, no raw
+/// `Image.network`, no local `PageView` controller.
+///
+/// The title is NOT part of the header; both channels render it as the first
+/// item of the detail body (same style, same spacing).
 library;
 
 import 'package:flutter/material.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
+import 'package:labuda/shared/shared.dart';
 import 'package:labuda/shared/utils/media_extensions.dart';
 
-/// Header widget for auction detail
 class AuctionDetailHeader extends StatelessWidget {
   final Auction auction;
 
@@ -15,48 +20,25 @@ class AuctionDetailHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    if (auction.media.isNotEmptyUrls) {
+      return MediaCarouselWidget(
+        media: auction.media,
+        aspectRatio: 4 / 3,
+        borderRadius: BorderRadius.zero,
+      );
+    }
+
     return Container(
-      color: Colors.white,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Media gallery
-          if (auction.media.isNotEmptyUrls)
-            SizedBox(
-              height: 300,
-              child: PageView.builder(
-                itemCount: auction.media.length,
-                itemBuilder: (context, index) {
-                  return Image.network(
-                    auction.media.urls[index],
-                    fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        color: Colors.grey[200],
-                        child: const Center(
-                          child: Icon(Icons.image_not_supported, size: 64),
-                        ),
-                      );
-                    },
-                  );
-                },
-              ),
-            )
-          else
-            Container(
-              height: 300,
-              color: Colors.grey[200],
-              child: const Center(child: Icon(Icons.image, size: 64)),
-            ),
-          // Title
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text(
-              auction.title,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
+      height: 225,
+      color: colorScheme.surfaceContainerHighest,
+      child: Center(
+        child: Icon(
+          Icons.image_outlined,
+          size: 64,
+          color: colorScheme.onSurfaceVariant,
+        ),
       ),
     );
   }

@@ -7,15 +7,16 @@ import 'package:flutter/material.dart';
 import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
 import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_common_product_detail_section.dart';
+import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_detail_primitives.dart';
 
-/// Detail info widget for auction
+/// Detail info widget for auction — TWO cards:
+///   1. auction-specific card (channel explanation + bid increment)
+///   2. the shared Product content card, consumed through
+///      [CommerceCommonProductDetailSection] — the SAME section the ForSale
+///      sibling uses, so no canonical value preserved in the Auction read
+///      model is left dead.
 ///
-/// Canonical Product content from the detail wire (variety, size_cm,
-/// age_months, gender, breeder, bloodline, certificates, preparation_time,
-/// preparation_note, description) is consumed through the shared
-/// [CommerceCommonProductDetailSection] — the same section the ForSale/ForSale
-/// sibling uses, so no canonical value preserved in the Auction read model is
-/// left dead. 'Bid Increment' remains the auction-specific row.
+/// Both use the canonical 16-margin [CommerceDetailSectionCard] frame.
 class AuctionDetailInfo extends StatelessWidget {
   final Auction auction;
 
@@ -25,62 +26,73 @@ class AuctionDetailInfo extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Container(
-      color: colorScheme.surface,
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Detail Lelang',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          // AUCTION EXPLANATION - Minimal 1-line explanation
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.info_outline,
-                  size: 16,
-                  color: colorScheme.onSurfaceVariant,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 1) Channel-specific card.
+        CommerceDetailSectionCard(
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Detail Lelang',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Lelang — harga naik, penawar tertinggi menang',
-                    style: TextStyle(
-                      fontSize: 13,
+              ),
+              const SizedBox(height: 8),
+              // AUCTION EXPLANATION - Minimal 1-line explanation
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      size: 16,
                       color: colorScheme.onSurfaceVariant,
-                      fontStyle: FontStyle.italic,
                     ),
-                  ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Lelang — harga naik, penawar tertinggi menang',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: colorScheme.onSurfaceVariant,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 12),
+              _buildInfoRow(
+                context,
+                'Bid Increment',
+                'Rp ${formatGroupedAmount(auction.bidIncrement.round())}',
+              ),
+            ],
           ),
-          const SizedBox(height: 12),
-          // Canonical shared product detail section — renders only the rows
-          // whose canonical value is present (variety/size/age/gender/
-          // breeder/bloodline/certificates/preparation/description). When the
-          // payload carries none of them it collapses to nothing.
-          CommerceCommonProductDetailSection(
-            title: '',
+        ),
+        // 2) Shared Product content card (identical to the ForSale surface).
+        //    Renders only the rows whose canonical value is present; when the
+        //    payload carries none of them it collapses to nothing.
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: CommerceCommonProductDetailSection(
+            title: 'Detail Produk',
             data: CommerceCommonProductDetailsData.fromAuction(auction),
           ),
-          const SizedBox(height: 12),
-          _buildInfoRow(
-            context,
-            'Bid Increment',
-            'Rp ${formatGroupedAmount(auction.bidIncrement.round())}',
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 

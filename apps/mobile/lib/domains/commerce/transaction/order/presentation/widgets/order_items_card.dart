@@ -2,22 +2,20 @@ part of 'order_widgets_impl.dart';
 
 class OrderItemsCard extends StatelessWidget {
   final Order order;
-  final bool isDark;
 
-  const OrderItemsCard({super.key, required this.order, required this.isDark});
+  const OrderItemsCard({super.key, required this.order});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDark ? const Color(0xFF333333) : const Color(0xFFE0E0E0),
-        ),
+        border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -29,9 +27,7 @@ class OrderItemsCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          ...order.items.map(
-            (item) => _OrderItemTile(item: item, isDark: isDark),
-          ),
+          ...order.items.map((item) => _OrderItemTile(item: item)),
           const SizedBox(height: 12),
           const Divider(),
           const SizedBox(height: 8),
@@ -48,7 +44,7 @@ class OrderItemsCard extends StatelessWidget {
                 AppFormatters.formatCurrency(order.pricing.subtotal),
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w700,
-                  color: core.AppColors.primaryRed,
+                  color: colorScheme.primary,
                 ),
               ),
             ],
@@ -61,13 +57,13 @@ class OrderItemsCard extends StatelessWidget {
 
 class _OrderItemTile extends StatelessWidget {
   final OrderItem item;
-  final bool isDark;
 
-  const _OrderItemTile({required this.item, required this.isDark});
+  const _OrderItemTile({required this.item});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -86,12 +82,12 @@ class _OrderItemTile extends StatelessWidget {
                   width: 60,
                   height: 60,
                   decoration: BoxDecoration(
-                    color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
+                    color: colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
                     Icons.image_not_supported,
-                    color: Colors.grey,
+                    color: colorScheme.onSurfaceVariant,
                     size: 24,
                   ),
                 );
@@ -135,14 +131,14 @@ class _OrderItemTile extends StatelessWidget {
                     Text(
                       AppFormatters.formatCurrency(item.price),
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: core.AppColors.primaryRed,
+                        color: colorScheme.primary,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     Text(
                       'x${item.quantity}',
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.grey,
+                        color: colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],
@@ -163,18 +159,21 @@ class _VariantChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: Colors.grey.withValues(alpha: 0.1),
+        color: colorScheme.onSurfaceVariant.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
+        border: Border.all(
+          color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+        ),
       ),
       child: Text(
         label,
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
           fontSize: 10,
-          color: Colors.grey.shade700,
+          color: colorScheme.onSurfaceVariant,
         ),
       ),
     );

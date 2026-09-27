@@ -142,7 +142,7 @@ function DetailModal({ productId, isOpen, onClose, onSuccess }: DetailModalProps
       )}
 
       {fetchError && (
-        <div className="flex items-center gap-2 text-red-600 py-4">
+        <div className="flex items-center gap-2 text-destructive py-4">
           <AlertTriangle className="h-4 w-4" />
           <span className="text-sm">{fetchError}</span>
         </div>
@@ -165,7 +165,7 @@ function DetailModal({ productId, isOpen, onClose, onSuccess }: DetailModalProps
               href={product.external_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1 text-sm text-blue-600 hover:underline"
+              className="flex items-center gap-1 text-sm text-info hover:underline"
             >
               <ExternalLink className="h-3 w-3" />
               Open URL
@@ -174,62 +174,62 @@ function DetailModal({ productId, isOpen, onClose, onSuccess }: DetailModalProps
 
           {/* Core Info */}
           <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
-            <dt className="font-medium text-gray-600">Title</dt>
-            <dd className="font-semibold text-gray-900">{product.title}</dd>
+            <dt className="font-medium text-muted-foreground">Title</dt>
+            <dd className="font-semibold text-foreground">{product.title}</dd>
 
             {product.description && (
               <>
-                <dt className="font-medium text-gray-600">Description</dt>
-                <dd className="text-gray-900 break-words">{product.description}</dd>
+                <dt className="font-medium text-muted-foreground">Description</dt>
+                <dd className="text-foreground break-words">{product.description}</dd>
               </>
             )}
 
-            <dt className="font-medium text-gray-600">Owner ID</dt>
-            <dd className="font-mono text-xs text-gray-700">{product.owner_user_id}</dd>
+            <dt className="font-medium text-muted-foreground">Owner ID</dt>
+            <dd className="font-mono text-xs text-foreground">{product.owner_user_id}</dd>
 
-            <dt className="font-medium text-gray-600">Product ID</dt>
-            <dd className="font-mono text-xs text-gray-700">{product.id}</dd>
+            <dt className="font-medium text-muted-foreground">Product ID</dt>
+            <dd className="font-mono text-xs text-foreground">{product.id}</dd>
 
-            <dt className="font-medium text-gray-600">Normalized URL</dt>
-            <dd className="font-mono text-xs text-gray-700 break-all">
+            <dt className="font-medium text-muted-foreground">Normalized URL</dt>
+            <dd className="font-mono text-xs text-foreground break-all">
               {product.normalized_external_url}
             </dd>
 
-            <dt className="font-medium text-gray-600">Submitted</dt>
-            <dd className="text-gray-700">{product.submitted_at ? formatDate(product.submitted_at) : '-'}</dd>
+            <dt className="font-medium text-muted-foreground">Submitted</dt>
+            <dd className="text-foreground">{product.submitted_at ? formatDate(product.submitted_at) : '-'}</dd>
 
             {product.approved_at && (
               <>
-                <dt className="font-medium text-gray-600">Approved</dt>
-                <dd className="text-gray-700">{formatDate(product.approved_at)}</dd>
+                <dt className="font-medium text-muted-foreground">Approved</dt>
+                <dd className="text-foreground">{formatDate(product.approved_at)}</dd>
               </>
             )}
 
             {product.rejected_at && (
               <>
-                <dt className="font-medium text-gray-600">Rejected</dt>
-                <dd className="text-gray-700">{formatDate(product.rejected_at)}</dd>
+                <dt className="font-medium text-muted-foreground">Rejected</dt>
+                <dd className="text-foreground">{formatDate(product.rejected_at)}</dd>
               </>
             )}
 
             {product.hidden_at && (
               <>
-                <dt className="font-medium text-gray-600">Hidden</dt>
-                <dd className="text-gray-700">{formatDate(product.hidden_at)}</dd>
+                <dt className="font-medium text-muted-foreground">Hidden</dt>
+                <dd className="text-foreground">{formatDate(product.hidden_at)}</dd>
               </>
             )}
 
             {product.rejection_reason && (
               <>
-                <dt className="font-medium text-gray-600">Last Reason</dt>
-                <dd className="text-gray-700">{product.rejection_reason}</dd>
+                <dt className="font-medium text-muted-foreground">Last Reason</dt>
+                <dd className="text-foreground">{product.rejection_reason}</dd>
               </>
             )}
 
             {product.last_reviewed_by && (
               <>
-                <dt className="font-medium text-gray-600">Reviewed By</dt>
-                <dd className="font-mono text-xs text-gray-700">
+                <dt className="font-medium text-muted-foreground">Reviewed By</dt>
+                <dd className="font-mono text-xs text-foreground">
                   {product.last_reviewed_by.slice(0, 8)}…
                 </dd>
               </>
@@ -239,7 +239,7 @@ function DetailModal({ productId, isOpen, onClose, onSuccess }: DetailModalProps
           {/* Media */}
           {product.media && product.media.length > 0 && (
             <div>
-              <h3 className="text-sm font-medium text-gray-700 mb-2">
+              <h3 className="text-sm font-medium text-foreground mb-2">
                 Media ({product.media.length})
               </h3>
               <div className="flex flex-wrap gap-2">
@@ -249,13 +249,13 @@ function DetailModal({ productId, isOpen, onClose, onSuccess }: DetailModalProps
                     href={m.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block h-16 w-16 rounded border border-gray-200 overflow-hidden bg-gray-50 flex items-center justify-center hover:opacity-80"
+                    className="block h-16 w-16 rounded border border-border overflow-hidden bg-surface-muted flex items-center justify-center hover:opacity-80"
                     title={m.media_type}
                   >
                     {m.media_type === 'image' ? (
                       <img src={m.thumbnail_url ?? m.url} alt="" className="h-full w-full object-cover" />
                     ) : (
-                      <span className="text-xs text-gray-500">Video</span>
+                      <span className="text-xs text-muted-foreground">Video</span>
                     )}
                   </a>
                 ))}
@@ -266,17 +266,17 @@ function DetailModal({ productId, isOpen, onClose, onSuccess }: DetailModalProps
           {/* Review History */}
           {product.review_history && product.review_history.length > 0 && (
             <div>
-              <h3 className="text-sm font-medium text-gray-700 mb-2">Review History</h3>
+              <h3 className="text-sm font-medium text-foreground mb-2">Review History</h3>
               <div className="space-y-2">
                 {product.review_history.map((h) => (
-                  <div key={h.id} className="flex items-start gap-2 text-xs text-gray-600 bg-gray-50 rounded p-2">
-                    <Clock className="h-3 w-3 mt-0.5 flex-shrink-0 text-gray-400" />
+                  <div key={h.id} className="flex items-start gap-2 text-xs text-muted-foreground bg-surface-muted rounded p-2">
+                    <Clock className="h-3 w-3 mt-0.5 flex-shrink-0 text-muted-foreground" />
                     <div>
-                      <span className="font-medium text-gray-800">
+                      <span className="font-medium text-foreground">
                         {h.from_status ?? 'initial'} → {h.to_status}
                       </span>
-                      {h.reason && <span className="ml-2 text-gray-500">"{h.reason}"</span>}
-                      <div className="text-gray-400 mt-0.5">{formatDate(h.created_at)}</div>
+                      {h.reason && <span className="ml-2 text-muted-foreground">"{h.reason}"</span>}
+                      <div className="text-muted-foreground mt-0.5">{formatDate(h.created_at)}</div>
                     </div>
                   </div>
                 ))}
@@ -286,7 +286,7 @@ function DetailModal({ productId, isOpen, onClose, onSuccess }: DetailModalProps
 
           {/* Action Buttons */}
           {!actionMode && (
-            <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-gray-200">
+            <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border">
               {product.can_approve && (
                 <Button size="sm" onClick={() => openAction('approve')}>
                   <Check className="h-4 w-4 mr-1" />
@@ -314,11 +314,11 @@ function DetailModal({ productId, isOpen, onClose, onSuccess }: DetailModalProps
 
           {/* Action Form */}
           {actionMode && (
-            <div className="border border-gray-200 rounded-lg p-4 space-y-3 bg-gray-50">
-              <h3 className="text-sm font-semibold text-gray-800">
+            <div className="border border-border rounded-lg p-4 space-y-3 bg-surface-muted">
+              <h3 className="text-sm font-semibold text-foreground">
                 {actionLabels[actionMode]}
                 {(actionMode === 'reject' || actionMode === 'request_changes') && (
-                  <span className="ml-1 text-red-500">*</span>
+                  <span className="ml-1 text-destructive">*</span>
                 )}
               </h3>
               <textarea
@@ -332,10 +332,10 @@ function DetailModal({ productId, isOpen, onClose, onSuccess }: DetailModalProps
                     ? 'Describe what needs to be changed (required)'
                     : 'Optional note'
                 }
-                className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-info"
               />
               {submitError && (
-                <p className="text-sm text-red-600 flex items-center gap-1">
+                <p className="text-sm text-destructive flex items-center gap-1">
                   <AlertTriangle className="h-4 w-4" />
                   {submitError}
                 </p>
@@ -403,7 +403,7 @@ export function ExternalProductsPage() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent" />
-          <p className="mt-4 text-gray-600">Loading external products…</p>
+          <p className="mt-4 text-muted-foreground">Loading external products…</p>
         </div>
       </div>
     )
@@ -414,8 +414,8 @@ export function ExternalProductsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">External Product Review</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-3xl font-bold text-foreground">External Product Review</h1>
+          <p className="text-muted-foreground mt-1">
             Review seller-submitted external products for promotion discovery.
           </p>
         </div>
@@ -430,16 +430,16 @@ export function ExternalProductsPage() {
         <CardContent className="pt-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-sm font-medium text-muted-foreground">
                 {statusFilter ? externalProductStatusLabels[statusFilter as ExternalProductReviewStatus] : 'All'} Products
               </p>
               <p className="text-3xl font-bold text-primary mt-1">{total}</p>
               {!statusFilter && (
-                <p className="text-xs text-gray-500 mt-1">{pendingCount} pending review</p>
+                <p className="text-xs text-muted-foreground mt-1">{pendingCount} pending review</p>
               )}
             </div>
-            <div className="p-4 rounded-lg bg-purple-100">
-              <Package className="h-8 w-8 text-purple-600" />
+            <div className="p-4 rounded-lg bg-info-bg">
+              <Package className="h-8 w-8 text-info" />
             </div>
           </div>
         </CardContent>
@@ -449,8 +449,8 @@ export function ExternalProductsPage() {
       <Card>
         <CardContent className="pt-6">
           <div className="flex items-center gap-4">
-            <Filter className="h-5 w-5 text-gray-500" />
-            <label htmlFor="status-filter" className="text-sm font-medium text-gray-700">
+            <Filter className="h-5 w-5 text-muted-foreground" />
+            <label htmlFor="status-filter" className="text-sm font-medium text-foreground">
               Status:
             </label>
             <select
@@ -459,7 +459,7 @@ export function ExternalProductsPage() {
               onChange={(e) =>
                 setStatusFilter(e.target.value as ExternalProductReviewStatus | '')
               }
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             >
               {STATUS_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -475,7 +475,7 @@ export function ExternalProductsPage() {
       {error && (
         <Card>
           <CardContent className="p-6">
-            <div className="flex items-center gap-2 text-red-600">
+            <div className="flex items-center gap-2 text-destructive">
               <AlertTriangle className="h-5 w-5" />
               <p className="text-sm">{error}</p>
             </div>
@@ -491,16 +491,16 @@ export function ExternalProductsPage() {
         <CardContent>
           {products.length === 0 && !loading ? (
             <div className="text-center py-12">
-              <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Products Found</h3>
-              <p className="text-gray-600">
+              <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-foreground mb-2">No Products Found</h3>
+              <p className="text-muted-foreground">
                 {statusFilter
                   ? `No external products with status "${externalProductStatusLabels[statusFilter as ExternalProductReviewStatus]}".`
                   : 'No external products in the review queue.'}
               </p>
             </div>
           ) : (
-            <div className="border border-gray-200 rounded-lg overflow-hidden">
+            <div className="border border-border rounded-lg overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -516,12 +516,12 @@ export function ExternalProductsPage() {
                 <TableBody>
                   {products.map((p) => (
                     <TableRow key={p.id}>
-                      <TableCell className="font-mono text-xs text-gray-600">
+                      <TableCell className="font-mono text-xs text-muted-foreground">
                         {p.id.slice(0, 8)}
                       </TableCell>
                       <TableCell>
                         <div className="max-w-xs">
-                          <div className="font-medium text-gray-900 truncate">{p.title}</div>
+                          <div className="font-medium text-foreground truncate">{p.title}</div>
                           {p.unsafe_url_flag && (
                             <Badge variant="error" className="mt-1 text-xs">
                               Unsafe URL
@@ -539,17 +539,17 @@ export function ExternalProductsPage() {
                           href={p.external_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-1 text-xs text-blue-600 hover:underline max-w-[120px] truncate"
+                          className="flex items-center gap-1 text-xs text-info hover:underline max-w-[120px] truncate"
                           title={p.external_url}
                         >
                           <ExternalLink className="h-3 w-3 flex-shrink-0" />
                           {p.normalized_external_url.replace(/^https?:\/\//, '').slice(0, 30)}
                         </a>
                       </TableCell>
-                      <TableCell className="font-mono text-xs text-gray-600">
+                      <TableCell className="font-mono text-xs text-muted-foreground">
                         {p.owner_user_id.slice(0, 8)}
                       </TableCell>
-                      <TableCell className="text-xs text-gray-600">
+                      <TableCell className="text-xs text-muted-foreground">
                         {p.submitted_at ? formatDate(p.submitted_at) : '-'}
                       </TableCell>
                       <TableCell className="text-right">

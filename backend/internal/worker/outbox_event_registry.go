@@ -62,9 +62,10 @@ var AcknowledgedNoHandlerEvents = map[string]NoHandlerEntry{
 	// =========================================================================
 	// SELLER SUBSCRIPTION
 	// =========================================================================
-	// seller.subscription.activated needs no promotion handler: promotion
-	// target/seller operability is read-time (canonical OperabilityChecker),
-	// and contracts never pause on subscription loss (delivery gate only).
+	"seller.subscription.activated": {
+		Class: NoHandlerAuditOnly,
+		Note:  "activation audit trail; promotion target/seller operability is read-time (canonical OperabilityChecker) and contracts never pause on subscription activation",
+	},
 
 	// =========================================================================
 	// FINANCE — MONEY EVENTS
@@ -107,6 +108,19 @@ var AcknowledgedNoHandlerEvents = map[string]NoHandlerEntry{
 		Class: NoHandlerAuditOnly,
 		Note:  "fixed-price sale publication audit trail",
 	},
+	"for_sale.updated": {
+		Class: NoHandlerAuditOnly,
+		Note:  "fixed-price sale update audit trail; promotion operability is read-time (canonical OperabilityChecker)",
+	},
+	"for_sale.withdrawn": {
+		Class: NoHandlerAuditOnly,
+		Note:  "fixed-price sale withdrawal audit trail; legacy promotion auto-stop consumer is purged; operability is read-time",
+	},
+	// for_sale.sold — WIRED (owner decision, negotiation closure scope):
+	// consumed by SetupNegotiationHandlers via the negotiation
+	// ForSaleSoldEventHandler (system message to other buyers' negotiation
+	// chats + bulk cancel of accepted unordered negotiations). Removed from
+	// this allowlist; the registry guard now requires a registered handler.
 
 	// =========================================================================
 	// AUCTION LIFECYCLE
@@ -123,9 +137,12 @@ var AcknowledgedNoHandlerEvents = map[string]NoHandlerEntry{
 		Class: NoHandlerAuditOnly,
 		Note:  "auction activation audit trail",
 	},
-	// auction.cancelled / auction.ended are consumed by notification handlers
-	// only — promotion target operability is read-time (no promotion event
-	// handlers exist; legacy SetupPromotionHandlers was purged).
+	// auction.cancelled — now CONSUMED by the notification worker (Scope B):
+	// seller notification for system-initiated auto-cancel (subscription
+	// expired), routed by entity.CancelReason.NotifiesSeller() inside
+	// handleAuctionCancelled. Other cancel reasons (seller/moderation/admin/
+	// legacy) are handled silent no-ops. Removed from allowlist — see
+	// SetupNotificationHandlers registration.
 	"auction.claimed": {
 		Class: NoHandlerAuditOnly,
 		Note:  "auction claim (winner acceptance) audit trail",

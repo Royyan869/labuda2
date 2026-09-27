@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/features/search/search/search.dart' show UserSearch;
 import 'package:labuda/domains/user/profile/data/profile_providers.dart';
 import 'package:labuda/shared/widgets/profile_avatar.dart';
-import 'package:labuda/core/core.dart';
 
 /// Widget untuk menampilkan tagged users sebagai chips
 /// Digunakan di CreateContentScreen dan CreateRequestScreen
@@ -91,11 +90,8 @@ class _TaggedUsersChipsState extends ConsumerState<TaggedUsersChips> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
     if (widget.taggedUserIds.isEmpty) {
-      return _buildEmptyState(isDark);
+      return _buildEmptyState(context);
     }
 
     if (_isLoading) {
@@ -116,18 +112,19 @@ class _TaggedUsersChipsState extends ConsumerState<TaggedUsersChips> {
       runSpacing: 8,
       children: [
         // Tagged user chips
-        ..._users.map((user) => _buildUserChip(user, isDark)),
+        ..._users.map((user) => _buildUserChip(context, user)),
 
         // Add more button (if not read-only)
-        if (!widget.readOnly && widget.onTap != null) _buildAddButton(isDark),
+        if (!widget.readOnly && widget.onTap != null) _buildAddButton(context),
       ],
     );
   }
 
-  Widget _buildEmptyState(bool isDark) {
+  Widget _buildEmptyState(BuildContext context) {
     if (widget.readOnly) {
       return const SizedBox.shrink();
     }
+    final scheme = Theme.of(context).colorScheme;
 
     return InkWell(
       onTap: widget.onTap,
@@ -135,12 +132,10 @@ class _TaggedUsersChipsState extends ConsumerState<TaggedUsersChips> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: isDark
-              ? AppColors.darkGray700.withValues(alpha: 0.5)
-              : AppColors.neutralGray100,
+          color: scheme.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isDark ? AppColors.neutralGray700 : AppColors.neutralGray300,
+            color: scheme.outlineVariant,
             style: BorderStyle.solid,
           ),
         ),
@@ -150,18 +145,14 @@ class _TaggedUsersChipsState extends ConsumerState<TaggedUsersChips> {
             Icon(
               Icons.person_add_outlined,
               size: 18,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray600,
+              color: scheme.onSurfaceVariant,
             ),
             const SizedBox(width: 6),
             Text(
               'Tag People',
               style: TextStyle(
                 fontSize: 14,
-                color: isDark
-                    ? AppColors.neutralGray400
-                    : AppColors.neutralGray600,
+                color: scheme.onSurfaceVariant,
               ),
             ),
           ],
@@ -170,7 +161,8 @@ class _TaggedUsersChipsState extends ConsumerState<TaggedUsersChips> {
     );
   }
 
-  Widget _buildUserChip(UserSearch user, bool isDark) {
+  Widget _buildUserChip(BuildContext context, UserSearch user) {
+    final scheme = Theme.of(context).colorScheme;
     return Chip(
       avatar: ProfileAvatar(
         userId: user.userId,
@@ -182,7 +174,7 @@ class _TaggedUsersChipsState extends ConsumerState<TaggedUsersChips> {
         user.username,
         style: TextStyle(
           fontSize: 13,
-          color: isDark ? AppColors.neutralWhite : AppColors.neutralBlack,
+          color: scheme.onSurface,
         ),
       ),
       deleteIcon: widget.readOnly
@@ -190,24 +182,21 @@ class _TaggedUsersChipsState extends ConsumerState<TaggedUsersChips> {
           : Icon(
               Icons.close,
               size: 18,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray600,
+              color: scheme.onSurfaceVariant,
             ),
       onDeleted: widget.readOnly
           ? null
           : () => widget.onRemove?.call(user.userId),
-      backgroundColor: isDark
-          ? AppColors.darkGray700
-          : AppColors.neutralGray100,
+      backgroundColor: scheme.surfaceContainerHigh,
       side: BorderSide(
-        color: isDark ? AppColors.neutralGray700 : AppColors.neutralGray300,
+        color: scheme.outlineVariant,
       ),
       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
     );
   }
 
-  Widget _buildAddButton(bool isDark) {
+  Widget _buildAddButton(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return InkWell(
       onTap: widget.onTap,
       borderRadius: BorderRadius.circular(20),
@@ -215,12 +204,10 @@ class _TaggedUsersChipsState extends ConsumerState<TaggedUsersChips> {
         height: 32,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
-          color: isDark
-              ? AppColors.darkGray700.withValues(alpha: 0.5)
-              : AppColors.neutralGray100,
+          color: scheme.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isDark ? AppColors.neutralGray700 : AppColors.neutralGray300,
+            color: scheme.outlineVariant,
             style: BorderStyle.solid,
           ),
         ),
@@ -230,14 +217,14 @@ class _TaggedUsersChipsState extends ConsumerState<TaggedUsersChips> {
             Icon(
               Icons.add,
               size: 18,
-              color: isDark ? AppColors.primaryBlue : AppColors.primaryBlue,
+              color: scheme.secondary,
             ),
             const SizedBox(width: 4),
             Text(
               'Add',
               style: TextStyle(
                 fontSize: 13,
-                color: isDark ? AppColors.primaryBlue : AppColors.primaryBlue,
+                color: scheme.secondary,
                 fontWeight: FontWeight.w500,
               ),
             ),

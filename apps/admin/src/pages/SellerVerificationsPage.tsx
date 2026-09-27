@@ -95,7 +95,7 @@ function VerificationDetailModal({
       )}
 
       {detailError && !detailLoading && (
-        <div className="rounded-lg bg-red-50 p-4 text-sm text-red-700">
+        <div className="rounded-lg bg-destructive-bg p-4 text-sm text-destructive">
           Failed to load verification detail: {detailError.message}
         </div>
       )}
@@ -104,12 +104,12 @@ function VerificationDetailModal({
         <div className="space-y-6">
           {/* Status header */}
           <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-gray-500">Status:</span>
+            <span className="text-sm font-medium text-muted-foreground">Status:</span>
             <Badge variant={verificationStatusVariants[detail.status]}>
               {verificationStatusLabels[detail.status]}
             </Badge>
             {detail.submitted_at && (
-              <span className="text-xs text-gray-400">
+              <span className="text-xs text-muted-foreground">
                 Submitted {formatDate(detail.submitted_at)}
               </span>
             )}
@@ -117,51 +117,51 @@ function VerificationDetailModal({
 
           {/* Prior rejection reason */}
           {detail.reason && (
-            <div className="rounded-lg border border-orange-200 bg-orange-50 p-3 text-sm text-orange-800">
+            <div className="rounded-lg border border-warning bg-warning-bg p-3 text-sm text-warning">
               <span className="font-medium">Prior reason: </span>{detail.reason}
             </div>
           )}
 
           {/* Seller identity */}
           <div>
-            <h3 className="mb-3 text-sm font-semibold text-gray-700">Seller Identity</h3>
-            <div className="rounded-lg border border-gray-200 px-4 py-3">
+            <h3 className="mb-3 text-sm font-semibold text-foreground">Seller Identity</h3>
+            <div className="rounded-lg border border-border px-4 py-3">
               <div className="space-y-0.5">
-                <p className="text-sm font-medium text-gray-800">
+                <p className="text-sm font-medium text-foreground">
                   {detail.seller_username ? `@${detail.seller_username}` : 'Unknown'}
                 </p>
                 {detail.seller_farm_name && (
-                  <p className="text-sm text-gray-500">{detail.seller_farm_name}</p>
+                  <p className="text-sm text-muted-foreground">{detail.seller_farm_name}</p>
                 )}
-                <p className="font-mono text-xs text-gray-400">{detail.seller_id}</p>
+                <p className="font-mono text-xs text-muted-foreground">{detail.seller_id}</p>
               </div>
             </div>
           </div>
 
           {/* Documents */}
           <div>
-            <h3 className="mb-3 text-sm font-semibold text-gray-700">Submitted Documents</h3>
+            <h3 className="mb-3 text-sm font-semibold text-foreground">Submitted Documents</h3>
             {detail.documents.length === 0 ? (
-              <p className="text-sm text-gray-400 italic">No documents submitted.</p>
+              <p className="text-sm text-muted-foreground italic">No documents submitted.</p>
             ) : (
               <div className="space-y-2">
                 {detail.documents.map((doc) => (
                   <div
                     key={doc.id}
-                    className="flex items-center justify-between rounded-lg border border-gray-200 px-4 py-3"
+                    className="flex items-center justify-between rounded-lg border border-border px-4 py-3"
                   >
                     <div className="space-y-0.5">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-gray-800">
+                        <span className="text-sm font-medium text-foreground">
                           {documentTypeLabels[doc.document_type] ?? doc.document_type}
                         </span>
                         <Badge variant={documentReviewStatusVariants[doc.status]} className="text-xs">
                           {doc.status}
                         </Badge>
                       </div>
-                      <p className="text-xs text-gray-500">{doc.document_name}</p>
+                      <p className="text-xs text-muted-foreground">{doc.document_name}</p>
                       {doc.rejection_note && (
-                        <p className="text-xs text-red-600">Note: {doc.rejection_note}</p>
+                        <p className="text-xs text-destructive">Note: {doc.rejection_note}</p>
                       )}
                     </div>
                     <a
@@ -180,26 +180,26 @@ function VerificationDetailModal({
 
           {/* Bank Accounts */}
           <div>
-            <h3 className="mb-3 text-sm font-semibold text-gray-700">Registered Bank Accounts</h3>
+            <h3 className="mb-3 text-sm font-semibold text-foreground">Registered Bank Accounts</h3>
             {/* Warning: default account not reviewed for payout */}
             {detail.status === 'approved' && detail.bank_accounts.some((ba) => ba.is_default && !ba.is_reviewed_for_payout) && (
-              <div className="mb-3 rounded-lg border border-orange-200 bg-orange-50 p-3 text-sm text-orange-800">
+              <div className="mb-3 rounded-lg border border-warning bg-warning-bg p-3 text-sm text-warning">
                 <span className="font-semibold">Warning:</span> The default bank account has not been reviewed for payout.
                 Withdrawal requests will be blocked (GUARD 5) until an admin marks it reviewed.
               </div>
             )}
             {detail.bank_accounts.length === 0 ? (
-              <p className="text-sm text-gray-400 italic">No bank accounts registered.</p>
+              <p className="text-sm text-muted-foreground italic">No bank accounts registered.</p>
             ) : (
               <div className="space-y-2">
                 {detail.bank_accounts.map((ba) => (
                   <div
                     key={ba.id}
-                    className="flex items-start justify-between rounded-lg border border-gray-200 px-4 py-3"
+                    className="flex items-start justify-between rounded-lg border border-border px-4 py-3"
                   >
                     <div className="space-y-0.5">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-gray-800">
+                        <span className="text-sm font-medium text-foreground">
                           {ba.bank_name} ({ba.bank_code})
                         </span>
                         {ba.is_default && (
@@ -211,8 +211,8 @@ function VerificationDetailModal({
                           <Badge variant="warning" className="text-xs">Not Reviewed</Badge>
                         )}
                       </div>
-                      <p className="font-mono text-xs text-gray-700">{ba.account_number}</p>
-                      <p className="text-xs text-gray-500">{ba.account_holder_name}</p>
+                      <p className="font-mono text-xs text-foreground">{ba.account_number}</p>
+                      <p className="text-xs text-muted-foreground">{ba.account_holder_name}</p>
                     </div>
                     {/* Mark reviewed action — only for approved sellers + unreviewed active accounts */}
                     {detail.status === 'approved' && !ba.is_reviewed_for_payout && (
@@ -238,7 +238,7 @@ function VerificationDetailModal({
 
           {/* Action section */}
           {actionMode === null ? (
-            <div className="space-y-3 border-t border-gray-200 pt-4">
+            <div className="space-y-3 border-t border-border pt-4">
               {/* Review actions — only for pending_review */}
               {detail.status === 'pending_review' && (
                 <div className="flex gap-3">
@@ -292,8 +292,8 @@ function VerificationDetailModal({
               )}
             </div>
           ) : (
-            <div className="space-y-3 border-t border-gray-200 pt-4">
-              <p className="text-sm font-medium text-gray-700">
+            <div className="space-y-3 border-t border-border pt-4">
+              <p className="text-sm font-medium text-foreground">
                 {actionMode === 'approve' && 'Approve verification (reason optional)'}
                 {actionMode === 'reject' && 'Reject verification — reason required'}
                 {actionMode === 'resubmission' && 'Request resubmission — reason required'}
@@ -303,19 +303,19 @@ function VerificationDetailModal({
                 {actionMode === 'restore' && 'Restore to approved (reason optional)'}
               </p>
               {actionMode === 'revoke' && (
-                <p className="text-xs text-red-600 font-medium">
+                <p className="text-xs text-destructive font-medium">
                   Warning: Revocation is terminal. There is no recovery path.
                 </p>
               )}
               <textarea
-                className="w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                className="w-full rounded-lg border border-border p-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 rows={3}
                 placeholder={reasonRequired ? 'Enter reason (required, min 3 chars)...' : 'Enter reason (optional)...'}
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
               />
               {actionError && (
-                <p className="text-sm text-red-600">{actionError}</p>
+                <p className="text-sm text-destructive">{actionError}</p>
               )}
               <div className="flex gap-2">
                 <Button
@@ -387,7 +387,7 @@ export function SellerVerificationsPage() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent" />
-          <p className="mt-4 text-gray-600">Loading verifications...</p>
+          <p className="mt-4 text-muted-foreground">Loading verifications...</p>
         </div>
       </div>
     )
@@ -397,12 +397,12 @@ export function SellerVerificationsPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Seller Verifications</h1>
-          <p className="text-gray-600 mt-1">Review pending seller verification submissions</p>
+          <h1 className="text-3xl font-bold text-foreground">Seller Verifications</h1>
+          <p className="text-muted-foreground mt-1">Review pending seller verification submissions</p>
         </div>
         <Card>
           <CardContent className="p-6">
-            <div className="flex items-center gap-3 text-red-600">
+            <div className="flex items-center gap-3 text-destructive">
               <ShieldAlert className="h-5 w-5 shrink-0" />
               <p className="text-sm">{error.message}</p>
             </div>
@@ -420,8 +420,8 @@ export function SellerVerificationsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Seller Verifications</h1>
-          <p className="text-gray-600 mt-1">Review and manage seller verification lifecycle</p>
+          <h1 className="text-3xl font-bold text-foreground">Seller Verifications</h1>
+          <p className="text-muted-foreground mt-1">Review and manage seller verification lifecycle</p>
         </div>
         <Button variant="secondary" size="sm" onClick={refetch}>
           <RefreshCw className="mr-2 h-4 w-4" /> Refresh
@@ -430,14 +430,14 @@ export function SellerVerificationsPage() {
 
       {/* Status Filter */}
       <div className="flex items-center gap-3">
-        <label htmlFor="status-filter" className="text-sm font-medium text-gray-700">
+        <label htmlFor="status-filter" className="text-sm font-medium text-foreground">
           Filter by status:
         </label>
         <select
           id="status-filter"
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+          className="rounded-lg border border-border px-3 py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
         >
           {statusFilterOptions.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -456,8 +456,8 @@ export function SellerVerificationsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-3xl font-bold text-gray-900">{items.length}</p>
-          <p className="text-sm text-gray-500 mt-1">records matching filter</p>
+          <p className="text-3xl font-bold text-foreground">{items.length}</p>
+          <p className="text-sm text-muted-foreground mt-1">records matching filter</p>
         </CardContent>
       </Card>
 
@@ -465,8 +465,8 @@ export function SellerVerificationsPage() {
       <Card>
         <CardContent className="p-0">
           {items.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-gray-400">
-              <BadgeCheck className="h-12 w-12 mb-3 text-green-300" />
+            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+              <BadgeCheck className="h-12 w-12 mb-3 text-success" />
               <p className="text-lg font-medium">No results</p>
               <p className="text-sm mt-1">No verifications with this status</p>
             </div>
@@ -487,14 +487,14 @@ export function SellerVerificationsPage() {
                     <TableCell>
                       {item.seller_username ? (
                         <div className="space-y-0.5">
-                          <span className="text-sm font-medium text-gray-800">@{item.seller_username}</span>
+                          <span className="text-sm font-medium text-foreground">@{item.seller_username}</span>
                           {item.seller_farm_name && (
-                            <div className="text-xs text-gray-500">{item.seller_farm_name}</div>
+                            <div className="text-xs text-muted-foreground">{item.seller_farm_name}</div>
                           )}
-                          <div className="font-mono text-xs text-gray-400">{item.seller_id.slice(0, 8)}…</div>
+                          <div className="font-mono text-xs text-muted-foreground">{item.seller_id.slice(0, 8)}…</div>
                         </div>
                       ) : (
-                        <span className="font-mono text-xs text-gray-600">{item.seller_id}</span>
+                        <span className="font-mono text-xs text-muted-foreground">{item.seller_id}</span>
                       )}
                     </TableCell>
                     <TableCell>
@@ -502,10 +502,10 @@ export function SellerVerificationsPage() {
                         {verificationStatusLabels[item.status]}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-sm text-gray-600">
+                    <TableCell className="text-sm text-muted-foreground">
                       {item.submitted_at ? formatDate(item.submitted_at) : '—'}
                     </TableCell>
-                    <TableCell className="text-sm text-gray-600">
+                    <TableCell className="text-sm text-muted-foreground">
                       {formatDate(item.created_at)}
                     </TableCell>
                     <TableCell className="text-right">

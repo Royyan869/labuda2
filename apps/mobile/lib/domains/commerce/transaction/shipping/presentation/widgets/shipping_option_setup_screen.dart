@@ -260,6 +260,8 @@ class _ShippingSetupScreenState
     if (!_hasUnsavedChanges) return true;
     if (_isSubmitting) return false;
 
+    final colorScheme = Theme.of(context).colorScheme;
+
     final shouldDiscard = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -275,8 +277,8 @@ class _ShippingSetupScreenState
           ElevatedButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-              foregroundColor: Colors.white,
+              backgroundColor: colorScheme.error,
+              foregroundColor: colorScheme.onError,
             ),
             child: const Text('Buang'),
           ),
@@ -477,14 +479,12 @@ class _ShippingSetupScreenState
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     // ID-based detail fetch loading / error states
     if (_detailLoading) {
       return Scaffold(
-        appBar: AppBar(
-          title: const Text('Edit Opsi Pengiriman'),
-          backgroundColor: AppColors.primaryRed,
-          foregroundColor: Colors.white,
-        ),
+        appBar: AppBar(title: const Text('Edit Opsi Pengiriman')),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
@@ -493,8 +493,6 @@ class _ShippingSetupScreenState
       return Scaffold(
         appBar: AppBar(
           title: const Text('Edit Opsi Pengiriman'),
-          backgroundColor: AppColors.primaryRed,
-          foregroundColor: Colors.white,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
             onPressed: () => Navigator.of(context).pop(),
@@ -505,7 +503,7 @@ class _ShippingSetupScreenState
           padding: const EdgeInsets.all(24),
           children: [
             const SizedBox(height: 80),
-            Icon(Icons.error_outline, size: 64, color: AppColors.error),
+            Icon(Icons.error_outline, size: 64, color: colorScheme.error),
             const SizedBox(height: 16),
             const Text(
               'Gagal memuat detail opsi pengiriman',
@@ -516,7 +514,10 @@ class _ShippingSetupScreenState
             Text(
               _detailError!,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: AppColors.neutralGray600),
+              style: TextStyle(
+                fontSize: 13,
+                color: colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 24),
             ElevatedButton(
@@ -548,8 +549,6 @@ class _ShippingSetupScreenState
       child: Scaffold(
         appBar: AppBar(
           title: Text(_isEditMode ? 'Edit Opsi Pengiriman' : 'Setup Opsi Pengiriman'),
-          backgroundColor: AppColors.primaryRed,
-          foregroundColor: Colors.white,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
             onPressed: _handleBack,
@@ -566,7 +565,7 @@ class _ShippingSetupScreenState
             padding: const EdgeInsets.all(24),
             children: [
               const SizedBox(height: 80),
-              Icon(Icons.error_outline, size: 64, color: AppColors.error),
+              Icon(Icons.error_outline, size: 64, color: colorScheme.error),
               const SizedBox(height: 16),
               const Text(
                 'Gagal memuat provinsi',
@@ -577,7 +576,10 @@ class _ShippingSetupScreenState
               Text(
                 '$error',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 13, color: AppColors.neutralGray600),
+                style: TextStyle(
+                fontSize: 13,
+                color: colorScheme.onSurfaceVariant,
+              ),
               ),
               const SizedBox(height: 24),
               ElevatedButton(
@@ -664,19 +666,19 @@ class _ShippingSetupScreenState
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: AppColors.primaryBlue.withValues(alpha: 0.06),
+                    color: colorScheme.secondaryContainer,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: AppColors.primaryBlue.withValues(alpha: 0.2),
+                      color: colorScheme.secondary.withValues(alpha: 0.4),
                     ),
                   ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.inventory_2_outlined,
                         size: 16,
-                        color: AppColors.primaryBlue,
+                        color: colorScheme.secondary,
                       ),
                       const SizedBox(width: 8),
                       Expanded(
@@ -685,7 +687,7 @@ class _ShippingSetupScreenState
                           'Di sisi pembeli, tarif ini tampil sebagai "Ongkir + Packing".',
                           style: TextStyle(
                             fontSize: 12,
-                            color: AppColors.neutralGray700,
+                            color: colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ),
@@ -718,8 +720,8 @@ class _ShippingSetupScreenState
                   const SizedBox(height: 8),
                   Text(
                     _errorMessage!,
-                    style: const TextStyle(
-                      color: AppColors.error,
+                    style: TextStyle(
+                      color: colorScheme.error,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -734,6 +736,8 @@ class _ShippingSetupScreenState
   }
 
   Widget _buildActionBar() {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return SafeArea(
       minimum: const EdgeInsets.fromLTRB(16, 8, 16, 16),
       child: Row(
@@ -755,18 +759,20 @@ class _ShippingSetupScreenState
               // (type + name + ≥1 destination with a rate).
               onPressed: (_isSubmitting || !_canSave) ? null : _submit,
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryRed,
-                foregroundColor: Colors.white,
-                disabledBackgroundColor: AppColors.neutralGray300,
+                backgroundColor: colorScheme.primary,
+                foregroundColor: colorScheme.onPrimary,
+                disabledBackgroundColor: colorScheme.surfaceContainerHighest,
                 minimumSize: const Size.fromHeight(50),
               ),
               child: _isSubmitting
-                  ? const SizedBox(
+                  ? SizedBox(
                       height: 20,
                       width: 20,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          colorScheme.onPrimary,
+                        ),
                       ),
                     )
                   : const Text('Simpan'),
@@ -841,23 +847,20 @@ class _ShippingCityRulesScreenState
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final province = widget.args.province;
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Atur Kota/Kabupaten'),
-        backgroundColor: AppColors.primaryRed,
-        foregroundColor: Colors.white,
-      ),
+      appBar: AppBar(title: const Text('Atur Kota/Kabupaten')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
         children: [
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: AppColors.primaryRed.withValues(alpha: 0.05),
+              color: colorScheme.primaryContainer,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: AppColors.primaryRed.withValues(alpha: 0.2),
+                color: colorScheme.primary.withValues(alpha: 0.4),
               ),
             ),
             child: Column(
@@ -900,7 +903,7 @@ class _ShippingCityRulesScreenState
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                border: Border.all(color: AppColors.neutralGray300),
+                border: Border.all(color: colorScheme.outlineVariant),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Text(
@@ -916,7 +919,7 @@ class _ShippingCityRulesScreenState
                   elevation: 0,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(color: AppColors.neutralGray200),
+                    side: BorderSide(color: colorScheme.outlineVariant),
                   ),
                   child: ListTile(
                     title: Text(rule.cityName),
@@ -949,7 +952,7 @@ class _ShippingCityRulesScreenState
           const SizedBox(height: 12),
           Text(
             _summaryText(),
-            style: TextStyle(fontSize: 13, color: AppColors.neutralGray700),
+            style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant),
           ),
         ],
       ),
@@ -958,8 +961,8 @@ class _ShippingCityRulesScreenState
         child: ElevatedButton(
           onPressed: _save,
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primaryRed,
-            foregroundColor: Colors.white,
+            backgroundColor: colorScheme.primary,
+            foregroundColor: colorScheme.onPrimary,
             minimumSize: const Size.fromHeight(50),
           ),
           child: const Text('Simpan'),
@@ -1045,13 +1048,13 @@ class _CoverageCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        border: Border.all(color: AppColors.neutralGray200),
+        border: Border.all(color: colorScheme.outlineVariant),
         borderRadius: BorderRadius.circular(16),
-        color: isDark ? AppColors.darkGray900 : AppColors.neutralWhite,
+        color: colorScheme.surface,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1082,7 +1085,7 @@ class _CoverageCard extends StatelessWidget {
                 IconButton(
                   onPressed: onRemove,
                   icon: const Icon(Icons.delete_outline),
-                  color: AppColors.error,
+                  color: colorScheme.error,
                 ),
               ],
             ],
@@ -1102,7 +1105,7 @@ class _CoverageCard extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             _summaryText(),
-            style: TextStyle(fontSize: 13, color: AppColors.neutralGray700),
+            style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 8),
           Align(
@@ -1214,6 +1217,7 @@ class _CityRuleEditorDialogState extends ConsumerState<_CityRuleEditorDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final initial = widget.initialRule;
     return AlertDialog(
       title: Text(
@@ -1253,7 +1257,7 @@ class _CityRuleEditorDialogState extends ConsumerState<_CityRuleEditorDialog> {
             ],
             if (_error != null) ...[
               const SizedBox(height: 8),
-              Text(_error!, style: const TextStyle(color: AppColors.error)),
+              Text(_error!, style: TextStyle(color: colorScheme.error)),
             ],
           ],
         ),

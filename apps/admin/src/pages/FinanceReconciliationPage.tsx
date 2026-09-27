@@ -55,7 +55,7 @@ function LatestRunCard() {
     <Card>
       <CardContent className="p-4">
         <div className="flex items-center gap-4">
-          <div className={`p-2 rounded-lg ${latest?.severity === 'passed' ? 'bg-green-500' : notFound ? 'bg-gray-400' : 'bg-amber-500'}`}>
+          <div className={`p-2 rounded-lg ${latest?.severity === 'passed' ? 'bg-success-bg0' : notFound ? 'bg-muted' : 'bg-warning-bg'}`}>
             {latest?.severity === 'passed' ? (
               <CheckCircle2 className="h-5 w-5 text-white" />
             ) : (
@@ -63,14 +63,14 @@ function LatestRunCard() {
             )}
           </div>
           <div className="flex-1">
-            <p className="text-sm font-medium text-gray-900">
+            <p className="text-sm font-medium text-foreground">
               {loading
                 ? 'Checking last reconciliation run...'
                 : notFound
                 ? 'No reconciliation runs yet'
                 : `Last run: ${latest ? new Date(latest.checked_at).toLocaleString() : ''}`}
             </p>
-            <p className="text-xs text-gray-500 mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5">
               {!loading && !notFound && latest && (
                 <>Worker is alive — most recent run was {reconciliationSeverityLabels[latest.severity].toLowerCase()}</>
               )}
@@ -134,8 +134,8 @@ export function FinanceReconciliationPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Reconciliation</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-3xl font-bold text-foreground">Reconciliation</h1>
+          <p className="text-muted-foreground mt-1">
             Ledger/account balance verification history (read-only — reconciliation never auto-repairs)
           </p>
         </div>
@@ -154,9 +154,9 @@ export function FinanceReconciliationPage() {
         <CardContent className="p-4">
           <div className="flex items-center gap-4 flex-wrap">
             <div>
-              <label className="text-xs font-medium text-gray-600 block mb-1">Severity</label>
+              <label className="text-xs font-medium text-muted-foreground block mb-1">Severity</label>
               <select
-                className="border border-gray-300 rounded-md px-3 py-1.5 text-sm"
+                className="border border-border rounded-md px-3 py-1.5 text-sm"
                 value={severityFilter}
                 onChange={(e) => { setSeverityFilter(e.target.value as ReconciliationSeverity | ''); setOffset(0) }}
               >
@@ -169,19 +169,19 @@ export function FinanceReconciliationPage() {
               </select>
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-600 block mb-1">From</label>
+              <label className="text-xs font-medium text-muted-foreground block mb-1">From</label>
               <input
                 type="date"
-                className="border border-gray-300 rounded-md px-3 py-1.5 text-sm"
+                className="border border-border rounded-md px-3 py-1.5 text-sm"
                 value={fromFilter}
                 onChange={(e) => { setFromFilter(e.target.value); setOffset(0) }}
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-600 block mb-1">To</label>
+              <label className="text-xs font-medium text-muted-foreground block mb-1">To</label>
               <input
                 type="date"
-                className="border border-gray-300 rounded-md px-3 py-1.5 text-sm"
+                className="border border-border rounded-md px-3 py-1.5 text-sm"
                 value={toFilter}
                 onChange={(e) => { setToFilter(e.target.value); setOffset(0) }}
               />
@@ -193,7 +193,7 @@ export function FinanceReconciliationPage() {
                 </Button>
               </div>
             )}
-            <div className="ml-auto text-sm text-gray-500">
+            <div className="ml-auto text-sm text-muted-foreground">
               {total} run{total !== 1 ? 's' : ''}
             </div>
           </div>
@@ -204,9 +204,9 @@ export function FinanceReconciliationPage() {
       {error && (
         <Card>
           <CardContent className="p-8 text-center">
-            <AlertTriangle className="h-10 w-10 text-red-400 mx-auto mb-3" />
-            <p className="text-gray-900 font-medium">Failed to load reconciliation results</p>
-            <p className="text-gray-600 text-sm mt-1">{error}</p>
+            <AlertTriangle className="h-10 w-10 text-destructive mx-auto mb-3" />
+            <p className="text-foreground font-medium">Failed to load reconciliation results</p>
+            <p className="text-muted-foreground text-sm mt-1">{error}</p>
             <Button variant="secondary" size="sm" onClick={fetchResults} className="mt-4">
               Retry
             </Button>
@@ -221,9 +221,9 @@ export function FinanceReconciliationPage() {
             <div className="space-y-4">
               {Array.from({ length: 5 }).map((_, i) => (
                 <div key={i} className="animate-pulse flex items-center gap-4">
-                  <div className="h-4 bg-gray-200 rounded w-32" />
-                  <div className="h-4 bg-gray-200 rounded flex-1" />
-                  <div className="h-6 w-20 bg-gray-200 rounded-full" />
+                  <div className="h-4 bg-border rounded w-32" />
+                  <div className="h-4 bg-border rounded flex-1" />
+                  <div className="h-6 w-20 bg-border rounded-full" />
                 </div>
               ))}
             </div>
@@ -235,9 +235,9 @@ export function FinanceReconciliationPage() {
       {!loading && !error && results.length === 0 && (
         <Card>
           <CardContent className="p-12 text-center">
-            <History className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-            <h2 className="text-lg font-semibold text-gray-900">No Reconciliation Runs</h2>
-            <p className="text-gray-600 mt-1">No runs match the current filters.</p>
+            <History className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h2 className="text-lg font-semibold text-foreground">No Reconciliation Runs</h2>
+            <p className="text-muted-foreground mt-1">No runs match the current filters.</p>
           </CardContent>
         </Card>
       )}
@@ -249,7 +249,7 @@ export function FinanceReconciliationPage() {
             <CardTitle>Reconciliation Runs</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="divide-y divide-gray-200">
+            <div className="divide-y divide-[hsl(var(--border))]">
               {results.map((r) => {
                 const expanded = expandedId === r.id
                 const hasDetails = r.details && Object.keys(r.details).length > 0
@@ -259,23 +259,23 @@ export function FinanceReconciliationPage() {
                       <div className="flex flex-col gap-1.5 min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <SeverityBadge severity={r.severity} />
-                          <span className="text-xs text-gray-500">action: {r.action_taken}</span>
+                          <span className="text-xs text-muted-foreground">action: {r.action_taken}</span>
                           {r.auto_repaired && <Badge variant="warning">auto_repaired (historical)</Badge>}
                         </div>
-                        <p className="text-sm text-gray-900">
+                        <p className="text-sm text-foreground">
                           {new Date(r.checked_at).toLocaleString()} — {r.mismatched_accounts}/{r.total_accounts} accounts mismatched
                         </p>
                         {hasDetails && (
                           <div>
                             <button
                               onClick={() => setExpandedId(expanded ? null : r.id)}
-                              className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
+                              className="flex items-center gap-1 text-xs text-info hover:text-info"
                             >
                               {expanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
                               {expanded ? 'Hide' : 'Show'} details
                             </button>
                             {expanded && (
-                              <pre className="mt-2 text-xs bg-gray-50 border border-gray-200 rounded p-2 overflow-auto max-h-64 text-gray-700">
+                              <pre className="mt-2 text-xs bg-surface-muted border border-border rounded p-2 overflow-auto max-h-64 text-foreground">
                                 {JSON.stringify(r.details, null, 2)}
                               </pre>
                             )}
@@ -302,7 +302,7 @@ export function FinanceReconciliationPage() {
           >
             Previous
           </Button>
-          <span className="text-sm text-gray-600">
+          <span className="text-sm text-muted-foreground">
             Page {currentPage} of {totalPages}
           </span>
           <Button

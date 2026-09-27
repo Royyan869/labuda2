@@ -21,7 +21,7 @@ void main() {
     await tester.pumpWidget(
       const MaterialApp(
         home: Scaffold(
-          body: PasswordStrengthIndicator(password: '', isDark: false),
+          body: PasswordStrengthIndicator(password: ''),
         ),
       ),
     );
@@ -48,7 +48,6 @@ void main() {
                   TextField(controller: controller),
                   PasswordStrengthIndicator(
                     password: controller.text,
-                    isDark: false,
                   ),
                 ],
               );
@@ -107,7 +106,6 @@ void main() {
                 ),
                 PasswordStrengthIndicator(
                   password: controller.text,
-                  isDark: false,
                 ),
               ],
             ),

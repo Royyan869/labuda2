@@ -9,18 +9,18 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'primary', size = 'md', isLoading, children, disabled, ...props }, ref) => {
-    const baseStyles = 'inline-flex items-center justify-center rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed'
+    const baseStyles = 'inline-flex items-center justify-center rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[hsl(var(--ring))] disabled:opacity-50 disabled:cursor-not-allowed'
 
     const variants = {
-      primary: 'bg-primary text-white hover:bg-primary-hover focus:ring-primary',
-      secondary: 'bg-gray-200 text-gray-900 hover:bg-gray-300 focus:ring-gray-400',
-      danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
-      ghost: 'bg-transparent hover:bg-gray-100 text-gray-700 focus:ring-gray-400',
-      warning: 'bg-amber-500 text-white hover:bg-amber-600 focus:ring-amber-400',
-      info: 'bg-blue-500 text-white hover:bg-blue-600 focus:ring-blue-400',
-      pending: 'bg-gray-400 text-white hover:bg-gray-500 focus:ring-gray-300',
-      success: 'bg-green-600 text-white hover:bg-green-700 focus:ring-green-500',
-      error: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
+      primary: 'bg-primary text-white hover:bg-primary-hover',
+      secondary: 'bg-[hsl(var(--surface-muted))] text-[hsl(var(--foreground))] hover:bg-[hsl(var(--border))]',
+      danger: 'bg-[hsl(var(--destructive))] text-white hover:opacity-90',
+      ghost: 'bg-transparent hover:bg-[hsl(var(--surface-muted))] text-[hsl(var(--foreground))]',
+      warning: 'bg-[hsl(var(--warning))] text-white hover:opacity-90',
+      info: 'bg-[hsl(var(--info))] text-white hover:opacity-90',
+      pending: 'bg-[hsl(var(--muted-foreground))] text-white hover:opacity-90',
+      success: 'bg-[hsl(var(--success))] text-white hover:opacity-90',
+      error: 'bg-[hsl(var(--destructive))] text-white hover:opacity-90',
     }
 
     const variantStyles = variants[variant] || variants.primary

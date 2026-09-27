@@ -58,8 +58,7 @@ class SellerWizardStep3Widget extends StatelessWidget {
               ktpImageUrl: ktpImageUrl,
               ktpNumberController: ktpNumberController,
               ktpNameController: ktpNameController,
-              onChangeKTP: onChangeKTP,
-              isDark: isDark,
+               onChangeKTP: onChangeKTP,
             )
           else
             KTPUploadSection(

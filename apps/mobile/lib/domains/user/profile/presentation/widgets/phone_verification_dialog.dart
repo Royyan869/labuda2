@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/domains/user/profile/profile.dart'
     show phoneVerificationProvider, phoneVerificationServiceProvider;
@@ -108,7 +107,6 @@ class _PhoneVerificationDialogState
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final screenWidth = MediaQuery.of(context).size.width;
     final dialogWidth = screenWidth > 400 ? 360.0 : screenWidth * 0.85;
 
@@ -132,25 +130,23 @@ class _PhoneVerificationDialogState
               constraints: BoxConstraints(maxWidth: screenWidth * 0.9),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
+                 color: Theme.of(context).colorScheme.surfaceContainerHigh,
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   VerificationHeader(
-                    phoneNumber: widget.phoneNumber,
-                    isDark: isDark,
+                     phoneNumber: widget.phoneNumber,
                   ),
                   const SizedBox(height: 16),
-                  PhoneDisplay(phoneNumber: formattedPhone, isDark: isDark),
+                   PhoneDisplay(phoneNumber: formattedPhone),
                   const SizedBox(height: 20),
                   if (state.isLoading && !state.codeSent)
-                    OTPLoadingState(isDark: isDark)
+                     const OTPLoadingState()
                   else if (state.codeSent)
-                    OTPInputField(
-                      isDark: isDark,
-                      phoneNumber: widget.phoneNumber,
+                     OTPInputField(
+                       phoneNumber: widget.phoneNumber,
                       onVerificationSuccess: widget.onVerificationSuccess,
                       onResend: _resendOTP,
                     ),
@@ -159,9 +155,8 @@ class _PhoneVerificationDialogState
                     VerificationErrorMessage(errorMessage: state.errorMessage!),
                   ],
                   const SizedBox(height: 16),
-                  VerificationActionButtons(
-                    isDark: isDark,
-                    state: state,
+                   VerificationActionButtons(
+                     state: state,
                     onSendOTP: _sendOTP,
                     onVerifyOTP: _verifyOTP,
                   ),

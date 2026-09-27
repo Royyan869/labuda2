@@ -1,20 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/user/profile/domain/entities/address_entity.dart';
 
 /// Empty state widget for address list
 class AddressEmptyState extends StatelessWidget {
   final AddressPurpose purpose;
-  final bool isDark;
 
   const AddressEmptyState({
     super.key,
     required this.purpose,
-    required this.isDark,
+    
   });
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -26,7 +25,7 @@ class AddressEmptyState extends StatelessWidget {
                   ? Icons.location_off_outlined
                   : Icons.agriculture_outlined,
               size: 80,
-              color: AppColors.neutralGray400,
+              color: scheme.onSurfaceVariant,
             ),
             const SizedBox(height: 24),
             Text(
@@ -34,9 +33,7 @@ class AddressEmptyState extends StatelessWidget {
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: isDark
-                    ? AppColors.neutralWhite
-                    : AppColors.neutralGray900,
+                color: scheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 8),
@@ -47,9 +44,7 @@ class AddressEmptyState extends StatelessWidget {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
-                color: isDark
-                    ? AppColors.neutralGray400
-                    : AppColors.neutralGray600,
+                color: scheme.onSurfaceVariant,
               ),
             ),
           ],

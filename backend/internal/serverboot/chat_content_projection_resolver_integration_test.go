@@ -281,12 +281,11 @@ func requireLiveContentProjection(t *testing.T, proj *chatApp.ResourceProjection
 	t.Helper()
 	require.NotNil(t, proj)
 	require.Equal(t, chatApp.ProjectionStateLive, proj.State)
-	require.Equal(t, chatEntity.ResourceOccurrenceResourceTypeContent, proj.Identity.ResourceType)
-	require.NotNil(t, proj.Payload)
+	require.Equal(t, string(chatEntity.ResourceOccurrenceResourceTypeContent), string(proj.ResourceType))
+	require.NotNil(t, proj.Content)
 	require.Nil(t, proj.CommerceActions)
 
-	payload, ok := proj.Payload.(chatApp.ContentLivePayload)
-	require.True(t, ok, "expected ContentLivePayload, got %T", proj.Payload)
+	payload := *proj.Content
 	require.NotNil(t, payload.Author.Lifecycle)
 	require.NotNil(t, payload.Media)
 	return payload
@@ -300,7 +299,7 @@ func requireNestedResourceIndicator(
 ) {
 	t.Helper()
 	require.NotNil(t, got)
-	require.Equal(t, wantType, got.ResourceType)
+	require.Equal(t, string(wantType), string(got.ResourceType))
 	require.Equal(t, wantID, got.ResourceID)
 }
 
@@ -308,13 +307,17 @@ func requireTombstoneContentProjection(t *testing.T, proj *chatApp.ResourceProje
 	t.Helper()
 	require.NotNil(t, proj)
 	require.Equal(t, chatApp.ProjectionStateTombstone, proj.State)
-	require.Equal(t, chatEntity.ResourceOccurrenceResourceTypeContent, proj.Identity.ResourceType)
-	require.Nil(t, proj.Payload)
+	require.Equal(t, string(chatEntity.ResourceOccurrenceResourceTypeContent), string(proj.ResourceType))
+	require.Nil(t, proj.Content)
+	require.Nil(t, proj.Profile)
+	require.Nil(t, proj.ForSale)
+	require.Nil(t, proj.Auction)
 	require.Nil(t, proj.CommerceActions)
+	// Canonical contract: the resource id survives death.
+	assert.NotEqual(t, uuid.Nil, proj.ResourceID)
 	assert.True(t, proj.ViewerCapabilities.BlockedByTombstone)
 	assert.False(t, proj.ViewerCapabilities.CanView)
 	assert.False(t, proj.ViewerCapabilities.CanInteract)
-	assert.Equal(t, uuid.Nil, proj.Identity.ResourceID)
 }
 
 func TestContentProjectionResolver_MixedStatesAndPayloadContract(t *testing.T) {
@@ -713,7 +716,7 @@ func TestContentProjectionResolver_MediaOrderAndEmptyMedia(t *testing.T) {
 
 	for _, proj := range projections {
 		payload := requireLiveContentProjection(t, proj)
-		switch proj.Identity.ResourceID {
+		switch proj.ResourceID {
 		case orderedContentID:
 			require.Len(t, payload.Media, 3, "the unresolvable blank reference must be dropped")
 
@@ -740,7 +743,7 @@ func TestContentProjectionResolver_MediaOrderAndEmptyMedia(t *testing.T) {
 			require.NotNil(t, payload.Media)
 			require.Empty(t, payload.Media)
 		default:
-			t.Fatalf("unexpected projection identity %s", proj.Identity.ResourceID)
+			t.Fatalf("unexpected projection identity %s", proj.ResourceID)
 		}
 	}
 }
@@ -765,7 +768,7 @@ func TestContentProjectionResolver_DedupesRepeatedContentAcrossMessages(t *testi
 
 	for _, proj := range projections {
 		payload := requireLiveContentProjection(t, proj)
-		require.Equal(t, contentID, proj.Identity.ResourceID)
+		require.Equal(t, contentID, proj.ResourceID)
 		require.Equal(t, "dedupe_author", payload.Author.Username)
 	}
 }
@@ -811,7 +814,7 @@ func TestContentProjectionResolver_MixedBatch_NoCrossLeakage(t *testing.T) {
 		case privateContentID, hiddenContentID, blockedContentID:
 			requireTombstoneContentProjection(t, proj)
 		default:
-			t.Fatalf("unexpected content %s", proj.Identity.ResourceID)
+			t.Fatalf("unexpected content %s", proj.ResourceID)
 		}
 	}
 }

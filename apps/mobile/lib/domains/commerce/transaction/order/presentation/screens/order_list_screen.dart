@@ -32,33 +32,27 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return PopScope(
       canPop: true,
       child: Scaffold(
-        backgroundColor: isDark
-            ? core.AppColors.darkGray900
-            : core.AppColors.neutralGray50,
+        // Page canvas — canonical lowest tone in both modes (checkout precedent).
+        backgroundColor: colorScheme.surfaceContainerLowest,
         appBar: AppBar(
           title: Text(widget.isSeller ? 'Incoming Orders' : 'My Orders'),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
             onPressed: () => Navigator.of(context).pop(),
           ),
-          backgroundColor: isDark
-              ? core.AppColors.darkGray800
-              : core.AppColors.neutralWhite,
           surfaceTintColor: Colors.transparent,
           scrolledUnderElevation: 0,
           bottom: TabBar(
             controller: _tabController,
             isScrollable: true,
-            indicatorColor: core.AppColors.primaryRed,
-            labelColor: core.AppColors.primaryRed,
-            unselectedLabelColor: isDark
-                ? core.AppColors.neutralGray400
-                : core.AppColors.neutralGray600,
+            indicatorColor: colorScheme.primary,
+            labelColor: colorScheme.primary,
+            unselectedLabelColor: colorScheme.onSurfaceVariant,
             tabs: const [
               Tab(text: 'All'),
               Tab(text: 'Pending'),
@@ -71,18 +65,18 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
         body: TabBarView(
           controller: _tabController,
           children: [
-            _buildOrderList(null, isDark),
-            _buildOrderList(OrderStatus.pending, isDark),
-            _buildOrderList(OrderStatus.paid, isDark),
-            _buildOrderList(OrderStatus.shipped, isDark),
-            _buildOrderList(OrderStatus.completed, isDark),
+            _buildOrderList(null),
+            _buildOrderList(OrderStatus.pending),
+            _buildOrderList(OrderStatus.paid),
+            _buildOrderList(OrderStatus.shipped),
+            _buildOrderList(OrderStatus.completed),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildOrderList(OrderStatus? status, bool isDark) {
+  Widget _buildOrderList(OrderStatus? status) {
     // Use centralized provider (TANGGUNG_JAWAB_MODUL compliance)
     final currentUser = ref.watch(authenticatedUserProvider);
 
@@ -118,14 +112,14 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
         // Stream langsung return List<Order>, bukan Result
 
         if (orders.isEmpty) {
-          return _buildEmptyState(context, isDark, widget.isSeller);
+          return _buildEmptyState(context, widget.isSeller);
         }
 
         return ListView.builder(
           padding: const EdgeInsets.all(16),
           itemCount: orders.length,
           itemBuilder: (context, index) {
-            return _buildOrderCard(isDark, orders[index]);
+            return _buildOrderCard(orders[index]);
           },
         );
       },
@@ -134,7 +128,11 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, size: 48, color: Colors.red),
+            const Icon(
+              Icons.error_outline,
+              size: 48,
+              color: core.AppColors.statusError,
+            ),
             const SizedBox(height: 16),
             const Text('Data belum bisa dimuat.'),
           ],
@@ -143,7 +141,8 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
     );
   }
 
-  Widget _buildOrderCard(bool isDark, Order order) {
+  Widget _buildOrderCard(Order order) {
+    final colorScheme = Theme.of(context).colorScheme;
     // The GET /orders list surface carries no line items (items[] is emitted
     // only by GET /orders/:id), so the tile degrades to a neutral label rather
     // than inventing an item name or crashing on `.first`.
@@ -162,9 +161,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isDark
-              ? core.AppColors.darkGray800
-              : core.AppColors.neutralWhite,
+          color: colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
@@ -180,9 +177,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
-                      color: isDark
-                          ? core.AppColors.neutralWhite
-                          : core.AppColors.neutralGray900,
+                      color: colorScheme.onSurface,
                     ),
                   ),
                 ),
@@ -263,7 +258,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
                     errorBuilder: (_, _, _) => Container(
                       width: 60,
                       height: 60,
-                      color: core.AppColors.neutralGray300,
+                      color: colorScheme.surfaceContainerHighest,
                       child: const Icon(Icons.image_not_supported),
                     ),
                   ),
@@ -278,9 +273,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: isDark
-                              ? core.AppColors.neutralWhite
-                              : core.AppColors.neutralGray900,
+                          color: colorScheme.onSurface,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -292,9 +285,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
                             : '${order.items.length} item${order.items.length > 1 ? 's' : ''}',
                         style: TextStyle(
                           fontSize: 12,
-                          color: isDark
-                              ? core.AppColors.neutralGray400
-                              : core.AppColors.neutralGray600,
+                          color: colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -315,9 +306,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
                       'Total Payment',
                       style: TextStyle(
                         fontSize: 12,
-                        color: isDark
-                            ? core.AppColors.neutralGray400
-                            : core.AppColors.neutralGray600,
+                        color: colorScheme.onSurfaceVariant,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -330,7 +319,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: core.AppColors.primaryRed,
+                        color: colorScheme.primary,
                       ),
                     ),
                   ],
@@ -346,8 +335,8 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: core.AppColors.primaryRed,
-                    foregroundColor: Colors.white,
+                    backgroundColor: colorScheme.primary,
+                    foregroundColor: colorScheme.onPrimary,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 20,
                       vertical: 10,
@@ -408,7 +397,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
       case OrderStatus.partiallyRefunded:
         return core.AppColors.statusInfo;
       case OrderStatus.expired:
-        return Colors.grey;
+        return Theme.of(context).colorScheme.onSurfaceVariant;
     }
   }
 
@@ -420,13 +409,12 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
   Color _getOverdueBadgeColor(String? overdueTier) {
     switch (overdueTier) {
       case 'overdue': // Tier 1
-        return const Color(0xFFFF9800); // Orange
+        return core.AppColors.statusWarning; // Orange
       case 'severely_overdue': // Tier 2
-        return const Color(0xFFF44336); // Red
       case 'critical_overdue': // Tier 3
-        return const Color(0xFFD32F2F); // Dark Red
+        return core.AppColors.statusError; // Red
       default:
-        return const Color(0xFFFF9800); // Default to orange
+        return core.AppColors.statusWarning; // Default to orange
     }
   }
 
@@ -444,7 +432,8 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
     }
   }
 
-  Widget _buildEmptyState(BuildContext context, bool isDark, bool isSeller) {
+  Widget _buildEmptyState(BuildContext context, bool isSeller) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 48),
@@ -456,9 +445,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: isDark
-                    ? core.AppColors.neutralGray700.withValues(alpha: 0.3)
-                    : core.AppColors.neutralGray200,
+                color: colorScheme.surfaceContainerHigh,
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -466,9 +453,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
                     ? Icons.storefront_outlined
                     : Icons.shopping_bag_outlined,
                 size: 40,
-                color: isDark
-                    ? core.AppColors.neutralGray500
-                    : core.AppColors.neutralGray400,
+                color: colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 24),
@@ -479,9 +464,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: isDark
-                    ? core.AppColors.neutralWhite
-                    : core.AppColors.neutralGray900,
+                color: colorScheme.onSurface,
               ),
               textAlign: TextAlign.center,
             ),
@@ -494,7 +477,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
                   : 'Mulai berbelanja dari koleksi Koi terbaik',
               style: TextStyle(
                 fontSize: 14,
-                color: core.AppColors.neutralGray600,
+                color: colorScheme.onSurfaceVariant,
               ),
               textAlign: TextAlign.center,
             ),
@@ -513,8 +496,8 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
                 ),
                 onPressed: () => _handleEmptyStateAction(context, isSeller),
                 style: FilledButton.styleFrom(
-                  backgroundColor: core.AppColors.primaryRed,
-                  foregroundColor: Colors.white,
+                  backgroundColor: colorScheme.primary,
+                  foregroundColor: colorScheme.onPrimary,
                   padding: const EdgeInsets.symmetric(
                     vertical: 14,
                     horizontal: 24,

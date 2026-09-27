@@ -1023,8 +1023,9 @@ func withdrawnAtForViewer(l *entity.ForSale, viewerID *uuid.UUID) *time.Time {
 //
 // Scope 3 — status boundary (parity with auction): `status` carries the
 // coarsened public lifecycle vocabulary via entity.ForSaleStatus
-// .PublicLifecycle() ({active, unavailable}; draft never crosses the public
-// boundary). The exact internal state crosses the wire ONLY via
+// .PublicLifecycle() ({active, sold, unavailable}; draft never crosses the
+// public boundary; sold is honest public business truth, withdrawn stays
+// coarsened). The exact internal state crosses the wire ONLY via
 // `seller_status`, and only when viewerID is the owning seller — for every
 // other viewer it is null. Internal timestamps (sold_at/withdrawn_at) are
 // likewise gated to the owning seller.
@@ -1047,9 +1048,9 @@ func for_saleToResponseWithSeller(
 	}
 
 	// Canonical PublicCard ForSaleCard (Batch 2C).
-	// Carries the coarsened public lifecycle vocabulary {active, unavailable,
-	// removed} via entity.ForSaleStatus.PublicLifecycle(); raw enum (draft,
-	// sold, withdrawn) is intentionally NEVER read by the card.
+	// Carries the coarsened public lifecycle vocabulary {active, sold,
+	// unavailable, removed} via entity.ForSaleStatus.PublicLifecycle(); raw
+	// enum (draft, withdrawn) is intentionally NEVER read by the card.
 	var thumbnail *string
 	if len(mediaURLs) > 0 {
 		t := mediaURLs[0]
@@ -1105,8 +1106,8 @@ func for_saleToResponseWithSeller(
 		"negotiation_enabled": l.NegotiationEnabled,
 		"visibility":       string(l.Visibility),
 		// PUBLIC BOUNDARY: `status` is the coarsened public lifecycle
-		// ({active, unavailable}); the raw internal enum crosses the wire
-		// ONLY via `seller_status` for the owning seller (Scope 3 parity
+		// ({active, sold, unavailable}); the raw internal enum crosses the
+		// wire ONLY via `seller_status` for the owning seller (Scope 3 parity
 		// with auction).
 		"status":           l.Status.PublicLifecycle(),
 		"lifecycle":        l.Status.PublicLifecycle(),

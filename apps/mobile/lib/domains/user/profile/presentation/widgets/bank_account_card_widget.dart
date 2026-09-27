@@ -8,7 +8,6 @@ class BankAccountCardWidget extends StatelessWidget {
   final VoidCallback onEdit;
   final VoidCallback onDelete;
   final VoidCallback onSetPrimary;
-  final bool isDark;
 
   const BankAccountCardWidget({
     super.key,
@@ -16,21 +15,21 @@ class BankAccountCardWidget extends StatelessWidget {
     required this.onEdit,
     required this.onDelete,
     required this.onSetPrimary,
-    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray700 : AppColors.neutralWhite,
+         color: scheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: account.isDefault
               ? AppColors.primaryRed.withValues(alpha: 0.3)
-              : (isDark ? AppColors.darkGray600 : AppColors.neutralGray200),
+              : scheme.outlineVariant,
         ),
         gradient: account.isDefault
             ? LinearGradient(
@@ -68,9 +67,7 @@ class BankAccountCardWidget extends StatelessWidget {
                     Text(
                       account.bankName,
                       style: TextStyle(
-                        color: isDark
-                            ? AppColors.neutralGray200
-                            : AppColors.neutralGray900,
+                        color: scheme.onSurface,
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
@@ -79,22 +76,20 @@ class BankAccountCardWidget extends StatelessWidget {
                     Text(
                       account.isDefault ? 'Rekening Utama' : account.bankCode,
                       style: TextStyle(
-                        color: isDark
-                            ? AppColors.neutralGray400
-                            : AppColors.neutralGray600,
+                        color: scheme.onSurfaceVariant,
                         fontSize: 12,
                       ),
                     ),
                   ],
                 ),
               ),
-              _buildStatusBadge(),
+              _buildStatusBadge(context),
             ],
           ),
           const SizedBox(height: 16),
 
           // Account details
-          _buildAccountDetails(),
+          _buildAccountDetails(context),
           const SizedBox(height: 16),
 
           // Action buttons
@@ -104,7 +99,8 @@ class BankAccountCardWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusBadge() {
+  Widget _buildStatusBadge(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     Color badgeColor;
     Color textColor;
     String statusText;
@@ -113,13 +109,13 @@ class BankAccountCardWidget extends StatelessWidget {
     switch (account.status) {
       case BankAccountStatus.active:
         badgeColor = AppColors.success;
-        textColor = AppColors.neutralWhite;
+        textColor = scheme.onPrimary;
         statusText = 'Aktif';
         icon = Icons.check_circle_outline;
         break;
       case BankAccountStatus.deleted:
         badgeColor = AppColors.error;
-        textColor = AppColors.neutralWhite;
+        textColor = scheme.onPrimary;
         statusText = 'Dihapus';
         icon = Icons.remove_circle_outline;
         break;
@@ -149,17 +145,18 @@ class BankAccountCardWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildAccountDetails() {
+  Widget _buildAccountDetails(BuildContext context) {
     return Column(
       children: [
-        _buildDetailRow('Account Number', account.accountNumber),
+        _buildDetailRow(context, 'Account Number', account.accountNumber),
         const SizedBox(height: 8),
-        _buildDetailRow('Account Holder', account.accountHolderName),
+        _buildDetailRow(context, 'Account Holder', account.accountHolderName),
       ],
     );
   }
 
-  Widget _buildDetailRow(String label, String value) {
+  Widget _buildDetailRow(BuildContext context, String label, String value) {
+    final scheme = Theme.of(context).colorScheme;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -168,9 +165,7 @@ class BankAccountCardWidget extends StatelessWidget {
           child: Text(
             label,
             style: TextStyle(
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray600,
+              color: scheme.onSurfaceVariant,
               fontSize: 12,
               fontWeight: FontWeight.w500,
             ),
@@ -181,9 +176,7 @@ class BankAccountCardWidget extends StatelessWidget {
           child: Text(
             value,
             style: TextStyle(
-              color: isDark
-                  ? AppColors.neutralGray200
-                  : AppColors.neutralGray900,
+              color: scheme.onSurface,
               fontSize: 12,
               fontWeight: FontWeight.w500,
             ),

@@ -7,7 +7,6 @@ class KTPPreviewSection extends StatelessWidget {
   final TextEditingController ktpNumberController;
   final TextEditingController ktpNameController;
   final VoidCallback onChangeKTP;
-  final bool isDark;
 
   const KTPPreviewSection({
     super.key,
@@ -15,11 +14,11 @@ class KTPPreviewSection extends StatelessWidget {
     required this.ktpNumberController,
     required this.ktpNameController,
     required this.onChangeKTP,
-    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -35,17 +34,13 @@ class KTPPreviewSection extends StatelessWidget {
         Container(
           height: 200,
           decoration: BoxDecoration(
-            color: isDark ? AppColors.neutralGray800 : AppColors.neutralGray100,
+            color: scheme.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: isDark
-                  ? AppColors.neutralGray700
-                  : AppColors.neutralGray300,
-            ),
+            border: Border.all(color: scheme.outlineVariant),
           ),
           child: ktpImageUrl != null
               ? Image.network(ktpImageUrl!, fit: BoxFit.contain)
-              : const Center(child: Icon(Icons.image, size: 64)),
+              : Icon(Icons.image, size: 64, color: scheme.onSurfaceVariant),
         ),
         const SizedBox(height: 16),
         TextFormField(

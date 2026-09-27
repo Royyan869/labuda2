@@ -6,7 +6,6 @@ import 'package:labuda/core/src/navigation/i_navigation_registry.dart';
 import 'package:labuda/core/src/navigation/navigation_registry_impl.dart';
 import 'package:labuda/core/navigation/navigation_handler.dart';
 import 'package:labuda/core/websocket/websocket_service.dart';
-import 'package:labuda/core/src/websocket/chat_websocket_handler.dart';
 
 // =============================================================================
 // ARCHITECTURE GUARDRAIL (R5) - SERVICE LOCATOR USAGE RULES
@@ -109,12 +108,6 @@ class ServiceLocator {
   static void registerWebSocketService(WebSocketService webSocketService) {
     if (!sl.isRegistered<WebSocketService>()) {
       sl.registerSingleton<WebSocketService>(webSocketService);
-    }
-  }
-
-  static void registerChatWebSocketHandler(ChatWebSocketHandler chatHandler) {
-    if (!sl.isRegistered<ChatWebSocketHandler>()) {
-      sl.registerSingleton<ChatWebSocketHandler>(chatHandler);
     }
   }
 

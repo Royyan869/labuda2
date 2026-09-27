@@ -199,7 +199,7 @@ class _DirectDisputeDialogState extends ConsumerState<DirectDisputeDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final colorScheme = theme.colorScheme;
 
     return AlertDialog(
       title: Row(
@@ -229,10 +229,10 @@ class _DirectDisputeDialogState extends ConsumerState<DirectDisputeDialog> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: core.AppColors.primaryBlue.withValues(alpha: 0.1),
+                  color: colorScheme.secondary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: core.AppColors.primaryBlue.withValues(alpha: 0.3),
+                    color: colorScheme.secondary.withValues(alpha: 0.3),
                   ),
                 ),
                 child: Row(
@@ -240,7 +240,7 @@ class _DirectDisputeDialogState extends ConsumerState<DirectDisputeDialog> {
                   children: [
                     Icon(
                       Icons.info_outline_rounded,
-                      color: core.AppColors.primaryBlue,
+                      color: colorScheme.secondary,
                       size: 18,
                     ),
                     const SizedBox(width: 8),
@@ -249,7 +249,7 @@ class _DirectDisputeDialogState extends ConsumerState<DirectDisputeDialog> {
                         'Admin akan meninjau kasus ini secara adil berdasarkan bukti dari kedua pihak.',
                         style: TextStyle(
                           fontSize: 12,
-                          color: isDark ? Colors.white70 : Colors.black87,
+                          color: colorScheme.onSurface,
                         ),
                       ),
                     ),
@@ -314,10 +314,8 @@ class _DirectDisputeDialogState extends ConsumerState<DirectDisputeDialog> {
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  filled: isDark,
-                  fillColor: isDark
-                      ? const Color(0xFF2A2A2A)
-                      : Colors.grey[100],
+                  filled: true,
+                  fillColor: colorScheme.surfaceContainerHigh,
                 ),
               ),
               const SizedBox(height: 16),
@@ -334,9 +332,9 @@ class _DirectDisputeDialogState extends ConsumerState<DirectDisputeDialog> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF2A2A2A) : Colors.grey[100],
+                    color: colorScheme.surfaceContainerHigh,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey.shade300),
+                    border: Border.all(color: colorScheme.outlineVariant),
                   ),
                   child: Row(
                     children: [
@@ -378,7 +376,10 @@ class _DirectDisputeDialogState extends ConsumerState<DirectDisputeDialog> {
               const SizedBox(height: 4),
               Text(
                 'Rekam video unboxing atau bukti masalah (maks. 2 menit)',
-                style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                style: TextStyle(
+                  fontSize: 11,
+                  color: colorScheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 16),
 
@@ -418,14 +419,14 @@ class _DirectDisputeDialogState extends ConsumerState<DirectDisputeDialog> {
                               },
                               child: Container(
                                 padding: const EdgeInsets.all(2),
-                                decoration: const BoxDecoration(
-                                  color: Colors.red,
+                                decoration: BoxDecoration(
+                                  color: colorScheme.error,
                                   shape: BoxShape.circle,
                                 ),
-                                child: const Icon(
+                                child: Icon(
                                   Icons.close,
                                   size: 12,
-                                  color: Colors.white,
+                                  color: colorScheme.onError,
                                 ),
                               ),
                             ),
@@ -441,11 +442,11 @@ class _DirectDisputeDialogState extends ConsumerState<DirectDisputeDialog> {
                           height: 60,
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.grey.shade400),
+                            border: Border.all(color: colorScheme.outlineVariant),
                           ),
                           child: Icon(
                             Icons.add_photo_alternate,
-                            color: Colors.grey[600],
+                            color: colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ),
@@ -503,16 +504,16 @@ class _DirectDisputeDialogState extends ConsumerState<DirectDisputeDialog> {
           onPressed: _isSubmitting ? null : _submitDispute,
           style: ElevatedButton.styleFrom(
             backgroundColor: core.AppColors.statusWarning,
-            foregroundColor: Colors.white,
-            disabledBackgroundColor: Colors.grey,
+            foregroundColor: colorScheme.onPrimary,
+            disabledBackgroundColor: colorScheme.surfaceContainerHighest,
           ),
           child: _isSubmitting
-              ? const SizedBox(
+              ? SizedBox(
                   width: 16,
                   height: 16,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: Colors.white,
+                    color: colorScheme.onPrimary,
                   ),
                 )
               : const Text('Ajukan Sengketa'),

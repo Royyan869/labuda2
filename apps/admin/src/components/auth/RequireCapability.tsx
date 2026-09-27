@@ -15,20 +15,20 @@ export function RequireCapability({ cap, children }: RequireCapabilityProps) {
 
   if (!hasCapability(capabilities, cap)) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-50">
+      <div className="flex items-center justify-center h-screen bg-[hsl(var(--surface-muted))]">
         <div className="text-center max-w-md">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 mb-4">
-            <Lock className="w-8 h-8 text-red-600" />
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[hsl(var(--destructive-bg))] mb-4">
+            <Lock className="w-8 h-8 text-[hsl(var(--destructive))]" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Access Denied</h1>
-          <p className="mt-2 text-gray-600">You don't have permission to access this page.</p>
-          <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+          <h1 className="text-2xl font-bold text-[hsl(var(--foreground))]">Access Denied</h1>
+          <p className="mt-2 text-[hsl(var(--muted-foreground))]">You don't have permission to access this page.</p>
+          <div className="mt-6 p-4 bg-[hsl(var(--warning-bg))] border border-[hsl(var(--warning))] rounded-lg">
             <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <AlertCircle className="w-5 h-5 text-[hsl(var(--warning))] flex-shrink-0 mt-0.5" />
               <div className="text-left">
-                <p className="text-sm font-medium text-amber-900">Required Capability</p>
-                <p className="text-xs text-amber-700 mt-1 font-mono">{cap}</p>
-                <p className="text-xs text-amber-700 mt-1">{formatCapability(cap)}</p>
+                <p className="text-sm font-medium text-[hsl(var(--warning))]">Required Capability</p>
+                <p className="text-xs text-[hsl(var(--warning))] mt-1 font-mono">{cap}</p>
+                <p className="text-xs text-[hsl(var(--warning))] mt-1">{formatCapability(cap)}</p>
               </div>
             </div>
           </div>

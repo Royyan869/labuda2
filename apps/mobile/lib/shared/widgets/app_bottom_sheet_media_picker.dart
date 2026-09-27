@@ -10,6 +10,7 @@ class AppBottomSheetMediaPicker {
     String title = 'Select Media',
     bool allowVideo = true,
   }) {
+    final scheme = Theme.of(context).colorScheme;
     return AppBottomSheetActions.showActions<String>(
       context: context,
       title: title,
@@ -19,14 +20,14 @@ class AppBottomSheetMediaPicker {
           title: 'Camera',
           subtitle: 'Take a new photo',
           icon: Icons.camera_alt_rounded,
-          iconColor: AppColors.successGreen,
+          iconColor: AppColors.statusSuccess,
           onPressed: () => Navigator.of(context).pop('camera'),
         ),
         BottomSheetAction<String>(
           title: 'Photo Gallery',
           subtitle: 'Choose from your photos',
           icon: Icons.photo_library_rounded,
-          iconColor: AppColors.primaryBlue,
+          iconColor: scheme.secondary,
           onPressed: () => Navigator.of(context).pop('gallery_photo'),
         ),
         if (allowVideo) ...[
@@ -34,7 +35,7 @@ class AppBottomSheetMediaPicker {
             title: 'Video Gallery',
             subtitle: 'Choose from your videos',
             icon: Icons.video_library_rounded,
-            iconColor: AppColors.primaryRed,
+            iconColor: scheme.primary,
             onPressed: () => Navigator.of(context).pop('gallery_video'),
           ),
         ],

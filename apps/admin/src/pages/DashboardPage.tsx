@@ -50,8 +50,8 @@ function MetricCard({
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-gray-600">{title}</p>
-            <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
+            <p className="text-sm font-medium text-[hsl(var(--muted-foreground))]">{title}</p>
+            <p className="text-2xl font-bold text-[hsl(var(--foreground))] mt-1">{value}</p>
           </div>
           <div className={`p-3 rounded-full ${color}`}>
             <Icon className="h-6 w-6 text-white" />
@@ -95,16 +95,16 @@ export function DashboardPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard Overview</h1>
-          <p className="text-gray-600 mt-1">Welcome to LABUDA Admin Dashboard</p>
+          <h1 className="text-3xl font-bold text-[hsl(var(--foreground))]">Dashboard Overview</h1>
+          <p className="text-[hsl(var(--muted-foreground))] mt-1">Welcome to LABUDA Admin Dashboard</p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {Array.from({ length: 7 }).map((_, i) => (
             <Card key={i}>
               <CardContent className="p-6">
                 <div className="animate-pulse">
-                  <div className="h-4 bg-gray-200 rounded w-24 mb-3"></div>
-                  <div className="h-8 bg-gray-200 rounded w-16"></div>
+                  <div className="h-4 bg-[hsl(var(--surface-muted))] rounded w-24 mb-3"></div>
+                  <div className="h-8 bg-[hsl(var(--surface-muted))] rounded w-16"></div>
                 </div>
               </CardContent>
             </Card>
@@ -118,15 +118,15 @@ export function DashboardPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard Overview</h1>
-          <p className="text-gray-600 mt-1">Welcome to LABUDA Admin Dashboard</p>
+          <h1 className="text-3xl font-bold text-[hsl(var(--foreground))]">Dashboard Overview</h1>
+          <p className="text-[hsl(var(--muted-foreground))] mt-1">Welcome to LABUDA Admin Dashboard</p>
         </div>
         <Card>
           <CardContent className="p-12">
             <div className="text-center py-8">
-              <AlertTriangle className="h-12 w-12 text-red-400 mx-auto mb-4" />
-              <h2 className="text-lg font-semibold text-gray-900 mb-2">Failed to Load Dashboard</h2>
-              <p className="text-gray-600 mb-4">{error}</p>
+              <AlertTriangle className="h-12 w-12 text-[hsl(var(--destructive))] mx-auto mb-4" />
+              <h2 className="text-lg font-semibold text-[hsl(var(--foreground))] mb-2">Failed to Load Dashboard</h2>
+              <p className="text-[hsl(var(--muted-foreground))] mb-4">{error}</p>
               <Button variant="secondary" onClick={fetchDashboard}>
                 Retry
               </Button>
@@ -142,12 +142,12 @@ export function DashboardPage() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard Overview</h1>
-          <p className="text-gray-600 mt-1">Welcome to LABUDA Admin Dashboard</p>
+          <h1 className="text-3xl font-bold text-[hsl(var(--foreground))]">Dashboard Overview</h1>
+          <p className="text-[hsl(var(--muted-foreground))] mt-1">Welcome to LABUDA Admin Dashboard</p>
         </div>
         <div className="flex items-center gap-3">
           {generatedAt && (
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-[hsl(var(--muted-foreground))]">
               Updated: {new Date(generatedAt).toLocaleTimeString()}
             </span>
           )}
@@ -170,43 +170,43 @@ export function DashboardPage() {
             title="Total Users"
             value={summary.total_users.toLocaleString()}
             icon={Users}
-            color="bg-blue-500"
+            color="bg-[hsl(var(--chart-1))]"
           />
           <MetricCard
             title="Active Users Today"
             value={summary.active_users_today.toLocaleString()}
             icon={TrendingUp}
-            color="bg-green-500"
+            color="bg-[hsl(var(--chart-2))]"
           />
           <MetricCard
             title="Active Sellers"
             value={summary.active_sellers.toLocaleString()}
             icon={ShieldCheck}
-            color="bg-purple-500"
+            color="bg-[hsl(var(--chart-3))]"
           />
           <MetricCard
             title="Total Orders"
             value={summary.total_orders.toLocaleString()}
             icon={ShoppingCart}
-            color="bg-indigo-500"
+            color="bg-[hsl(var(--chart-4))]"
           />
           <MetricCard
             title="Orders Today"
             value={summary.orders_today.toLocaleString()}
             icon={LayoutDashboard}
-            color="bg-teal-500"
+            color="bg-[hsl(var(--chart-5))]"
           />
           <MetricCard
             title="Pending Reports"
             value={summary.pending_reports.toLocaleString()}
             icon={Headphones}
-            color="bg-amber-500"
+            color="bg-[hsl(var(--chart-6))]"
           />
           <MetricCard
             title="Total Revenue"
             value={`Rp ${summary.total_revenue.toLocaleString()}`}
             icon={TrendingUp}
-            color="bg-emerald-500"
+            color="bg-[hsl(var(--chart-7))]"
           />
         </div>
       )}

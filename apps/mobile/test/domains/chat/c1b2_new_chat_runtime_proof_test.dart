@@ -25,7 +25,7 @@ import 'package:labuda/domains/chat/chat/presentation/providers/new_chat_user_se
     show newChatUserSearchProvider;
 import 'package:labuda/domains/user/profile/data/datasources/user_api_datasource.dart';
 import 'package:labuda/domains/user/profile/data/profile_providers.dart'
-    show avatarCacheServiceProvider, profileRepositoryProvider;
+    show avatarCacheServiceProvider;
 import 'package:labuda/domains/user/profile/data/services/avatar_cache_service.dart';
 import 'package:labuda/features/search/search/data/dto/search_dto.dart';
 import 'package:labuda/features/search/search/data/remote/search_api_service.dart';
@@ -33,8 +33,6 @@ import 'package:labuda/features/search/search/domain/entities/user_search.dart';
 import 'package:labuda/features/search/search/presentation/providers/providers.dart'
     show searchApiServiceProvider;
 import 'package:labuda/shared/shared.dart';
-import 'package:labuda/domains/user/profile/domain/entities/profile_entity.dart';
-import 'package:labuda/domains/user/profile/domain/repositories/i_profile_repository.dart';
 
 // =============================================================================
 // Fake / recording dependencies
@@ -106,36 +104,6 @@ class _RecordingSearchApiService extends SearchApiService {
   }
 }
 
-/// Fake profile repository for NewChatScreen (canonical: searchProfilesProvider -> ProfileEntity)
-class _FakeProfileRepository extends Fake implements IProfileRepository {
-  List<ProfileEntity> cannedProfiles = [];
-  Object? cannedError;
-  Completer<List<ProfileEntity>>? pendingCompleter;
-  int callCount = 0;
-  String? lastQuery;
-
-  @override
-  Future<Result<List<ProfileEntity>>> searchProfiles(String query, {int limit = 20, String? lastDocumentId}) async {
-    callCount++;
-    lastQuery = query;
-    if (pendingCompleter != null) {
-      final list = await pendingCompleter!.future;
-      return Result.success(list);
-    }
-    if (cannedError != null) {
-      return Future.error(cannedError!);
-    }
-    return Result.success(List<ProfileEntity>.from(cannedProfiles));
-  }
-
-  void delayNextWithProfile(Completer<List<ProfileEntity>> c) {
-    pendingCompleter = c;
-  }
-
-  @override
-  dynamic noSuchMethod(Invocation inv) => super.noSuchMethod(inv);
-}
-
 UserSearchResultDto _userDto({
   required String id,
   required String username,
@@ -144,28 +112,14 @@ UserSearchResultDto _userDto({
   return UserSearchResultDto(id: id, username: username, avatarUrl: avatarUrl);
 }
 
-ProfileEntity _profile({
+/// Canonical row input: the lightweight UserSearch projection from the
+/// search domain (no location / farm / verification metadata exists here).
+UserSearch _userSearch({
   required String userId,
-  String? farmName,
-  String? location,
-  bool isPhoneVerified = false,
-  String? farmPhotoUrl,
+  String username = 'user',
+  String? avatarUrl,
 }) {
-  return ProfileEntity(
-    id: 'profile-' + userId,
-    userId: userId,
-    location: location,
-    joinedAt: DateTime(2025),
-    stats: const ProfileStats(followersCount: 0, followingCount: 0),
-    verification: UserVerificationInfo(
-      isPhoneVerified: isPhoneVerified,
-      isEmailVerified: true,
-      isIdVerified: false,
-      isFarmVerified: false,
-      badges: const [],
-    ),
-    farmInfo: farmName != null ? FarmInfo(farmName: farmName, farmPhotoUrl: farmPhotoUrl) : null,
-  );
+  return UserSearch(userId: userId, username: username, avatarUrl: avatarUrl);
 }
 
 UserSearchResponseDto _responseDto({
@@ -365,36 +319,6 @@ Widget _wrapScreen({
       isEmailVerified: isEmailVerified,
       chatRepo: chatRepo,
     ),
-    child: MaterialApp.router(routerConfig: goRouter),
-  );
-}
-
-Widget _wrapScreenWithProfile({
-  required _FakeProfileRepository repo,
-  String currentUserId = 'principal-A',
-  bool isEmailVerified = true,
-  _RecordingChatRepository? chatRepo,
-}) {
-  final goRouter = GoRouter(
-    initialLocation: '/',
-    routes: [
-      GoRoute(path: '/', builder: (_, _) => const NewChatScreen()),
-      GoRoute(path: '/chat/:chatId', builder: (_, _) => const SizedBox()),
-    ],
-  );
-  return ProviderScope(
-    overrides: [
-      profileRepositoryProvider.overrideWith((ref) => repo),
-      currentUserIdProvider.overrideWith((ref) => currentUserId),
-      isEmailVerifiedProvider.overrideWith((ref) => isEmailVerified),
-      authControllerProvider.overrideWith(
-        () => _FakeAuthController(
-          AuthState.authenticated(_authUser(currentUserId), emailVerified: isEmailVerified),
-        ),
-      ),
-      avatarCacheServiceProvider.overrideWith((ref) => _NoOpAvatarCacheService()),
-      if (chatRepo != null) chatRepositoryProvider.overrideWith((ref) => chatRepo),
-    ],
     child: MaterialApp.router(routerConfig: goRouter),
   );
 }
@@ -843,15 +767,13 @@ void main() {
   // ===========================================================================
 
   group('C1B2 — Row widget', () {
-    group('profile with farmName, no avatar', () {
-      testWidgets('HybridAvatar has correct userId and initials JD', (tester) async {
+    group('user projection, no avatar', () {
+      testWidgets('HybridAvatar binds stable user id', (tester) async {
         await tester.pumpWidget(
           _wrapWidget(
             recordingService: _RecordingSearchApiService(),
             child: NewChatUserListWidget(
-              profile: _profile(userId: _canonicalRowUserId, farmName: 'John Doe'),
-              currentUserId: 'principal-A',
-              isDark: false,
+              user: _userSearch(userId: _canonicalRowUserId, username: 'john_doe'),
             ),
           ),
         );
@@ -863,14 +785,12 @@ void main() {
         expect(a.savedAvatarUrl, isNull);
       });
 
-      testWidgets('HybridAvatar imageUrl is null when no farmPhoto', (tester) async {
+      testWidgets('savedAvatarUrl null when search result has none', (tester) async {
         await tester.pumpWidget(
           _wrapWidget(
             recordingService: _RecordingSearchApiService(),
             child: NewChatUserListWidget(
-              profile: _profile(userId: _canonicalRowUserId, farmName: 'John Doe'),
-              currentUserId: 'principal-A',
-              isDark: false,
+              user: _userSearch(userId: _canonicalRowUserId, username: 'john_doe'),
             ),
           ),
         );
@@ -884,9 +804,7 @@ void main() {
           _wrapWidget(
             recordingService: _RecordingSearchApiService(),
             child: NewChatUserListWidget(
-              profile: _profile(userId: _canonicalRowUserId, farmName: 'John Doe'),
-              currentUserId: 'principal-A',
-              isDark: false,
+              user: _userSearch(userId: _canonicalRowUserId, username: 'john_doe'),
             ),
           ),
         );
@@ -903,9 +821,7 @@ void main() {
           _wrapWidget(
             recordingService: _RecordingSearchApiService(),
             child: NewChatUserListWidget(
-              profile: _profile(userId: _canonicalRowUserId, farmName: 'John Doe'),
-              currentUserId: 'principal-A',
-              isDark: false,
+              user: _userSearch(userId: _canonicalRowUserId, username: 'john_doe'),
             ),
           ),
         );
@@ -916,70 +832,63 @@ void main() {
         expect(texts.any((t) => t.contains('Location')), isFalse);
       });
 
-      testWidgets('shows location when present', (tester) async {
+      testWidgets('search projection renders handle, never location', (tester) async {
         await tester.pumpWidget(
           _wrapWidget(
             recordingService: _RecordingSearchApiService(),
             child: NewChatUserListWidget(
-              profile: _profile(userId: _canonicalRowUserId, farmName: 'John Doe', location: 'Jakarta'),
-              currentUserId: 'principal-A',
-              isDark: false,
+              user: _userSearch(userId: _canonicalRowUserId, username: 'john_doe'),
             ),
           ),
         );
         await tester.pump();
-        expect(find.text('Jakarta'), findsOneWidget);
+        expect(find.text('Jakarta'), findsNothing);
+        expect(find.text('@john_doe'), findsOneWidget);
       });
 
-      testWidgets('verification icon shown', (tester) async {
+      testWidgets('no verification icon; chevron shown', (tester) async {
         await tester.pumpWidget(
           _wrapWidget(
             recordingService: _RecordingSearchApiService(),
             child: NewChatUserListWidget(
-              profile: _profile(userId: _canonicalRowUserId, farmName: 'John Doe'),
-              currentUserId: 'principal-A',
-              isDark: false,
+              user: _userSearch(userId: _canonicalRowUserId, username: 'john_doe'),
             ),
           ),
         );
         await tester.pump();
-        expect(find.byIcon(Icons.verified), findsOneWidget);
+        expect(find.byIcon(Icons.verified), findsNothing);
         expect(find.byIcon(Icons.chevron_right), findsOneWidget);
       });
     });
 
-    group('profile with farmName and farmPhoto', () {
-      testWidgets('HybridAvatar passes farmName initials (farmPhotoUrl not wired in row)', (tester) async {
+    group('user projection with avatarUrl', () {
+      testWidgets('search-result avatarUrl wired as instant fallback', (tester) async {
         const url = 'https://img.example/avatar.png';
         await tester.pumpWidget(
           _wrapWidget(
             recordingService: _RecordingSearchApiService(),
             child: NewChatUserListWidget(
-              profile: _profile(userId: _canonicalAvatarRowUserId, farmName: 'Cool Bob', farmPhotoUrl: url),
-              currentUserId: 'principal-A',
-              isDark: false,
+              user: _userSearch(userId: _canonicalAvatarRowUserId, username: 'cool_bob', avatarUrl: url),
             ),
           ),
         );
         await tester.pump();
         final a = tester.widget<HybridAvatar>(find.byType(HybridAvatar));
-        // Current row does not wire farmPhotoUrl to HybridAvatar (only userId).
-        // savedAvatarUrl remains null and is fetched via AvatarCacheService;
-        // initials are gone (owner decision 2026-09-24).
+        // The UserSearch projection's avatarUrl is passed straight to the
+        // canonical resolver as instant fallback (Owner decision 2026-09-24:
+        // photo or icon, no initials).
         expect(a.userId, _canonicalAvatarRowUserId);
-        expect(a.savedAvatarUrl, isNull);
+        expect(a.savedAvatarUrl, url);
       });
     });
 
-    group('empty farmName', () {
-      testWidgets('HybridAvatar shows no initials state when farmName null', (tester) async {
+    group('empty username', () {
+      testWidgets('no initials state when username empty', (tester) async {
         await tester.pumpWidget(
           _wrapWidget(
             recordingService: _RecordingSearchApiService(),
             child: NewChatUserListWidget(
-              profile: _profile(userId: _canonicalRowUserId),
-              currentUserId: 'principal-A',
-              isDark: false,
+              user: _userSearch(userId: _canonicalRowUserId, username: ''),
             ),
           ),
         );
@@ -990,53 +899,19 @@ void main() {
         expect(find.byType(HybridAvatar), findsOneWidget);
       });
 
-      testWidgets('no handle text for empty farmName', (tester) async {
+      testWidgets('empty username → canonical "User" label', (tester) async {
         await tester.pumpWidget(
           _wrapWidget(
             recordingService: _RecordingSearchApiService(),
             child: NewChatUserListWidget(
-              profile: _profile(userId: _canonicalRowUserId),
-              currentUserId: 'principal-A',
-              isDark: false,
+              user: _userSearch(userId: _canonicalRowUserId, username: ''),
             ),
           ),
         );
         await tester.pump();
-        // Widget does not render @handle, so no handle text
+        // Canonical label: blank username → 'User' fallback label.
         expect(find.text('@john_doe'), findsNothing);
-        expect(find.text('User'), findsNothing);
-      });
-    });
-
-    group('phone verification', () {
-      testWidgets('verified icon color success when isPhoneVerified true', (tester) async {
-        await tester.pumpWidget(
-          _wrapWidget(
-            recordingService: _RecordingSearchApiService(),
-            child: NewChatUserListWidget(
-              profile: _profile(userId: _canonicalRowUserId, farmName: 'Alice', isPhoneVerified: true),
-              currentUserId: 'principal-A',
-              isDark: false,
-            ),
-          ),
-        );
-        await tester.pump();
-        expect(find.byIcon(Icons.verified), findsOneWidget);
-      });
-
-      testWidgets('verified icon grey when not verified', (tester) async {
-        await tester.pumpWidget(
-          _wrapWidget(
-            recordingService: _RecordingSearchApiService(),
-            child: NewChatUserListWidget(
-              profile: _profile(userId: _canonicalRowUserId, farmName: 'Alice', isPhoneVerified: false),
-              currentUserId: 'principal-A',
-              isDark: false,
-            ),
-          ),
-        );
-        await tester.pump();
-        expect(find.byIcon(Icons.verified), findsOneWidget);
+        expect(find.text('User'), findsOneWidget);
       });
     });
 
@@ -1046,9 +921,7 @@ void main() {
           _wrapWidget(
             recordingService: _RecordingSearchApiService(),
             child: NewChatUserListWidget(
-              profile: _profile(userId: _canonicalRowUserId, farmName: 'Alice'),
-              currentUserId: 'principal-A',
-              isDark: false,
+              user: _userSearch(userId: _canonicalRowUserId, username: 'alice'),
             ),
           ),
         );
@@ -1058,20 +931,18 @@ void main() {
         expect(find.text('Store'), findsNothing);
       });
 
-      testWidgets('no email/phone text', (tester) async {
+      testWidgets('identity label is handle, no email/phone', (tester) async {
         await tester.pumpWidget(
           _wrapWidget(
             recordingService: _RecordingSearchApiService(),
             child: NewChatUserListWidget(
-              profile: _profile(userId: _canonicalRowUserId, farmName: 'Alice'),
-              currentUserId: 'principal-A',
-              isDark: false,
+              user: _userSearch(userId: _canonicalRowUserId, username: 'alice'),
             ),
           ),
         );
         await tester.pump();
-        // Widget does not render email/phone
-        expect(find.textContaining('@'), findsNothing);
+        // Canonical label = @username handle; email/phone never render.
+        expect(find.text('@alice'), findsOneWidget);
       });
 
       testWidgets('no userId text exposed', (tester) async {
@@ -1079,9 +950,7 @@ void main() {
           _wrapWidget(
             recordingService: _RecordingSearchApiService(),
             child: NewChatUserListWidget(
-              profile: _profile(userId: 'user-x-12345', farmName: 'Alice'),
-              currentUserId: 'principal-A',
-              isDark: false,
+              user: _userSearch(userId: 'user-x-12345', username: 'alice'),
             ),
           ),
         );
@@ -1105,9 +974,7 @@ void main() {
             chatRepo: repo,
             currentUserId: 'principal-X',
             child: NewChatUserListWidget(
-              profile: _profile(userId: 'target-Y', farmName: 'tu', ),
-              currentUserId: 'principal-X',
-              isDark: false,
+              user: _userSearch(userId: 'target-Y', username: 'tu'),
             ),
           ),
         );
@@ -1128,9 +995,7 @@ void main() {
             chatRepo: repo,
             currentUserId: 'principal-X',
             child: NewChatUserListWidget(
-              profile: _profile(userId: 'real-id-123', farmName: 'cool', ),
-              currentUserId: 'principal-X',
-              isDark: false,
+              user: _userSearch(userId: 'real-id-123', username: 'cool'),
             ),
           ),
         );
@@ -1230,9 +1095,7 @@ void main() {
             child: MaterialApp(
               home: Scaffold(
                 body: NewChatUserListWidget(
-              profile: _profile(userId: 'target-Y', farmName: 'target user', ),
-              currentUserId: livePrincipal,
-              isDark: false,
+              user: _userSearch(userId: 'target-Y', username: 'target_user'),
             ),
               ),
             ),
@@ -1250,7 +1113,7 @@ void main() {
     });
 
     group('self-chat', () {
-      testWidgets('self profile is filtered at screen level, row itself does not block', (tester) async {
+      testWidgets('self profile is blocked at row level via live principal', (tester) async {
         final repo = _RecordingChatRepository();
         await tester.pumpWidget(
           _wrapWidget(
@@ -1258,9 +1121,7 @@ void main() {
             chatRepo: repo,
             currentUserId: 'same-user',
             child: NewChatUserListWidget(
-              profile: _profile(userId: 'same-user', farmName: 'me'),
-              currentUserId: 'same-user',
-              isDark: false,
+              user: _userSearch(userId: 'same-user', username: 'me'),
             ),
           ),
         );
@@ -1268,10 +1129,10 @@ void main() {
         await tester.tap(find.byType(InkWell));
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 100));
-        // Row widget does not self-block; screen's searchProfilesProvider filters self at list level.
-        // Direct row pump with same IDs will still invoke repository (canonical row behavior).
-        expect(repo.getOrCreateChatCallCount, 1);
-        expect(repo.participantIdsCalls.first, ['same-user', 'same-user']);
+        // Canonical: the row blocks self-chat using the LIVE principal read
+        // at tap time (defense in depth — the provider also excludes self).
+        expect(repo.getOrCreateChatCallCount, 0);
+        expect(repo.participantIdsCalls, isEmpty);
       });
     });
 
@@ -1285,9 +1146,7 @@ void main() {
             chatRepo: repo,
             currentUserId: 'principal-X',
             child: NewChatUserListWidget(
-              profile: _profile(userId: 'target-Z', farmName: 'tu', ),
-              currentUserId: 'principal-X',
-              isDark: false,
+              user: _userSearch(userId: 'target-Z', username: 'tu'),
             ),
           ),
         );
@@ -1311,9 +1170,8 @@ void main() {
 
   group('C1B2 — Screen', () {
     testWidgets('blank query → prompt', (tester) async {
-      final repo = _FakeProfileRepository();
       await tester.pumpWidget(
-        _wrapScreenWithProfile(repo: repo),
+        _wrapScreen(recordingService: _RecordingSearchApiService()),
       );
       await tester.pump();
       expect(find.text('Search user to start a chat'), findsOneWidget);
@@ -1322,21 +1180,21 @@ void main() {
     });
 
     testWidgets('typing → loading', (tester) async {
-      final repo = _FakeProfileRepository();
-      final c = Completer<List<ProfileEntity>>();
-      repo.delayNextWithProfile(c);
-      await tester.pumpWidget(_wrapScreenWithProfile(repo: repo));
+      final svc = _RecordingSearchApiService();
+      final c = Completer<UserSearchResponseDto>();
+      svc.delayNextWith(c);
+      await tester.pumpWidget(_wrapScreen(recordingService: svc));
       await tester.pump();
       await tester.enterText(find.byType(TextField), 'alice');
       await tester.pump();
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
-      c.complete([]);
+      c.complete(_responseDto(query: 'alice', users: []));
     });
 
     testWidgets('error → "Failed to search users"', (tester) async {
-      final repo = _FakeProfileRepository();
-      repo.cannedError = Exception('boom');
-      await tester.pumpWidget(_wrapScreenWithProfile(repo: repo));
+      final svc = _RecordingSearchApiService();
+      svc.cannedError = Exception('boom');
+      await tester.pumpWidget(_wrapScreen(recordingService: svc));
       await tester.pump();
       await tester.enterText(find.byType(TextField), 'err');
       await tester.pumpAndSettle(const Duration(milliseconds: 500));
@@ -1344,9 +1202,9 @@ void main() {
     });
 
     testWidgets('empty result → "User not found"', (tester) async {
-      final repo = _FakeProfileRepository();
-      repo.cannedProfiles = [];
-      await tester.pumpWidget(_wrapScreenWithProfile(repo: repo));
+      await tester.pumpWidget(
+        _wrapScreen(recordingService: _RecordingSearchApiService()),
+      );
       await tester.pump();
       await tester.enterText(find.byType(TextField), 'nobody');
       await tester.pump();
@@ -1355,9 +1213,12 @@ void main() {
     });
 
     testWidgets('populated → rows with HybridAvatar', (tester) async {
-      final repo = _FakeProfileRepository();
-      repo.cannedProfiles = [_profile(userId: 'u1', farmName: 'Alice Wonder')];
-      await tester.pumpWidget(_wrapScreenWithProfile(repo: repo));
+      final svc = _RecordingSearchApiService();
+      svc.cannedResponse = _responseDto(
+        query: 'alice',
+        users: [_userDto(id: 'u1', username: 'alice_wonder')],
+      );
+      await tester.pumpWidget(_wrapScreen(recordingService: svc));
       await tester.pump();
       await tester.enterText(find.byType(TextField), 'alice');
       await tester.pump();
@@ -1366,73 +1227,89 @@ void main() {
       expect(find.byType(HybridAvatar), findsOneWidget);
     });
 
-    testWidgets('rows receive ProfileEntity', (tester) async {
-      final repo = _FakeProfileRepository();
-      repo.cannedProfiles = [_profile(userId: 'bob-id', farmName: 'Bob Builder', farmPhotoUrl: 'https://img.example/bob.png')];
-      await tester.pumpWidget(_wrapScreenWithProfile(repo: repo));
+    testWidgets('rows receive UserSearch', (tester) async {
+      final svc = _RecordingSearchApiService();
+      svc.cannedResponse = _responseDto(
+        query: 'bob',
+        users: [
+          _userDto(
+            id: 'bob-id',
+            username: 'bob_builder',
+            avatarUrl: 'https://img.example/bob.png',
+          ),
+        ],
+      );
+      await tester.pumpWidget(_wrapScreen(recordingService: svc));
       await tester.pump();
       await tester.enterText(find.byType(TextField), 'bob');
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 200));
       final row = tester.widget<NewChatUserListWidget>(find.byType(NewChatUserListWidget));
-      expect(row.profile, isA<ProfileEntity>());
-      expect(row.profile.userId, 'bob-id');
-      expect(row.profile.farmInfo?.farmName, 'Bob Builder');
-      expect(row.profile.farmInfo?.farmPhotoUrl, 'https://img.example/bob.png');
+      expect(row.user, isA<UserSearch>());
+      expect(row.user.userId, 'bob-id');
+      expect(row.user.username, 'bob_builder');
+      expect(row.user.avatarUrl, 'https://img.example/bob.png');
     });
 
     testWidgets('no duplicate self-exclusion', (tester) async {
-      final repo = _FakeProfileRepository();
-      repo.cannedProfiles = [
-        _profile(userId: 'principal-A', farmName: 'Me'),
-        _profile(userId: 'other-1', farmName: 'Other'),
-      ];
-      await tester.pumpWidget(_wrapScreenWithProfile(repo: repo, currentUserId: 'principal-A'));
+      final svc = _RecordingSearchApiService();
+      svc.cannedResponse = _responseDto(
+        query: 'me',
+        users: [
+          _userDto(id: 'principal-A', username: 'me_user'),
+          _userDto(id: 'other-1', username: 'other'),
+        ],
+      );
+      await tester.pumpWidget(_wrapScreen(recordingService: svc, currentUserId: 'principal-A'));
       await tester.pump();
       await tester.enterText(find.byType(TextField), 'me');
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 200));
       expect(find.byType(NewChatUserListWidget), findsOneWidget);
-      // Only other-1 should be shown, principal-A filtered
+      // Only other-1 should be shown — self-exclusion happens once, in the
+      // provider (live principal), not again in the screen.
       final row = tester.widget<NewChatUserListWidget>(find.byType(NewChatUserListWidget));
-      expect(row.profile.userId, 'other-1');
+      expect(row.user.userId, 'other-1');
     });
 
     testWidgets('query switch — stale A does not replace B', (tester) async {
-      final repo = _FakeProfileRepository();
-      final cA = Completer<List<ProfileEntity>>();
-      repo.delayNextWithProfile(cA);
-      await tester.pumpWidget(_wrapScreenWithProfile(repo: repo));
+      final svc = _RecordingSearchApiService();
+      final cA = Completer<UserSearchResponseDto>();
+      svc.delayNextWith(cA);
+      await tester.pumpWidget(_wrapScreen(recordingService: svc));
       await tester.pump();
       await tester.enterText(find.byType(TextField), 'alice');
       await tester.pump();
-      expect(repo.callCount, 1);
-      expect(repo.lastQuery, 'alice');
-      final cB = Completer<List<ProfileEntity>>();
-      repo.delayNextWithProfile(cB);
+      expect(svc.callCount, 1);
+      expect(svc.lastQuery, 'alice');
+      final cB = Completer<UserSearchResponseDto>();
+      svc.delayNextWith(cB);
       await tester.enterText(find.byType(TextField), '');
       await tester.pump();
       await tester.enterText(find.byType(TextField), 'bob');
       await tester.pump();
-      expect(repo.callCount, 2);
-      expect(repo.lastQuery, 'bob');
-      cB.complete([_profile(userId: 'bob-id', farmName: 'Bob Builder')]);
+      expect(svc.callCount, 2);
+      expect(svc.lastQuery, 'bob');
+      cB.complete(_responseDto(query: 'bob', users: [_userDto(id: 'bob-id', username: 'bob_builder')]));
       await tester.pump(const Duration(milliseconds: 200));
       expect(find.byType(NewChatUserListWidget), findsOneWidget);
-      cA.complete([_profile(userId: 'alice-id', farmName: 'Alice Wonder')]);
+      cA.complete(_responseDto(query: 'alice', users: [_userDto(id: 'alice-id', username: 'alice_wonder')]));
       await tester.pump(const Duration(milliseconds: 200));
       // Still bob, not alice
       final row = tester.widget<NewChatUserListWidget>(find.byType(NewChatUserListWidget));
-      expect(row.profile.userId, 'bob-id');
+      expect(row.user.userId, 'bob-id');
     });
 
     testWidgets('unauthenticated: login prompt, no results leaked', (tester) async {
-      final repo = _FakeProfileRepository();
-      repo.cannedProfiles = [_profile(userId: 'u1', farmName: 'Alice Wonder')];
+      final svc = _RecordingSearchApiService();
+      svc.cannedResponse = _responseDto(
+        query: 'alice',
+        users: [_userDto(id: 'u1', username: 'alice_wonder')],
+      );
       final chatRepo = _RecordingChatRepository();
       final goRouter = GoRouter(initialLocation: '/', routes: [GoRoute(path: '/', builder: (_, __) => const NewChatScreen())]);
       await tester.pumpWidget(ProviderScope(overrides: [
-        profileRepositoryProvider.overrideWith((ref) => repo),
+        searchApiServiceProvider.overrideWith((ref) => svc),
         currentUserIdProvider.overrideWith((ref) => ''),
         isEmailVerifiedProvider.overrideWith((ref) => false),
         authControllerProvider.overrideWith(() => _FakeAuthController(const AuthStateUnauthenticated())),
@@ -1448,12 +1325,15 @@ void main() {
     });
 
     testWidgets('same-tree: authenticated → logout removes results, shows gate', (tester) async {
-      final repo = _FakeProfileRepository();
-      repo.cannedProfiles = [_profile(userId: 'target-user', farmName: 'Target User')];
+      final svc = _RecordingSearchApiService();
+      svc.cannedResponse = _responseDto(
+        query: 'target',
+        users: [_userDto(id: 'target-user', username: 'target_user')],
+      );
       final chatRepo = _RecordingChatRepository();
       final authCtrl = _MutableFakeAuthController(AuthState.authenticated(_authUser('principal-A'), emailVerified: true));
       final container = ProviderContainer(overrides: [
-        profileRepositoryProvider.overrideWith((ref) => repo),
+        searchApiServiceProvider.overrideWith((ref) => svc),
         currentUserIdProvider.overrideWith((ref) => 'principal-A'),
         isEmailVerifiedProvider.overrideWith((ref) => true),
         authControllerProvider.overrideWith(() => authCtrl),

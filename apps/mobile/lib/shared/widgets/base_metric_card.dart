@@ -39,24 +39,18 @@ class BaseMetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Container(
       width: width,
       padding: padding ?? const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color:
-            backgroundColor ??
-            (isDark ? AppColors.neutralGray800 : AppColors.neutralWhite),
+        color: backgroundColor ?? scheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDark ? AppColors.neutralGray700 : AppColors.neutralGray200,
-          width: 1,
-        ),
+        border: Border.all(color: scheme.outlineVariant, width: 1),
         boxShadow: [
           BoxShadow(
-            color: (isDark ? AppColors.neutralBlack : AppColors.neutralGray900)
-                .withValues(alpha: 0.05),
+            color: scheme.shadow.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -72,9 +66,7 @@ class BaseMetricCard extends StatelessWidget {
                 child: Text(
                   label,
                   style: AppTypography.caption.copyWith(
-                    color: isDark
-                        ? AppColors.neutralGray400
-                        : AppColors.neutralGray600,
+                    color: scheme.onSurfaceVariant,
                   ),
                 ),
               ),
@@ -128,11 +120,7 @@ class BaseMetricCard extends StatelessWidget {
                 Icon(
                   icon,
                   size: 24,
-                  color:
-                      iconColor ??
-                      (isDark
-                          ? AppColors.neutralGray400
-                          : AppColors.neutralGray500),
+                  color: iconColor ?? scheme.onSurfaceVariant,
                 ),
                 const SizedBox(width: 12),
               ],
@@ -143,9 +131,7 @@ class BaseMetricCard extends StatelessWidget {
                     Text(
                       value,
                       style: AppTypography.h3.copyWith(
-                        color: isDark
-                            ? AppColors.neutralWhite
-                            : AppColors.neutralGray900,
+                        color: scheme.onSurface,
                       ),
                     ),
                     if (subtitle != null) ...[
@@ -153,9 +139,7 @@ class BaseMetricCard extends StatelessWidget {
                       Text(
                         subtitle!,
                         style: AppTypography.caption.copyWith(
-                          color: isDark
-                              ? AppColors.neutralGray500
-                              : AppColors.neutralGray400,
+                          color: scheme.onSurfaceVariant,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,

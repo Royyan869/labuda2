@@ -106,6 +106,7 @@ class _SellerShippingSetupsSelectorState
   }
 
   Widget _populated(List<ShippingSetup> options) {
+    final colorScheme = Theme.of(context).colorScheme;
     final hasSelection = _selected.isNotEmpty;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -115,7 +116,7 @@ class _SellerShippingSetupsSelectorState
             padding: const EdgeInsets.only(bottom: 12),
             child: Text(
               widget.helperText!,
-              style: TextStyle(fontSize: 13, color: AppColors.neutralGray600),
+              style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant),
             ),
           ),
         Wrap(
@@ -127,8 +128,8 @@ class _SellerShippingSetupsSelectorState
               label: Text('${opt.emoji}  ${opt.shortName}'),
               selected: selected,
               onSelected: (_) => _toggle(opt.id),
-              selectedColor: AppColors.primaryRed.withValues(alpha: 0.15),
-              checkmarkColor: AppColors.primaryRed,
+              selectedColor: colorScheme.primaryContainer,
+              checkmarkColor: colorScheme.onPrimaryContainer,
             );
           }).toList(),
         ),
@@ -157,10 +158,11 @@ class _LoadingPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
       decoration: BoxDecoration(
-        color: AppColors.neutralGray100,
+        color: colorScheme.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -173,7 +175,7 @@ class _LoadingPlaceholder extends StatelessWidget {
           const SizedBox(width: 12),
           Text(
             'Memuat opsi pengiriman...',
-            style: TextStyle(fontSize: 13, color: AppColors.neutralGray700),
+            style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant),
           ),
         ],
       ),
@@ -188,12 +190,13 @@ class _ErrorPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.error.withValues(alpha: 0.08),
+        color: colorScheme.error.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.error.withValues(alpha: 0.25)),
+        border: Border.all(color: colorScheme.error.withValues(alpha: 0.25)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -203,13 +206,13 @@ class _ErrorPlaceholder extends StatelessWidget {
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: AppColors.error,
+              color: colorScheme.error,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             message,
-            style: TextStyle(fontSize: 12, color: AppColors.neutralGray700),
+            style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 8),
           Align(
@@ -230,6 +233,7 @@ class _EmptyOptionsBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -265,7 +269,7 @@ class _EmptyOptionsBanner extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             'Belum ada opsi pengiriman aktif. Buat opsi pengiriman dulu sebelum publish forSale.',
-            style: TextStyle(fontSize: 12, color: AppColors.neutralGray700),
+            style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 10),
           Align(
@@ -273,8 +277,8 @@ class _EmptyOptionsBanner extends StatelessWidget {
             child: ElevatedButton.icon(
               onPressed: () => context.push(RoutePaths.sellerShipping),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryRed,
-                foregroundColor: Colors.white,
+                backgroundColor: colorScheme.primary,
+                foregroundColor: colorScheme.onPrimary,
                 visualDensity: VisualDensity.compact,
               ),
               icon: const Icon(Icons.add, size: 16),

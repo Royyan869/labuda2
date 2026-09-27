@@ -138,67 +138,28 @@ void main() {
       );
     });
 
-    test('negotiation_offer DTO uses fixed_price_sale_id', () {
-      final dto = NegotiationOfferAttachmentDto(
-        negotiationId: 'nego-1',
-        forSaleId: 'fps-1',
-        status: 'active',
-        preview: const SharePreviewDto(title: 'Offer title'),
-      );
-
-      final data = dto.toJson()['data'] as Map<String, dynamic>;
-      expect(data['negotiation_id'], 'nego-1');
-      expect(data['fixed_price_sale_id'], 'fps-1');
-      expect(data.containsKey('for_sale_id'), isFalse);
-    });
-
-    test('negotiation_result DTO uses fixed_price_sale_id', () {
-      final dto = NegotiationResultAttachmentDto(
-        negotiationId: 'nego-2',
-        forSaleId: 'fps-2',
-        status: 'accepted',
-        preview: const SharePreviewDto(title: 'Result title'),
-      );
-
-      final data = dto.toJson()['data'] as Map<String, dynamic>;
-      expect(data['negotiation_id'], 'nego-2');
-      expect(data['fixed_price_sale_id'], 'fps-2');
-      expect(data.containsKey('for_sale_id'), isFalse);
-    });
-
-    test('negotiation_offer parses fixed_price_sale_id', () {
-      final dto =
-          parseAttachmentDto({
-                'type': 'negotiation_offer',
-                'data': {
-                  'negotiation_id': 'nego-3',
-                  'fixed_price_sale_id': 'fps-3',
-                  'status': 'active',
-                  'preview': {'title': 'Offer title'},
-                },
-              })
-              as NegotiationOfferAttachmentDto;
-
-      expect(dto.negotiationId, 'nego-3');
-      expect(dto.forSaleId, 'fps-3');
-    });
-
-    test('negotiation_result parses fixed_price_sale_id', () {
-      final dto =
-          parseAttachmentDto({
-                'type': 'negotiation_result',
-                'data': {
-                  'negotiation_id': 'nego-4',
-                  'fixed_price_sale_id': 'fps-4',
-                  'status': 'accepted',
-                  'preview': {'title': 'Result title'},
-                },
-              })
-              as NegotiationResultAttachmentDto;
-
-      expect(dto.negotiationId, 'nego-4');
-      expect(dto.forSaleId, 'fps-4');
-    });
+    test(
+      'parseAttachmentDto rejects dead negotiation_offer/negotiation_result types',
+      () {
+        // NEGOTIATION ATTACHMENT PURGE (Z3): negotiation_offer and
+        // negotiation_result are forbidden legacy types — no backend or
+        // mobile producer ever emits them. Only negotiation_proposal is
+        // canonical. These tests lock the negative contract.
+        for (final t in <String>['negotiation_offer', 'negotiation_result']) {
+          expect(
+            () => parseAttachmentDto({
+              'type': t,
+              'data': {
+                'negotiation_id': 'nego-1',
+                'for_sale_id': 'fps-1',
+                'status': 'active',
+              },
+            }),
+            throwsFormatException,
+          );
+        }
+      },
+    );
 
     test('shipping_quote DTO omits legacy seller_name transport', () {
       final dto = ShippingQuoteAttachmentDto(

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/user/profile/profile.dart' show ProfileAboutData;
 import 'package:labuda/domains/user/profile/presentation/widgets/profile_info_row.dart';
 import 'package:intl/intl.dart';
@@ -13,7 +12,7 @@ class AboutSectionFarm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     final farmInfo = data.farmInfo!;
 
     return Column(
@@ -42,9 +41,7 @@ class AboutSectionFarm extends StatelessWidget {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: isDark
-                  ? AppColors.neutralGray300
-                  : AppColors.neutralGray700,
+              color: scheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 4),
@@ -53,9 +50,7 @@ class AboutSectionFarm extends StatelessWidget {
             style: TextStyle(
               fontSize: 13,
               height: 1.5,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray600,
+              color: scheme.onSurfaceVariant,
             ),
           ),
         ],
@@ -68,14 +63,14 @@ class AboutSectionFarm extends StatelessWidget {
             onTap: () => _launchUrl(farmInfo.farmWebsite!),
             child: Row(
               children: [
-                const Icon(Icons.language, size: 16, color: AppColors.primary),
+                Icon(Icons.language, size: 16, color: scheme.primary),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     farmInfo.farmWebsite!,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: AppColors.primary,
+style: TextStyle(
+                       fontSize: 14,
+                       color: scheme.primary,
                       decoration: TextDecoration.underline,
                     ),
                   ),

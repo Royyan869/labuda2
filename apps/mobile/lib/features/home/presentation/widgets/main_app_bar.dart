@@ -27,7 +27,7 @@ class MainAppBar extends ConsumerWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     final navigationHandler = ref.read(navigationHandlerProvider);
 
     // Get current user ID for notification badge
@@ -49,10 +49,8 @@ class MainAppBar extends ConsumerWidget implements PreferredSizeWidget {
     }
 
     return AppBar(
-      backgroundColor: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
-      foregroundColor: isDark
-          ? AppColors.neutralGray400
-          : AppColors.neutralGray900,
+      backgroundColor: scheme.surface,
+      foregroundColor: scheme.onSurface,
       elevation: 0,
       surfaceTintColor: Colors.transparent,
       scrolledUnderElevation: 0,
@@ -61,7 +59,7 @@ class MainAppBar extends ConsumerWidget implements PreferredSizeWidget {
         onPressed: () => Scaffold.of(context).openDrawer(),
         tooltip: 'Menu',
       ),
-      title: _buildSearchBar(context, isDark, navigationHandler),
+      title: _buildSearchBar(context, navigationHandler),
       actions: [
         // Saved Items button (saved For Sale items + watched auctions) with
         // badge. Guest sees the icon without badge fetch and gets the Sign
@@ -71,16 +69,12 @@ class MainAppBar extends ConsumerWidget implements PreferredSizeWidget {
           icon: isGuest
               ? Icon(
                   Icons.bookmark_border_outlined,
-                  color: isDark
-                      ? AppColors.neutralGray400
-                      : AppColors.neutralGray900,
+                  color: scheme.onSurface,
                 )
               : SavedItemBadgeWidget(
                   child: Icon(
                     Icons.bookmark_border_outlined,
-                    color: isDark
-                        ? AppColors.neutralGray400
-                        : AppColors.neutralGray900,
+                    color: scheme.onSurface,
                   ),
                 ),
           tooltip:
@@ -92,16 +86,12 @@ class MainAppBar extends ConsumerWidget implements PreferredSizeWidget {
           icon: isGuest
               ? Icon(
                   Icons.chat_bubble_outline,
-                  color: isDark
-                      ? AppColors.neutralGray400
-                      : AppColors.neutralGray900,
+                  color: scheme.onSurface,
                 )
               : ChatBadgeWidget(
                   child: Icon(
                     Icons.chat_bubble_outline,
-                    color: isDark
-                        ? AppColors.neutralGray400
-                        : AppColors.neutralGray900,
+                    color: scheme.onSurface,
                   ),
                 ),
           tooltip: 'Messages',
@@ -113,17 +103,13 @@ class MainAppBar extends ConsumerWidget implements PreferredSizeWidget {
           icon: isGuest
               ? Icon(
                   Icons.notifications_outlined,
-                  color: isDark
-                      ? AppColors.neutralGray400
-                      : AppColors.neutralGray900,
+                  color: scheme.onSurface,
                 )
               : NotificationBadgeWidget(
                   userId: userId,
                   child: Icon(
                     Icons.notifications_outlined,
-                    color: isDark
-                        ? AppColors.neutralGray400
-                        : AppColors.neutralGray900,
+                    color: scheme.onSurface,
                   ),
                 ),
           tooltip: 'Notifications',
@@ -135,16 +121,16 @@ class MainAppBar extends ConsumerWidget implements PreferredSizeWidget {
 
   Widget _buildSearchBar(
     BuildContext context,
-    bool isDark,
     NavigationHandler navigationHandler,
   ) {
+    final scheme = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: () => _handleSearchTap(context, navigationHandler),
       child: Container(
         height: 40,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
-          color: isDark ? AppColors.darkGray700 : AppColors.neutralGray100,
+          color: scheme.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Row(
@@ -152,9 +138,7 @@ class MainAppBar extends ConsumerWidget implements PreferredSizeWidget {
             Icon(
               Icons.search,
               size: 20,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray500,
+              color: scheme.onSurfaceVariant,
             ),
             const SizedBox(width: 8),
             Expanded(
@@ -162,9 +146,7 @@ class MainAppBar extends ConsumerWidget implements PreferredSizeWidget {
                 'Search...',
                 style: TextStyle(
                   fontSize: 14,
-                  color: isDark
-                      ? AppColors.neutralGray400
-                      : AppColors.neutralGray500,
+                  color: scheme.onSurfaceVariant,
                 ),
               ),
             ),

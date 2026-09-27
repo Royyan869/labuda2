@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 
 /// Preference Toggle Widget
 ///
@@ -29,12 +28,12 @@ class PreferenceToggleWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     final effectiveEnabled = enabled;
     final effectiveValue = enabled && value;
 
     return Material(
-      color: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
+      color: scheme.surface,
       child: InkWell(
         onTap: effectiveEnabled ? () => onChanged(!value) : null,
         child: Padding(
@@ -48,18 +47,14 @@ class PreferenceToggleWidget extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: effectiveEnabled
                       ? iconColor.withValues(alpha: 0.1)
-                      : (isDark
-                            ? AppColors.darkGray700
-                            : AppColors.neutralGray100),
+                      : scheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
                   icon,
                   color: effectiveEnabled
                       ? iconColor
-                      : (isDark
-                            ? AppColors.neutralGray600
-                            : AppColors.neutralGray400),
+                      : scheme.onSurfaceVariant,
                   size: 22,
                 ),
               ),
@@ -76,12 +71,8 @@ class PreferenceToggleWidget extends StatelessWidget {
                         fontSize: 15,
                         fontWeight: FontWeight.w500,
                         color: effectiveEnabled
-                            ? (isDark
-                                  ? AppColors.neutralGray100
-                                  : AppColors.neutralGray900)
-                            : (isDark
-                                  ? AppColors.neutralGray600
-                                  : AppColors.neutralGray500),
+                            ? scheme.onSurface
+                            : scheme.onSurfaceVariant,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -90,12 +81,8 @@ class PreferenceToggleWidget extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 13,
                         color: effectiveEnabled
-                            ? (isDark
-                                  ? AppColors.neutralGray400
-                                  : AppColors.neutralGray600)
-                            : (isDark
-                                  ? AppColors.neutralGray700
-                                  : AppColors.neutralGray400),
+                            ? scheme.onSurfaceVariant
+                            : scheme.onSurfaceVariant,
                         height: 1.3,
                       ),
                     ),
@@ -108,11 +95,9 @@ class PreferenceToggleWidget extends StatelessWidget {
               Switch(
                 value: effectiveValue,
                 onChanged: effectiveEnabled ? onChanged : null,
-                activeTrackColor: AppColors.primaryRed,
-                activeThumbColor: AppColors.neutralWhite,
-                inactiveTrackColor: isDark
-                    ? AppColors.darkGray600
-                    : AppColors.neutralGray300,
+                activeTrackColor: scheme.primary,
+                activeThumbColor: scheme.onPrimary,
+                inactiveTrackColor: scheme.outlineVariant,
               ),
             ],
           ),

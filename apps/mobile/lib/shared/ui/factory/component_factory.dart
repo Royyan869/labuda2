@@ -4,7 +4,6 @@ import 'package:labuda/shared/ui/base/base_component.dart';
 import 'package:labuda/shared/ui/atomic/input/title_input_component.dart';
 import 'package:labuda/shared/ui/atomic/input/description_input_component.dart';
 import 'package:labuda/shared/ui/atomic/input/price_input_component.dart';
-import 'package:labuda/shared/ui/atomic/media/media_upload_component.dart';
 import 'package:labuda/shared/ui/atomic/location/location_picker_component.dart';
 import 'package:labuda/shared/ui/atomic/tagging/user_tagging_component.dart';
 import 'package:labuda/shared/ui/atomic/settings/visibility_settings_component.dart';
@@ -109,37 +108,6 @@ class ComponentFactory {
       isRequired: isRequired,
       isDisabled: isDisabled,
       onChanged: onChanged,
-      validator: validator,
-    );
-  }
-
-  // === MEDIA COMPONENTS ===
-
-  /// Media upload component dengan preview
-  static Widget mediaUpload({
-    List<String>? initialMediaUrls,
-    String? errorMessage,
-    int maxFiles = 5,
-    List<String> allowedTypes = const ['image', 'video'],
-    double maxFileSizeMB = 10.0,
-    bool showPreview = true,
-    bool allowReorder = true,
-    bool isRequired = false,
-    bool isDisabled = false,
-    void Function(List<String>)? onMediaChanged,
-    String? Function(List<String>)? validator,
-  }) {
-    return MediaUploadComponent(
-      initialMediaUrls: initialMediaUrls,
-      errorMessage: errorMessage,
-      maxFiles: maxFiles,
-      allowedTypes: allowedTypes,
-      maxFileSizeMB: maxFileSizeMB,
-      showPreview: showPreview,
-      allowReorder: allowReorder,
-      isRequired: isRequired,
-      isDisabled: isDisabled,
-      onMediaChanged: onMediaChanged,
       validator: validator,
     );
   }
@@ -314,11 +282,13 @@ class ComponentFactory {
                 ),
                 if (subtitle != null) ...[
                   const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: AppColors.neutralGray600,
+                  Builder(
+                    builder: (context) => Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ),
                 ],
@@ -430,12 +400,29 @@ class ComponentThemeConfig {
     required this.spacing,
   });
 
+  /// Fixed-token default derived from the canonical light scheme roles
+  /// (no neutral/dark scale binding). Prefer [of] for a context-aware theme.
   factory ComponentThemeConfig.defaultTheme() {
-    return const ComponentThemeConfig(
-      primaryColor: AppColors.primary,
-      errorColor: AppColors.error,
-      disabledColor: AppColors.neutral,
-      backgroundColor: AppColors.light,
+    final scheme = AppColors.lightColorScheme;
+    return ComponentThemeConfig(
+      primaryColor: scheme.primary,
+      errorColor: scheme.error,
+      disabledColor: scheme.onSurfaceVariant,
+      backgroundColor: scheme.surface,
+      borderRadius: 8.0,
+      spacing: 16.0,
+    );
+  }
+
+  /// Scheme-derived theme — the single source for factory-built
+  /// components (replaces the legacy fixed-token default).
+  factory ComponentThemeConfig.of(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return ComponentThemeConfig(
+      primaryColor: scheme.primary,
+      errorColor: scheme.error,
+      disabledColor: scheme.onSurfaceVariant,
+      backgroundColor: scheme.surface,
       borderRadius: 8.0,
       spacing: 16.0,
     );

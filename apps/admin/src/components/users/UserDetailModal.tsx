@@ -68,9 +68,9 @@ const ACTION_CONFIRMATIONS = {
   'confirm-suspend': {
     title: 'Suspend User Account',
     icon: AlertTriangle,
-    iconColor: 'text-amber-600',
-    bgColor: 'bg-amber-50',
-    borderColor: 'border-amber-200',
+    iconColor: 'text-[hsl(var(--warning))]',
+    bgColor: 'bg-[hsl(var(--warning-bg))]',
+    borderColor: 'border-[hsl(var(--warning))]',
     message: (
       <>
         <p className="font-semibold text-lg mb-2">You are about to suspend this user account.</p>
@@ -81,9 +81,9 @@ const ACTION_CONFIRMATIONS = {
   'confirm-activate': {
     title: 'Activate User Account',
     icon: UserCheck,
-    iconColor: 'text-green-600',
-    bgColor: 'bg-green-50',
-    borderColor: 'border-green-200',
+    iconColor: 'text-[hsl(var(--success))]',
+    bgColor: 'bg-[hsl(var(--success-bg))]',
+    borderColor: 'border-[hsl(var(--success))]',
     message: (
       <>
         <p className="font-semibold text-lg mb-2">You are about to activate this user account.</p>
@@ -94,13 +94,13 @@ const ACTION_CONFIRMATIONS = {
   'confirm-ban': {
     title: 'Ban User Account',
     icon: Ban,
-    iconColor: 'text-red-600',
-    bgColor: 'bg-red-50',
-    borderColor: 'border-red-200',
+    iconColor: 'text-[hsl(var(--destructive))]',
+    bgColor: 'bg-[hsl(var(--destructive-bg))]',
+    borderColor: 'border-[hsl(var(--destructive))]',
     message: (
       <>
         <p className="font-semibold text-lg mb-2">You are about to PERMANENTLY BAN this user.</p>
-        <p className="text-sm text-red-700 font-medium">This is a severe action. Use unban to reverse if needed.</p>
+        <p className="text-sm text-[hsl(var(--destructive))] font-medium">This is a severe action. Use unban to reverse if needed.</p>
         <p className="text-sm mt-2">The user will be blocked from accessing the platform.</p>
       </>
     ),
@@ -108,9 +108,9 @@ const ACTION_CONFIRMATIONS = {
   'confirm-unban': {
     title: 'Unban User Account',
     icon: UserCheck,
-    iconColor: 'text-emerald-600',
-    bgColor: 'bg-emerald-50',
-    borderColor: 'border-emerald-200',
+    iconColor: 'text-[hsl(var(--success))]',
+    bgColor: 'bg-[hsl(var(--success-bg))]',
+    borderColor: 'border-[hsl(var(--success))]',
     message: (
       <>
         <p className="font-semibold text-lg mb-2">You are about to unban this user account.</p>
@@ -121,9 +121,9 @@ const ACTION_CONFIRMATIONS = {
   'confirm-role-change': {
     title: 'Change User Role',
     icon: UserCog,
-    iconColor: 'text-blue-600',
-    bgColor: 'bg-blue-50',
-    borderColor: 'border-blue-200',
+    iconColor: 'text-[hsl(var(--info))]',
+    bgColor: 'bg-[hsl(var(--info-bg))]',
+    borderColor: 'border-[hsl(var(--info))]',
     message: (
       <>
         <p className="font-semibold text-lg mb-2">You are about to change this user&apos;s role.</p>
@@ -140,9 +140,9 @@ const ACTION_CONFIRMATIONS = {
   'confirm-subscription-recover': {
     title: 'Recover Subscription',
     icon: RotateCcw,
-    iconColor: 'text-blue-600',
-    bgColor: 'bg-blue-50',
-    borderColor: 'border-blue-200',
+    iconColor: 'text-[hsl(var(--info))]',
+    bgColor: 'bg-[hsl(var(--info-bg))]',
+    borderColor: 'border-[hsl(var(--info))]',
     message: (
       <>
         <p className="font-semibold text-lg mb-2">You are about to recover a missed subscription payment.</p>
@@ -376,21 +376,21 @@ export function UserDetailModal({ isOpen, onClose, userData, onSuccess }: UserDe
                 <confirmConfig.icon className={`h-6 w-6 flex-shrink-0 mt-0.5 ${confirmConfig.iconColor}`} />
                 <div className="flex-1">
                   <h3 className={`font-semibold ${confirmConfig.iconColor}`}>{confirmConfig.title}</h3>
-                  <div className="mt-2 text-gray-700">
+                  <div className="mt-2 text-[hsl(var(--foreground))]">
                     {confirmConfig.message}
                   </div>
 
                   {/* User being affected */}
-                  <div className="mt-4 p-3 bg-white rounded border border-gray-200">
+                  <div className="mt-4 p-3 bg-[hsl(var(--surface))] rounded border border-[hsl(var(--border))]">
                     <p className="text-sm font-medium">{primaryIdentity}</p>
-                    <p className="text-xs text-gray-500 font-mono">{displayData.email}</p>
+                    <p className="text-xs text-[hsl(var(--muted-foreground))] font-mono">{displayData.email}</p>
                   </div>
 
                   {/* Reason input for suspend/ban/unban */}
                   {requiresReason && (
                     <div className="mt-4">
-                      <label htmlFor="action-reason" className="block text-sm font-medium text-gray-700 mb-1">
-                        Reason <span className="text-red-600">*</span>
+                      <label htmlFor="action-reason" className="block text-sm font-medium text-[hsl(var(--foreground))] mb-1">
+                        Reason <span className="text-[hsl(var(--destructive))]">*</span>
                       </label>
                       <textarea
                         id="action-reason"
@@ -398,7 +398,7 @@ export function UserDetailModal({ isOpen, onClose, userData, onSuccess }: UserDe
                         onChange={(e) => setReason(e.target.value)}
                         placeholder="Provide a clear reason for this action..."
                         rows={3}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-3 py-2 border border-[hsl(var(--border))] rounded-lg focus:outline-none focus:ring-2 focus:ring-[hsl(var(--info))] focus:border-[hsl(var(--info))]"
                         autoFocus
                       />
                     </div>
@@ -407,31 +407,31 @@ export function UserDetailModal({ isOpen, onClose, userData, onSuccess }: UserDe
                   {/* Optional suspension end date */}
                   {actionState === 'confirm-suspend' && (
                     <div className="mt-4">
-                      <label htmlFor="suspension-until" className="block text-sm font-medium text-gray-700 mb-1">
-                        Suspension End Date <span className="text-gray-500">(optional)</span>
+                      <label htmlFor="suspension-until" className="block text-sm font-medium text-[hsl(var(--foreground))] mb-1">
+                        Suspension End Date <span className="text-[hsl(var(--muted-foreground))]">(optional)</span>
                       </label>
                       <input
                         type="datetime-local"
                         id="suspension-until"
                         value={suspensionEndDate}
                         onChange={(e) => setSuspensionEndDate(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                        className="w-full px-3 py-2 border border-[hsl(var(--border))] rounded-lg focus:outline-none focus:ring-2 focus:ring-[hsl(var(--warning))] focus:border-[hsl(var(--warning))]"
                       />
-                      <p className="text-xs text-gray-500 mt-1">Leave empty for indefinite suspension</p>
+                      <p className="text-xs text-[hsl(var(--muted-foreground))] mt-1">Leave empty for indefinite suspension</p>
                     </div>
                   )}
 
                   {/* Role selector for role change */}
                   {actionState === 'confirm-role-change' && (
                     <div className="mt-4">
-                      <label htmlFor="role-select" className="block text-sm font-medium text-gray-700 mb-1">
-                        New Role <span className="text-red-600">*</span>
+                      <label htmlFor="role-select" className="block text-sm font-medium text-[hsl(var(--foreground))] mb-1">
+                        New Role <span className="text-[hsl(var(--destructive))]">*</span>
                       </label>
                       <select
                         id="role-select"
                         value={selectedRole}
                         onChange={(e) => setSelectedRole(e.target.value as UserRole)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-3 py-2 border border-[hsl(var(--border))] rounded-lg focus:outline-none focus:ring-2 focus:ring-[hsl(var(--info))] focus:border-[hsl(var(--info))]"
                       >
                         {ROLE_OPTIONS.map((opt) => (
                           <option key={opt.value} value={opt.value}>
@@ -440,14 +440,14 @@ export function UserDetailModal({ isOpen, onClose, userData, onSuccess }: UserDe
                         ))}
                       </select>
                       {user?.role === selectedRole && (
-                        <p className="text-xs text-amber-600 mt-1">This is already the current role</p>
+                        <p className="text-xs text-[hsl(var(--warning))] mt-1">This is already the current role</p>
                       )}
                     </div>
                   )}
 
                   {/* Error inline */}
                   {error && (
-                    <div className="mt-3 bg-red-50 border border-red-200 text-red-700 p-2 rounded text-sm flex items-center gap-2">
+                    <div className="mt-3 bg-[hsl(var(--destructive-bg))] border border-[hsl(var(--destructive))] text-[hsl(var(--destructive))] p-2 rounded text-sm flex items-center gap-2">
                       <AlertOctagon className="h-4 w-4 flex-shrink-0" />
                       {error}
                     </div>
@@ -531,7 +531,7 @@ export function UserDetailModal({ isOpen, onClose, userData, onSuccess }: UserDe
             <>
               {/* Stale data warning */}
               {isDataStale && (
-                <div className="bg-amber-50 border border-amber-200 text-amber-800 p-3 rounded-lg flex items-center gap-2">
+                <div className="bg-[hsl(var(--warning-bg))] border border-[hsl(var(--warning))] text-[hsl(var(--warning))] p-3 rounded-lg flex items-center gap-2">
                   <AlertTriangle className="h-4 w-4 flex-shrink-0" />
                   <span className="text-sm">This user&apos;s status has changed. Refresh to see the latest data.</span>
                   <Button
@@ -551,7 +551,7 @@ export function UserDetailModal({ isOpen, onClose, userData, onSuccess }: UserDe
 
               {/* Error Message */}
               {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg flex items-center gap-2">
+                <div className="bg-[hsl(var(--destructive-bg))] border border-[hsl(var(--destructive))] text-[hsl(var(--destructive))] p-3 rounded-lg flex items-center gap-2">
                   <AlertOctagon className="h-4 w-4 flex-shrink-0" />
                   <span className="text-sm">{error}</span>
                 </div>
@@ -587,7 +587,7 @@ export function UserDetailModal({ isOpen, onClose, userData, onSuccess }: UserDe
                   )}
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-sm text-gray-500">
+                  <span className="text-sm text-[hsl(var(--muted-foreground))]">
                     User ID: <span className="font-mono">{displayData.id}</span>
                   </span>
                   <button
@@ -596,7 +596,7 @@ export function UserDetailModal({ isOpen, onClose, userData, onSuccess }: UserDe
                       setIsDataStale(false)
                       refetch()
                     }}
-                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                    className="text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--muted-foreground))] transition-colors"
                     title="Refresh user data"
                   >
                     <RefreshCw className="h-4 w-4" />
@@ -625,31 +625,31 @@ export function UserDetailModal({ isOpen, onClose, userData, onSuccess }: UserDe
                         <p className="font-medium text-lg">{primaryIdentity}</p>
                       </div>
                       <div className="flex items-center gap-2 text-sm">
-                        <Mail className="h-4 w-4 text-gray-500" />
-                        <span className="text-gray-600">{displayData.email}</span>
+                        <Mail className="h-4 w-4 text-[hsl(var(--muted-foreground))]" />
+                        <span className="text-[hsl(var(--muted-foreground))]">{displayData.email}</span>
                         {user?.email_verified !== undefined && (
                           user.email_verified ? (
-                            <CheckCircle className="h-4 w-4 text-green-500" aria-label="Email verified" />
+                            <CheckCircle className="h-4 w-4 text-[hsl(var(--success))]" aria-label="Email verified" />
                           ) : (
-                            <XCircle className="h-4 w-4 text-red-500" aria-label="Email not verified" />
+                            <XCircle className="h-4 w-4 text-[hsl(var(--destructive))]" aria-label="Email not verified" />
                           )
                         )}
                       </div>
                       {user?.phone_number && (
                         <div className="flex items-center gap-2 text-sm">
-                          <Phone className="h-4 w-4 text-gray-500" />
-                          <span className="text-gray-600">{user.phone_number}</span>
+                          <Phone className="h-4 w-4 text-[hsl(var(--muted-foreground))]" />
+                          <span className="text-[hsl(var(--muted-foreground))]">{user.phone_number}</span>
                           {user.phone_verified ? (
-                            <CheckCircle className="h-4 w-4 text-green-500" aria-label="Phone verified" />
+                            <CheckCircle className="h-4 w-4 text-[hsl(var(--success))]" aria-label="Phone verified" />
                           ) : (
-                            <XCircle className="h-4 w-4 text-red-500" aria-label="Phone not verified" />
+                            <XCircle className="h-4 w-4 text-[hsl(var(--destructive))]" aria-label="Phone not verified" />
                           )}
                         </div>
                       )}
                       {user?.kyc_verified !== undefined && (
                         <div className="flex items-center gap-2 text-sm">
-                          <Shield className="h-4 w-4 text-gray-500" />
-                          <span className="text-gray-600">KYC Status:</span>
+                          <Shield className="h-4 w-4 text-[hsl(var(--muted-foreground))]" />
+                          <span className="text-[hsl(var(--muted-foreground))]">KYC Status:</span>
                           {user.kyc_verified ? (
                             <Badge variant="success">Verified</Badge>
                           ) : (
@@ -662,17 +662,17 @@ export function UserDetailModal({ isOpen, onClose, userData, onSuccess }: UserDe
 
                   {/* Additional Profile Info */}
                   {(user?.bio || user?.location || user?.date_of_birth) && (
-                    <div className="mt-4 pt-4 border-t border-gray-100 grid grid-cols-2 gap-4 text-sm">
+                    <div className="mt-4 pt-4 border-t border-[hsl(var(--border))] grid grid-cols-2 gap-4 text-sm">
                       {user?.bio && (
                         <div>
-                          <p className="text-gray-600">Bio</p>
-                          <p className="text-gray-900">{user.bio}</p>
+                          <p className="text-[hsl(var(--muted-foreground))]">Bio</p>
+                          <p className="text-[hsl(var(--foreground))]">{user.bio}</p>
                         </div>
                       )}
                       {user?.location && (
                         <div>
-                          <p className="text-gray-600">Location</p>
-                          <p className="text-gray-900">{user.location}</p>
+                          <p className="text-[hsl(var(--muted-foreground))]">Location</p>
+                          <p className="text-[hsl(var(--foreground))]">{user.location}</p>
                         </div>
                       )}
                     </div>
@@ -687,7 +687,7 @@ export function UserDetailModal({ isOpen, onClose, userData, onSuccess }: UserDe
                     <CardTitle className="text-lg flex items-center gap-2">
                       <Key className="h-5 w-5" />
                       Capabilities
-                      <span className="text-sm font-normal text-gray-500">({user.capabilities.length})</span>
+                      <span className="text-sm font-normal text-[hsl(var(--muted-foreground))]">({user.capabilities.length})</span>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -704,28 +704,28 @@ export function UserDetailModal({ isOpen, onClose, userData, onSuccess }: UserDe
 
               {/* Warning Summary (read-only governance visibility) */}
               {user != null && (user.warning_count > 0 || user.active_warning_count > 0) && (
-                <Card className={user.severe_warning_count > 0 ? 'border-red-200' : 'border-amber-200'}>
+                <Card className={user.severe_warning_count > 0 ? 'border-[hsl(var(--destructive))]' : 'border-[hsl(var(--warning))]'}>
                   <CardHeader>
                     <CardTitle className="text-lg flex items-center gap-2">
-                      <AlertOctagon className={`h-5 w-5 ${user.severe_warning_count > 0 ? 'text-red-500' : 'text-amber-500'}`} />
+                      <AlertOctagon className={`h-5 w-5 ${user.severe_warning_count > 0 ? 'text-[hsl(var(--destructive))]' : 'text-[hsl(var(--warning))]'}`} />
                       Warnings
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-3 gap-4 text-sm">
                       <div>
-                        <p className="text-gray-600">Total Issued</p>
+                        <p className="text-[hsl(var(--muted-foreground))]">Total Issued</p>
                         <p className="font-medium">{user.warning_count}</p>
                       </div>
                       <div>
-                        <p className="text-gray-600">Currently Active</p>
-                        <p className={`font-medium ${user.active_warning_count > 0 ? 'text-amber-700' : ''}`}>
+                        <p className="text-[hsl(var(--muted-foreground))]">Currently Active</p>
+                        <p className={`font-medium ${user.active_warning_count > 0 ? 'text-[hsl(var(--warning))]' : ''}`}>
                           {user.active_warning_count}
                         </p>
                       </div>
                       <div>
-                        <p className="text-gray-600">Severe (active)</p>
-                        <p className={`font-medium ${user.severe_warning_count > 0 ? 'text-red-600' : ''}`}>
+                        <p className="text-[hsl(var(--muted-foreground))]">Severe (active)</p>
+                        <p className={`font-medium ${user.severe_warning_count > 0 ? 'text-[hsl(var(--destructive))]' : ''}`}>
                           {user.severe_warning_count}
                         </p>
                       </div>
@@ -750,7 +750,7 @@ export function UserDetailModal({ isOpen, onClose, userData, onSuccess }: UserDe
                             setBlockListExpanded(false)
                           }
                         }}
-                        className="text-sm font-normal text-blue-600 hover:text-blue-800 ml-auto"
+                        className="text-sm font-normal text-[hsl(var(--info))] hover:text-[hsl(var(--info))] ml-auto"
                       >
                         {blockListExpanded ? 'Hide' : 'Show'}
                       </button>
@@ -759,20 +759,20 @@ export function UserDetailModal({ isOpen, onClose, userData, onSuccess }: UserDe
                   {blockListExpanded && (
                     <CardContent>
                       {blockListLoading ? (
-                        <div className="flex items-center gap-2 text-sm text-gray-500">
+                        <div className="flex items-center gap-2 text-sm text-[hsl(var(--muted-foreground))]">
                           <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-primary border-r-transparent" />
                           Loading...
                         </div>
                       ) : blockList && blockList.length > 0 ? (
                         <div className="space-y-1">
                           {blockList.map((blockedId) => (
-                            <div key={blockedId} className="text-sm font-mono text-gray-600 py-1 px-2 bg-gray-50 rounded">
+                            <div key={blockedId} className="text-sm font-mono text-[hsl(var(--muted-foreground))] py-1 px-2 bg-[hsl(var(--surface-muted))] rounded">
                               {blockedId}
                             </div>
                           ))}
                         </div>
                       ) : (
-                        <p className="text-sm text-gray-500">No blocked users</p>
+                        <p className="text-sm text-[hsl(var(--muted-foreground))]">No blocked users</p>
                       )}
                     </CardContent>
                   )}
@@ -792,7 +792,7 @@ export function UserDetailModal({ isOpen, onClose, userData, onSuccess }: UserDe
                     {/* Seller Authority Status */}
                     <div className="flex flex-wrap gap-3 mb-4">
                       <div>
-                        <p className="text-xs text-gray-500 mb-1">Subscription</p>
+                        <p className="text-xs text-[hsl(var(--muted-foreground))] mb-1">Subscription</p>
                         <Badge variant={
                           user.subscription_status === 'active' ? 'success'
                             : user.subscription_status === 'expired' ? 'error'
@@ -806,7 +806,7 @@ export function UserDetailModal({ isOpen, onClose, userData, onSuccess }: UserDe
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="mt-1 text-blue-600 hover:text-blue-800"
+                            className="mt-1 text-[hsl(var(--info))] hover:text-[hsl(var(--info))]"
                             onClick={prepareSubscriptionRecover}
                             title="Recover missed subscription payment (webhook miss)"
                           >
@@ -816,7 +816,7 @@ export function UserDetailModal({ isOpen, onClose, userData, onSuccess }: UserDe
                         )}
                       </div>
                       <div>
-                        <p className="text-xs text-gray-500 mb-1">Verification</p>
+                        <p className="text-xs text-[hsl(var(--muted-foreground))] mb-1">Verification</p>
                         <Badge variant={
                           user.verification_status === 'approved' ? 'success'
                             : user.verification_status === 'suspended' || user.verification_status === 'revoked' || user.verification_status === 'rejected' ? 'error'
@@ -836,14 +836,14 @@ export function UserDetailModal({ isOpen, onClose, userData, onSuccess }: UserDe
                         </Badge>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-500 mb-1">Seller Tier</p>
+                        <p className="text-xs text-[hsl(var(--muted-foreground))] mb-1">Seller Tier</p>
                         {user.seller_tier === 'pro' && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border border-amber-300 bg-amber-50 text-amber-900 text-xs font-semibold">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border border-[hsl(var(--warning))] bg-[hsl(var(--warning-bg))] text-[hsl(var(--warning))] text-xs font-semibold">
                             ⭐ Pro
                           </span>
                         )}
                         {user.seller_tier === 'elite' && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border border-indigo-300 bg-indigo-50 text-indigo-900 text-xs font-semibold">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border border-[hsl(var(--info))] bg-[hsl(var(--info-bg))] text-[hsl(var(--info))] text-xs font-semibold">
                             👑 Elite
                           </span>
                         )}
@@ -855,38 +855,38 @@ export function UserDetailModal({ isOpen, onClose, userData, onSuccess }: UserDe
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       {user.farm_name && (
                         <div>
-                          <p className="text-sm text-gray-600">Farm Name</p>
+                          <p className="text-sm text-[hsl(var(--muted-foreground))]">Farm Name</p>
                           <p className="font-medium">{user.farm_name}</p>
                         </div>
                       )}
                       {user.seller_rating !== undefined && (
                         <div>
-                          <p className="text-sm text-gray-600">Rating</p>
+                          <p className="text-sm text-[hsl(var(--muted-foreground))]">Rating</p>
                           <p className="font-medium">{user.seller_rating.toFixed(1)} / 5.0</p>
                         </div>
                       )}
                       {user.total_sales !== undefined && (
                         <div>
-                          <p className="text-sm text-gray-600">Total Sales</p>
+                          <p className="text-sm text-[hsl(var(--muted-foreground))]">Total Sales</p>
                           <p className="font-medium">{formatRupiah(user.total_sales)}</p>
                         </div>
                       )}
                       {user.total_orders_sold !== undefined && (
                         <div>
-                          <p className="text-sm text-gray-600">Orders Sold</p>
+                          <p className="text-sm text-[hsl(var(--muted-foreground))]">Orders Sold</p>
                           <p className="font-medium">{user.total_orders_sold}</p>
                         </div>
                       )}
                       {user.seller_payable != null && (
                         <div>
-                          <p className="text-sm text-gray-600">Seller Payable</p>
+                          <p className="text-sm text-[hsl(var(--muted-foreground))]">Seller Payable</p>
                           <p className="font-medium">{formatRupiah(user.seller_payable)}</p>
                         </div>
                       )}
                       {user.frozen_payable_balance !== undefined && user.frozen_payable_balance > 0 && (
                         <div>
-                          <p className="text-sm text-gray-600">Frozen Balance</p>
-                          <p className="font-medium text-amber-600">{formatRupiah(user.frozen_payable_balance)}</p>
+                          <p className="text-sm text-[hsl(var(--muted-foreground))]">Frozen Balance</p>
+                          <p className="font-medium text-[hsl(var(--warning))]">{formatRupiah(user.frozen_payable_balance)}</p>
                         </div>
                       )}
                     </div>
@@ -907,13 +907,13 @@ export function UserDetailModal({ isOpen, onClose, userData, onSuccess }: UserDe
                     <div className="grid grid-cols-2 gap-4">
                       {user.total_orders_bought !== undefined && (
                         <div>
-                          <p className="text-sm text-gray-600">Orders Purchased</p>
+                          <p className="text-sm text-[hsl(var(--muted-foreground))]">Orders Purchased</p>
                           <p className="font-medium">{user.total_orders_bought}</p>
                         </div>
                       )}
                       {user.total_spent !== undefined && (
                         <div>
-                          <p className="text-sm text-gray-600">Total Spent</p>
+                          <p className="text-sm text-[hsl(var(--muted-foreground))]">Total Spent</p>
                           <p className="font-medium">{formatRupiah(user.total_spent)}</p>
                         </div>
                       )}
@@ -924,7 +924,7 @@ export function UserDetailModal({ isOpen, onClose, userData, onSuccess }: UserDe
 
               {/* BNR Status (buyers with auction history) */}
               {(user?.total_bnr !== undefined || user?.banned_from_bidding !== undefined) && (
-                <Card className={user?.banned_from_bidding ? 'border-orange-200' : undefined}>
+                <Card className={user?.banned_from_bidding ? 'border-[hsl(var(--warning))]' : undefined}>
                   <CardHeader>
                     <CardTitle className="text-lg flex items-center gap-2">
                       <Activity className="h-5 w-5" />
@@ -934,25 +934,25 @@ export function UserDetailModal({ isOpen, onClose, userData, onSuccess }: UserDe
                   <CardContent>
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
-                        <p className="text-gray-600">Total Strikes</p>
+                        <p className="text-[hsl(var(--muted-foreground))]">Total Strikes</p>
                         <p className="font-medium">
                           {user?.total_bnr ?? 0}
                           {(user?.total_bnr ?? 0) > 0 && (
-                            <span className="ml-2 text-orange-600 text-xs font-normal">active</span>
+                            <span className="ml-2 text-[hsl(var(--warning))] text-xs font-normal">active</span>
                           )}
                         </p>
                       </div>
                       <div>
-                        <p className="text-gray-600">Bidding Restriction</p>
+                        <p className="text-[hsl(var(--muted-foreground))]">Bidding Restriction</p>
                         <p className="font-medium">
                           {user?.banned_from_bidding
-                            ? <span className="text-red-600">Restricted</span>
-                            : <span className="text-green-600">None</span>}
+                            ? <span className="text-[hsl(var(--destructive))]">Restricted</span>
+                            : <span className="text-[hsl(var(--success))]">None</span>}
                         </p>
                       </div>
                       {user?.bid_reliability !== undefined && (
                         <div>
-                          <p className="text-gray-600">Bid Reliability</p>
+                          <p className="text-[hsl(var(--muted-foreground))]">Bid Reliability</p>
                           <p className="font-medium">{user.bid_reliability}%</p>
                         </div>
                       )}
@@ -963,31 +963,31 @@ export function UserDetailModal({ isOpen, onClose, userData, onSuccess }: UserDe
 
               {/* Account Status Details (if suspended or banned) */}
               {(user?.suspended_reason || user?.banned_reason) && (
-                <Card className="border-amber-200">
+                <Card className="border-[hsl(var(--warning))]">
                   <CardHeader>
-                    <CardTitle className="text-lg text-amber-700 flex items-center gap-2">
+                    <CardTitle className="text-lg text-[hsl(var(--warning))] flex items-center gap-2">
                       <AlertTriangle className="h-5 w-5" />
                       Account Status Details
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     {user.suspended_reason && (
-                      <div className="bg-amber-50 p-3 rounded border border-amber-200">
-                        <p className="text-sm font-medium text-amber-800">Suspension Reason</p>
-                        <p className="text-sm text-gray-700 mt-1">{user.suspended_reason}</p>
+                      <div className="bg-[hsl(var(--warning-bg))] p-3 rounded border border-[hsl(var(--warning))]">
+                        <p className="text-sm font-medium text-[hsl(var(--warning))]">Suspension Reason</p>
+                        <p className="text-sm text-[hsl(var(--foreground))] mt-1">{user.suspended_reason}</p>
                         {user.suspended_until && (
-                          <p className="text-xs text-amber-600 mt-2">
+                          <p className="text-xs text-[hsl(var(--warning))] mt-2">
                             Until: {formatDate(user.suspended_until)}
                           </p>
                         )}
                       </div>
                     )}
                     {user.banned_reason && (
-                      <div className="bg-red-50 p-3 rounded border border-red-200">
-                        <p className="text-sm font-medium text-red-800">Ban Reason</p>
-                        <p className="text-sm text-gray-700 mt-1">{user.banned_reason}</p>
+                      <div className="bg-[hsl(var(--destructive-bg))] p-3 rounded border border-[hsl(var(--destructive))]">
+                        <p className="text-sm font-medium text-[hsl(var(--destructive))]">Ban Reason</p>
+                        <p className="text-sm text-[hsl(var(--foreground))] mt-1">{user.banned_reason}</p>
                         {user.banned_at && (
-                          <p className="text-xs text-red-600 mt-2">
+                          <p className="text-xs text-[hsl(var(--destructive))] mt-2">
                             Banned on: {formatDate(user.banned_at)}
                           </p>
                         )}
@@ -1008,23 +1008,23 @@ export function UserDetailModal({ isOpen, onClose, userData, onSuccess }: UserDe
                 <CardContent>
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <p className="text-gray-600">Joined At</p>
+                      <p className="text-[hsl(var(--muted-foreground))]">Joined At</p>
                       <p className="font-medium">{formatDate(displayData.created_at)}</p>
                     </div>
                     <div>
-                      <p className="text-gray-600">Last Updated</p>
+                      <p className="text-[hsl(var(--muted-foreground))]">Last Updated</p>
                       <p className="font-medium">
                         {displayData.updated_at ? formatDate(displayData.updated_at) : 'N/A'}
                       </p>
                     </div>
                     <div>
-                      <p className="text-gray-600">Last Active</p>
+                      <p className="text-[hsl(var(--muted-foreground))]">Last Active</p>
                       <p className="font-medium">
                         {displayData.last_active_at ? formatDate(displayData.last_active_at) : 'Unknown'}
                       </p>
                     </div>
                     <div>
-                      <p className="text-gray-600">Auth Provider</p>
+                      <p className="text-[hsl(var(--muted-foreground))]">Auth Provider</p>
                       <p className="font-medium capitalize">
                         {user?.auth_provider || 'email'}
                       </p>
@@ -1038,9 +1038,9 @@ export function UserDetailModal({ isOpen, onClose, userData, onSuccess }: UserDe
           {/* Footer with action buttons (only in idle state) */}
           {actionState === 'idle' && (
             <ModalFooter className="flex items-center justify-between">
-              <div className="text-sm text-gray-500">
+              <div className="text-sm text-[hsl(var(--muted-foreground))]">
                 <span className="flex items-center gap-1">
-                  <AlertTriangle className="h-4 w-4 text-amber-500" />
+                  <AlertTriangle className="h-4 w-4 text-[hsl(var(--warning))]" />
                   Review all information before taking action
                 </span>
               </div>

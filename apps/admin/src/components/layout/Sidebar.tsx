@@ -65,9 +65,9 @@ export function Sidebar() {
   const { capabilities } = useAuth()
 
   return (
-    <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col border-r border-gray-200 bg-white">
+    <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col border-r border-[hsl(var(--border))] bg-[hsl(var(--surface))]">
       {/* Logo */}
-      <div className="flex h-16 shrink-0 items-center border-b border-gray-200 px-6">
+      <div className="flex h-16 shrink-0 items-center border-b border-[hsl(var(--border))] px-6">
         <h1 className="text-xl font-bold text-primary">LABUDA Admin</h1>
       </div>
 
@@ -90,14 +90,14 @@ export function Sidebar() {
                   !allowed && 'opacity-50 pointer-events-none',
                   isActive
                     ? 'bg-primary/10 text-primary'
-                    : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                    : 'text-[hsl(var(--foreground))] hover:bg-[hsl(var(--surface-muted))] hover:text-[hsl(var(--foreground))]'
                 )
               }
               title={!allowed ? `Requires: ${item.requiredCapability}` : ''}
             >
               {({ isActive }) => (
                 <>
-                  <Icon className={cn('h-5 w-5', isActive ? 'text-primary' : 'text-gray-500')} />
+                  <Icon className={cn('h-5 w-5', isActive ? 'text-primary' : 'text-[hsl(var(--muted-foreground))]')} />
                   {item.name}
                 </>
               )}
@@ -107,8 +107,8 @@ export function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="shrink-0 border-t border-gray-200 p-4">
-        <p className="text-xs text-gray-500 text-center">
+      <div className="shrink-0 border-t border-[hsl(var(--border))] p-4">
+        <p className="text-xs text-[hsl(var(--muted-foreground))] text-center">
           LABUDA Admin Dashboard
           <br />
           v1.0.0

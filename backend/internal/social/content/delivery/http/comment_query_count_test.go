@@ -91,7 +91,7 @@ func newQcEnv(t *testing.T) *qcEnv {
 		nil,                            // blockChecker
 		nil,                            // invariantLogger
 	)
-	handler := NewCommentHandler(commentService, contentService, forsaleapp.NewForSaleService(), nil, tracedDB, zap.NewNop())
+	handler := NewCommentHandler(commentService, contentService, tracedDB, zap.NewNop())
 
 	env := &qcEnv{
 		t: t,
@@ -267,8 +267,13 @@ func (e *qcEnv) listComments(contentID, viewerID uuid.UUID) *httptest.ResponseRe
 	router.GET("/api/v1/contents/:id/comments", e.handler.ListComments)
 
 	w := httptest.NewRecorder()
+	// limit=50 (the server maximum) so every scenario's page carries the whole
+	// seeded set. A smaller limit truncates the 41-comment mixed scenario to
+	// first-page rows only, so the page would request fewer resource types than
+	// the small scenario and batch invariance would be measured across pages of
+	// different composition.
 	req := httptest.NewRequest(http.MethodGet,
-		"/api/v1/contents/"+contentID.String()+"/comments?limit=20", nil)
+		"/api/v1/contents/"+contentID.String()+"/comments?limit=50", nil)
 	router.ServeHTTP(w, req)
 	return w
 }

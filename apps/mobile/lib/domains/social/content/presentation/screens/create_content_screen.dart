@@ -64,7 +64,6 @@ class _CreateContentScreenState extends ConsumerState<CreateContentScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final authenticatedUser = ref.watch(authenticatedUserProvider);
 
     return PopScope(
@@ -94,7 +93,6 @@ class _CreateContentScreenState extends ConsumerState<CreateContentScreen> {
               Expanded(
                 child: ContentScrollableContent(
                   contentController: _contentController,
-                  isDark: isDark,
                   selectedImages: _selectedImages,
                   selectedVideos: _selectedVideos,
                   selectedLocation: _selectedLocation,
@@ -130,7 +128,6 @@ class _CreateContentScreenState extends ConsumerState<CreateContentScreen> {
                 },
                 onTagPeople: _handleTagPeople,
                 onAddLocation: _handleAddLocation,
-                isDark: isDark,
               ),
             ],
           ),

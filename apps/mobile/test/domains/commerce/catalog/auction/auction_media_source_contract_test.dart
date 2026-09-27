@@ -6,25 +6,25 @@ String _source(String relativePath) {
   return File(relativePath).readAsStringSync().replaceAll('\r\n', '\n');
 }
 
-String _block(String source, String startMarker, String endMarker) {
-  final start = source.indexOf(startMarker);
-  final end = source.indexOf(endMarker, start + startMarker.length);
-  expect(start, isNonNegative, reason: 'missing $startMarker');
-  expect(end, isNonNegative, reason: 'missing $endMarker');
-  return source.substring(start, end);
-}
-
 void main() {
   test('auction card renders media with lifecycle-aware seller identity', () {
     final source = _source(
       'lib/domains/commerce/catalog/auction/presentation/widgets/auction_card.dart',
     );
 
-    expect(source, contains('sellerUserLifecycle'));
-    expect(source, contains('publicRedactionLabel'));
+    // The card is a thin wrapper: frame + seller block live in the shared
+    // commerce primitives so both channels stay identical.
+    expect(source, contains('CommerceMarketplaceCardShell('));
+    expect(source, contains('CommerceCardSellerMetadata('));
+    expect(source, isNot(contains('return Card(')));
+
+    // Redaction vocabulary is owned by the shared metadata block.
+    final metadata = _source(
+      'lib/domains/commerce/catalog/shared/presentation/widgets/commerce_card_seller_metadata.dart',
+    );
+    expect(metadata, contains('sellerUserLifecycle'));
+    expect(metadata, contains('publicRedactionLabel'));
   });
-
-
 
   test('auction detail header renders media without raw video controllers', () {
     final source = _source(
@@ -52,8 +52,6 @@ void main() {
     expect(source, isNot(contains('Image.network(')));
     expect(source, contains('AuctionDetailHeader('));
   });
-
-
 
   test('auction detail screen uses auction-specific handlers', () {
     final source = _source(

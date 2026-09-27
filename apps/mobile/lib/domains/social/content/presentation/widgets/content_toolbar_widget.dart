@@ -84,7 +84,7 @@ class _ToolbarIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return InkWell(
       onTap: onTap,
@@ -103,9 +103,7 @@ class _ToolbarIcon extends StatelessWidget {
                   label,
                   style: TextStyle(
                     fontSize: 10,
-                    color: isDark
-                        ? AppColors.neutralGray400
-                        : AppColors.neutralGray600,
+                    color: scheme.onSurfaceVariant,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -118,7 +116,7 @@ class _ToolbarIcon extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.all(3),
                   decoration: BoxDecoration(
-                    color: AppColors.primaryRed,
+                    color: scheme.primary,
                     shape: BoxShape.circle,
                   ),
                   constraints: const BoxConstraints(
@@ -127,8 +125,8 @@ class _ToolbarIcon extends StatelessWidget {
                   ),
                   child: Text(
                     badge!,
-                    style: const TextStyle(
-                      color: AppColors.neutralWhite,
+                    style: TextStyle(
+                      color: scheme.onPrimary,
                       fontSize: 8,
                       fontWeight: FontWeight.bold,
                     ),

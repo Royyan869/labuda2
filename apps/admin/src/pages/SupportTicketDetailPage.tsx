@@ -216,7 +216,7 @@ export function SupportTicketDetailPage() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
-          <p className="mt-4 text-gray-600">Loading ticket details...</p>
+          <p className="mt-4 text-muted-foreground">Loading ticket details...</p>
         </div>
       </div>
     )
@@ -233,7 +233,7 @@ export function SupportTicketDetailPage() {
         </div>
         <Card>
           <CardContent className="p-6">
-            <div className="text-center text-red-600">
+            <div className="text-center text-destructive">
               <p>Error loading ticket: {ticketError?.message || 'Ticket not found'}</p>
             </div>
           </CardContent>
@@ -283,8 +283,8 @@ export function SupportTicketDetailPage() {
             Back
           </Button>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Ticket #{ticket.id.slice(0, 8)}</h1>
-            <p className="text-gray-600 mt-1">{ticket.subject}</p>
+            <h1 className="text-3xl font-bold text-foreground">Ticket #{ticket.id.slice(0, 8)}</h1>
+            <p className="text-muted-foreground mt-1">{ticket.subject}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -356,14 +356,14 @@ export function SupportTicketDetailPage() {
 
       {/* Success Message */}
       {successMessage && (
-        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+        <div className="bg-success-bg border border-success text-success px-4 py-3 rounded-lg">
           {successMessage}
         </div>
       )}
 
       {/* Action Error */}
       {actionError && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+        <div className="bg-destructive-bg border border-destructive text-destructive px-4 py-3 rounded-lg">
           {actionError}
         </div>
       )}
@@ -383,7 +383,7 @@ export function SupportTicketDetailPage() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">User</p>
+                  <p className="text-sm font-medium text-muted-foreground">User</p>
                   <div className="flex items-start gap-2 mt-1">
                     {ticket.user_avatar ? (
                       <img
@@ -392,8 +392,8 @@ export function SupportTicketDetailPage() {
                         className="w-8 h-8 rounded-full object-cover"
                       />
                     ) : (
-                      <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-                        <User className="h-4 w-4 text-gray-500" />
+                      <div className="w-8 h-8 rounded-full bg-border flex items-center justify-center">
+                        <User className="h-4 w-4 text-muted-foreground" />
                       </div>
                     )}
                     <div className="min-w-0">
@@ -401,7 +401,7 @@ export function SupportTicketDetailPage() {
                         {ticket.username ? `@${ticket.username}` : ticket.user_id.slice(0, 8)}
                       </div>
                       {ticket.username && ticket.seller_farm_name ? (
-                        <div className="text-xs text-gray-500 truncate max-w-[220px]">
+                        <div className="text-xs text-muted-foreground truncate max-w-[220px]">
                           {ticket.seller_farm_name}
                         </div>
                       ) : null}
@@ -409,43 +409,43 @@ export function SupportTicketDetailPage() {
                   </div>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-600">User ID</p>
-                  <p className="text-sm font-mono text-gray-900 mt-1">{ticket.user_id.slice(0, 8)}</p>
+                  <p className="text-sm font-medium text-muted-foreground">User ID</p>
+                  <p className="text-sm font-mono text-foreground mt-1">{ticket.user_id.slice(0, 8)}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Category</p>
-                  <p className="text-sm text-gray-900 mt-1">
+                  <p className="text-sm font-medium text-muted-foreground">Category</p>
+                  <p className="text-sm text-foreground mt-1">
                     {supportCategoryLabels[ticket.category] || ticket.category}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Priority</p>
+                  <p className="text-sm font-medium text-muted-foreground">Priority</p>
                   <Badge variant={supportPriorityVariants[ticket.priority] || 'info'} className="mt-1">
                     {supportPriorityLabels[ticket.priority] || ticket.priority}
                   </Badge>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Status</p>
+                  <p className="text-sm font-medium text-muted-foreground">Status</p>
                   <Badge variant={supportTicketStatusVariants[ticket.status] || 'info'} className="mt-1">
                     {supportTicketStatusLabels[ticket.status] || ticket.status}
                   </Badge>
                 </div>
                 {ticket.order_id && (
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Linked Order</p>
-                    <p className="text-sm font-mono text-gray-900 mt-1">{ticket.order_id.slice(0, 8)}</p>
+                    <p className="text-sm font-medium text-muted-foreground">Linked Order</p>
+                    <p className="text-sm font-mono text-foreground mt-1">{ticket.order_id.slice(0, 8)}</p>
                   </div>
                 )}
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Created At</p>
-                  <p className="text-sm text-gray-900 mt-1 flex items-center gap-1">
+                  <p className="text-sm font-medium text-muted-foreground">Created At</p>
+                  <p className="text-sm text-foreground mt-1 flex items-center gap-1">
                     <Clock className="h-3 w-3" />
                     {formatDateTime(ticket.created_at)}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Last Updated</p>
-                  <p className="text-sm text-gray-900 mt-1 flex items-center gap-1">
+                  <p className="text-sm font-medium text-muted-foreground">Last Updated</p>
+                  <p className="text-sm text-foreground mt-1 flex items-center gap-1">
                     <Clock className="h-3 w-3" />
                     {formatDateTime(ticket.updated_at)}
                   </p>
@@ -454,8 +454,8 @@ export function SupportTicketDetailPage() {
 
               {/* Description */}
               <div className="pt-4 border-t">
-                <p className="text-sm font-medium text-gray-600 mb-2">Description</p>
-                <p className="text-sm text-gray-900 bg-gray-50 p-3 rounded-lg">
+                <p className="text-sm font-medium text-muted-foreground mb-2">Description</p>
+                <p className="text-sm text-foreground bg-surface-muted p-3 rounded-lg">
                   {ticket.description || 'No description provided'}
                 </p>
               </div>
@@ -463,8 +463,8 @@ export function SupportTicketDetailPage() {
               {/* Admin Info */}
               {ticket.admin_name && (
                 <div className="pt-4 border-t">
-                  <p className="text-sm font-medium text-gray-600 mb-2">Assigned To</p>
-                  <p className="text-sm text-gray-900">{ticket.admin_name}</p>
+                  <p className="text-sm font-medium text-muted-foreground mb-2">Assigned To</p>
+                  <p className="text-sm text-foreground">{ticket.admin_name}</p>
                 </div>
               )}
             </CardContent>
@@ -482,21 +482,21 @@ export function SupportTicketDetailPage() {
               <CardContent>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Order ID</p>
-                    <p className="text-sm font-mono text-gray-900 mt-1">{ticket.order_info.order_id.slice(0, 8)}</p>
+                    <p className="text-sm font-medium text-muted-foreground">Order ID</p>
+                    <p className="text-sm font-mono text-foreground mt-1">{ticket.order_info.order_id.slice(0, 8)}</p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Status</p>
+                    <p className="text-sm font-medium text-muted-foreground">Status</p>
                     <Badge variant="info" className="mt-1">
                       {ticket.order_info.status}
                     </Badge>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Escrow Status</p>
-                    <p className="text-sm text-gray-900 mt-1">{ticket.order_info.escrow_status}</p>
+                    <p className="text-sm font-medium text-muted-foreground">Escrow Status</p>
+                    <p className="text-sm text-foreground mt-1">{ticket.order_info.escrow_status}</p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Has Dispute</p>
+                    <p className="text-sm font-medium text-muted-foreground">Has Dispute</p>
                     <Badge variant={ticket.order_info.has_dispute ? 'warning' : 'success'} className="mt-1">
                       {ticket.order_info.has_dispute ? 'Yes' : 'No'}
                     </Badge>
@@ -518,26 +518,26 @@ export function SupportTicketDetailPage() {
               <CardContent>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Dispute ID</p>
-                    <p className="text-sm font-mono text-gray-900 mt-1">{ticket.dispute_info.dispute_id.slice(0, 8)}</p>
+                    <p className="text-sm font-medium text-muted-foreground">Dispute ID</p>
+                    <p className="text-sm font-mono text-foreground mt-1">{ticket.dispute_info.dispute_id.slice(0, 8)}</p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Status</p>
+                    <p className="text-sm font-medium text-muted-foreground">Status</p>
                     <Badge variant="warning" className="mt-1">
                       {ticket.dispute_info.status}
                     </Badge>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Opened At</p>
-                    <p className="text-sm text-gray-900 mt-1 flex items-center gap-1">
+                    <p className="text-sm font-medium text-muted-foreground">Opened At</p>
+                    <p className="text-sm text-foreground mt-1 flex items-center gap-1">
                       <Clock className="h-3 w-3" />
                       {formatDateTime(ticket.dispute_info.opened_at)}
                     </p>
                   </div>
                   {ticket.dispute_info.resolved_at && (
                     <div>
-                      <p className="text-sm font-medium text-gray-600">Resolved At</p>
-                      <p className="text-sm text-gray-900 mt-1 flex items-center gap-1">
+                      <p className="text-sm font-medium text-muted-foreground">Resolved At</p>
+                      <p className="text-sm text-foreground mt-1 flex items-center gap-1">
                         <Clock className="h-3 w-3" />
                         {formatDateTime(ticket.dispute_info.resolved_at)}
                       </p>
@@ -557,12 +557,12 @@ export function SupportTicketDetailPage() {
               {messagesLoading ? (
                 <div className="text-center py-8">
                   <div className="inline-block h-6 w-6 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
-                  <p className="mt-2 text-sm text-gray-600">Loading messages...</p>
+                  <p className="mt-2 text-sm text-muted-foreground">Loading messages...</p>
                 </div>
               ) : messages.length === 0 ? (
                 <div className="text-center py-8">
-                  <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                  <p className="text-sm text-gray-600">No messages yet</p>
+                  <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                  <p className="text-sm text-muted-foreground">No messages yet</p>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -576,8 +576,8 @@ export function SupportTicketDetailPage() {
                           message.sender_type === 'admin'
                             ? 'bg-primary text-white'
                             : message.sender_type === 'user'
-                            ? 'bg-gray-100 text-gray-900'
-                            : 'bg-blue-50 text-gray-700'
+                            ? 'bg-surface-muted text-foreground'
+                            : 'bg-info-bg text-foreground'
                         }`}
                       >
                         <div className="flex items-center gap-2 mb-1">
@@ -644,33 +644,33 @@ export function SupportTicketDetailPage() {
                 <div className="w-2 h-2 rounded-full bg-primary mt-2"></div>
                 <div>
                   <p className="text-sm font-medium">Created</p>
-                  <p className="text-xs text-gray-600">{formatDateTime(ticket.created_at)}</p>
+                  <p className="text-xs text-muted-foreground">{formatDateTime(ticket.created_at)}</p>
                 </div>
               </div>
               {ticket.claimed_at && (
                 <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 rounded-full bg-blue-500 mt-2"></div>
+                  <div className="w-2 h-2 rounded-full bg-info-bg0 mt-2"></div>
                   <div>
                     <p className="text-sm font-medium">Claimed</p>
-                    <p className="text-xs text-gray-600">{formatDateTime(ticket.claimed_at)}</p>
+                    <p className="text-xs text-muted-foreground">{formatDateTime(ticket.claimed_at)}</p>
                   </div>
                 </div>
               )}
               {ticket.resolved_at && (
                 <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 rounded-full bg-green-500 mt-2"></div>
+                  <div className="w-2 h-2 rounded-full bg-success-bg0 mt-2"></div>
                   <div>
                     <p className="text-sm font-medium">Resolved</p>
-                    <p className="text-xs text-gray-600">{formatDateTime(ticket.resolved_at)}</p>
+                    <p className="text-xs text-muted-foreground">{formatDateTime(ticket.resolved_at)}</p>
                   </div>
                 </div>
               )}
               {ticket.closed_at && (
                 <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 rounded-full bg-red-500 mt-2"></div>
+                  <div className="w-2 h-2 rounded-full bg-destructive-bg0 mt-2"></div>
                   <div>
                     <p className="text-sm font-medium">Closed</p>
-                    <p className="text-xs text-gray-600">{formatDateTime(ticket.closed_at)}</p>
+                    <p className="text-xs text-muted-foreground">{formatDateTime(ticket.closed_at)}</p>
                   </div>
                 </div>
               )}
@@ -756,12 +756,12 @@ export function SupportTicketDetailPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Priority</label>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">Priority</label>
                   <select
                     value={ticket.priority}
                     onChange={(e) => handleUpdatePriority(e.target.value as SupportPriority)}
                     disabled={submitting}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                    className="w-full rounded-lg border border-border px-3 py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   >
                     <option value="low">{supportPriorityLabels.low}</option>
                     <option value="medium">{supportPriorityLabels.medium}</option>
@@ -770,12 +770,12 @@ export function SupportTicketDetailPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Category</label>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">Category</label>
                   <select
                     value={ticket.category}
                     onChange={(e) => handleUpdateCategory(e.target.value as SupportCategory)}
                     disabled={submitting}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                    className="w-full rounded-lg border border-border px-3 py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   >
                     {(Object.keys(supportCategoryLabels) as SupportCategory[]).map((category) => (
                       <option key={category} value={category}>
@@ -799,7 +799,7 @@ export function SupportTicketDetailPage() {
         >
           <div className="space-y-4">
             {/* STEP 6: Warning message */}
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start gap-2">
+            <div className="bg-destructive-bg border border-destructive text-destructive px-4 py-3 rounded-lg flex items-start gap-2">
               <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
               <div>
                 <p className="text-sm font-medium">⚠️ Warning</p>
@@ -808,35 +808,35 @@ export function SupportTicketDetailPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Reason *
               </label>
               <input
                 type="text"
                 value={escalationReason}
                 onChange={(e) => setEscalationReason(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder="e.g., Product not received, Item damaged"
                 disabled={submitting}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Reason Code *
               </label>
               <input
                 type="text"
                 value={escalationReasonCode}
                 onChange={(e) => setEscalationReasonCode(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder="e.g., PRODUCT_NOT_RECEIVED"
                 disabled={submitting}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Description
               </label>
               <Textarea

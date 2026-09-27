@@ -149,61 +149,59 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
 
     // Watch the payment result state
     final state = ref.watch(paymentResultProvider);
 
     return Scaffold(
-      backgroundColor: isDark
-          ? core.AppColors.darkGray900
-          : core.AppColors.neutralGray50,
+      // Page canvas — canonical lowest tone in both modes (checkout precedent).
+      backgroundColor: colorScheme.surfaceContainerLowest,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
-            child: _buildContent(state, isDark),
+            child: _buildContent(state),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildContent(PaymentResultState state, bool isDark) {
+  Widget _buildContent(PaymentResultState state) {
     switch (state.status) {
       case PaymentResultScreenStatus.checking:
-        return _buildCheckingContent(state, isDark);
+        return _buildCheckingContent(state);
 
       case PaymentResultScreenStatus.success:
-        return _buildSuccessContent(state, isDark);
+        return _buildSuccessContent(state);
 
       case PaymentResultScreenStatus.failed:
-        return _buildFailedContent(state, isDark);
+        return _buildFailedContent(state);
 
       case PaymentResultScreenStatus.timeout:
-        return _buildTimeoutContent(state, isDark);
+        return _buildTimeoutContent(state);
 
       case PaymentResultScreenStatus.networkError:
-        return _buildNetworkErrorContent(state, isDark);
+        return _buildNetworkErrorContent(state);
     }
   }
 
   /// Checking state - actively polling backend
-  Widget _buildCheckingContent(PaymentResultState state, bool isDark) {
+  Widget _buildCheckingContent(PaymentResultState state) {
+    final colorScheme = Theme.of(context).colorScheme;
     final elapsedMessage = _getElapsedTimeMessage(state);
 
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         // Animated spinner
-        const SizedBox(
+        SizedBox(
           width: 80,
           height: 80,
           child: CircularProgressIndicator(
             strokeWidth: 4,
-            valueColor: AlwaysStoppedAnimation<Color>(
-              core.AppColors.primaryRed,
-            ),
+            valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
           ),
         ),
         const SizedBox(height: 32),
@@ -214,9 +212,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
-            color: isDark
-                ? core.AppColors.neutralWhite
-                : core.AppColors.neutralGray900,
+            color: colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 16),
@@ -227,9 +223,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 16,
-            color: isDark
-                ? core.AppColors.neutralGray400
-                : core.AppColors.neutralGray600,
+            color: colorScheme.onSurfaceVariant,
           ),
         ),
         const SizedBox(height: 8),
@@ -238,10 +232,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
         Text(
           'Pengecekan ke ${state.pollAttempts + 1}/${state.maxPollAttempts}',
           style: TextStyle(
-            fontSize: 14,
-            color: isDark
-                ? core.AppColors.neutralGray500
-                : core.AppColors.neutralGray400,
+            fontSize: 14,                color: colorScheme.onSurfaceVariant,
           ),
         ),
 
@@ -272,9 +263,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 14,
-                      color: isDark
-                          ? core.AppColors.neutralGray300
-                          : core.AppColors.neutralGray700,
+                      color: colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ),
@@ -296,18 +285,12 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
             ),
             style: OutlinedButton.styleFrom(
-              foregroundColor: isDark
-                  ? core.AppColors.neutralWhite
-                  : core.AppColors.neutralGray900,
+              foregroundColor: colorScheme.onSurface,
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
-              side: BorderSide(
-                color: isDark
-                    ? core.AppColors.neutralGray700
-                    : core.AppColors.neutralGray300,
-              ),
+              side: BorderSide(color: colorScheme.outlineVariant),
             ),
           ),
         ),
@@ -326,8 +309,8 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: core.AppColors.primaryRed,
-                foregroundColor: Colors.white,
+                backgroundColor: colorScheme.primary,
+                foregroundColor: colorScheme.onPrimary,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
@@ -346,9 +329,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
             'Lihat Detail Pesanan',
             style: TextStyle(
               fontSize: 14,
-              color: isDark
-                  ? core.AppColors.neutralGray400
-                  : core.AppColors.neutralGray600,
+              color: colorScheme.onSurfaceVariant,
             ),
           ),
         ),
@@ -358,7 +339,8 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
 
   /// Success state - backend confirmed payment successful
   /// **CV2:** Shows "Kembali ke Chat" button when returnToChat is set
-  Widget _buildSuccessContent(PaymentResultState state, bool isDark) {
+  Widget _buildSuccessContent(PaymentResultState state) {
+    final colorScheme = Theme.of(context).colorScheme;
     final hasReturnToChat =
         widget.returnToChat != null && widget.returnToChat!.isNotEmpty;
 
@@ -387,9 +369,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
-            color: isDark
-                ? core.AppColors.neutralWhite
-                : core.AppColors.neutralGray900,
+            color: colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 16),
@@ -400,16 +380,14 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 16,
-            color: isDark
-                ? core.AppColors.neutralGray400
-                : core.AppColors.neutralGray600,
+            color: colorScheme.onSurfaceVariant,
           ),
         ),
         const SizedBox(height: 24),
 
         // PHASE 2 HARDENING: "Apa Selanjutnya?" section
         // Provides post-payment clarity to buyers
-        _NextStepsSection(isDark: isDark),
+        _NextStepsSection(),
         const SizedBox(height: 32),
 
         // Lihat Pesanan Button
@@ -418,8 +396,8 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
           child: ElevatedButton(
             onPressed: _goToOrderDetail,
             style: ElevatedButton.styleFrom(
-              backgroundColor: core.AppColors.primaryRed,
-              foregroundColor: Colors.white,
+              backgroundColor: colorScheme.primary,
+              foregroundColor: colorScheme.onPrimary,
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -445,13 +423,13 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
               style: OutlinedButton.styleFrom(
-                foregroundColor: core.AppColors.primaryRed,
+                foregroundColor: colorScheme.primary,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
                 side: BorderSide(
-                  color: core.AppColors.primaryRed.withValues(alpha: 0.5),
+                  color: colorScheme.primary.withValues(alpha: 0.5),
                 ),
               ),
             ),
@@ -461,18 +439,12 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
           child: OutlinedButton(
             onPressed: _goToHome,
             style: OutlinedButton.styleFrom(
-              foregroundColor: isDark
-                  ? core.AppColors.neutralWhite
-                  : core.AppColors.neutralGray900,
+              foregroundColor: colorScheme.onSurface,
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
-              side: BorderSide(
-                color: isDark
-                    ? core.AppColors.neutralGray700
-                    : core.AppColors.neutralGray300,
-              ),
+              side: BorderSide(color: colorScheme.outlineVariant),
             ),
             child: const Text(
               'Kembali ke Beranda',
@@ -486,7 +458,8 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
 
   /// Failed state - backend confirmed payment failed/expired/refunded
   /// PHASE 3 HARDENING: Added help CTAs for payment failure support
-  Widget _buildFailedContent(PaymentResultState state, bool isDark) {
+  Widget _buildFailedContent(PaymentResultState state) {
+    final colorScheme = Theme.of(context).colorScheme;
     final reason =
         state.errorMessage ??
         'Pembayaran tidak dapat diproses. Silakan coba lagi.';
@@ -527,9 +500,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
-            color: isDark
-                ? core.AppColors.neutralWhite
-                : core.AppColors.neutralGray900,
+            color: colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 16),
@@ -540,9 +511,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 16,
-            color: isDark
-                ? core.AppColors.neutralGray400
-                : core.AppColors.neutralGray600,
+            color: colorScheme.onSurfaceVariant,
           ),
         ),
         const SizedBox(height: 24),
@@ -573,9 +542,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: isDark
-                          ? core.AppColors.neutralWhite
-                          : core.AppColors.neutralGray900,
+                      color: colorScheme.onSurface,
                     ),
                   ),
                 ],
@@ -585,7 +552,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
                 'Cek panduan pembayaran atau hubungi support untuk bantuan langsung.',
                 style: TextStyle(
                   fontSize: 12,
-                  color: core.AppColors.neutralGray600,
+                  color: colorScheme.onSurfaceVariant,
                 ),
               ),
               const SizedBox(height: 12),
@@ -634,7 +601,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
                       label: const Text('Support'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: core.AppColors.warning,
-                        foregroundColor: Colors.white,
+                        foregroundColor: colorScheme.onPrimary,
                         padding: const EdgeInsets.symmetric(vertical: 8),
                         textStyle: const TextStyle(fontSize: 12),
                       ),
@@ -653,8 +620,8 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
           child: ElevatedButton(
             onPressed: _goToOrderDetail,
             style: ElevatedButton.styleFrom(
-              backgroundColor: core.AppColors.primaryRed,
-              foregroundColor: Colors.white,
+              backgroundColor: colorScheme.primary,
+              foregroundColor: colorScheme.onPrimary,
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -672,18 +639,12 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
           child: OutlinedButton(
             onPressed: _goToHome,
             style: OutlinedButton.styleFrom(
-              foregroundColor: isDark
-                  ? core.AppColors.neutralWhite
-                  : core.AppColors.neutralGray900,
+              foregroundColor: colorScheme.onSurface,
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
-              side: BorderSide(
-                color: isDark
-                    ? core.AppColors.neutralGray700
-                    : core.AppColors.neutralGray300,
-              ),
+              side: BorderSide(color: colorScheme.outlineVariant),
             ),
             child: const Text(
               'Kembali ke Beranda',
@@ -696,7 +657,9 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
   }
 
   /// Timeout state - max polling attempts reached, status unknown
-  Widget _buildTimeoutContent(PaymentResultState state, bool isDark) {
+  Widget _buildTimeoutContent(PaymentResultState state) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -722,9 +685,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
-            color: isDark
-                ? core.AppColors.neutralWhite
-                : core.AppColors.neutralGray900,
+            color: colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 16),
@@ -735,9 +696,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 16,
-            color: isDark
-                ? core.AppColors.neutralGray400
-                : core.AppColors.neutralGray600,
+            color: colorScheme.onSurfaceVariant,
           ),
         ),
         const SizedBox(height: 8),
@@ -747,7 +706,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
           padding: const EdgeInsets.all(12),
           margin: const EdgeInsets.symmetric(vertical: 16),
           decoration: BoxDecoration(
-            color: core.AppColors.neutralGray100,
+            color: colorScheme.surfaceContainer,
             borderRadius: BorderRadius.circular(8),
           ),
           child: Row(
@@ -756,9 +715,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
               Icon(
                 Icons.info_outline,
                 size: 18,
-                color: isDark
-                    ? core.AppColors.neutralGray400
-                    : core.AppColors.neutralGray600,
+                color: colorScheme.onSurfaceVariant,
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -766,9 +723,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
                   'Jika sudah membayar, status pembayaran akan diperbarui dalam beberapa menit. Silakan cek halaman pesanan Anda.',
                   style: TextStyle(
                     fontSize: 13,
-                    color: isDark
-                        ? core.AppColors.neutralGray300
-                        : core.AppColors.neutralGray700,
+                    color: colorScheme.onSurfaceVariant,
                   ),
                 ),
               ),
@@ -783,8 +738,8 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
           child: ElevatedButton(
             onPressed: _handleStatusCheck,
             style: ElevatedButton.styleFrom(
-              backgroundColor: core.AppColors.primaryRed,
-              foregroundColor: Colors.white,
+              backgroundColor: colorScheme.primary,
+              foregroundColor: colorScheme.onPrimary,
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -811,13 +766,13 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
               style: OutlinedButton.styleFrom(
-                foregroundColor: core.AppColors.primaryRed,
+                foregroundColor: colorScheme.primary,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
                 side: BorderSide(
-                  color: core.AppColors.primaryRed.withValues(alpha: 0.5),
+                  color: colorScheme.primary.withValues(alpha: 0.5),
                 ),
               ),
             ),
@@ -830,18 +785,12 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
           child: OutlinedButton(
             onPressed: _goToOrderDetail,
             style: OutlinedButton.styleFrom(
-              foregroundColor: isDark
-                  ? core.AppColors.neutralWhite
-                  : core.AppColors.neutralGray900,
+              foregroundColor: colorScheme.onSurface,
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
-              side: BorderSide(
-                color: isDark
-                    ? core.AppColors.neutralGray700
-                    : core.AppColors.neutralGray300,
-              ),
+              side: BorderSide(color: colorScheme.outlineVariant),
             ),
             child: const Text(
               'Lihat Detail Pesanan',
@@ -858,9 +807,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
               'Kembali ke Beranda',
               style: TextStyle(
                 fontSize: 16,
-                color: isDark
-                    ? core.AppColors.neutralGray400
-                    : core.AppColors.neutralGray600,
+                color: colorScheme.onSurfaceVariant,
               ),
             ),
           ),
@@ -870,7 +817,8 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
   }
 
   /// Network error state - unable to reach backend
-  Widget _buildNetworkErrorContent(PaymentResultState state, bool isDark) {
+  Widget _buildNetworkErrorContent(PaymentResultState state) {
+    final colorScheme = Theme.of(context).colorScheme;
     final errorMessage =
         state.errorMessage ??
         'Terjadi kesalahan koneksi. Silakan periksa koneksi internet Anda.';
@@ -900,9 +848,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
-            color: isDark
-                ? core.AppColors.neutralWhite
-                : core.AppColors.neutralGray900,
+            color: colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 16),
@@ -913,9 +859,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 16,
-            color: isDark
-                ? core.AppColors.neutralGray400
-                : core.AppColors.neutralGray600,
+            color: colorScheme.onSurfaceVariant,
           ),
         ),
         const SizedBox(height: 32),
@@ -926,8 +870,8 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
           child: ElevatedButton(
             onPressed: _handleStatusCheck,
             style: ElevatedButton.styleFrom(
-              backgroundColor: core.AppColors.primaryRed,
-              foregroundColor: Colors.white,
+              backgroundColor: colorScheme.primary,
+              foregroundColor: colorScheme.onPrimary,
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -954,13 +898,13 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
               style: OutlinedButton.styleFrom(
-                foregroundColor: core.AppColors.primaryRed,
+                foregroundColor: colorScheme.primary,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
                 side: BorderSide(
-                  color: core.AppColors.primaryRed.withValues(alpha: 0.5),
+                  color: colorScheme.primary.withValues(alpha: 0.5),
                 ),
               ),
             ),
@@ -973,18 +917,12 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
           child: OutlinedButton(
             onPressed: _goToOrderDetail,
             style: OutlinedButton.styleFrom(
-              foregroundColor: isDark
-                  ? core.AppColors.neutralWhite
-                  : core.AppColors.neutralGray900,
+              foregroundColor: colorScheme.onSurface,
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
-              side: BorderSide(
-                color: isDark
-                    ? core.AppColors.neutralGray700
-                    : core.AppColors.neutralGray300,
-              ),
+              side: BorderSide(color: colorScheme.outlineVariant),
             ),
             child: const Text(
               'Lihat Detail Pesanan',
@@ -1001,9 +939,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
               'Kembali ke Beranda',
               style: TextStyle(
                 fontSize: 16,
-                color: isDark
-                    ? core.AppColors.neutralGray400
-                    : core.AppColors.neutralGray600,
+                color: colorScheme.onSurfaceVariant,
               ),
             ),
           ),

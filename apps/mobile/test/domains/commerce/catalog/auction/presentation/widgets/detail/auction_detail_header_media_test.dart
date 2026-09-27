@@ -1,9 +1,10 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/domain.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/widgets/detail/auction_detail_header.dart';
 import 'package:labuda/domains/social/content/domain/entities/content.dart';
-import 'package:labuda/shared/widgets/stable_network_image.dart';
+import 'package:labuda/shared/widgets/media_carousel_widget.dart';
 
 Widget _wrap(Auction auction) {
   return MaterialApp(
@@ -39,6 +40,9 @@ Auction _auction({required List<MediaEntity> media}) {
 
 String _resolveImageUrl(ImageProvider<Object> provider) {
   final resolved = provider is ResizeImage ? provider.imageProvider : provider;
+  // The canonical carousel loads through CachedNetworkImage; only legacy
+  // paths produce a raw NetworkImage.
+  if (resolved is CachedNetworkImageProvider) return resolved.url;
   return (resolved as NetworkImage).url;
 }
 
@@ -75,17 +79,29 @@ void main() {
     final pageView = find.byType(PageView);
     expect(pageView, findsOneWidget);
 
+    // Only the current page is built initially; it is the FIRST declared item.
     var images = tester.widgetList<Image>(find.byType(Image)).toList();
     expect(images, hasLength(1));
-    expect(_resolveImageUrl(images.single.image), firstUrl);
+    expect(_resolveImageUrl(images.first.image), firstUrl);
 
-    await tester.drag(pageView, const Offset(-400, 0));
-    await tester.pumpAndSettle();
+    final controller = tester.widget<PageView>(pageView).controller;
+    expect(controller, isNotNull);
 
+    await tester.drag(pageView, const Offset(-900, 0));
+    // Bounded pumps: the carousel's loading shimmer never settles under
+    // fake async.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+
+    // The pager reaches the second declared item.
+    expect(controller!.page, closeTo(1.0, 0.01));
     images = tester.widgetList<Image>(find.byType(Image)).toList();
-    expect(images, hasLength(1));
-    expect(_resolveImageUrl(images.single.image), secondUrl);
-    expect(find.text('Sanke Auction'), findsOneWidget);
+    expect(images, isNotEmpty);
+    final urls = images.map((i) => _resolveImageUrl(i.image)).toList();
+    expect(urls, contains(secondUrl));
+    // The title is NOT part of the media block — both detail channels render
+    // it as the first body item (canonical detail skeleton).
+    expect(find.byType(MediaCarouselWidget), findsOneWidget);
   });
 
   testWidgets('Auction detail header preserves page controller on refresh', (
@@ -124,10 +140,13 @@ void main() {
     final controllerBefore = tester
         .widget<PageView>(find.byType(PageView))
         .controller;
-    expect(find.byType(StableNetworkImage), findsOneWidget);
+    expect(find.byType(MediaCarouselWidget), findsOneWidget);
 
-    await tester.drag(find.byType(PageView), const Offset(-400, 0));
-    await tester.pumpAndSettle();
+    await tester.drag(find.byType(PageView), const Offset(-900, 0));
+    // Bounded pumps: the carousel's loading shimmer never settles under
+    // fake async.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
 
     await tester.pumpWidget(
       _wrap(
@@ -149,15 +168,25 @@ void main() {
         ),
       ),
     );
-    await tester.pumpAndSettle();
+    // Bounded pumps: the carousel's loading shimmer never settles under
+    // fake async.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
 
     final controllerAfter = tester
         .widget<PageView>(find.byType(PageView))
         .controller;
     expect(identical(controllerBefore, controllerAfter), isTrue);
+    // The refresh keeps the pager on the second declared item.
+    expect(controllerAfter?.page, closeTo(1.0, 0.01));
 
+    // Every rendered page picked up the refreshed URLs.
     final images = tester.widgetList<Image>(find.byType(Image)).toList();
-    expect(images, hasLength(1));
-    expect(_resolveImageUrl(images.single.image), secondUrlUpdated);
+    expect(images, isNotEmpty);
+    final urls = images.map((i) => _resolveImageUrl(i.image)).toSet();
+    for (final url in urls) {
+      expect(url, anyOf(firstUrlUpdated, secondUrlUpdated));
+    }
+    expect(urls, contains(secondUrlUpdated));
   });
 }

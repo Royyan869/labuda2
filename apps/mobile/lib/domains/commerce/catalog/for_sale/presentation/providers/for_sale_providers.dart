@@ -8,10 +8,6 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/providers/core_providers.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/data/data.dart';
-import 'package:labuda/domains/user/identity/authentication/authentication.dart';
-import 'package:labuda/domains/user/profile/data/profile_providers.dart'
-    show addressRepositoryProvider;
-import 'package:labuda/domains/user/profile/domain/entities/address_entity.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/domain/domain.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_controller.dart';
 
@@ -51,27 +47,9 @@ final forSaleControllerProvider = Provider<ForSaleController>((ref) {
   return ForSaleController(repository: repository, logger: logger);
 });
 
-/// Resolves the seller's sender (farm) address id for the create request.
-///
-/// The seller-upgrade wizard guarantees a sender address exists; this read
-/// picks the primary one (first as fallback) so CREATE = PUBLISH always
-/// carries the origin address in the same request.
-final senderAddressIdProvider = FutureProvider<String?>((ref) async {
-  final authState = ref.watch(authControllerProvider);
-  if (authState is! AuthStateAuthenticated) return null;
-  final userId = authState.user.id;
-  if (userId.isEmpty) return null;
-
-  final repository = ref.watch(addressRepositoryProvider);
-  final result = await repository.getAddressesByPurpose(
-    userId,
-    AddressPurpose.sender,
-  );
-  final addresses = result.data;
-  if (addresses == null || addresses.isEmpty) return null;
-  final primary = addresses.where((a) => a.isPrimary).firstOrNull;
-  return (primary ?? addresses.first).id;
-});
+// NOTE: `senderAddressIdProvider` (Product shipping origin) moved to
+// catalog/shared/presentation/sender_address_provider.dart — it is shared by
+// BOTH sale channels and must not be owned by the for_sale domain.
 
 // =============================================================================
 // READ-ONLY PROVIDERS (UI Consumption)

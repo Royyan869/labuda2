@@ -2,26 +2,20 @@ part of 'order_widgets_impl.dart';
 
 class OrderPaymentInfoCard extends StatelessWidget {
   final Order order;
-  final bool isDark;
 
-  const OrderPaymentInfoCard({
-    super.key,
-    required this.order,
-    required this.isDark,
-  });
+  const OrderPaymentInfoCard({super.key, required this.order});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDark ? const Color(0xFF333333) : const Color(0xFFE0E0E0),
-        ),
+        border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -31,7 +25,7 @@ class OrderPaymentInfoCard extends StatelessWidget {
               Icon(
                 Icons.payment_outlined,
                 size: 20,
-                color: _getPaymentStatusColor(),
+                color: _getPaymentStatusColor(colorScheme),
               ),
               const SizedBox(width: 8),
               Text(
@@ -41,7 +35,10 @@ class OrderPaymentInfoCard extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              _PaymentStatusBadge(status: order.paymentStatus),
+              _PaymentStatusBadge(
+                status: order.paymentStatus,
+                colorScheme: colorScheme,
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -49,7 +46,6 @@ class OrderPaymentInfoCard extends StatelessWidget {
           _PaymentInfoRow(
             label: 'Metode',
             value: _getPaymentMethodDisplay(order.paymentMethod),
-            isDark: isDark,
           ),
           const SizedBox(height: 8),
           // Total amount
@@ -58,9 +54,8 @@ class OrderPaymentInfoCard extends StatelessWidget {
             value: order.pricing.totalPayableAmount != null
                 ? AppFormatters.formatCurrency(order.pricing.totalPayableAmount!)
                 : '—',
-            isDark: isDark,
             isBold: true,
-            valueColor: core.AppColors.primaryRed,
+            valueColor: colorScheme.primary,
           ),
           // Payment date (if paid)
           if (order.paidAt != null) ...[
@@ -68,7 +63,6 @@ class OrderPaymentInfoCard extends StatelessWidget {
             _PaymentInfoRow(
               label: 'Tanggal Bayar',
               value: AppFormatters.formatDateTime(order.paidAt!),
-              isDark: isDark,
             ),
           ],
         ],
@@ -76,20 +70,20 @@ class OrderPaymentInfoCard extends StatelessWidget {
     );
   }
 
-  Color _getPaymentStatusColor() {
+  Color _getPaymentStatusColor(ColorScheme colorScheme) {
     switch (order.paymentStatus) {
       case PaymentStatus.paid:
         return core.AppColors.statusSuccess;
       case PaymentStatus.pending:
         return core.AppColors.statusWarning;
       case PaymentStatus.processing:
-        return core.AppColors.primaryBlue;
+        return colorScheme.secondary;
       case PaymentStatus.failed:
         return core.AppColors.statusError;
       case PaymentStatus.expired:
-        return Colors.grey;
+        return colorScheme.onSurfaceVariant;
       case PaymentStatus.refunded:
-        return core.AppColors.primaryBlue;
+        return colorScheme.secondary;
     }
   }
 
@@ -103,14 +97,12 @@ class OrderPaymentInfoCard extends StatelessWidget {
 class _PaymentInfoRow extends StatelessWidget {
   final String label;
   final String value;
-  final bool isDark;
   final bool isBold;
   final Color? valueColor;
 
   const _PaymentInfoRow({
     required this.label,
     required this.value,
-    required this.isDark,
     this.isBold = false,
     this.valueColor,
   });
@@ -118,18 +110,21 @@ class _PaymentInfoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
           label,
-          style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey),
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: colorScheme.onSurfaceVariant,
+          ),
         ),
         Text(
           value,
           style: theme.textTheme.bodyMedium?.copyWith(
-            color: valueColor ?? (isDark ? Colors.white : Colors.black87),
+            color: valueColor ?? colorScheme.onSurface,
             fontWeight: isBold ? FontWeight.w700 : FontWeight.w600,
           ),
         ),
@@ -140,8 +135,12 @@ class _PaymentInfoRow extends StatelessWidget {
 
 class _PaymentStatusBadge extends StatelessWidget {
   final PaymentStatus status;
+  final ColorScheme colorScheme;
 
-  const _PaymentStatusBadge({required this.status});
+  const _PaymentStatusBadge({
+    required this.status,
+    required this.colorScheme,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -172,13 +171,13 @@ class _PaymentStatusBadge extends StatelessWidget {
       case PaymentStatus.pending:
         return core.AppColors.statusWarning;
       case PaymentStatus.processing:
-        return core.AppColors.primaryBlue;
+        return colorScheme.secondary;
       case PaymentStatus.failed:
         return core.AppColors.statusError;
       case PaymentStatus.expired:
-        return Colors.grey;
+        return colorScheme.onSurfaceVariant;
       case PaymentStatus.refunded:
-        return core.AppColors.primaryBlue;
+        return colorScheme.secondary;
     }
   }
 

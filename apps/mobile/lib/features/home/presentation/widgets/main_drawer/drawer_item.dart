@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 
 /// Reusable drawer item component
 ///
@@ -24,7 +23,7 @@ class MainDrawerItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return ListTile(
       leading: Icon(
@@ -33,17 +32,15 @@ class MainDrawerItem extends StatelessWidget {
         color:
             iconColor ??
             (isDestructive
-                ? AppColors.statusError
-                : (isDark
-                      ? AppColors.neutralGray300
-                      : AppColors.neutralGray600)),
+                ? scheme.error
+                : scheme.onSurfaceVariant),
       ),
       title: Text(
         title,
         style: TextStyle(
           color: isDestructive
-              ? AppColors.statusError
-              : (isDark ? AppColors.neutralGray200 : AppColors.neutralGray800),
+              ? scheme.error
+              : scheme.onSurface,
           fontSize: 16,
           fontWeight: FontWeight.w500,
         ),
@@ -52,14 +49,14 @@ class MainDrawerItem extends StatelessWidget {
           ? Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: AppColors.error,
+                color: scheme.error,
                 borderRadius: BorderRadius.circular(12),
               ),
               constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
               child: Text(
                 badge! > 99 ? '99+' : badge.toString(),
-                style: const TextStyle(
-                  color: AppColors.neutralWhite,
+                style: TextStyle(
+                  color: scheme.onError,
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
                 ),

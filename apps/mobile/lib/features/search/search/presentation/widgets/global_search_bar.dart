@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/features/search/search/domain/entities/search_result.dart';
 
 /// Global search bar widget for unified search
@@ -81,7 +80,7 @@ class _GlobalSearchBarState extends ConsumerState<GlobalSearchBar> {
   }
 
   Widget _buildSearchField(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return TextField(
       controller: _controller,
@@ -94,21 +93,19 @@ class _GlobalSearchBarState extends ConsumerState<GlobalSearchBar> {
         hintText: 'Cari koleksi, lelang, kontes...',
         prefixIcon: Icon(
           Icons.search,
-          color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray500,
+          color: scheme.onSurfaceVariant,
         ),
         suffixIcon: _controller.text.isNotEmpty
             ? IconButton(
                 icon: Icon(
                   Icons.clear,
-                  color: isDark
-                      ? AppColors.neutralGray400
-                      : AppColors.neutralGray500,
+                  color: scheme.onSurfaceVariant,
                 ),
                 onPressed: _onClear,
               )
             : null,
         filled: true,
-        fillColor: isDark ? AppColors.darkGray700 : AppColors.neutralGray100,
+        fillColor: scheme.surfaceContainerHigh,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
@@ -122,21 +119,19 @@ class _GlobalSearchBarState extends ConsumerState<GlobalSearchBar> {
   }
 
   Widget _buildCategoryChips(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
-          _buildChip(context, null, 'Semua', isDark),
+          _buildChip(context, null, 'Semua'),
           const SizedBox(width: 8),
-          _buildChip(context, SearchResultType.forSale, 'For Sale', isDark),
+          _buildChip(context, SearchResultType.forSale, 'For Sale'),
           const SizedBox(width: 8),
-          _buildChip(context, SearchResultType.auction, 'Lelang', isDark),
+          _buildChip(context, SearchResultType.auction, 'Lelang'),
           const SizedBox(width: 8),
-          _buildChip(context, SearchResultType.user, 'User', isDark),
+          _buildChip(context, SearchResultType.user, 'User'),
           const SizedBox(width: 8),
-          _buildChip(context, SearchResultType.content, 'Content', isDark),
+          _buildChip(context, SearchResultType.content, 'Content'),
         ],
       ),
     );
@@ -146,8 +141,8 @@ class _GlobalSearchBarState extends ConsumerState<GlobalSearchBar> {
     BuildContext context,
     SearchResultType? type,
     String label,
-    bool isDark,
   ) {
+    final scheme = Theme.of(context).colorScheme;
     final isSelected = _selectedType == type;
 
     return FilterChip(
@@ -158,20 +153,18 @@ class _GlobalSearchBarState extends ConsumerState<GlobalSearchBar> {
           _selectedType = selected ? type : null;
         });
       },
-      backgroundColor: isDark
-          ? AppColors.darkGray700
-          : AppColors.neutralGray100,
-      selectedColor: AppColors.primary.withValues(alpha: 0.2),
+      backgroundColor: scheme.surfaceContainerHigh,
+      selectedColor: scheme.primary.withValues(alpha: 0.2),
       labelStyle: TextStyle(
         color: isSelected
-            ? AppColors.primary
-            : (isDark ? AppColors.neutralGray300 : AppColors.neutralGray600),
+            ? scheme.primary
+            : scheme.onSurfaceVariant,
         fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
       ),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
         side: BorderSide(
-          color: isSelected ? AppColors.primary : Colors.transparent,
+          color: isSelected ? scheme.primary : Colors.transparent,
         ),
       ),
     );

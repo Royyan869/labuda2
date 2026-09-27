@@ -1,5 +1,7 @@
 library;
 
+import 'package:labuda/core/core.dart' as core;
+
 // =============================================================================
 // ORDER ACTION HANDLER - Decision V2 Contract
 // =============================================================================
@@ -138,43 +140,53 @@ class OrderActionHandler {
     // Show confirmation dialog before accepting order
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Terima Pesanan'),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(Icons.check_circle_outline, color: Colors.green, size: 48),
-            SizedBox(height: 16),
-            Text(
-              'Anda yakin ingin menerima pesanan ini?',
-              style: TextStyle(fontSize: 16),
+      builder: (dialogContext) {
+        final colorScheme = Theme.of(dialogContext).colorScheme;
+        return AlertDialog(
+          title: const Text('Terima Pesanan'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                Icons.check_circle_outline,
+                color: core.AppColors.statusSuccess,
+                size: 48,
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Anda yakin ingin menerima pesanan ini?',
+                style: TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Dengan menerima pesanan, Anda berkewajiban untuk memproses dan mengirim produk sesuai dengan pesanan.',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Batal'),
             ),
-            SizedBox(height: 8),
-            Text(
-              'Dengan menerima pesanan, Anda berkewajiban untuk memproses dan mengirim produk sesuai dengan pesanan.',
-              style: TextStyle(fontSize: 13, color: Colors.grey),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                onAcceptOrder(order.id, order.sellerId);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: core.AppColors.statusSuccess,
+                foregroundColor: Theme.of(dialogContext).colorScheme.onPrimary,
+              ),
+              child: const Text('Ya, Terima Pesanan'),
             ),
           ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              onAcceptOrder(order.id, order.sellerId);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Ya, Terima Pesanan'),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -188,43 +200,53 @@ class OrderActionHandler {
     // Must show clear confirmation dialog (financial action).
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Terima Barang'),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(Icons.warning_amber_outlined, color: Colors.orange, size: 48),
-            SizedBox(height: 16),
-            Text(
-              'Anda yakin barang sudah diterima dengan baik?',
-              style: TextStyle(fontSize: 16),
+      builder: (dialogContext) {
+        final colorScheme = Theme.of(dialogContext).colorScheme;
+        return AlertDialog(
+          title: const Text('Terima Barang'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                Icons.warning_amber_outlined,
+                color: core.AppColors.statusWarning,
+                size: 48,
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Anda yakin barang sudah diterima dengan baik?',
+                style: TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Dengan menerima barang, pesanan akan selesai dan pembayaran akan diteruskan ke penjual. Tindakan ini tidak dapat dibatalkan.',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Batal'),
             ),
-            SizedBox(height: 8),
-            Text(
-              'Dengan menerima barang, pesanan akan selesai dan pembayaran akan diteruskan ke penjual. Tindakan ini tidak dapat dibatalkan.',
-              style: TextStyle(fontSize: 13, color: Colors.grey),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                onConfirmDelivery(order.id, order.buyerId);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: core.AppColors.statusWarning,
+                foregroundColor: Theme.of(dialogContext).colorScheme.onPrimary,
+              ),
+              child: const Text('Ya, Terima Barang'),
             ),
           ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              onConfirmDelivery(order.id, order.buyerId);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Ya, Terima Barang'),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -316,7 +338,9 @@ class OrderActionHandler {
 
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
+      builder: (context) {
+        final colorScheme = Theme.of(context).colorScheme;
+        return StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           title: const Text('Konfirmasi Pengiriman'),
           content: SingleChildScrollView(
@@ -333,9 +357,9 @@ class OrderActionHandler {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
+                    color: colorScheme.surfaceContainerHigh,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey.shade300),
+                    border: Border.all(color: colorScheme.outlineVariant),
                   ),
                   child: Row(
                     children: [
@@ -458,7 +482,8 @@ class OrderActionHandler {
             ),
           ],
         ),
-      ),
+        );
+      },
     );
   }
 

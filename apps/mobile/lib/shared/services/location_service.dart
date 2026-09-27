@@ -451,18 +451,18 @@ extension AccuracyLevelExtension on AccuracyLevel {
     }
   }
 
-  Color get color {
+  Color resolve(BuildContext context) {
     switch (this) {
       case AccuracyLevel.excellent:
-        return const Color(0xFF22C55E); // Green
+        return AppColors.statusSuccess;
       case AccuracyLevel.good:
-        return const Color(0xFF84CC16); // Light Green
+        return AppColors.primaryGreen;
       case AccuracyLevel.fair:
-        return const Color(0xFFF59E0B); // Orange
+        return AppColors.statusWarning;
       case AccuracyLevel.poor:
-        return const Color(0xFFEF4444); // Red
+        return AppColors.statusError;
       case AccuracyLevel.unknown:
-        return const Color(0xFF6B7280); // Gray
+        return Theme.of(context).colorScheme.onSurfaceVariant;
     }
   }
 }

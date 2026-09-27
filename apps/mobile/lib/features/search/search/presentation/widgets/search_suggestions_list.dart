@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 
 /// Widget to display search suggestions and popular search items
 ///
@@ -26,8 +25,6 @@ class SearchSuggestionsList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     if (isLoading) {
       return const Center(
         child: Padding(
@@ -45,7 +42,6 @@ class SearchSuggestionsList extends StatelessWidget {
             context,
             'Suggestions',
             suggestions,
-            isDark,
             Icons.search,
           ),
         if (popularItems.isNotEmpty) ...[
@@ -54,7 +50,6 @@ class SearchSuggestionsList extends StatelessWidget {
             context,
             popularItemsTitle,
             popularItems,
-            isDark,
             Icons
                 .local_fire_department, // Changed from trending_up to avoid fake "trending" implication
           ),
@@ -67,9 +62,9 @@ class SearchSuggestionsList extends StatelessWidget {
     BuildContext context,
     String title,
     List<String> items,
-    bool isDark,
     IconData icon,
   ) {
+    final scheme = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -77,16 +72,14 @@ class SearchSuggestionsList extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Row(
             children: [
-              Icon(icon, size: 18, color: AppColors.primary),
+              Icon(icon, size: 18, color: scheme.primary),
               const SizedBox(width: 8),
               Text(
                 title,
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: isDark
-                      ? AppColors.neutralGray100
-                      : AppColors.neutralGray900,
+                  color: scheme.onSurface,
                 ),
               ),
             ],
@@ -98,7 +91,7 @@ class SearchSuggestionsList extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: items
-                .map((item) => _buildSuggestionChip(context, item, isDark))
+                .map((item) => _buildSuggestionChip(context, item))
                 .toList(),
           ),
         ),
@@ -109,23 +102,21 @@ class SearchSuggestionsList extends StatelessWidget {
   Widget _buildSuggestionChip(
     BuildContext context,
     String suggestion,
-    bool isDark,
   ) {
+    final scheme = Theme.of(context).colorScheme;
     return FilterChip(
       label: Text(suggestion),
       onSelected: (_) => onSuggestionTap(suggestion),
-      backgroundColor: isDark
-          ? AppColors.darkGray700
-          : AppColors.neutralGray100,
-      selectedColor: AppColors.primary.withValues(alpha: 0.2),
+      backgroundColor: scheme.surfaceContainerHigh,
+      selectedColor: scheme.primary.withValues(alpha: 0.2),
       labelStyle: TextStyle(
-        color: isDark ? AppColors.neutralGray300 : AppColors.neutralGray600,
+        color: scheme.onSurfaceVariant,
         fontSize: 14,
       ),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
         side: BorderSide(
-          color: isDark ? AppColors.darkGray600 : AppColors.neutralGray200,
+          color: scheme.outlineVariant,
         ),
       ),
     );

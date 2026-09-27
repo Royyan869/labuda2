@@ -7,13 +7,11 @@ import 'share_destination_extensions.dart';
 class ShareButtonGrid extends StatelessWidget {
   final List<ShareDestination> destinations;
   final Function(ShareDestination) onTap;
-  final bool isDark;
 
   const ShareButtonGrid({
     super.key,
     required this.destinations,
     required this.onTap,
-    this.isDark = false,
   });
 
   @override
@@ -24,19 +22,16 @@ class ShareButtonGrid extends StatelessWidget {
         spacing: 12,
         runSpacing: 16,
         children: destinations.map((destination) {
-          return _buildButton(destination);
+          return _buildButton(context, destination);
         }).toList(),
       ),
     );
   }
 
-  Widget _buildButton(ShareDestination destination) {
-    final textColor = isDark
-        ? AppColors.neutralGray100
-        : AppColors.neutralGray900;
-    final iconBgColor = isDark
-        ? AppColors.darkGray700
-        : AppColors.neutralGray50;
+  Widget _buildButton(BuildContext context, ShareDestination destination) {
+    final scheme = Theme.of(context).colorScheme;
+    final textColor = scheme.onSurface;
+    final iconBgColor = scheme.surfaceContainerHighest;
     final destinationColor = destination.color;
 
     return SizedBox(
@@ -61,9 +56,7 @@ class ShareButtonGrid extends StatelessWidget {
                 destination.iconData,
                 color:
                     destinationColor ??
-                    (isDark
-                        ? AppColors.neutralGray300
-                        : AppColors.neutralGray700),
+                    scheme.onSurfaceVariant,
                 size: 28,
               ),
             ),

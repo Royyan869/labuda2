@@ -311,19 +311,23 @@ class AuctionDto extends Equatable {
   final String? description;
   final List<String> images;
 
-  /// Typed media block from the detail wire (backend commerce/shared
+  /// Typed media block from the backend read wire (backend commerce/shared
   /// MediaWireItems) — the converged projection of Product.MediaURLs.
-  /// Empty/absent on list payloads; string [images] remains the universal
-  /// fallback so the parser stays shape-agnostic.
+  /// Carried on BOTH payload classes (list + detail) so discovery cards and
+  /// the detail gallery resolve media from the same wire slot as for_sale.
+  /// The string [images] list is the flat universal fallback.
   final List<AuctionMediaItemDto> mediaItems;
 
   // =========================================================================
-  // CANONICAL DETAIL CONTENT (backend Product projection on the detail wire)
+  // CANONICAL PRODUCT CONTENT (backend Product projection — list AND detail)
   // =========================================================================
-  // Present on GET /api/v1/auctions/:id (auctionToDetailResponseWithSeller);
-  // absent/empty on list payloads — tolerated as null/[] so the parser is
-  // shape-agnostic. Parsed here and mapped into the Auction read model so no
-  // canonical Product content is dropped or replaced by synthetic defaults.
+  // Emitted on GET /api/v1/auctions, GET /api/v1/auctions/:id and the write
+  // responses through the shared Product content block
+  // (shared.ProductContentWireKeys). Absence is tolerated as null/[] so the
+  // parser stays shape-agnostic, but a payload that omits it is a contract
+  // violation, not a design variant. Parsed here and mapped into the Auction
+  // read model so no canonical Product content is dropped or replaced by
+  // synthetic defaults.
   final String? variety;
   final int? sizeCm;
   final int? ageMonths;
@@ -333,6 +337,10 @@ class AuctionDto extends Equatable {
   final List<String> certificates;
   final String? preparationTime;
   final String? preparationNote;
+
+  /// Product farm address — canonical Product content, mapped into the
+  /// read model (never left as a permanent null placeholder).
+  final String? farmAddressId;
 
   // Canonical numeric read representation: backend emits int64/bigint JSON
   // integer literals (auctionToResponseWithSeller); int is the single
@@ -421,6 +429,7 @@ class AuctionDto extends Equatable {
     this.certificates = const [],
     this.preparationTime,
     this.preparationNote,
+    this.farmAddressId,
     required this.startPrice,
     required this.bidIncrement,
     this.buyNowPrice,
@@ -494,6 +503,7 @@ class AuctionDto extends Equatable {
           const [],
       preparationTime: json['preparation_time'] as String?,
       preparationNote: json['preparation_note'] as String?,
+      farmAddressId: json['farm_address_id'] as String?,
       startPrice: (json['start_price'] as num).toInt(),
       bidIncrement: (json['bid_increment'] as num).toInt(),
       buyNowPrice: (json['buy_now_price'] as num?)?.toInt(),

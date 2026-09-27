@@ -141,6 +141,9 @@ enum NotificationType {
   auctionEndedNoWinner(
     'auction.ended_no_winner',
   ), // P14: seller — auction closed without bids
+  auctionCancelledSeller(
+    'auction.cancelled.seller',
+  ), // Scope B: seller — auction auto-cancelled (subscription expired)
   auctionBnrSeller('auction.bnr_seller'),
   auctionBnrWinner('auction.bnr_winner'),
 

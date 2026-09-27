@@ -12,12 +12,14 @@ import (
 
 // SCOPE 3 — for_sale status boundary.
 //
-// The raw internal state machine value ("draft", "sold", "withdrawn", …)
+// The raw internal state machine value ("draft", "withdrawn", …)
 // must never cross the public wire as `status`. The public wire vocabulary
-// is Status.PublicLifecycle() — {active, unavailable; draft coarsens
-// defensively to "unavailable"}. The exact internal state crosses the wire
-// ONLY as `seller_status`, and only for the owning seller; every other
-// viewer — including anonymous — reads null there. Internal transition
+// is Status.PublicLifecycle() — {active, sold, unavailable; draft coarsens
+// defensively to "unavailable"}. Honest-labeling decision: `sold` IS public
+// business truth (buyers may see an item was sold); the reason an item was
+// pulled (draft/withdrawn) stays coarsened. The exact internal state crosses
+// the wire ONLY as `seller_status`, and only for the owning seller; every
+// other viewer — including anonymous — reads null there. Internal transition
 // timestamps (sold_at / withdrawn_at) are likewise owner-scoped.
 
 func boundarySellerInfo() sellerdisplay.Info {
@@ -44,7 +46,8 @@ func decodeForSaleBoundary(t *testing.T, resp map[string]interface{}) map[string
 // TestForSalePublicStatusVocabulary_StatusNeverCarriesRawInternalState locks
 // the public `status` vocabulary across all four internal states, for the
 // anonymous viewer. Draft MUST coarsen (defensively) and MUST NOT appear in
-// the emitted value set.
+// the emitted value set; sold is honest public business truth; withdrawn
+// stays coarsened (reason withheld).
 func TestForSalePublicStatusVocabulary_StatusNeverCarriesRawInternalState(t *testing.T) {
 	cases := []struct {
 		internal entity.ForSaleStatus
@@ -52,8 +55,8 @@ func TestForSalePublicStatusVocabulary_StatusNeverCarriesRawInternalState(t *tes
 	}{
 		{entity.ForSaleStatusDraft, "unavailable"}, // conservative defensive mapping — never "draft"
 		{entity.ForSaleStatusActive, "active"},
-		{entity.ForSaleStatusSold, "unavailable"},
-		{entity.ForSaleStatusWithdrawn, "unavailable"},
+		{entity.ForSaleStatusSold, "sold"}, // honest buyer-facing outcome
+		{entity.ForSaleStatusWithdrawn, "unavailable"}, // withdrawal reason stays private
 	}
 
 	for _, tc := range cases {
@@ -96,10 +99,10 @@ func TestForSaleSellerStatusOwnerOnly(t *testing.T) {
 	}
 
 	// Wire-level: owner sees raw state in seller_status while public status
-	// stays coarsened.
+	// stays honest-but-coarsened for sold.
 	resp := decodeForSaleBoundary(t, for_saleToResponseWithSeller(l, boundarySellerInfo(), &sellerID))
-	if got := resp["status"]; got != "unavailable" {
-		t.Errorf("owner public status = %v, want coarsened \"unavailable\"", got)
+	if got := resp["status"]; got != "sold" {
+		t.Errorf("owner public status = %v, want honest \"sold\"", got)
 	}
 	if got := resp["seller_status"]; got != "sold" {
 		t.Errorf("owner seller_status = %v, want \"sold\"", got)

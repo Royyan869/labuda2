@@ -1,7 +1,5 @@
-import 'package:labuda/core/src/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:labuda/core/core.dart';
 
 /// Reusable Text Field dengan styling konsisten sesuai LABUDA design
 ///
@@ -120,19 +118,15 @@ class _AppTextFieldState extends State<AppTextField> {
     // Check if label ends with " *"
     if (labelText.endsWith(' *')) {
       final textWithoutAsterisk = labelText.substring(0, labelText.length - 2);
+      final scheme = Theme.of(context).colorScheme;
       return RichText(
         text: TextSpan(
           text: textWithoutAsterisk,
-          style: TextStyle(
-            color: Theme.of(context).brightness == Brightness.dark
-                ? AppColors.neutralGray300
-                : AppColors.neutralGray700,
-            fontSize: 16,
-          ),
-          children: const [
+          style: TextStyle(color: scheme.onSurface, fontSize: 16),
+          children: [
             TextSpan(
               text: ' *',
-              style: TextStyle(color: AppColors.error),
+              style: TextStyle(color: scheme.error),
             ),
           ],
         ),
@@ -144,7 +138,7 @@ class _AppTextFieldState extends State<AppTextField> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     final customLabel = _buildLabel(context);
 
     return TextFormField(
@@ -163,20 +157,14 @@ class _AppTextFieldState extends State<AppTextField> {
         labelText: customLabel == null ? widget.labelText : null,
         hintText: widget.hintText,
         floatingLabelBehavior: FloatingLabelBehavior.always,
-        hintStyle: TextStyle(
-          color: isDark
-              ? AppColors.neutralGray400.withValues(alpha: 0.6)
-              : AppColors.neutralGray500.withValues(alpha: 0.6),
-        ),
+        hintStyle: TextStyle(color: scheme.onSurfaceVariant),
         alignLabelWithHint: widget.maxLines != null && widget.maxLines! > 1,
         prefixIcon: widget.maxLines != null && widget.maxLines! > 1
             ? null
             : (widget.prefixIcon != null
                   ? Icon(
                       widget.prefixIcon,
-                      color: isDark
-                          ? AppColors.neutralGray400
-                          : AppColors.neutralGray500,
+                      color: scheme.onSurfaceVariant,
                     )
                   : null),
         prefixText: widget.prefixText,
@@ -190,35 +178,29 @@ class _AppTextFieldState extends State<AppTextField> {
                 },
                 icon: Icon(
                   _obscureText ? Icons.visibility : Icons.visibility_off,
-                  color: isDark
-                      ? AppColors.neutralGray400
-                      : AppColors.neutralGray500,
+                  color: scheme.onSurfaceVariant,
                 ),
               )
             : widget.suffixIcon,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: isDark ? AppColors.darkGray600 : AppColors.neutralGray300,
-          ),
+          borderSide: BorderSide(color: scheme.outlineVariant),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: isDark ? AppColors.darkGray600 : AppColors.neutralGray300,
-          ),
+          borderSide: BorderSide(color: scheme.outlineVariant),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.primaryRed, width: 2),
+          borderSide: BorderSide(color: scheme.primary, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.error),
+          borderSide: BorderSide(color: scheme.error),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.error, width: 2),
+          borderSide: BorderSide(color: scheme.error, width: 2),
         ),
       ),
       validator: widget.validator,

@@ -9,11 +9,16 @@ import (
 	"github.com/labuda/backend/internal/pkg/sellerdisplay"
 )
 
+// auctionToDetailResponseWithSeller renders the canonical detail wire:
+// the shared auction serializer (auctionToResponseWithSeller — which owns
+// the Product content block for BOTH list and detail) PLUS the viewer-scoped
+// capability block. The capability block is intentionally detail-only; the
+// content block is NOT detail-only — list payloads carry the identical
+// Product projection (for_sale parity).
 func auctionToDetailResponseWithSeller(
 	a *entity.Auction,
 	seller publiccard.SellerCard,
 	sellerInfo sellerdisplay.Info,
-	mediaURLs []string,
 	product *productEntity.Product,
 	viewerID *uuid.UUID,
 ) map[string]interface{} {
@@ -28,24 +33,6 @@ func auctionToDetailResponseWithSeller(
 			BuyNowPrice:       a.BuyNowPrice,
 		},
 	)
-	if product != nil {
-		resp["title"] = product.Title
-		resp["description"] = product.Description
-		resp["media_urls"] = product.MediaURLs
-		// Typed media block — CONVERGED shared helper (identical shape to
-		// for_sale detail). Product.MediaURLs is the sole authority; the
-		// typed block is a projection of it.
-		resp["media"] = commerceshared.MediaWireItems(product.MediaURLs, a.CreatedAt)
-		resp["variety"] = product.Variety
-		resp["size_cm"] = product.SizeCm
-		resp["age_months"] = product.AgeMonths
-		resp["gender"] = product.Gender
-		resp["breeder"] = product.Breeder
-		resp["bloodline"] = product.Bloodline
-		resp["certificates"] = product.Certificates
-		resp["preparation_time"] = product.PreparationTime
-		resp["preparation_note"] = product.PreparationNote
-	}
 	return resp
 }
 

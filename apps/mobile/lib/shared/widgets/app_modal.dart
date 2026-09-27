@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:labuda/core/core.dart';
 
 /// Reusable Modal Dialog System
 ///
@@ -22,16 +21,14 @@ class AppModal {
     double? height,
     EdgeInsetsGeometry? contentPadding,
   }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return showDialog<T>(
       context: context,
       barrierDismissible: barrierDismissible,
       builder: (BuildContext context) {
         return Dialog(
-          backgroundColor: isDark
-              ? AppColors.darkGray800
-              : AppColors.neutralWhite,
+          backgroundColor: scheme.surfaceContainerHigh,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
@@ -49,9 +46,7 @@ class AppModal {
                 Container(
                   padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
                   decoration: BoxDecoration(
-                    color: isDark
-                        ? AppColors.darkGray700
-                        : AppColors.neutralGray50,
+                    color: scheme.surfaceContainerHighest,
                     borderRadius: const BorderRadius.vertical(
                       top: Radius.circular(16),
                     ),
@@ -64,9 +59,7 @@ class AppModal {
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: isDark
-                                ? AppColors.neutralWhite
-                                : AppColors.neutralGray900,
+                            color: scheme.onSurface,
                           ),
                         ),
                       ),
@@ -74,9 +67,7 @@ class AppModal {
                         onPressed: () => Navigator.of(context).pop(),
                         icon: Icon(
                           Icons.close,
-                          color: isDark
-                              ? AppColors.neutralGray400
-                              : AppColors.neutralGray600,
+                          color: scheme.onSurfaceVariant,
                           size: 18,
                         ),
                         iconSize: 18,
@@ -127,7 +118,7 @@ class AppModal {
     String cameraLabel = 'Camera',
     String galleryLabel = 'Gallery',
   }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return show<ImageSource>(
       context: context,
@@ -140,14 +131,14 @@ class AppModal {
           _buildImageSourceOption(
             icon: Icons.camera_alt_outlined,
             label: cameraLabel,
-            isDark: isDark,
+            scheme: scheme,
             onTap: () => Navigator.of(context).pop(ImageSource.camera),
           ),
           const SizedBox(height: 12),
           _buildImageSourceOption(
             icon: Icons.photo_library_outlined,
             label: galleryLabel,
-            isDark: isDark,
+            scheme: scheme,
             onTap: () => Navigator.of(context).pop(ImageSource.gallery),
           ),
         ],
@@ -165,7 +156,7 @@ class AppModal {
     Color? confirmColor,
     IconData? icon,
   }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return show<bool>(
       context: context,
@@ -174,7 +165,7 @@ class AppModal {
       content: Row(
         children: [
           if (icon != null) ...[
-            Icon(icon, color: confirmColor ?? AppColors.primaryRed, size: 24),
+            Icon(icon, color: confirmColor ?? scheme.primary, size: 24),
             const SizedBox(width: 16),
           ],
           Expanded(
@@ -182,9 +173,7 @@ class AppModal {
               message,
               style: TextStyle(
                 fontSize: 16,
-                color: isDark
-                    ? AppColors.neutralGray200
-                    : AppColors.neutralGray700,
+                color: scheme.onSurface,
                 height: 1.4,
               ),
             ),
@@ -196,18 +185,14 @@ class AppModal {
           onPressed: () => Navigator.of(context).pop(false),
           child: Text(
             cancelLabel,
-            style: TextStyle(
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray600,
-            ),
+            style: TextStyle(color: scheme.onSurfaceVariant),
           ),
         ),
         ElevatedButton(
           onPressed: () => Navigator.of(context).pop(true),
           style: ElevatedButton.styleFrom(
-            backgroundColor: confirmColor ?? AppColors.primaryRed,
-            foregroundColor: AppColors.neutralWhite,
+            backgroundColor: confirmColor ?? scheme.primary,
+            foregroundColor: scheme.onPrimary,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
             ),
@@ -224,7 +209,7 @@ class AppModal {
     String title = 'Loading...',
     String message = 'Please wait...',
   }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return show<T>(
       context: context,
@@ -234,16 +219,14 @@ class AppModal {
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const CircularProgressIndicator(color: AppColors.primaryRed),
+          CircularProgressIndicator(color: scheme.primary),
           const SizedBox(height: 20),
           Text(
             message,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 14,
-              color: isDark
-                  ? AppColors.neutralGray300
-                  : AppColors.neutralGray600,
+              color: scheme.onSurfaceVariant,
             ),
           ),
         ],
@@ -254,7 +237,7 @@ class AppModal {
   static Widget _buildImageSourceOption({
     required IconData icon,
     required String label,
-    required bool isDark,
+    required ColorScheme scheme,
     required VoidCallback onTap,
   }) {
     return Material(
@@ -265,9 +248,7 @@ class AppModal {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           decoration: BoxDecoration(
-            border: Border.all(
-              color: isDark ? AppColors.darkGray600 : AppColors.neutralGray200,
-            ),
+            border: Border.all(color: scheme.outlineVariant),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Row(
@@ -275,10 +256,10 @@ class AppModal {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryRed.withValues(alpha: 0.1),
+                  color: scheme.primary.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(icon, color: AppColors.primaryRed, size: 24),
+                child: Icon(icon, color: scheme.primary, size: 24),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -287,17 +268,13 @@ class AppModal {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
-                    color: isDark
-                        ? AppColors.neutralGray200
-                        : AppColors.neutralGray800,
+                    color: scheme.onSurface,
                   ),
                 ),
               ),
               Icon(
                 Icons.arrow_forward_ios,
-                color: isDark
-                    ? AppColors.neutralGray400
-                    : AppColors.neutralGray500,
+                color: scheme.onSurfaceVariant,
                 size: 16,
               ),
             ],

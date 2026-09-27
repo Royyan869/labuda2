@@ -124,6 +124,7 @@ class _LoginSessionsScreenState extends ConsumerState<LoginSessionsScreen> {
     required bool isDestructive,
   }) async {
     final l10n = AppLocalizations.of(context)!;
+    final scheme = Theme.of(context).colorScheme;
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -139,7 +140,7 @@ class _LoginSessionsScreenState extends ConsumerState<LoginSessionsScreen> {
             child: Text(
               confirmLabel,
               style: TextStyle(
-                color: isDestructive ? AppColors.error : AppColors.primaryRed,
+                color: isDestructive ? scheme.error : scheme.primary,
               ),
             ),
           ),
@@ -152,18 +153,17 @@ class _LoginSessionsScreenState extends ConsumerState<LoginSessionsScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBarCustom(title: l10n.loginSessions),
       body: Stack(
         children: [
-          _buildBody(context, l10n, isDark),
+          _buildBody(context, l10n),
           if (_isMutating)
-            const Positioned.fill(
+            Positioned.fill(
               child: ColoredBox(
-                color: Color(0x55000000),
-                child: Center(child: CircularProgressIndicator()),
+                color: Colors.black.withValues(alpha: 0.35),
+                child: const Center(child: CircularProgressIndicator()),
               ),
             ),
         ],
@@ -171,42 +171,40 @@ class _LoginSessionsScreenState extends ConsumerState<LoginSessionsScreen> {
     );
   }
 
-  Widget _buildBody(BuildContext context, AppLocalizations l10n, bool isDark) {
+  Widget _buildBody(BuildContext context, AppLocalizations l10n) {
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
 
     if (_error != null) {
-      return _buildErrorState(context, l10n, isDark);
+      return _buildErrorState(context, l10n);
     }
 
     if (_sessions.isEmpty) {
-      return _buildEmptyState(l10n, isDark);
+      return _buildEmptyState(context, l10n);
     }
 
-    return _buildSessionList(context, l10n, isDark);
+    return _buildSessionList(context, l10n);
   }
 
   Widget _buildErrorState(
     BuildContext context,
     AppLocalizations l10n,
-    bool isDark,
   ) {
+    final scheme = Theme.of(context).colorScheme;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline, size: 48, color: AppColors.error),
+            Icon(Icons.error_outline, size: 48, color: scheme.error),
             const SizedBox(height: 16),
             Text(
               l10n.failedToLoadSessions,
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: isDark
-                    ? AppColors.neutralGray300
-                    : AppColors.neutralGray700,
+                color: scheme.onSurface,
               ),
             ),
             const SizedBox(height: 24),
@@ -221,7 +219,8 @@ class _LoginSessionsScreenState extends ConsumerState<LoginSessionsScreen> {
     );
   }
 
-  Widget _buildEmptyState(AppLocalizations l10n, bool isDark) {
+  Widget _buildEmptyState(BuildContext context, AppLocalizations l10n) {
+    final scheme = Theme.of(context).colorScheme;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -231,9 +230,7 @@ class _LoginSessionsScreenState extends ConsumerState<LoginSessionsScreen> {
             Icon(
               Icons.devices_outlined,
               size: 64,
-              color: isDark
-                  ? AppColors.neutralGray500
-                  : AppColors.neutralGray400,
+              color: scheme.outline,
             ),
             const SizedBox(height: 16),
             Text(
@@ -241,9 +238,7 @@ class _LoginSessionsScreenState extends ConsumerState<LoginSessionsScreen> {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 16,
-                color: isDark
-                    ? AppColors.neutralGray300
-                    : AppColors.neutralGray700,
+                color: scheme.onSurface,
               ),
             ),
           ],
@@ -255,8 +250,8 @@ class _LoginSessionsScreenState extends ConsumerState<LoginSessionsScreen> {
   Widget _buildSessionList(
     BuildContext context,
     AppLocalizations l10n,
-    bool isDark,
   ) {
+    final scheme = Theme.of(context).colorScheme;
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -264,7 +259,7 @@ class _LoginSessionsScreenState extends ConsumerState<LoginSessionsScreen> {
         Text(
           l10n.manageActiveSessions,
           style: TextStyle(
-            color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray600,
+            color: scheme.onSurfaceVariant,
             fontSize: 13,
           ),
         ),
@@ -274,7 +269,6 @@ class _LoginSessionsScreenState extends ConsumerState<LoginSessionsScreen> {
         ..._sessions.map(
           (session) => _SessionCard(
             session: session,
-            isDark: isDark,
             l10n: l10n,
             onRevoke: () => _confirmRevokeSession(context, session),
           ),
@@ -288,8 +282,8 @@ class _LoginSessionsScreenState extends ConsumerState<LoginSessionsScreen> {
           icon: const Icon(Icons.logout, size: 18),
           label: Text(l10n.signOutAllDevices),
           style: OutlinedButton.styleFrom(
-            foregroundColor: AppColors.error,
-            side: BorderSide(color: AppColors.error.withValues(alpha: 0.5)),
+            foregroundColor: scheme.error,
+            side: BorderSide(color: scheme.error.withValues(alpha: 0.5)),
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
           ),
         ),
@@ -300,13 +294,11 @@ class _LoginSessionsScreenState extends ConsumerState<LoginSessionsScreen> {
 
 class _SessionCard extends StatelessWidget {
   final AuthSessionDto session;
-  final bool isDark;
   final AppLocalizations l10n;
   final VoidCallback onRevoke;
 
   const _SessionCard({
     required this.session,
-    required this.isDark,
     required this.l10n,
     required this.onRevoke,
   });
@@ -325,15 +317,16 @@ class _SessionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final entity = _entity;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray700 : AppColors.neutralWhite,
+        color: scheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isDark ? AppColors.darkGray600 : AppColors.neutralGray200,
+          color: scheme.outlineVariant,
         ),
       ),
       child: Column(
@@ -344,9 +337,7 @@ class _SessionCard extends StatelessWidget {
               Icon(
                 _platformIcon(entity.platform),
                 size: 20,
-                color: isDark
-                    ? AppColors.neutralGray400
-                    : AppColors.neutralGray600,
+                color: scheme.onSurfaceVariant,
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -354,16 +345,14 @@ class _SessionCard extends StatelessWidget {
                   entity.deviceLabel,
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
-                    color: isDark
-                        ? AppColors.neutralGray100
-                        : AppColors.neutralGray900,
+                    color: scheme.onSurface,
                   ),
                 ),
               ),
               TextButton(
                 onPressed: onRevoke,
                 style: TextButton.styleFrom(
-                  foregroundColor: AppColors.error,
+                  foregroundColor: scheme.error,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 8,
                     vertical: 4,
@@ -382,34 +371,30 @@ class _SessionCard extends StatelessWidget {
               'v${entity.appVersion}',
               style: TextStyle(
                 fontSize: 12,
-                color: isDark
-                    ? AppColors.neutralGray500
-                    : AppColors.neutralGray600,
+                color: scheme.onSurfaceVariant,
               ),
             ),
           ],
           const SizedBox(height: 8),
           _buildDateRow(
+            context,
             icon: Icons.access_time,
             label: l10n.lastActive,
             date: entity.lastActivity,
-            isDark: isDark,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildDateRow({
+  Widget _buildDateRow(
+    BuildContext context, {
     required IconData icon,
     required String label,
     required DateTime date,
-    required bool isDark,
   }) {
     final formatted = _formatDateTime(date);
-    final textColor = isDark
-        ? AppColors.neutralGray400
-        : AppColors.neutralGray600;
+    final textColor = Theme.of(context).colorScheme.onSurfaceVariant;
     return Row(
       children: [
         Icon(icon, size: 14, color: textColor),

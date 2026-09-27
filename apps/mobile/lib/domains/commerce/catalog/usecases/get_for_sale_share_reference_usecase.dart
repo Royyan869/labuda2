@@ -3,10 +3,10 @@ import 'package:labuda/domains/commerce/catalog/for_sale/domain/entities/for_sal
 import 'package:labuda/domains/commerce/catalog/for_sale/domain/repositories/for_sale_repository.dart';
 import 'package:labuda/shared/attachment/entities/share_reference.dart';
 
-/// Get Fixed-Price-Sale Share Reference Use Case
+/// Get For Sale Share Reference Use Case
 ///
 /// **DOMAIN:** Commerce → Catalog
-/// **RESPONSIBILITY:** Business logic for fetching fixed-price-sale references
+/// **RESPONSIBILITY:** Business logic for fetching for-sale share references
 /// **BOUNDARY:** Enforces availability rules before returning reference
 ///
 /// **RULES:**

@@ -80,8 +80,8 @@ function StatCard({ label, value, icon: Icon, color }: {
             <Icon className="h-5 w-5 text-white" />
           </div>
           <div>
-            <p className="text-2xl font-bold text-gray-900">{value}</p>
-            <p className="text-xs text-gray-500">{label}</p>
+            <p className="text-2xl font-bold text-[hsl(var(--foreground))]">{value}</p>
+            <p className="text-xs text-[hsl(var(--muted-foreground))]">{label}</p>
           </div>
         </div>
       </CardContent>
@@ -142,8 +142,8 @@ export function AlertsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">System Alerts</h1>
-          <p className="text-gray-600 mt-1">Monitor and manage platform alerts</p>
+          <h1 className="text-3xl font-bold text-[hsl(var(--foreground))]">System Alerts</h1>
+          <p className="text-[hsl(var(--muted-foreground))] mt-1">Monitor and manage platform alerts</p>
         </div>
         <Button variant="ghost" size="sm" onClick={handleRefresh} disabled={loading}>
           <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
@@ -154,10 +154,10 @@ export function AlertsPage() {
       {/* Stats Cards */}
       {stats && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard label="Active" value={stats.active} icon={ShieldAlert} color="bg-red-500" />
-          <StatCard label="Acknowledged" value={stats.acknowledged} icon={Eye} color="bg-amber-500" />
-          <StatCard label="Resolved" value={stats.resolved} icon={CheckCircle} color="bg-green-500" />
-          <StatCard label="Total" value={stats.total} icon={Activity} color="bg-blue-500" />
+          <StatCard label="Active" value={stats.active} icon={ShieldAlert} color="bg-destructive" />
+          <StatCard label="Acknowledged" value={stats.acknowledged} icon={Eye} color="bg-warning" />
+          <StatCard label="Resolved" value={stats.resolved} icon={CheckCircle} color="bg-success" />
+          <StatCard label="Total" value={stats.total} icon={Activity} color="bg-info" />
         </div>
       )}
 
@@ -166,9 +166,9 @@ export function AlertsPage() {
         <CardContent className="p-4">
           <div className="flex flex-wrap items-end gap-4">
             <div>
-              <label className="text-xs font-medium text-gray-600 block mb-1">Status</label>
+              <label className="text-xs font-medium text-[hsl(var(--muted-foreground))] block mb-1">Status</label>
               <select
-                className="border border-gray-300 rounded-md px-3 py-1.5 text-sm"
+                className="border border-[hsl(var(--border))] rounded-md px-3 py-1.5 text-sm"
                 value={statusFilter}
                 onChange={(e) => { setStatusFilter(e.target.value as AlertStatus | ''); setPage(1) }}
               >
@@ -181,9 +181,9 @@ export function AlertsPage() {
               </select>
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-600 block mb-1">Severity</label>
+              <label className="text-xs font-medium text-[hsl(var(--muted-foreground))] block mb-1">Severity</label>
               <select
-                className="border border-gray-300 rounded-md px-3 py-1.5 text-sm"
+                className="border border-[hsl(var(--border))] rounded-md px-3 py-1.5 text-sm"
                 value={severityFilter}
                 onChange={(e) => { setSeverityFilter(e.target.value as AlertSeverity | ''); setPage(1) }}
               >
@@ -197,9 +197,9 @@ export function AlertsPage() {
               </select>
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-600 block mb-1">Type</label>
+              <label className="text-xs font-medium text-[hsl(var(--muted-foreground))] block mb-1">Type</label>
               <select
-                className="border border-gray-300 rounded-md px-3 py-1.5 text-sm"
+                className="border border-[hsl(var(--border))] rounded-md px-3 py-1.5 text-sm"
                 value={typeFilter}
                 onChange={(e) => { setTypeFilter(e.target.value as AlertType | ''); setPage(1) }}
               >
@@ -210,19 +210,19 @@ export function AlertsPage() {
               </select>
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-600 block mb-1">From</label>
+              <label className="text-xs font-medium text-[hsl(var(--muted-foreground))] block mb-1">From</label>
               <input
                 type="date"
-                className="border border-gray-300 rounded-md px-3 py-1.5 text-sm"
+                className="border border-[hsl(var(--border))] rounded-md px-3 py-1.5 text-sm"
                 value={dateFrom}
                 onChange={(e) => { setDateFrom(e.target.value); setPage(1) }}
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-600 block mb-1">To</label>
+              <label className="text-xs font-medium text-[hsl(var(--muted-foreground))] block mb-1">To</label>
               <input
                 type="date"
-                className="border border-gray-300 rounded-md px-3 py-1.5 text-sm"
+                className="border border-[hsl(var(--border))] rounded-md px-3 py-1.5 text-sm"
                 value={dateTo}
                 onChange={(e) => { setDateTo(e.target.value); setPage(1) }}
               />
@@ -232,7 +232,7 @@ export function AlertsPage() {
                 Clear filters
               </Button>
             )}
-            <div className="ml-auto text-sm text-gray-500 self-end pb-1.5">
+            <div className="ml-auto text-sm text-[hsl(var(--muted-foreground))] self-end pb-1.5">
               {count} alert{count !== 1 ? 's' : ''}
             </div>
           </div>
@@ -267,7 +267,7 @@ export function AlertsPage() {
             <CardTitle>Alerts</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="divide-y divide-gray-200">
+            <div className="divide-y divide-[hsl(var(--border))]">
               {alerts.map((alert) => (
                 <AlertRow
                   key={alert.id}
@@ -324,16 +324,16 @@ function AlertRow({ alert, onAction, actionLoading }: {
             <Badge variant={statusBadgeVariant[alert.status]}>
               {alertStatusLabels[alert.status]}
             </Badge>
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-[hsl(var(--muted-foreground))]">
               {alertTypeLabels[alert.alert_type] ?? alert.alert_type}
             </span>
           </div>
 
           {/* Message */}
-          <p className="text-sm text-gray-900 font-medium">{alert.message}</p>
+          <p className="text-sm text-[hsl(var(--foreground))] font-medium">{alert.message}</p>
 
           {/* Meta row: created_at, entity, group_key */}
-          <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500">
+          <div className="flex flex-wrap items-center gap-3 text-xs text-[hsl(var(--muted-foreground))]">
             <span title={alert.created_at}>
               Created: {new Date(alert.created_at).toLocaleString()}
             </span>
@@ -342,13 +342,13 @@ function AlertRow({ alert, onAction, actionLoading }: {
               return (
                 <span className="flex items-center gap-1">
                   {alert.entity_type}:
-                  <code className="font-mono bg-gray-100 px-1 rounded text-gray-700">
+                  <code className="font-mono bg-[hsl(var(--surface-muted))] px-1 rounded text-[hsl(var(--foreground))]">
                     {alert.entity_id.slice(0, 8)}…
                   </code>
                   <button
                     onClick={() => copyToClipboard(alert.entity_id)}
                     title={`Copy ${alert.entity_type} ID: ${alert.entity_id}`}
-                    className="text-gray-400 hover:text-gray-600"
+                    className="text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--muted-foreground))]"
                   >
                     <Copy className="h-3 w-3" />
                   </button>
@@ -356,7 +356,7 @@ function AlertRow({ alert, onAction, actionLoading }: {
                     <button
                       onClick={() => navigate(path)}
                       title={`Navigate to ${alert.entity_type}${alert.entity_type === 'dispute' ? '' : ' list (copy ID to filter)'}`}
-                      className="text-blue-500 hover:text-blue-700"
+                      className="text-[hsl(var(--info))] hover:text-[hsl(var(--info))]"
                     >
                       <ExternalLink className="h-3 w-3" />
                     </button>
@@ -371,11 +371,11 @@ function AlertRow({ alert, onAction, actionLoading }: {
 
           {/* Resolution info */}
           {isTerminal && alert.resolved_at && (
-            <div className="text-xs text-gray-500">
+            <div className="text-xs text-[hsl(var(--muted-foreground))]">
               {alert.status === 'resolved' ? 'Resolved' : 'Closed'}:{' '}
               {new Date(alert.resolved_at).toLocaleString()}
               {alert.resolved_by && (
-                <span className="ml-2 font-mono bg-gray-100 px-1 rounded">
+                <span className="ml-2 font-mono bg-[hsl(var(--surface-muted))] px-1 rounded">
                   by {alert.resolved_by.slice(0, 8)}…
                 </span>
               )}
@@ -387,7 +387,7 @@ function AlertRow({ alert, onAction, actionLoading }: {
             <div>
               <button
                 onClick={() => setMetaExpanded((v) => !v)}
-                className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
+                className="flex items-center gap-1 text-xs text-[hsl(var(--info))] hover:text-[hsl(var(--info))]"
               >
                 {metaExpanded
                   ? <ChevronDown className="h-3 w-3" />
@@ -396,7 +396,7 @@ function AlertRow({ alert, onAction, actionLoading }: {
                 {metaExpanded ? 'Hide' : 'Show'} metadata
               </button>
               {metaExpanded && (
-                <pre className="mt-2 text-xs bg-gray-50 border border-gray-200 rounded p-2 overflow-auto max-h-48 text-gray-700">
+                <pre className="mt-2 text-xs bg-[hsl(var(--surface-muted))] border border-[hsl(var(--border))] rounded p-2 overflow-auto max-h-48 text-[hsl(var(--foreground))]">
                   {JSON.stringify(alert.metadata, null, 2)}
                 </pre>
               )}

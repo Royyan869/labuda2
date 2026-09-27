@@ -310,7 +310,7 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     final availablePurposes = _getAvailablePurposes();
 
     return DraggableScrollableSheet(
@@ -320,7 +320,7 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
       expand: false,
       builder: (context, scrollController) => Container(
         decoration: BoxDecoration(
-          color: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
+          color: scheme.onSurfaceVariant,
           borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(20),
             topRight: Radius.circular(20),
@@ -332,7 +332,7 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: isDark ? AppColors.darkGray700 : AppColors.neutralGray50,
+                color: scheme.onSurfaceVariant,
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(20),
                   topRight: Radius.circular(20),
@@ -344,7 +344,7 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
                     widget.addressToEdit != null
                         ? Icons.edit
                         : Icons.add_location,
-                    color: AppColors.primaryRed,
+                    color: scheme.primary,
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -355,9 +355,7 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: isDark
-                            ? AppColors.neutralWhite
-                            : AppColors.neutralGray900,
+                        color: scheme.onSurfaceVariant,
                       ),
                     ),
                   ),
@@ -385,7 +383,7 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
                   children: [
                     // Purpose - show locked indicator if forcedPurpose is set
                     if (widget.forcedPurpose != null)
-                      _buildLockedPurposeIndicator(isDark)
+                      _buildLockedPurposeIndicator(scheme)
                     else
                       DropdownButtonFormField<AddressPurpose>(
                         initialValue:
@@ -422,14 +420,14 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
 
                     // Nickname field (only for shipping addresses)
                     if (_selectedPurpose == AddressPurpose.shipping) ...[
-                      _buildNicknameDropdown(isDark),
+                      _buildNicknameDropdown(scheme),
                       const SizedBox(height: 16),
                     ],
 
                     // Recipient/Sender Name
                     if (_isNameLocked)
                       // Locked display for seller business name
-                      _buildLockedNameField(isDark)
+                      _buildLockedNameField(scheme)
                     else
                       AppTextField(
                         controller: _recipientNameController,
@@ -554,7 +552,7 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
                     const SizedBox(height: 12),
 
                     // Map Picker Button
-                    _buildMapPickerButton(isDark),
+                    _buildMapPickerButton(scheme),
                     const SizedBox(height: 16),
 
                     // Postal Code
@@ -587,30 +585,28 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
               child: Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: isDark
-                      ? AppColors.darkGray700
-                      : AppColors.neutralGray50,
+                  color: scheme.onSurfaceVariant,
                 ),
                 child: SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _handleSave,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryRed,
-                      foregroundColor: Colors.white,
+                      backgroundColor: scheme.primary,
+                      foregroundColor: scheme.onPrimary,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                     child: _isLoading
-                        ? const SizedBox(
-                            height: 20,
+? SizedBox(
+                             height: 20,
                             width: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
                               valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.white,
+                                scheme.onPrimary,
                               ),
                             ),
                           )
@@ -643,17 +639,17 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
   }
 
   /// Build locked purpose indicator when forcedPurpose is set
-  Widget _buildLockedPurposeIndicator(bool isDark) {
+  Widget _buildLockedPurposeIndicator(ColorScheme scheme) {
     final purpose = widget.forcedPurpose!;
     final isShipping = purpose == AddressPurpose.shipping;
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray700 : AppColors.neutralGray50,
+        color: scheme.onSurfaceVariant,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isDark ? AppColors.darkGray600 : AppColors.neutralGray200,
+          color: scheme.onSurfaceVariant,
         ),
       ),
       child: Row(
@@ -663,7 +659,7 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
                 ? Icons.local_shipping_outlined
                 : Icons.storefront_outlined,
             size: 20,
-            color: AppColors.primaryRed,
+            color: scheme.primary,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -677,9 +673,7 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: isDark
-                        ? AppColors.neutralGray200
-                        : AppColors.neutralGray900,
+                    color: scheme.onSurfaceVariant,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -689,9 +683,7 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
                       : 'Shipping origin address',
                   style: TextStyle(
                     fontSize: 12,
-                    color: isDark
-                        ? AppColors.neutralGray400
-                        : AppColors.neutralGray600,
+                    color: scheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -703,7 +695,7 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
   }
 
   /// Build nickname dropdown for shipping addresses
-  Widget _buildNicknameDropdown(bool isDark) {
+  Widget _buildNicknameDropdown(ColorScheme scheme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -742,18 +734,14 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
   }
 
   /// Build locked name field for seller - prominent display (not faded like hint)
-  Widget _buildLockedNameField(bool isDark) {
+  Widget _buildLockedNameField(ColorScheme scheme) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
       decoration: BoxDecoration(
-        color: isDark
-            ? AppColors.primaryRed.withValues(alpha: 0.1)
-            : AppColors.primaryRed.withValues(alpha: 0.05),
+        color: scheme.onSurfaceVariant.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isDark
-              ? AppColors.primaryRed.withValues(alpha: 0.3)
-              : AppColors.primaryRed.withValues(alpha: 0.2),
+          color: scheme.onSurfaceVariant.withValues(alpha: 0.2),
         ),
       ),
       child: Row(
@@ -761,15 +749,13 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: isDark
-                  ? AppColors.primaryRed.withValues(alpha: 0.2)
-                  : AppColors.primaryRed.withValues(alpha: 0.1),
+              color: scheme.onSurfaceVariant.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
               Icons.storefront,
               size: 20,
-              color: AppColors.primaryRed,
+              color: scheme.primary,
             ),
           ),
           const SizedBox(width: 12),
@@ -782,9 +768,7 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
-                    color: isDark
-                        ? AppColors.neutralGray400
-                        : AppColors.neutralGray600,
+                    color: scheme.onSurfaceVariant,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -795,9 +779,7 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
-                    color: isDark
-                        ? AppColors.neutralWhite
-                        : AppColors.neutralGray900,
+                    color: scheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -807,7 +789,7 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: isDark ? AppColors.darkGray600 : AppColors.neutralGray200,
+              color: scheme.onSurfaceVariant,
               borderRadius: BorderRadius.circular(6),
             ),
             child: Row(
@@ -816,9 +798,7 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
                 Icon(
                   Icons.lock_outline,
                   size: 12,
-                  color: isDark
-                      ? AppColors.neutralGray400
-                      : AppColors.neutralGray600,
+                  color: scheme.onSurfaceVariant,
                 ),
                 const SizedBox(width: 4),
                 Text(
@@ -826,9 +806,7 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w500,
-                    color: isDark
-                        ? AppColors.neutralGray400
-                        : AppColors.neutralGray600,
+                    color: scheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -840,7 +818,7 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
   }
 
   /// Build map picker button with coordinate indicator
-  Widget _buildMapPickerButton(bool isDark) {
+  Widget _buildMapPickerButton(ColorScheme scheme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -850,14 +828,12 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
             decoration: BoxDecoration(
-              color: isDark ? AppColors.darkGray700 : AppColors.neutralGray50,
+              color: scheme.onSurfaceVariant,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: hasCoordinates
                     ? AppColors.success
-                    : (isDark
-                          ? AppColors.darkGray600
-                          : AppColors.neutralGray300),
+                    : (scheme.onSurfaceVariant),
                 width: hasCoordinates ? 2 : 1,
               ),
             ),
@@ -868,9 +844,7 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
                   size: 20,
                   color: hasCoordinates
                       ? AppColors.success
-                      : (isDark
-                            ? AppColors.neutralGray400
-                            : AppColors.neutralGray600),
+                      : (scheme.onSurfaceVariant),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -886,9 +860,7 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
                           fontWeight: FontWeight.w500,
                           color: hasCoordinates
                               ? AppColors.success
-                              : (isDark
-                                    ? AppColors.neutralGray200
-                                    : AppColors.neutralGray900),
+                              : (scheme.onSurfaceVariant),
                         ),
                       ),
                       if (hasCoordinates)
@@ -897,9 +869,7 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
                           style: TextStyle(
                             fontSize: 11,
                             fontFamily: 'monospace',
-                            color: isDark
-                                ? AppColors.neutralGray400
-                                : AppColors.neutralGray600,
+                            color: scheme.onSurfaceVariant,
                           ),
                         ),
                     ],
@@ -908,9 +878,7 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
                 Icon(
                   Icons.chevron_right,
                   size: 20,
-                  color: isDark
-                      ? AppColors.neutralGray400
-                      : AppColors.neutralGray600,
+                  color: scheme.onSurfaceVariant,
                 ),
               ],
             ),
@@ -921,7 +889,7 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
           'Pinpoint location to facilitate delivery',
           style: TextStyle(
             fontSize: 11,
-            color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray500,
+            color: scheme.onSurfaceVariant,
           ),
         ),
       ],

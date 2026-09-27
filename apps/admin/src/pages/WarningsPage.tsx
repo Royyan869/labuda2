@@ -48,7 +48,7 @@ export function WarningsPage() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
-          <p className="mt-4 text-gray-600">Loading warnings...</p>
+          <p className="mt-4 text-muted-foreground">Loading warnings...</p>
         </div>
       </div>
     )
@@ -58,12 +58,12 @@ export function WarningsPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">User Warnings</h1>
-          <p className="text-gray-600 mt-1">Manage user warnings and policy violations</p>
+          <h1 className="text-3xl font-bold text-foreground">User Warnings</h1>
+          <p className="text-muted-foreground mt-1">Manage user warnings and policy violations</p>
         </div>
         <Card>
           <CardContent className="p-6">
-            <div className="text-center text-red-600">
+            <div className="text-center text-destructive">
               <p>Error loading warnings: {error.message}</p>
             </div>
           </CardContent>
@@ -78,8 +78,8 @@ export function WarningsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">User Warnings</h1>
-        <p className="text-gray-600 mt-1">Manage user warnings and policy violations</p>
+        <h1 className="text-3xl font-bold text-foreground">User Warnings</h1>
+        <p className="text-muted-foreground mt-1">Manage user warnings and policy violations</p>
       </div>
 
       {/* Stats Card */}
@@ -87,12 +87,12 @@ export function WarningsPage() {
         <CardContent className="pt-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Total Warnings</p>
+              <p className="text-sm font-medium text-muted-foreground">Total Warnings</p>
               <p className="text-3xl font-bold text-primary mt-1">{count}</p>
-              <p className="text-xs text-gray-500 mt-1">{activeCount} currently active</p>
+              <p className="text-xs text-muted-foreground mt-1">{activeCount} currently active</p>
             </div>
-            <div className="p-4 rounded-lg bg-orange-100">
-              <AlertTriangle className="h-8 w-8 text-orange-600" />
+            <div className="p-4 rounded-lg bg-warning-bg">
+              <AlertTriangle className="h-8 w-8 text-warning" />
             </div>
           </div>
         </CardContent>
@@ -102,15 +102,15 @@ export function WarningsPage() {
       <Card>
         <CardContent className="pt-6">
           <div className="flex items-center gap-4">
-            <Filter className="h-5 w-5 text-gray-500" />
-            <label htmlFor="active-filter" className="text-sm font-medium text-gray-700">
+            <Filter className="h-5 w-5 text-muted-foreground" />
+            <label htmlFor="active-filter" className="text-sm font-medium text-foreground">
               Filter:
             </label>
             <select
               id="active-filter"
               value={activeFilter === null ? 'null' : activeFilter.toString()}
               onChange={(e) => setActiveFilter(e.target.value === 'null' ? null : e.target.value === 'true')}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             >
               {ACTIVE_FILTERS.map((filter) => (
                 <option key={filter.value?.toString() ?? 'null'} value={filter.value?.toString() ?? 'null'}>
@@ -130,14 +130,14 @@ export function WarningsPage() {
         <CardContent>
           {warnings.length === 0 ? (
             <div className="text-center py-12">
-              <AlertTriangle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Warnings Found</h3>
-              <p className="text-gray-600">
+              <AlertTriangle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-foreground mb-2">No Warnings Found</h3>
+              <p className="text-muted-foreground">
                 {activeFilter === true ? 'No active warnings.' : 'No warnings found.'}
               </p>
             </div>
           ) : (
-            <div className="border border-gray-200 rounded-lg overflow-hidden">
+            <div className="border border-border rounded-lg overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -175,11 +175,11 @@ export function WarningsPage() {
                           {warning.is_active ? 'Active' : 'Inactive'}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-sm text-gray-600">
+                      <TableCell className="text-sm text-muted-foreground">
                         {formatDate(warning.created_at)}
                       </TableCell>
-                      <TableCell className="text-sm text-gray-600">
-                        {warning.expires_at ? formatDate(warning.expires_at) : <span className="text-gray-400">Never</span>}
+                      <TableCell className="text-sm text-muted-foreground">
+                        {warning.expires_at ? formatDate(warning.expires_at) : <span className="text-muted-foreground">Never</span>}
                       </TableCell>
                       <TableCell className="text-right">
                         {warning.is_active && (
@@ -188,7 +188,7 @@ export function WarningsPage() {
                             variant="ghost"
                             onClick={() => handleRevoke(warning.id)}
                             disabled={revokingId === warning.id}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            className="text-destructive hover:text-destructive hover:bg-destructive-bg"
                           >
                             {revokingId === warning.id ? (
                               'Revoking...'

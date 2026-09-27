@@ -11,7 +11,12 @@ import 'package:labuda/shared/src/providers/upload_progress_provider.dart';
 /// Utility class untuk upload task operations
 class UploadTaskUtils {
   /// Get task icon berdasarkan type dan status
-  static Widget buildTaskIcon(UploadTaskType type, UploadTaskStatus status) {
+  static Widget buildTaskIcon(
+    BuildContext context,
+    UploadTaskType type,
+    UploadTaskStatus status,
+  ) {
+    final scheme = Theme.of(context).colorScheme;
     IconData iconData;
     Color iconColor;
 
@@ -44,7 +49,7 @@ class UploadTaskUtils {
         iconColor = AppColors.primaryBlue;
         break;
       default:
-        iconColor = AppColors.neutralGray500;
+        iconColor = scheme.onSurfaceVariant;
     }
 
     return Icon(iconData, size: 20, color: iconColor);

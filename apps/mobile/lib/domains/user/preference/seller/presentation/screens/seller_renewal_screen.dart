@@ -8,6 +8,8 @@ import 'package:labuda/core/config/seller_upgrade_config_provider.dart' as confi
 import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/finance/transaction/payment/domain/entities/payment.dart'
     show PaymentMethodOption;
+import 'package:labuda/domains/finance/transaction/payment/presentation/providers/payment_providers.dart'
+    show paymentRemoteDatasourceProvider;
 import 'package:labuda/domains/finance/transaction/payment/presentation/widgets/payment_method_picker_sheet.dart';
 import 'package:labuda/domains/user/preference/seller/data/dto/seller_dto.dart';
 import 'package:labuda/domains/user/preference/seller/data/seller_providers.dart'
@@ -163,10 +165,13 @@ class _SellerRenewalScreenState extends ConsumerState<SellerRenewalScreen> {
         AppSnackBar.showError(context, 'Gagal mendapatkan URL pembayaran');
         return;
       }
+      // PAYMENT_SYNC_ON_DEMAND: thread the canonical payment id into the
+      // awaiting flow so every status check actively syncs gateway truth.
+      final paymentId = data['payment_id']?.toString();
       if (!mounted) return;
       await context.push('/payment-webview?url=${Uri.encodeComponent(url)}');
       if (!mounted) return;
-      await _showPending(epoch, uid, baseline);
+      await _showPending(epoch, uid, baseline, paymentId);
     } on ApiException catch (e) {
       if (mounted && Navigator.of(context).canPop()) Navigator.of(context).pop();
       if (!mounted) return;
@@ -180,7 +185,19 @@ class _SellerRenewalScreenState extends ConsumerState<SellerRenewalScreen> {
     }
   }
 
-  Future<void> _showPending(int epoch, String uid, SellerSubscription? baseline) async {
+  /// PAYMENT_SYNC_ON_DEMAND: best-effort backend sync for the tracked payment
+  /// (POST /payments/:id/sync). Failures are swallowed — every caller re-reads
+  /// the authoritative state afterwards.
+  Future<void> _syncPayment(String? paymentId) async {
+    if (paymentId == null || paymentId.isEmpty) return;
+    try {
+      await ref.read(paymentRemoteDatasourceProvider).syncPayment(paymentId);
+    } catch (_) {
+      // Best-effort: polling loop / manual check re-read truth afterwards.
+    }
+  }
+
+  Future<void> _showPending(int epoch, String uid, SellerSubscription? baseline, String? paymentId) async {
     // COPY-AUTHORITY: "Aktivasi" wording is only correct when the seller has
     // NEVER had an interval (baseline null — GET /seller/subscription 404).
     // Expired-interval renewal IS still a renewal ("Perpanjangan"), and early
@@ -203,7 +220,7 @@ class _SellerRenewalScreenState extends ConsumerState<SellerRenewalScreen> {
       } else {
         // Manual re-entry: check backend truth FIRST ("Cek status" must
         // check, not reopen the polling dialog), then offer to poll again.
-        final confirmed = await _checkPaymentConfirmed(epoch, uid, baseline);
+        final confirmed = await _checkPaymentConfirmed(epoch, uid, baseline, paymentId);
         if (successHandled || !mounted || !_isCurrent(epoch, uid)) return;
         if (confirmed) {
           successHandled = true;
@@ -248,6 +265,7 @@ class _SellerRenewalScreenState extends ConsumerState<SellerRenewalScreen> {
           epoch: epoch,
           uid: uid,
           baseline: baseline,
+          paymentId: paymentId,
           isCurrent: () => _isCurrent(epoch, uid),
           onSuccess: () async {
             successHandled = true;
@@ -275,7 +293,11 @@ class _SellerRenewalScreenState extends ConsumerState<SellerRenewalScreen> {
     int epoch,
     String uid,
     SellerSubscription? baseline,
+    String? paymentId,
   ) async {
+    // PAYMENT_SYNC_ON_DEMAND: "Cek status" must CHECK — sync the gateway
+    // truth for the tracked payment first, then read the resulting snapshot.
+    await _syncPayment(paymentId);
     await ref.read(authControllerProvider.notifier).forceRefreshAuthState();
     if (!mounted || !_isCurrent(epoch, uid)) return false;
     final s = ref.read(authControllerProvider);
@@ -371,15 +393,15 @@ class _SellerRenewalScreenState extends ConsumerState<SellerRenewalScreen> {
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('Seller Payment Summary', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? AppColors.neutralGray200 : AppColors.neutralGray900)),
             const SizedBox(height: 16),
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('Yearly subscription', style: TextStyle(fontSize: 14, color: isDark ? AppColors.neutralGray300 : AppColors.neutralGray700)), Text('Rp ${AppFormatters.formatCurrency(principal)}', style: const TextStyle(fontWeight: FontWeight.w600))]),
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('Yearly subscription', style: TextStyle(fontSize: 14, color: isDark ? AppColors.neutralGray300 : AppColors.neutralGray700)), Text(AppFormatters.formatCurrency(principal), style: const TextStyle(fontWeight: FontWeight.w600))]),
             const SizedBox(height: 12),
             _buildMethodSelector(isDark),
             if (sel != null) ...[
               const SizedBox(height: 12),
-              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('Payment method fee', style: TextStyle(fontSize: 14, color: isDark ? AppColors.neutralGray300 : AppColors.neutralGray700)), Text('Rp ${AppFormatters.formatCurrency(fee)}')]),
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('Payment method fee', style: TextStyle(fontSize: 14, color: isDark ? AppColors.neutralGray300 : AppColors.neutralGray700)), Text(AppFormatters.formatCurrency(fee))]),
             ],
             const Divider(height: 24),
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('Total', style: const TextStyle(fontWeight: FontWeight.bold)), Text(sel == null ? 'Belum dipilih' : 'Rp ${AppFormatters.formatCurrency(sel.grossAmount.toDouble())}', style: const TextStyle(fontWeight: FontWeight.bold))]),
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('Total', style: const TextStyle(fontWeight: FontWeight.bold)), Text(sel == null ? 'Belum dipilih' : AppFormatters.formatCurrency(sel.grossAmount.toDouble()), style: const TextStyle(fontWeight: FontWeight.bold))]),
           ]),
         ),
         const SizedBox(height: 24),
@@ -414,9 +436,10 @@ class _RenewalPendingDialog extends ConsumerStatefulWidget {
   final int epoch;
   final String uid;
   final SellerSubscription? baseline;
+  final String? paymentId;
   final bool Function() isCurrent;
   final Future<void> Function() onSuccess;
-  const _RenewalPendingDialog({required this.epoch, required this.uid, required this.baseline, required this.isCurrent, required this.onSuccess});
+  const _RenewalPendingDialog({required this.epoch, required this.uid, required this.baseline, required this.paymentId, required this.isCurrent, required this.onSuccess});
   @override
   ConsumerState<_RenewalPendingDialog> createState() => _RenewalPendingDialogState();
 }
@@ -458,6 +481,10 @@ class _RenewalPendingDialogState extends ConsumerState<_RenewalPendingDialog>
       if (_attempts >= 20) { t.cancel(); setState(() => _timedOut = true); return; }
       if (!widget.isCurrent()) { t.cancel(); if (mounted && Navigator.of(context).canPop()) Navigator.of(context).pop(); return; }
       _attempts++;
+      // PAYMENT_SYNC_ON_DEMAND: actively sync gateway truth for THIS payment
+      // before re-reading the auth snapshot (webhook cannot reach a non-public
+      // backend; the discovery worker enforces an inquiry eligibility age).
+      await _syncPaymentTracked();
       await ref.read(authControllerProvider.notifier).forceRefreshAuthState();
       if (!mounted) { t.cancel(); return; }
       if (!widget.isCurrent()) { t.cancel(); if (mounted && Navigator.of(context).canPop()) Navigator.of(context).pop(); return; }
@@ -487,6 +514,17 @@ class _RenewalPendingDialogState extends ConsumerState<_RenewalPendingDialog>
       }
     });
   }
+  /// Best-effort on-demand sync; failures fall back to the auth re-read.
+  Future<void> _syncPaymentTracked() async {
+    final paymentId = widget.paymentId;
+    if (paymentId == null || paymentId.isEmpty) return;
+    try {
+      await ref.read(paymentRemoteDatasourceProvider).syncPayment(paymentId);
+    } catch (_) {
+      // Swallowed on purpose; the auth re-read below is the fallback truth.
+    }
+  }
+
   Future<SellerSubscription?> _refresh() async {
     try {
       final r = await ref.read(sellerRepositoryProvider).getSubscription(widget.uid);

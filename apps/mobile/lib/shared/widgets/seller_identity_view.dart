@@ -35,6 +35,7 @@ class SellerIdentityView extends StatelessWidget {
   }
 
   Widget _buildProfile(BuildContext context, {required double avatarSize}) {
+    final scheme = Theme.of(context).colorScheme;
     final handle = identity.displayHandle;
     final storeName = identity.normalizedStoreName;
 
@@ -42,17 +43,12 @@ class SellerIdentityView extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final avatar = _buildAvatar(context, size: avatarSize);
     final textScale = _profileTextScale(avatarSize);
     final storeNameSize = _lerpDouble(11.0, 13.0, textScale);
     final handleSize = _lerpDouble(14.0, 18.0, textScale);
-    final storeColor = isDark
-        ? AppColors.neutralWhite
-        : AppColors.neutralGray900;
-    final handleColor = isDark
-        ? AppColors.neutralGray400
-        : AppColors.neutralGray500;
+    final storeColor = scheme.onSurface;
+    final handleColor = scheme.onSurfaceVariant;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -115,7 +111,7 @@ class SellerIdentityView extends StatelessWidget {
   }
 
   Widget _buildDetail(BuildContext context, {required double avatarSize}) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     final handle = identity.displayHandle;
     final storeName = identity.normalizedStoreName;
     final originLine = identity.publicOriginLine?.trim();
@@ -141,9 +137,7 @@ class SellerIdentityView extends StatelessWidget {
                   Text(
                     storeName,
                     style: AppTypography.bodyMedium.copyWith(
-                      color: isDark
-                          ? AppColors.neutralWhite
-                          : AppColors.neutralGray900,
+                      color: scheme.onSurface,
                       fontWeight: FontWeight.w600,
                     ),
                     maxLines: 1,
@@ -154,9 +148,7 @@ class SellerIdentityView extends StatelessWidget {
                   Text(
                     handle,
                     style: AppTypography.bodySmall.copyWith(
-                      color: isDark
-                          ? AppColors.neutralGray400
-                          : AppColors.neutralGray600,
+                      color: scheme.onSurfaceVariant,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -167,9 +159,7 @@ class SellerIdentityView extends StatelessWidget {
                   Text(
                     originLine,
                     style: AppTypography.bodySmall.copyWith(
-                      color: isDark
-                          ? AppColors.neutralGray400
-                          : AppColors.neutralGray600,
+                      color: scheme.onSurfaceVariant,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,

@@ -17,9 +17,9 @@ export function AdminEmptyState({ icon: Icon, title, description, className }: A
   return (
     <Card className={className}>
       <CardContent className="p-12 text-center">
-        {Icon && <Icon className="h-12 w-12 text-gray-300 mx-auto mb-4" />}
-        <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
-        {description && <p className="text-gray-600 mt-1">{description}</p>}
+        {Icon && <Icon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />}
+        <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+        {description && <p className="text-muted-foreground mt-1">{description}</p>}
       </CardContent>
     </Card>
   )

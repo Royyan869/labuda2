@@ -49,28 +49,28 @@ class MentionRichText extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     final segments = MentionParser.parseText(text);
 
     // Default styles
     final defaultStyle =
         style ??
         TextStyle(
-          color: isDark ? AppColors.neutralWhite : AppColors.neutralGray900,
+          color: scheme.onSurface,
           fontSize: 14,
         );
 
     final defaultMentionStyle =
         mentionStyle ??
-        const TextStyle(
-          color: AppColors.primaryBlue,
+        TextStyle(
+          color: scheme.secondary,
           fontWeight: FontWeight.w600,
         );
 
     final defaultSpecialMentionStyle =
         specialMentionStyle ??
-        const TextStyle(
-          color: AppColors.primaryRed,
+        TextStyle(
+          color: scheme.primary,
           fontWeight: FontWeight.w700,
         );
 

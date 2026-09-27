@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/src/theme/app_colors.dart';
 
 /// Size options untuk DetailChipWidget
 enum DetailChipSize { small, medium, large }
@@ -99,17 +98,22 @@ class DetailChipStyleUtils {
     }
   }
 
+  /// Content ink for a chip bound to semantic [color].
+  ///
+  /// Tinted styles keep the bound color in BOTH modes (the alpha-0.8 dark
+  /// dimming is killed: it only worsened dark-mode contrast). Solid fills
+  /// pair with scheme onPrimary. No brightness branch anywhere.
   static Color getContentColor(
     DetailChipStyle style,
     Color color,
-    bool isDark,
+    ColorScheme scheme,
   ) {
     switch (style) {
       case DetailChipStyle.filled:
       case DetailChipStyle.outlined:
-        return isDark ? color.withValues(alpha: 0.8) : color;
+        return color;
       case DetailChipStyle.solid:
-        return AppColors.light;
+        return scheme.onPrimary;
     }
   }
 }

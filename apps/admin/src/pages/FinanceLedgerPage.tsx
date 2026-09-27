@@ -57,8 +57,8 @@ export function FinanceLedgerPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Finance Ledger</h1>
-          <p className="text-gray-600 mt-1">Ledger transactions (read-only)</p>
+          <h1 className="text-3xl font-bold text-foreground">Finance Ledger</h1>
+          <p className="text-muted-foreground mt-1">Ledger transactions (read-only)</p>
         </div>
         <Button variant="ghost" size="sm" onClick={fetchLedger} disabled={loading}>
           <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
@@ -71,29 +71,29 @@ export function FinanceLedgerPage() {
         <CardContent className="p-4">
           <div className="flex items-center gap-4 flex-wrap">
             <div>
-              <label className="text-xs font-medium text-gray-600 block mb-1">Reference Type</label>
+              <label className="text-xs font-medium text-muted-foreground block mb-1">Reference Type</label>
               <input
                 type="text"
                 placeholder="e.g. ORDER"
-                className="border border-gray-300 rounded-md px-3 py-1.5 text-sm w-40"
+                className="border border-border rounded-md px-3 py-1.5 text-sm w-40"
                 value={referenceTypeFilter}
                 onChange={(e) => { setReferenceTypeFilter(e.target.value); setOffset(0) }}
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-600 block mb-1">From</label>
+              <label className="text-xs font-medium text-muted-foreground block mb-1">From</label>
               <input
                 type="date"
-                className="border border-gray-300 rounded-md px-3 py-1.5 text-sm"
+                className="border border-border rounded-md px-3 py-1.5 text-sm"
                 value={fromFilter}
                 onChange={(e) => { setFromFilter(e.target.value); setOffset(0) }}
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-600 block mb-1">To</label>
+              <label className="text-xs font-medium text-muted-foreground block mb-1">To</label>
               <input
                 type="date"
-                className="border border-gray-300 rounded-md px-3 py-1.5 text-sm"
+                className="border border-border rounded-md px-3 py-1.5 text-sm"
                 value={toFilter}
                 onChange={(e) => { setToFilter(e.target.value); setOffset(0) }}
               />
@@ -105,7 +105,7 @@ export function FinanceLedgerPage() {
                 </Button>
               </div>
             )}
-            <div className="ml-auto text-sm text-gray-500">
+            <div className="ml-auto text-sm text-muted-foreground">
               {total} transaction{total !== 1 ? 's' : ''}
             </div>
           </div>
@@ -116,9 +116,9 @@ export function FinanceLedgerPage() {
       {error && (
         <Card>
           <CardContent className="p-8 text-center">
-            <AlertTriangle className="h-10 w-10 text-red-400 mx-auto mb-3" />
-            <p className="text-gray-900 font-medium">Failed to load ledger</p>
-            <p className="text-gray-600 text-sm mt-1">{error}</p>
+            <AlertTriangle className="h-10 w-10 text-destructive mx-auto mb-3" />
+            <p className="text-foreground font-medium">Failed to load ledger</p>
+            <p className="text-muted-foreground text-sm mt-1">{error}</p>
             <Button variant="secondary" size="sm" onClick={fetchLedger} className="mt-4">
               Retry
             </Button>
@@ -133,9 +133,9 @@ export function FinanceLedgerPage() {
             <div className="space-y-4">
               {Array.from({ length: 5 }).map((_, i) => (
                 <div key={i} className="animate-pulse flex items-center gap-4">
-                  <div className="h-4 bg-gray-200 rounded w-32" />
-                  <div className="h-4 bg-gray-200 rounded flex-1" />
-                  <div className="h-6 w-20 bg-gray-200 rounded-full" />
+                  <div className="h-4 bg-border rounded w-32" />
+                  <div className="h-4 bg-border rounded flex-1" />
+                  <div className="h-6 w-20 bg-border rounded-full" />
                 </div>
               ))}
             </div>
@@ -147,9 +147,9 @@ export function FinanceLedgerPage() {
       {!loading && !error && transactions.length === 0 && (
         <Card>
           <CardContent className="p-12 text-center">
-            <BookOpen className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-            <h2 className="text-lg font-semibold text-gray-900">No Ledger Transactions</h2>
-            <p className="text-gray-600 mt-1">No transactions match the current filters.</p>
+            <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h2 className="text-lg font-semibold text-foreground">No Ledger Transactions</h2>
+            <p className="text-muted-foreground mt-1">No transactions match the current filters.</p>
           </CardContent>
         </Card>
       )}
@@ -164,39 +164,39 @@ export function FinanceLedgerPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-200 bg-gray-50">
-                    <th className="px-4 py-3 text-left font-medium text-gray-600">Transaction ID</th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-600">Reference</th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-600">Idempotency Key</th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-600">Entries</th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-600">Created At</th>
+                  <tr className="border-b border-border bg-surface-muted">
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Transaction ID</th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Reference</th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Idempotency Key</th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Entries</th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Created At</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody className="divide-y divide-[hsl(var(--border))]">
                   {transactions.map((tx) => (
-                    <tr key={tx.id} className="hover:bg-gray-50 align-top">
-                      <td className="px-4 py-3 font-mono text-xs text-gray-700">
+                    <tr key={tx.id} className="hover:bg-surface-muted align-top">
+                      <td className="px-4 py-3 font-mono text-xs text-foreground">
                         {tx.id.slice(0, 8)}...
                       </td>
                       <td className="px-4 py-3">
                         <Badge variant="info">{tx.reference_type}</Badge>
                         {tx.reference_id && (
-                          <div className="font-mono text-xs text-gray-500 mt-1">
+                          <div className="font-mono text-xs text-muted-foreground mt-1">
                             {tx.reference_id.slice(0, 8)}...
                           </div>
                         )}
                         {tx.order_id && (
-                          <div className="text-xs text-gray-500 mt-0.5">
+                          <div className="text-xs text-muted-foreground mt-0.5">
                             order: {tx.order_id.slice(0, 8)}...
                           </div>
                         )}
                         {tx.payment_id && (
-                          <div className="text-xs text-gray-500 mt-0.5">
+                          <div className="text-xs text-muted-foreground mt-0.5">
                             payment: {tx.payment_id.slice(0, 8)}...
                           </div>
                         )}
                       </td>
-                      <td className="px-4 py-3 font-mono text-xs text-gray-600 max-w-[200px] truncate" title={tx.idempotency_key}>
+                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground max-w-[200px] truncate" title={tx.idempotency_key}>
                         {tx.idempotency_key}
                       </td>
                       <td className="px-4 py-3">
@@ -211,18 +211,18 @@ export function FinanceLedgerPage() {
                               <Badge variant={entry.entry_type === 'debit' ? 'error' : 'success'}>
                                 {entry.entry_type === 'debit' ? 'DR' : 'CR'}
                               </Badge>
-                              <span className="text-gray-700">{entry.account_type}</span>
-                              <span className="font-medium text-gray-900">
+                              <span className="text-foreground">{entry.account_type}</span>
+                              <span className="font-medium text-foreground">
                                 Rp {entry.amount.toLocaleString()}
                               </span>
-                              <span className="text-gray-400" title="Balance after">
+                              <span className="text-muted-foreground" title="Balance after">
                                 (bal: {entry.balance_after.toLocaleString()})
                               </span>
                             </div>
                           ))}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-xs text-gray-600 whitespace-nowrap">
+                      <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
                         {new Date(tx.created_at).toLocaleString()}
                       </td>
                     </tr>
@@ -245,7 +245,7 @@ export function FinanceLedgerPage() {
           >
             Previous
           </Button>
-          <span className="text-sm text-gray-600">
+          <span className="text-sm text-muted-foreground">
             Page {currentPage} of {totalPages}
           </span>
           <Button

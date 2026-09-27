@@ -170,7 +170,12 @@ func (s *AuctionService) requireUserNotRestricted(ctx context.Context, tx db.Tx,
 }
 
 // buildAuctionPayload creates a JSON payload for auction events.
-func buildAuctionPayload(auction *entity.Auction) []byte {
+//
+// cancel_reason is stamped ONLY on auction.cancelled events (empty/omitted
+// for every other lifecycle event — matching entity.CancelReasonLegacy).
+// See entity.CancelReason for the authority vocabulary; the notification
+// worker routes the seller-facing auto-cancel notification on it.
+func buildAuctionPayload(auction *entity.Auction, cancelReason ...entity.CancelReason) []byte {
 	type payload struct {
 		AuctionID     string  `json:"auction_id"`
 		SellerID      string  `json:"seller_id"`
@@ -179,6 +184,7 @@ func buildAuctionPayload(auction *entity.Auction) []byte {
 		StartPrice    int64   `json:"start_price"`
 		CurrentBid    *int64  `json:"current_bid,omitempty"`
 		CurrentWinner *string `json:"current_winner,omitempty"`
+		CancelReason  string  `json:"cancel_reason,omitempty"`
 	}
 	p := payload{
 		AuctionID:  auction.ID.String(),
@@ -191,6 +197,9 @@ func buildAuctionPayload(auction *entity.Auction) []byte {
 	if auction.CurrentWinnerID != nil {
 		winner := auction.CurrentWinnerID.String()
 		p.CurrentWinner = &winner
+	}
+	if len(cancelReason) > 0 {
+		p.CancelReason = string(cancelReason[0])
 	}
 	b, _ := json.Marshal(p)
 	return b
@@ -832,7 +841,7 @@ func (s *AuctionService) Cancel(
 		ctx, tx,
 		"auction.cancelled",
 		auction.ID,
-		buildAuctionPayload(auction),
+		buildAuctionPayload(auction, entity.CancelReasonSeller),
 	); err != nil {
 		return fmt.Errorf("failed to insert outbox event: %w", err)
 	}
@@ -1537,12 +1546,14 @@ func (s *AuctionService) ActivateScheduledAuction(
 			return err
 		}
 
-		// Emit outbox event for cancellation
+		// Scope B — subscription-expired auto-cancel: stamp the canonical
+		// reason so the notification worker routes the seller notification
+		// (the ONLY cancel reason that notifies today).
 		if err := s.outboxRepo.InsertEvent(
 			ctx, tx,
 			"auction.cancelled",
 			auction.ID,
-			buildAuctionPayload(auction),
+			buildAuctionPayload(auction, entity.CancelReasonSubscriptionExpired),
 		); err != nil {
 			return fmt.Errorf("failed to insert outbox event: %w", err)
 		}
@@ -1610,9 +1621,10 @@ func (s *AuctionService) ActivateScheduledAuction(
 // Handles all non-terminal states: draft, scheduled, active, waiting_settlement.
 // Terminal states (ended, cancelled) return InvalidTransitionError;
 // callers must treat that as idempotent success.
-//
-// Emits auction.cancelled outbox event for downstream audit trail.
-func (s *AuctionService) CancelForModeration(
+//	// Emits auction.cancelled outbox event for downstream audit trail.
+	// Reason: governance enforcement (outcome also travels the canonical
+	// moderation channel).
+	func (s *AuctionService) CancelForModeration(
 	ctx context.Context,
 	tx db.Tx,
 	auctionID uuid.UUID,
@@ -1636,7 +1648,7 @@ func (s *AuctionService) CancelForModeration(
 			ctx, tx,
 			"auction.cancelled",
 			auction.ID,
-			buildAuctionPayload(auction),
+			buildAuctionPayload(auction, entity.CancelReasonModeration),
 		); err != nil {
 			return fmt.Errorf("insert outbox event failed: %w", err)
 		}
@@ -1770,7 +1782,7 @@ func (s *AuctionService) AdminCancel(
 			ctx, tx,
 			"auction.cancelled",
 			auction.ID,
-			buildAuctionPayload(auction),
+			buildAuctionPayload(auction, entity.CancelReasonAdmin),
 		); err != nil {
 			return nil, previousStatus, fmt.Errorf("insert outbox event failed: %w", err)
 		}

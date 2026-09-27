@@ -179,12 +179,14 @@ class _LinkPickerModalState extends ConsumerState<LinkPickerModal>
               tabs: [
                 Tab(
                   child: buildLinkPickerTabLabel(
+                    context,
                     'Produk Dijual',
                     _countByType(ShareTargetType.forSale),
                   ),
                 ),
                 Tab(
                   child: buildLinkPickerTabLabel(
+                    context,
                     'Lelang',
                     _countByType(ShareTargetType.auction),
                   ),

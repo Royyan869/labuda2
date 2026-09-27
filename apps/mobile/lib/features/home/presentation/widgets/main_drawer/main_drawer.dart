@@ -42,7 +42,7 @@ class MainDrawer extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context)!;
     final authState = ref.watch(authControllerProvider);
     final authenticatedUser = ref.watch(authenticatedUserProvider);
@@ -53,13 +53,12 @@ class MainDrawer extends ConsumerWidget {
     final isSeller = sellerIdentityStatus == SellerIdentityStatus.seller;
 
     return Drawer(
-      backgroundColor: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
+      backgroundColor: scheme.surfaceContainerLow,
       child: SafeArea(
         child: Column(
           children: [
             // Drawer header - conditional based on auth state
             MainDrawerHeader(
-              isDark: isDark,
               isLoggedIn: isLoggedIn,
               showPlaceholder: showPlaceholder,
               onSignIn: onHandleSignIn,

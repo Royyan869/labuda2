@@ -80,7 +80,7 @@ class _DisputeEscalationDialogState
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final colorScheme = theme.colorScheme;
     final hasOriginalEvidence =
         widget.refund.evidenceUrls != null &&
         widget.refund.evidenceUrls!.isNotEmpty;
@@ -90,7 +90,7 @@ class _DisputeEscalationDialogState
         children: [
           Icon(
             Icons.gavel_rounded,
-            color: core.AppColors.primaryBlue,
+            color: colorScheme.secondary,
             size: 24,
           ),
           const SizedBox(width: 12),
@@ -113,10 +113,10 @@ class _DisputeEscalationDialogState
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: core.AppColors.primaryBlue.withValues(alpha: 0.1),
+                  color: colorScheme.secondary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: core.AppColors.primaryBlue.withValues(alpha: 0.3),
+                    color: colorScheme.secondary.withValues(alpha: 0.3),
                   ),
                 ),
                 child: Row(
@@ -124,7 +124,7 @@ class _DisputeEscalationDialogState
                   children: [
                     Icon(
                       Icons.info_outline_rounded,
-                      color: core.AppColors.primaryBlue,
+                      color: colorScheme.secondary,
                       size: 18,
                     ),
                     const SizedBox(width: 8),
@@ -133,7 +133,7 @@ class _DisputeEscalationDialogState
                         'Penjual telah menolak refund Anda. Admin akan meninjau kasus ini secara adil.',
                         style: TextStyle(
                           fontSize: 12,
-                          color: isDark ? Colors.white70 : Colors.black87,
+                          color: colorScheme.onSurface,
                         ),
                       ),
                     ),
@@ -204,17 +204,17 @@ class _DisputeEscalationDialogState
         ElevatedButton(
           onPressed: _isSubmitting ? null : _submitEscalation,
           style: ElevatedButton.styleFrom(
-            backgroundColor: core.AppColors.primaryBlue,
-            foregroundColor: Colors.white,
-            disabledBackgroundColor: Colors.grey,
+            backgroundColor: colorScheme.secondary,
+            foregroundColor: colorScheme.onPrimary,
+            disabledBackgroundColor: colorScheme.surfaceContainerHighest,
           ),
           child: _isSubmitting
-              ? const SizedBox(
+              ? SizedBox(
                   width: 16,
                   height: 16,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: Colors.white,
+                    color: colorScheme.onPrimary,
                   ),
                 )
               : const Text('Ajukan Sengketa'),
@@ -234,7 +234,7 @@ class _InfoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final colorScheme = theme.colorScheme;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -244,7 +244,7 @@ class _InfoRow extends StatelessWidget {
           child: Text(
             label,
             style: theme.textTheme.bodySmall?.copyWith(
-              color: Colors.grey[600],
+              color: colorScheme.onSurfaceVariant,
               fontSize: 12,
             ),
           ),
@@ -253,7 +253,7 @@ class _InfoRow extends StatelessWidget {
           child: Text(
             '${emoji ?? ''} $value'.trim(),
             style: theme.textTheme.bodySmall?.copyWith(
-              color: isDark ? Colors.white : Colors.black87,
+              color: colorScheme.onSurface,
               fontSize: 12,
             ),
           ),

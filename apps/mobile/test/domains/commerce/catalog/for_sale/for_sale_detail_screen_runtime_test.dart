@@ -272,12 +272,23 @@ void main() {
       expect(find.text('Ajukan Penawaran'), findsOneWidget);
       expect(find.text('Beli Sekarang'), findsOneWidget);
       expect(find.text('Penjual tidak aktif'), findsNothing);
-      expect(find.text('@seller_user'), findsOneWidget);
-      expect(find.text('@Acme Farm'), findsOneWidget);
+      expect(find.text('@seller_user', skipOffstage: false), findsOneWidget);
+      expect(find.text('Acme Farm', skipOffstage: false), findsOneWidget);
       expect(find.byType(PageView), findsOneWidget);
-      expect(find.text('Siap kirim langsung'), findsOneWidget);
-      expect(find.textContaining('Packing aman sebelum kirim'), findsOneWidget);
-      expect(find.text(forSale.description), findsOneWidget);
+      // Section cards below the first viewport are mounted but laid out
+      // lazily — assert against the full element tree.
+      expect(
+        find.text('Siap kirim langsung', skipOffstage: false),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('Packing aman sebelum kirim', skipOffstage: false),
+        findsOneWidget,
+      );
+      expect(
+        find.text(forSale.description, skipOffstage: false),
+        findsOneWidget,
+      );
       expect(find.byIcon(Icons.more_vert), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
@@ -310,9 +321,13 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
 
-    expect(find.text('@seller_user'), findsOneWidget);
+    expect(find.text('@seller_user', skipOffstage: false), findsOneWidget);
 
-    await tester.ensureVisible(find.text('@seller_user'));
+    // The seller card sits below the fold — scroll it into the viewport
+    // before tapping (the identity assert above resolves from the full tree).
+    await tester.ensureVisible(
+      find.text('@seller_user', skipOffstage: false),
+    );
     await tester.pump();
     await tester.tap(find.text('@seller_user'));
     await tester.pump();
@@ -445,8 +460,8 @@ void main() {
     expect(find.text('Chat'), findsOneWidget);
     expect(find.text('Ajukan Penawaran'), findsOneWidget);
     expect(find.text('Beli Sekarang'), findsOneWidget);
-    expect(find.text('@seller_user'), findsOneWidget);
-    expect(find.text('@Acme Farm'), findsOneWidget);
+    expect(find.text('@seller_user', skipOffstage: false), findsOneWidget);
+    expect(find.text('Acme Farm', skipOffstage: false), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

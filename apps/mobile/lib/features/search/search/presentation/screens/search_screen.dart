@@ -100,15 +100,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final historyState = ref.watch(searchHistoryProvider);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Search'),
-        backgroundColor: isDark
-            ? AppColors.darkGray800
-            : AppColors.neutralWhite,
         elevation: 0,
       ),
       body: Column(

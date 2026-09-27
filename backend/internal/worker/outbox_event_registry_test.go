@@ -228,10 +228,11 @@ var knownConsumedEvents = []string{
 	"moderation.user.restored",
 
 	// Promotion note: for_sale.sold / for_sale.withdrawn / for_sale.updated /
-	// auction.cancelled / auction.ended / seller.subscription.activated have NO
-	// promotion handlers — promotion target/seller operability is read-time
-	// (canonical OperabilityChecker); the legacy SetupPromotionHandlers was
-	// purged with the duration-package model.
+	// auction.ended / seller.subscription.activated have NO promotion handlers
+	// — promotion target/seller operability is read-time (canonical
+	// OperabilityChecker); the legacy SetupPromotionHandlers was purged with
+	// the duration-package model. auction.cancelled is consumed by the
+	// notification worker (Scope B) and listed below.
 
 	// money.refunded / money.partial_refund / money.partial_release — dead handlers+setup deleted (B90)
 	// Events remain in AcknowledgedNoHandlerEvents (NoHandlerAuditOnly)
@@ -242,9 +243,10 @@ var knownConsumedEvents = []string{
 	// order.auto_delivered was never produced — removed entirely.
 	// order.cancelled moved to AcknowledgedNoHandlerEvents (NoHandlerAuditOnly).
 
-	// SetupNegotiationHandlers (fanout)
+	// SetupNegotiationHandlers (fanout + for_sale.sold wired)
 	"negotiation.started",
 	"negotiation.message_sent",
+	"for_sale.sold", // negotiation ForSaleSoldEventHandler (owner decision: wired)
 
 	// SetupOrderChatLinkHandler
 	"order.chat_link_requested",
@@ -351,6 +353,7 @@ var knownConsumedEvents = []string{
 	"auction.bid.placed",
 	"auction.waiting_settlement",
 	"auction.ended", // P14: seller notified when auction closes without winner; fanout with promotion handler
+	"auction.cancelled", // Scope B: seller notified on subscription-expired auto-cancel (routed by CancelReason)
 
 	// SetupNotificationHandlers — seller subscription
 	"seller.subscription.expiring",

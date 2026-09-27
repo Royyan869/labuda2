@@ -262,7 +262,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     // 🔒 DETERMINISTIC: Watch auth state untuk loading, bukan local controller
     // Ini memastikan UI sinkron dengan actual auth flow
@@ -288,17 +288,11 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
-          gradient: isDark
-              ? const LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [AppColors.darkGray900, AppColors.darkGray800],
-                )
-              : const LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [AppColors.neutralGray50, AppColors.neutralWhite],
-                ),
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [scheme.surfaceContainerLow, scheme.surface],
+          ),
         ),
         child: SafeArea(
           child: ListenableBuilder(
@@ -334,7 +328,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
                       AuthStateView(
                         isLoading: isAuthLoading || _controller.isLoading,
                         error: _controller.errorMessage,
-                        content: _buildForm(isDark),
+                        content: _buildForm(),
                       ),
 
                       const SizedBox(height: 24),
@@ -353,13 +347,12 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
   }
 
   /// Form content - shown when not loading/error
-  Widget _buildForm(bool isDark) {
+  Widget _buildForm() {
     return Column(
       children: [
         // Username field - has async validation at widget level
         UsernameField(
           controller: _usernameController,
-          isDark: isDark,
           onValidationChanged: _onUsernameValidationChanged,
         ),
 
@@ -406,7 +399,6 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
           onToggleVisibility: _controller.togglePasswordVisibility,
           strengthIndicator: PasswordStrengthIndicator(
             password: _passwordController.text,
-            isDark: isDark,
           ),
           textInputAction: TextInputAction.next,
           validator: (value) {
@@ -440,7 +432,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
         const SizedBox(height: 24),
 
         // Terms checkbox
-        _buildTermsCheckbox(isDark),
+        _buildTermsCheckbox(),
 
         const SizedBox(height: 32),
 
@@ -468,7 +460,8 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
   }
 
   /// Terms and conditions checkbox
-  Widget _buildTermsCheckbox(bool isDark) {
+  Widget _buildTermsCheckbox() {
+    final scheme = Theme.of(context).colorScheme;
     return FormField<bool>(
       initialValue: _controller.agreeToTerms,
       validator: (value) {
@@ -490,7 +483,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
                     _controller.setAgreeToTerms(value ?? false);
                     formFieldState.didChange(value);
                   },
-                  activeColor: AppColors.primaryRed,
+                  activeColor: scheme.primary,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(4),
                   ),
@@ -503,15 +496,13 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
                         text: 'I agree with ',
                         style: TextStyle(
                           fontSize: 13,
-                          color: isDark
-                              ? AppColors.neutralGray300
-                              : AppColors.neutralGray700,
+                          color: scheme.onSurface,
                         ),
                         children: [
                           TextSpan(
                             text: 'Terms and Conditions',
                             style: TextStyle(
-                              color: AppColors.primaryRed,
+                              color: scheme.primary,
                               fontWeight: FontWeight.w600,
                               decoration: TextDecoration.underline,
                             ),
@@ -539,23 +530,22 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
 
   /// Navigation to sign in link
   Widget _buildNavigation() {
+    final scheme = Theme.of(context).colorScheme;
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
           'Already have an account? ',
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: Theme.of(context).brightness == Brightness.dark
-                ? AppColors.neutralGray400
-                : AppColors.neutralGray600,
+            color: scheme.onSurfaceVariant,
           ),
         ),
         TextButton(
           onPressed: _navigateToSignIn,
-          child: const Text(
+          child: Text(
             'Sign In',
             style: TextStyle(
-              color: AppColors.primaryRed,
+              color: scheme.primary,
               fontWeight: FontWeight.w600,
             ),
           ),

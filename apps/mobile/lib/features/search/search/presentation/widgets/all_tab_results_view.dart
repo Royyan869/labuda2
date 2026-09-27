@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/features/search/search/domain/entities/search_result.dart';
 import 'package:labuda/features/search/search/presentation/utils/all_tab_sections.dart';
 import 'package:labuda/features/search/search/presentation/widgets/search_result_item.dart';
@@ -36,10 +35,8 @@ class AllTabResultsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final sections = buildAllTabSections(results);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final dividerColor = isDark
-        ? AppColors.darkGray600
-        : AppColors.neutralGray200;
+    final scheme = Theme.of(context).colorScheme;
+    final dividerColor = scheme.outlineVariant;
 
     // Sections are projected, not lazy: total preview size is bounded by
     // the All caps (≤ 18 items) so a plain ListView is appropriate.
@@ -78,7 +75,7 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 8, 4),
@@ -90,9 +87,7 @@ class _SectionHeader extends StatelessWidget {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
-                color: isDark
-                    ? AppColors.neutralGray100
-                    : AppColors.neutralGray900,
+                color: scheme.onSurface,
               ),
             ),
           ),
@@ -100,7 +95,7 @@ class _SectionHeader extends StatelessWidget {
             key: ValueKey('seeAll-$title'),
             onPressed: onSeeAll,
             style: TextButton.styleFrom(
-              foregroundColor: AppColors.primary,
+              foregroundColor: scheme.primary,
               visualDensity: VisualDensity.compact,
               padding: const EdgeInsets.symmetric(horizontal: 12),
             ),

@@ -16,7 +16,7 @@ class ListSectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
@@ -26,9 +26,7 @@ class ListSectionHeader extends StatelessWidget {
           Text(
             title.toUpperCase(),
             style: AppTypography.labelSmall.copyWith(
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray600,
+              color: scheme.onSurfaceVariant,
               fontWeight: FontWeight.w600,
               letterSpacing: 1.2,
             ),
@@ -39,7 +37,7 @@ class ListSectionHeader extends StatelessWidget {
               child: Text(
                 action!,
                 style: AppTypography.labelSmall.copyWith(
-                  color: AppColors.primaryRed,
+                  color: scheme.primary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -67,14 +65,12 @@ class ListItemDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Divider(
       height: 1,
       thickness: 1,
       indent: indent,
       endIndent: endIndent,
-      color: isDark ? AppColors.neutralGray800 : AppColors.neutralGray200,
+      color: Theme.of(context).colorScheme.outlineVariant,
     );
   }
 }

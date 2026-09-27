@@ -42,7 +42,7 @@ class _FollowListScreenState extends ConsumerState<FollowListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     final authState = ref.watch(authControllerProvider);
 
     // Use stream providers for real-time updates
@@ -78,9 +78,7 @@ class _FollowListScreenState extends ConsumerState<FollowListScreen> {
                       )
                     : null,
                 filled: true,
-                fillColor: isDark
-                    ? AppColors.neutralGray800
-                    : AppColors.neutralGray100,
+                fillColor: scheme.surfaceContainerHigh,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
@@ -152,11 +150,12 @@ class _FollowListScreenState extends ConsumerState<FollowListScreen> {
   }
 
   Widget _buildErrorState() {
+    final scheme = Theme.of(context).colorScheme;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.error_outline, size: 64, color: Colors.red),
+          Icon(Icons.error_outline, size: 64, color: scheme.error),
           const SizedBox(height: 16),
           Text(
             'Data belum bisa dimuat.',
@@ -187,6 +186,7 @@ class _FollowListScreenState extends ConsumerState<FollowListScreen> {
   }
 
   Widget _buildEmptyState() {
+    final scheme = Theme.of(context).colorScheme;
     final message = _searchQuery.isNotEmpty
         ? 'No users found'
         : widget.type == FollowListType.followers
@@ -200,14 +200,14 @@ class _FollowListScreenState extends ConsumerState<FollowListScreen> {
           Icon(
             _searchQuery.isNotEmpty ? Icons.search_off : Icons.people_outline,
             size: 64,
-            color: AppColors.neutralGray400,
+            color: scheme.outline,
           ),
           const SizedBox(height: 16),
           Text(
             message,
             style: Theme.of(
               context,
-            ).textTheme.bodyLarge?.copyWith(color: Colors.grey),
+            ).textTheme.bodyLarge?.copyWith(color: scheme.onSurfaceVariant),
           ),
         ],
       ),

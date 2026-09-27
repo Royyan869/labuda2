@@ -61,7 +61,7 @@ class DetailChipWidget extends StatelessWidget {
     this.size = DetailChipSize.medium,
     this.style = DetailChipStyle.filled,
   }) : icon = Icons.local_offer,
-       color = Colors.purple,
+       color = AppColors.primaryPurple,
        showIcon = true;
 
   /// Location chip untuk lokasi
@@ -86,21 +86,25 @@ class DetailChipWidget extends StatelessWidget {
   }) : icon = Icons.circle,
        showIcon = true;
 
-  /// Tag chip untuk hashtags/labels
+  /// Tag chip untuk hashtags/labels.
+  ///
+  /// The tint color is caller-bound (no dormant palette default): a fixed
+  /// gray cannot stay readable in both modes, so the caller owns the chip
+  /// identity like [DetailChipWidget.status] does.
   const DetailChipWidget.tag({
     super.key,
     required this.label,
+    required this.color,
     this.onTap,
     this.size = DetailChipSize.small,
     this.style = DetailChipStyle.outlined,
   }) : icon = Icons.tag,
-       color = AppColors.neutral,
        showIcon = false;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final scheme = theme.colorScheme;
 
     return GestureDetector(
       onTap: onTap,
@@ -117,7 +121,7 @@ class DetailChipWidget extends StatelessWidget {
                 color: DetailChipStyleUtils.getContentColor(
                   style,
                   color,
-                  isDark,
+                  scheme,
                 ),
               ),
               SizedBox(width: DetailChipStyleUtils.getSpacing(size)),
@@ -125,7 +129,7 @@ class DetailChipWidget extends StatelessWidget {
             Flexible(
               child: Text(
                 label,
-                style: _getTextStyle(theme, isDark),
+                style: _getTextStyle(theme, scheme),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -135,13 +139,13 @@ class DetailChipWidget extends StatelessWidget {
     );
   }
 
-  TextStyle? _getTextStyle(ThemeData theme, bool isDark) {
+  TextStyle? _getTextStyle(ThemeData theme, ColorScheme scheme) {
     final baseStyle = size == DetailChipSize.small
         ? theme.textTheme.labelSmall
         : theme.textTheme.bodySmall;
 
     return baseStyle?.copyWith(
-      color: DetailChipStyleUtils.getContentColor(style, color, isDark),
+      color: DetailChipStyleUtils.getContentColor(style, color, scheme),
       fontWeight: FontWeight.w500,
       fontSize: DetailChipStyleUtils.getFontSize(size),
     );

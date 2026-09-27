@@ -19,7 +19,7 @@ class ProfileStats extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     // Watch follow stats stream untuk realtime updates
     final followStatsAsync = ref.watch(followStatsStreamProvider(userId));
@@ -27,13 +27,13 @@ class ProfileStats extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
+        color: scheme.surface,
         border: Border(
           top: BorderSide(
-            color: isDark ? AppColors.darkGray700 : AppColors.neutralGray200,
+            color: scheme.outlineVariant,
           ),
           bottom: BorderSide(
-            color: isDark ? AppColors.darkGray700 : AppColors.neutralGray200,
+            color: scheme.outlineVariant,
           ),
         ),
       ),
@@ -46,28 +46,25 @@ class ProfileStats extends ConsumerWidget {
               data: (stats) => _StatItem(
                 value: _formatCount(stats.followersCount),
                 label: 'Followers',
-                isDark: isDark,
                 icon: Icons.people_outline,
                 onTap: () => _navigateToFollowers(context),
               ),
               loading: () => _StatItem(
                 value: '-',
                 label: 'Followers',
-                isDark: isDark,
                 icon: Icons.people_outline,
                 onTap: () => _navigateToFollowers(context),
               ),
               error: (_, _) => _StatItem(
                 value: '-',
                 label: 'Followers',
-                isDark: isDark,
                 icon: Icons.people_outline,
                 onTap: () => _navigateToFollowers(context),
               ),
             ),
           ),
 
-          _buildDivider(isDark),
+          _buildDivider(context),
 
           // Following
           Expanded(
@@ -75,21 +72,18 @@ class ProfileStats extends ConsumerWidget {
               data: (stats) => _StatItem(
                 value: _formatCount(stats.followingCount),
                 label: 'Following',
-                isDark: isDark,
                 icon: Icons.person_add_alt_outlined,
                 onTap: () => _navigateToFollowing(context),
               ),
               loading: () => _StatItem(
                 value: '-',
                 label: 'Following',
-                isDark: isDark,
                 icon: Icons.person_add_alt_outlined,
                 onTap: () => _navigateToFollowing(context),
               ),
               error: (_, _) => _StatItem(
                 value: '-',
                 label: 'Following',
-                isDark: isDark,
                 icon: Icons.person_add_alt_outlined,
                 onTap: () => _navigateToFollowing(context),
               ),
@@ -98,23 +92,23 @@ class ProfileStats extends ConsumerWidget {
 
           // Rating (seller only)
           if (isSeller) ...[
-            _buildDivider(isDark),
-            Expanded(child: _buildRatingItem(context, isDark, ref)),
+            _buildDivider(context),
+            Expanded(child: _buildRatingItem(context, ref)),
           ],
         ],
       ),
     );
   }
 
-  Widget _buildDivider(bool isDark) {
+  Widget _buildDivider(BuildContext context) {
     return Container(
       height: 32,
       width: 1,
-      color: isDark ? AppColors.darkGray600 : AppColors.neutralGray200,
+      color: Theme.of(context).colorScheme.outlineVariant,
     );
   }
 
-  Widget _buildRatingItem(BuildContext context, bool isDark, WidgetRef ref) {
+  Widget _buildRatingItem(BuildContext context, WidgetRef ref) {
     final ratingSummaryAsync = ref.watch(
       getUserRatingSummaryProvider(userId: userId),
     );
@@ -125,7 +119,6 @@ class ProfileStats extends ConsumerWidget {
           return _RatingStatItem(
             rating: 0.0,
             reviewCount: 0,
-            isDark: isDark,
             onTap: () => _navigateToReviews(context),
           );
         }
@@ -134,20 +127,17 @@ class ProfileStats extends ConsumerWidget {
         return _RatingStatItem(
           rating: summary.averageRating,
           reviewCount: summary.totalRatings,
-          isDark: isDark,
           onTap: () => _navigateToReviews(context),
         );
       },
       loading: () => _RatingStatItem(
         rating: null,
         reviewCount: 0,
-        isDark: isDark,
         onTap: () => _navigateToReviews(context),
       ),
       error: (_, _) => _RatingStatItem(
         rating: 0.0,
         reviewCount: 0,
-        isDark: isDark,
         onTap: () => _navigateToReviews(context),
       ),
     );
@@ -189,20 +179,19 @@ class ProfileStats extends ConsumerWidget {
 class _StatItem extends StatelessWidget {
   final String value;
   final String label;
-  final bool isDark;
   final IconData? icon;
   final VoidCallback? onTap;
 
   const _StatItem({
     required this.value,
     required this.label,
-    required this.isDark,
     this.icon,
     this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -210,7 +199,7 @@ class _StatItem extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[
-            Icon(icon, size: 16, color: AppColors.neutralGray500),
+            Icon(icon, size: 16, color: scheme.onSurfaceVariant),
             const SizedBox(height: 2),
           ],
           Text(
@@ -218,7 +207,7 @@ class _StatItem extends StatelessWidget {
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: isDark ? AppColors.neutralWhite : AppColors.neutralGray900,
+              color: scheme.onSurface,
             ),
           ),
           const SizedBox(height: 2),
@@ -226,9 +215,7 @@ class _StatItem extends StatelessWidget {
             label,
             style: TextStyle(
               fontSize: 11,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray500,
+              color: scheme.onSurfaceVariant,
             ),
           ),
         ],
@@ -241,18 +228,17 @@ class _StatItem extends StatelessWidget {
 class _RatingStatItem extends StatelessWidget {
   final double? rating;
   final int reviewCount;
-  final bool isDark;
   final VoidCallback? onTap;
 
   const _RatingStatItem({
     required this.rating,
     required this.reviewCount,
-    required this.isDark,
     this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -271,10 +257,8 @@ class _RatingStatItem extends StatelessWidget {
                     : Icons.star_border,
                 size: 12,
                 color: starPosition <= ratingValue.round()
-                    ? Colors.amber
-                    : (isDark
-                          ? AppColors.neutralGray600
-                          : AppColors.neutralGray400),
+                    ? AppColors.koiGold
+                    : scheme.outline,
               );
             }),
           ),
@@ -284,7 +268,7 @@ class _RatingStatItem extends StatelessWidget {
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: isDark ? AppColors.neutralWhite : AppColors.neutralGray900,
+              color: scheme.onSurface,
             ),
           ),
           const SizedBox(height: 2),
@@ -292,9 +276,7 @@ class _RatingStatItem extends StatelessWidget {
             reviewCount > 0 ? 'Rating ($reviewCount)' : 'Rating',
             style: TextStyle(
               fontSize: 11,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray500,
+              color: scheme.onSurfaceVariant,
             ),
           ),
         ],

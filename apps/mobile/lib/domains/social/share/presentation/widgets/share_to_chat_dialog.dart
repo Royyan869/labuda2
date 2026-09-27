@@ -84,19 +84,11 @@ class _ShareToChatDialogState extends ConsumerState<ShareToChatDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final backgroundColor = isDark
-        ? AppColors.darkGray800
-        : AppColors.neutralWhite;
-    final borderColor = isDark
-        ? AppColors.darkGray600
-        : AppColors.neutralGray200;
-    final dividerColor = isDark
-        ? AppColors.darkGray600
-        : AppColors.neutralGray200;
-    final textColor = isDark
-        ? AppColors.neutralGray100
-        : AppColors.neutralGray900;
+    final scheme = Theme.of(context).colorScheme;
+    final backgroundColor = scheme.surfaceContainerLow;
+    final borderColor = scheme.outlineVariant;
+    final dividerColor = scheme.outlineVariant;
+    final textColor = scheme.onSurface;
     final searchAsync = ref.watch(newChatUserSearchProvider(_searchQuery));
     final canSend = !_isSending && _selectedRecipient != null;
 
@@ -121,9 +113,7 @@ class _ShareToChatDialogState extends ConsumerState<ShareToChatDialog> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: isDark
-                      ? AppColors.darkGray500
-                      : AppColors.neutralGray300,
+                  color: scheme.outlineVariant,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -158,7 +148,7 @@ class _ShareToChatDialogState extends ConsumerState<ShareToChatDialog> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      SharePreviewCard(target: widget.target, isDark: isDark),
+                      SharePreviewCard(target: widget.target),
                       const SizedBox(height: 16),
                       Text(
                         'Recipient',
@@ -168,22 +158,20 @@ class _ShareToChatDialogState extends ConsumerState<ShareToChatDialog> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      _buildSearchField(isDark, borderColor),
+                      _buildSearchField(context, borderColor),
                       const SizedBox(height: 12),
                       if (_selectedRecipient != null) _buildSelectedRecipient(),
                       const SizedBox(height: 12),
-                      _buildComposerField(isDark, borderColor, textColor),
+                      _buildComposerField(context, borderColor, textColor),
                       const SizedBox(height: 16),
                       Text(
                         'Pick one recipient. The message is sent only when you press Send.',
                         style: AppTypography.bodySmall.copyWith(
-                          color: isDark
-                              ? AppColors.neutralGray400
-                              : AppColors.neutralGray500,
+                          color: scheme.onSurfaceVariant,
                         ),
                       ),
                       const SizedBox(height: 12),
-                      _buildSearchResults(searchAsync, isDark),
+                      _buildSearchResults(searchAsync),
                     ],
                   ),
                 ),
@@ -218,27 +206,28 @@ class _ShareToChatDialogState extends ConsumerState<ShareToChatDialog> {
                       child: ElevatedButton(
                         onPressed: canSend ? _handleSend : null,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primaryRed,
+                          backgroundColor: scheme.primary,
+                          foregroundColor: scheme.onPrimary,
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
                         child: _isSending
-                            ? const SizedBox(
+                            ? SizedBox(
                                 width: 20,
                                 height: 20,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
                                   valueColor: AlwaysStoppedAnimation<Color>(
-                                    AppColors.neutralWhite,
+                                    scheme.onPrimary,
                                   ),
                                 ),
                               )
                             : Text(
                                 'Send',
                                 style: AppTypography.button.copyWith(
-                                  color: AppColors.neutralWhite,
+                                  color: scheme.onPrimary,
                                 ),
                               ),
                       ),
@@ -253,7 +242,8 @@ class _ShareToChatDialogState extends ConsumerState<ShareToChatDialog> {
     );
   }
 
-  Widget _buildSearchField(bool isDark, Color borderColor) {
+  Widget _buildSearchField(BuildContext context, Color borderColor) {
+    final scheme = Theme.of(context).colorScheme;
     return TextField(
       onChanged: (value) {
         setState(() {
@@ -264,7 +254,7 @@ class _ShareToChatDialogState extends ConsumerState<ShareToChatDialog> {
         hintText: 'Search name or username',
         prefixIcon: const Icon(Icons.search),
         filled: true,
-        fillColor: isDark ? AppColors.darkGray700 : AppColors.neutralGray100,
+        fillColor: scheme.surfaceContainerHigh,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: borderColor),
@@ -275,7 +265,7 @@ class _ShareToChatDialogState extends ConsumerState<ShareToChatDialog> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.primaryRed, width: 2),
+          borderSide: BorderSide(color: scheme.primary, width: 2),
         ),
       ),
     );
@@ -304,7 +294,8 @@ class _ShareToChatDialogState extends ConsumerState<ShareToChatDialog> {
     );
   }
 
-  Widget _buildComposerField(bool isDark, Color borderColor, Color textColor) {
+  Widget _buildComposerField(BuildContext context, Color borderColor, Color textColor) {
+    final scheme = Theme.of(context).colorScheme;
     return TextField(
       controller: _messageController,
       maxLines: 4,
@@ -313,7 +304,7 @@ class _ShareToChatDialogState extends ConsumerState<ShareToChatDialog> {
       decoration: InputDecoration(
         hintText: 'Write a message (optional)',
         hintStyle: AppTypography.bodyMedium.copyWith(
-          color: isDark ? AppColors.neutralGray500 : AppColors.neutralGray400,
+          color: scheme.onSurfaceVariant,
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -325,7 +316,7 @@ class _ShareToChatDialogState extends ConsumerState<ShareToChatDialog> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.primaryRed, width: 2),
+          borderSide: BorderSide(color: scheme.primary, width: 2),
         ),
       ),
     );
@@ -333,14 +324,14 @@ class _ShareToChatDialogState extends ConsumerState<ShareToChatDialog> {
 
   Widget _buildSearchResults(
     AsyncValue<List<UserSearch>> searchAsync,
-    bool isDark,
   ) {
+    final scheme = Theme.of(context).colorScheme;
     return searchAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, stackTrace) => Text(
         error.toString(),
         style: TextStyle(
-          color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray600,
+          color: scheme.onSurfaceVariant,
         ),
       ),
       data: (users) {
@@ -348,9 +339,7 @@ class _ShareToChatDialogState extends ConsumerState<ShareToChatDialog> {
           return Text(
             'Search for a recipient to continue.',
             style: TextStyle(
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray600,
+              color: scheme.onSurfaceVariant,
             ),
           );
         }
@@ -359,9 +348,7 @@ class _ShareToChatDialogState extends ConsumerState<ShareToChatDialog> {
           return Text(
             'No users found.',
             style: TextStyle(
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray600,
+              color: scheme.onSurfaceVariant,
             ),
           );
         }
@@ -375,7 +362,6 @@ class _ShareToChatDialogState extends ConsumerState<ShareToChatDialog> {
             final user = users[index];
             return _ShareRecipientRow(
               user: user,
-              isDark: isDark,
               onTap: () {
                 setState(() {
                   _selectedRecipient = user;
@@ -496,24 +482,19 @@ class _ShareToChatDialogState extends ConsumerState<ShareToChatDialog> {
 
 class _ShareRecipientRow extends StatelessWidget {
   final UserSearch user;
-  final bool isDark;
   final VoidCallback onTap;
 
   const _ShareRecipientRow({
     required this.user,
-    required this.isDark,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final label = UserIdentityFormatter.formatHandle(user.username) ?? 'User';
-    final labelColor = isDark
-        ? AppColors.neutralWhite
-        : AppColors.neutralGray900;
-    final subtitleColor = isDark
-        ? AppColors.neutralGray400
-        : AppColors.neutralGray600;
+    final labelColor = scheme.onSurface;
+    final subtitleColor = scheme.onSurfaceVariant;
     return Material(
       color: Colors.transparent,
       child: ListTile(

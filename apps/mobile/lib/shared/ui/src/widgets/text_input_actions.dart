@@ -18,12 +18,10 @@ class QuickAction {
 /// Text Input Actions Widget - Generic action buttons for text inputs
 class TextInputActions extends StatelessWidget {
   final List<QuickAction> actions;
-  final bool isDark;
 
   const TextInputActions({
     super.key,
     required this.actions,
-    required this.isDark,
   });
 
   @override

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/src/theme/app_colors.dart';
 
 /// Empty state widget for reviews
 class ReviewsEmptyState extends StatelessWidget {
@@ -7,7 +6,7 @@ class ReviewsEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Center(
       child: Column(
@@ -16,7 +15,7 @@ class ReviewsEmptyState extends StatelessWidget {
           Icon(
             Icons.rate_review_outlined,
             size: 64,
-            color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray500,
+            color: scheme.outline,
           ),
           const SizedBox(height: 16),
           Text(
@@ -24,9 +23,7 @@ class ReviewsEmptyState extends StatelessWidget {
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
-              color: isDark
-                  ? AppColors.neutralGray300
-                  : AppColors.neutralGray600,
+              color: scheme.onSurface,
             ),
           ),
           const SizedBox(height: 8),
@@ -34,9 +31,7 @@ class ReviewsEmptyState extends StatelessWidget {
             'Be the first to review this seller',
             style: TextStyle(
               fontSize: 14,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray500,
+              color: scheme.onSurfaceVariant,
             ),
           ),
         ],

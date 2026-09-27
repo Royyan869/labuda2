@@ -24,9 +24,9 @@ export function AdminErrorState({
   return (
     <Card className={className}>
       <CardContent className="p-8 text-center">
-        <AlertTriangle className="h-10 w-10 text-red-400 mx-auto mb-3" />
-        <p className="text-gray-900 font-medium">{title}</p>
-        <p className="text-gray-600 text-sm mt-1">{message}</p>
+        <AlertTriangle className="h-10 w-10 text-destructive mx-auto mb-3" />
+        <p className="text-foreground font-medium">{title}</p>
+        <p className="text-muted-foreground text-sm mt-1">{message}</p>
         {onRetry && (
           <Button variant="secondary" size="sm" onClick={onRetry} className="mt-4">
             Retry

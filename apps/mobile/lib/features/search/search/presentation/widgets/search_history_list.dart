@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/features/search/search/domain/entities/search_history.dart';
 
 /// Widget to display search history
@@ -19,7 +18,7 @@ class SearchHistoryList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     if (history.isEmpty) {
       return const SizedBox.shrink();
@@ -38,16 +37,14 @@ class SearchHistoryList extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: isDark
-                      ? AppColors.neutralGray100
-                      : AppColors.neutralGray900,
+                  color: scheme.onSurface,
                 ),
               ),
               TextButton(
                 onPressed: onClearAll,
                 child: Text(
                   'Clear All',
-                  style: TextStyle(color: AppColors.primary, fontSize: 14),
+                  style: TextStyle(color: scheme.primary, fontSize: 14),
                 ),
               ),
             ],
@@ -59,33 +56,27 @@ class SearchHistoryList extends StatelessWidget {
           itemCount: history.length,
           separatorBuilder: (_, _) => Divider(
             height: 1,
-            color: isDark ? AppColors.darkGray600 : AppColors.neutralGray200,
+            color: scheme.outlineVariant,
           ),
           itemBuilder: (context, index) {
             final item = history[index];
             return ListTile(
               leading: Icon(
                 Icons.history,
-                color: isDark
-                    ? AppColors.neutralGray500
-                    : AppColors.neutralGray400,
+                color: scheme.onSurfaceVariant,
                 size: 20,
               ),
               title: Text(
                 item.query,
                 style: TextStyle(
-                  color: isDark
-                      ? AppColors.neutralGray100
-                      : AppColors.neutralGray900,
+                  color: scheme.onSurface,
                 ),
               ),
               trailing: IconButton(
                 icon: Icon(
                   Icons.close,
                   size: 18,
-                  color: isDark
-                      ? AppColors.neutralGray500
-                      : AppColors.neutralGray400,
+                  color: scheme.onSurfaceVariant,
                 ),
                 onPressed: () => onDeleteTap(item.id),
               ),

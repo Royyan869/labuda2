@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/services/location_service.dart';
 
 /// Widget untuk menampilkan accuracy indicator di map
@@ -45,22 +44,20 @@ class _AccuracyBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: isDark
-            ? AppColors.darkGray700.withValues(alpha: 0.9)
-            : AppColors.neutralWhite.withValues(alpha: 0.9),
+        color: scheme.surface.withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: level.color.withValues(alpha: 0.5),
+          color: level.resolve(context).withValues(alpha: 0.5),
           width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
+            color: scheme.shadow.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -74,7 +71,7 @@ class _AccuracyBadge extends StatelessWidget {
             width: 8,
             height: 8,
             decoration: BoxDecoration(
-              color: level.color,
+              color: level.resolve(context),
               shape: BoxShape.circle,
             ),
           ),
@@ -85,7 +82,7 @@ class _AccuracyBadge extends StatelessWidget {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: isDark ? AppColors.neutralWhite : AppColors.neutralGray900,
+              color: scheme.onSurface,
             ),
           ),
           const SizedBox(width: 4),
@@ -95,9 +92,7 @@ class _AccuracyBadge extends StatelessWidget {
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w500,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray600,
+              color: scheme.onSurfaceVariant,
             ),
           ),
         ],
@@ -114,16 +109,16 @@ class DefaultLocationWarning extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.primaryRed.withValues(alpha: isDark ? 0.2 : 0.1),
+        color: scheme.error.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppColors.primaryRed.withValues(alpha: 0.5),
+          color: scheme.error.withValues(alpha: 0.5),
           width: 1,
         ),
       ),
@@ -134,7 +129,7 @@ class DefaultLocationWarning extends StatelessWidget {
             children: [
               Icon(
                 Icons.warning_amber_rounded,
-                color: AppColors.primaryRed,
+                color: scheme.error,
                 size: 20,
               ),
               const SizedBox(width: 8),
@@ -144,9 +139,7 @@ class DefaultLocationWarning extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: isDark
-                        ? AppColors.neutralWhite
-                        : AppColors.neutralGray900,
+                    color: scheme.onSurface,
                   ),
                 ),
               ),
@@ -157,9 +150,7 @@ class DefaultLocationWarning extends StatelessWidget {
             'Menggunakan lokasi default (Jakarta). Pastikan GPS aktif dan coba lagi.',
             style: TextStyle(
               fontSize: 12,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray600,
+              color: scheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 12),
@@ -170,9 +161,7 @@ class DefaultLocationWarning extends StatelessWidget {
                   onPressed: () => Navigator.pop(context),
                   style: OutlinedButton.styleFrom(
                     side: BorderSide(
-                      color: isDark
-                          ? AppColors.neutralGray600
-                          : AppColors.neutralGray300,
+                      color: scheme.outline,
                     ),
                     padding: const EdgeInsets.symmetric(vertical: 10),
                   ),
@@ -180,9 +169,7 @@ class DefaultLocationWarning extends StatelessWidget {
                     'Tutup',
                     style: TextStyle(
                       fontSize: 14,
-                      color: isDark
-                          ? AppColors.neutralWhite
-                          : AppColors.neutralGray700,
+                      color: scheme.onSurface,
                     ),
                   ),
                 ),
@@ -192,7 +179,7 @@ class DefaultLocationWarning extends StatelessWidget {
                 child: FilledButton(
                   onPressed: onRetry,
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primaryRed,
+                    backgroundColor: scheme.error,
                     padding: const EdgeInsets.symmetric(vertical: 10),
                   ),
                   child: const Text(
@@ -226,7 +213,7 @@ class LocationAccuracyIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     // Special case untuk default/last known
     if (isDefault || isLastKnown) {
@@ -234,8 +221,8 @@ class LocationAccuracyIndicator extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
           color: isDefault
-              ? AppColors.primaryRed.withValues(alpha: 0.1)
-              : AppColors.neutralGray600.withValues(alpha: 0.2),
+              ? scheme.error.withValues(alpha: 0.12)
+              : scheme.onSurfaceVariant.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(6),
         ),
         child: Row(
@@ -244,11 +231,7 @@ class LocationAccuracyIndicator extends StatelessWidget {
             Icon(
               isDefault ? Icons.warning_amber_rounded : Icons.history,
               size: 12,
-              color: isDefault
-                  ? AppColors.primaryRed
-                  : (isDark
-                        ? AppColors.neutralGray400
-                        : AppColors.neutralGray600),
+              color: isDefault ? scheme.error : scheme.onSurfaceVariant,
             ),
             const SizedBox(width: 4),
             Text(
@@ -256,11 +239,7 @@ class LocationAccuracyIndicator extends StatelessWidget {
               style: TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.w500,
-                color: isDefault
-                    ? AppColors.primaryRed
-                    : (isDark
-                          ? AppColors.neutralGray400
-                          : AppColors.neutralGray600),
+                color: isDefault ? scheme.error : scheme.onSurfaceVariant,
               ),
             ),
           ],
@@ -272,9 +251,9 @@ class LocationAccuracyIndicator extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: level.color.withValues(alpha: 0.15),
+        color: level.resolve(context).withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: level.color.withValues(alpha: 0.4), width: 1),
+        border: Border.all(color: level.resolve(context).withValues(alpha: 0.4), width: 1),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -283,7 +262,7 @@ class LocationAccuracyIndicator extends StatelessWidget {
             width: 6,
             height: 6,
             decoration: BoxDecoration(
-              color: level.color,
+              color: level.resolve(context),
               shape: BoxShape.circle,
             ),
           ),
@@ -293,9 +272,7 @@ class LocationAccuracyIndicator extends StatelessWidget {
             style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.w500,
-              color: isDark
-                  ? AppColors.neutralGray300
-                  : AppColors.neutralGray700,
+              color: scheme.onSurfaceVariant,
             ),
           ),
         ],

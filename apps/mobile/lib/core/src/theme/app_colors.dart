@@ -87,7 +87,12 @@ class AppColors {
     end: Alignment.bottomRight,
   );
 
-  // Light theme colors
+  // Light theme colors.
+  //
+  // THEME AUTHORITY (Tahap 0): every tone below reuses an existing palette
+  // token — no new hex. Container roles step darker away from the surface
+  // (M3 direction); secondary text and borders use gray tones instead of the
+  // previous flat pure-black outline default.
   static const ColorScheme lightColorScheme = ColorScheme.light(
     primary: primaryRed,
     secondary: primaryBlue,
@@ -96,11 +101,23 @@ class AppColors {
     onPrimary: neutralWhite,
     onSecondary: neutralWhite,
     onSurface: neutralGray900,
+    onSurfaceVariant: neutralGray600,
     onError: neutralWhite,
+    outline: neutralGray500,
+    outlineVariant: neutralGray300,
+    surfaceContainerLowest: neutralWhite,
+    surfaceContainerLow: neutralGray50,
+    surfaceContainer: neutralGray100,
+    surfaceContainerHigh: neutralGray200,
+    surfaceContainerHighest: neutralGray300,
     brightness: Brightness.light,
   );
 
-  // Dark theme colors
+  // Dark theme colors.
+  //
+  // Same doctrine: container roles step lighter away from the surface
+  // (M3 direction); secondary text and borders use gray tones instead of
+  // the previous flat pure-white outline default.
   static const ColorScheme darkColorScheme = ColorScheme.dark(
     primary: primaryRed,
     secondary: primaryBlue,
@@ -109,7 +126,15 @@ class AppColors {
     onPrimary: neutralWhite,
     onSecondary: neutralWhite,
     onSurface: neutralGray100,
+    onSurfaceVariant: neutralGray300,
     onError: neutralWhite,
+    outline: neutralGray400,
+    outlineVariant: darkGray600,
+    surfaceContainerLowest: darkGray900,
+    surfaceContainerLow: darkGray800,
+    surfaceContainer: darkGray700,
+    surfaceContainerHigh: darkGray600,
+    surfaceContainerHighest: darkGray500,
     brightness: Brightness.dark,
   );
 }

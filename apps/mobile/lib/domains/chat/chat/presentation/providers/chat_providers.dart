@@ -35,9 +35,17 @@ export 'package:labuda/domains/chat/chat/data/chat_providers.dart'
 // from chat_notifier.dart using @riverpod annotations:
 // - chatListProvider (was chatListNotifierProvider)
 // - chatDetailProvider (was chatDetailNotifierProvider) - family provider
-// - presenceProvider (was presenceNotifierProvider)
 //
 // Usage: ref.watch(chatDetailProvider(chatId))
+
+// ========================================
+// Feature presence
+// ========================================
+// Chat has NO feature flags of its own. Presence comes from the canonical
+// core presence stack (`presenceProvider` / `isUserOnlineProvider`, backed by
+// GET /api/v1/users/presence and the WS `presence.changed` signal).
+// Typing indicators and read receipts are NOT implemented by the backend and
+// must not be re-added as flags — see the chat repository contract.
 
 // ========================================
 // Computed Providers
@@ -57,16 +65,6 @@ final chatListWithUnreadProvider = Provider<ChatListState>((ref) {
   final chatListState = ref.watch(chatListProvider);
   return chatListState;
 });
-
-// ========================================
-// Feature Flag Providers
-// ========================================
-
-final typingIndicatorEnabledProvider = Provider<bool>((ref) => false);
-final readReceiptEnabledProvider = Provider<bool>((ref) => true);
-// Backend has no presence endpoints. presenceProvider.isUserOnline() always
-// returns false. This flag is false to match reality.
-final presenceEnabledProvider = Provider<bool>((ref) => false);
 
 // ========================================
 // Helper Providers
