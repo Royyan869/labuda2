@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	auctionEntity "github.com/labuda/backend/internal/commerce/auction/entity"
 	fpsEntity "github.com/labuda/backend/internal/commerce/forsale/entity"
+	commerceshared "github.com/labuda/backend/internal/commerce/shared"
 	chatApp "github.com/labuda/backend/internal/interaction/chat/application"
 	chatEntity "github.com/labuda/backend/internal/interaction/chat/entity"
 	"github.com/labuda/backend/internal/social/content/entity"
@@ -854,7 +855,7 @@ func TestUnifiedShareDepth1_DepthMatrixD1ToD30Evidence(t *testing.T) {
 
 	t.Run("D30 nested JSON exactly resource_type + resource_id", func(t *testing.T) {
 		b, err := json.Marshal(chatApp.NestedResourceIndicator{
-			ResourceType: chatEntity.ResourceOccurrenceResourceTypeProfile,
+			ResourceType: commerceshared.ProjectionResourceTypeProfile,
 			ResourceID:   profileActiveID,
 		})
 		require.NoError(t, err)

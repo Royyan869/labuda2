@@ -15,6 +15,8 @@ import (
 	chatApp "github.com/labuda/backend/internal/interaction/chat/application"
 	chatEntity "github.com/labuda/backend/internal/interaction/chat/entity"
 	"github.com/labuda/backend/internal/pkg/blockcheck"
+	"github.com/labuda/backend/internal/pkg/mediaref"
+	"github.com/labuda/backend/internal/pkg/publiccard"
 	"github.com/labuda/backend/internal/platform/mediaresolve"
 	"github.com/labuda/backend/pkg/db"
 )
@@ -227,7 +229,7 @@ func (r *forSaleProjectionBatchResolver) ResolveForSales(
 					SubscriptionStatus: row.subscriptionStatus,
 				},
 			}) {
-				proj, projErr := chatApp.NewTombstoneProjection(chatEntity.ResourceOccurrenceResourceTypeForSale)
+				proj, projErr := commerceshared.NewTombstoneResourceProjection(commerceshared.ProjectionResourceTypeForSale, sourceID)
 				if projErr != nil {
 					return projErr
 				}
@@ -235,7 +237,6 @@ func (r *forSaleProjectionBatchResolver) ResolveForSales(
 				continue
 			}
 
-			imageURL := firstResolvedURLFromJSONStrings(row.productMediaURLs)
 			sellerTrustActive := viewercontext.CoarsenSellerTrust(row.subscriptionStatus) == viewercontext.PublicLifecycleStateActive
 			forSaleCaps := commerceshared.EvaluateForSaleViewerCapabilities(commerceshared.ForSaleViewerCapabilitiesInput{
 				ViewerID:           viewerID,
@@ -253,21 +254,26 @@ func (r *forSaleProjectionBatchResolver) ResolveForSales(
 				BlockedByTombstone: false,
 			}
 
-			payload := chatApp.ForSaleLivePayload{
-				Title:    row.title,
-				ImageURL: imageURL,
-				Price:    chatApp.ForSaleLivePrice{Amount: row.pricePerUnit, Currency: "IDR"},
+			mediaRefs := buildForSaleMediaRefs(row.productMediaURLs)
+			sellerCard := buildForSaleSellerCard(row, sellerLifecycle)
+			thumbnail := firstResolvedURLFromJSONStrings(row.productMediaURLs)
+			payload := commerceshared.ForSaleLivePayload{
+				Title:             row.title,
+				Media:             mediaRefs,
+				ThumbnailURL:      thumbnail,
+				Price:             commerceshared.LivePrice{Amount: row.pricePerUnit, Currency: commerceshared.LivePriceCurrencyIDR},
 				// Scope 3 — status boundary: coarsened public lifecycle only
-				// ({active, unavailable}); the raw internal enum (draft/sold/
-				// withdrawn) never crosses the chat wire. Parity with the
-				// chat auction projection.
+				// ({active, sold, unavailable}); sold is honest public
+				// business truth for buyers, draft/withdrawn stay coarsened.
+				// The raw internal enum (draft/withdrawn) never crosses the
+				// chat wire. Parity with the chat auction projection.
 				Status:            fpsEntity.ForSaleStatus(row.status).PublicLifecycle(),
-				Seller:            buildForSaleLiveSeller(row, sellerLifecycle),
+				Seller:            sellerCard,
 				QuantityAvailable: row.quantityAvailable,
 			}
 
-			proj, projErr := chatApp.NewLiveProjection(
-				chatEntity.ResourceOccurrenceResourceTypeForSale,
+			proj, projErr := commerceshared.NewLiveResourceProjection(
+				commerceshared.ProjectionResourceTypeForSale,
 				sourceID,
 				payload,
 				viewerCaps,
@@ -301,20 +307,48 @@ func buildForSaleCommerceActions(
 	}
 }
 
-func buildForSaleLiveSeller(row forSaleSourceRow, lifecycle viewercontext.PublicLifecycleState) chatApp.ForSaleLiveSeller {
-	seller := chatApp.ForSaleLiveSeller{
-		ID:        row.sellerID,
-		StoreName: strings.TrimSpace(row.storeName.String),
-		Username:  strings.TrimSpace(row.username.String),
-		Lifecycle: string(lifecycle),
+// buildForSaleSellerCard builds the CANONICAL publiccard.SellerCard for the
+// chat for-sale wire (scope #3): the former flat ForSaleLiveSeller envelope
+// is deleted — one seller card shape across every surface.
+func buildForSaleSellerCard(row forSaleSourceRow, lifecycle viewercontext.PublicLifecycleState) publiccard.SellerCard {
+	trustLifecycle := string(viewercontext.CoarsenSellerTrust(row.subscriptionStatus))
+	card := publiccard.SellerCard{
+		User: publiccard.UserCard{
+			ID:       row.sellerID,
+			Username: strings.TrimSpace(row.username.String),
+		},
+	}
+	if lc := string(lifecycle); lc != "" {
+		card.User.Lifecycle = &lc
+	}
+	if storeName := strings.TrimSpace(row.storeName.String); storeName != "" {
+		card.FarmName = &storeName
 	}
 	if row.storeImageURL.Valid {
 		if trimmed := strings.TrimSpace(row.storeImageURL.String); trimmed != "" {
 			resolved := resolveReadableSaleMediaReference(trimmed)
-			seller.StoreImage = &resolved
+			card.AvatarURL = &resolved
 		}
 	}
-	return seller
+	if trustLifecycle != "" {
+		card.Lifecycle = &trustLifecycle
+	}
+	card.Tier = publiccard.GatedSellerTier("", string(lifecycle), trustLifecycle)
+	return card
+}
+
+// buildForSaleMediaRefs maps the product media list onto canonical media refs.
+func buildForSaleMediaRefs(raw json.RawMessage) []mediaref.MediaRef {
+	values := decodeJSONStringSlice(raw)
+	refs := make([]mediaref.MediaRef, 0, len(values))
+	for _, value := range values {
+		if trimmed := strings.TrimSpace(value); trimmed != "" {
+			if resolved := resolveReadableSaleMediaReference(trimmed); resolved != "" {
+				refs = append(refs, mediaref.MediaRef{URL: resolved})
+			}
+		}
+	}
+	return refs
 }
 
 func firstResolvedURLFromJSONStrings(raw json.RawMessage) *string {

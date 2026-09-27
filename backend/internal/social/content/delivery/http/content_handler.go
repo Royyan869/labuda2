@@ -14,6 +14,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	commerceshared "github.com/labuda/backend/internal/commerce/shared"
 	"github.com/labuda/backend/internal/governance/evaluator"
 	"github.com/labuda/backend/internal/governance/viewercontext"
 	"github.com/labuda/backend/internal/identity/auth"
@@ -253,8 +254,8 @@ type ContentResponse struct {
 	UpdatedAt string `json:"updated_at"`
 
 	// SHARE CONTRACT V1: Repost attribution fields
-	OriginalAuthorID   *uuid.UUID                            `json:"original_author_id,omitempty"`
-	ResourceProjection *contentApp.ContentResourceProjection `json:"resource_projection,omitempty"`
+	OriginalAuthorID   *uuid.UUID                         `json:"original_author_id,omitempty"`
+	ResourceProjection *commerceshared.ResourceProjection `json:"resource_projection,omitempty"`
 
 	// C7C — Engagement stats for content detail responses.
 	// Always non-nil on content detail/create/update responses.
@@ -388,7 +389,7 @@ func ToContentResponse(content *entity.Content, media []*entity.ContentMedia) Co
 }
 
 // ToContentResponseWithProjection attaches the canonical resource projection.
-func ToContentResponseWithProjection(content *entity.Content, media []*entity.ContentMedia, projection *contentApp.ContentResourceProjection) ContentResponse {
+func ToContentResponseWithProjection(content *entity.Content, media []*entity.ContentMedia, projection *commerceshared.ResourceProjection) ContentResponse {
 	resp := ToContentResponse(content, media)
 	resp.ResourceProjection = projection
 	return resp
@@ -407,7 +408,7 @@ func ToContentResponseWithAuthorAndProjection(
 	content *entity.Content,
 	media []*entity.ContentMedia,
 	author *publiccard.UserCard,
-	projection *contentApp.ContentResourceProjection,
+	projection *commerceshared.ResourceProjection,
 ) ContentResponse {
 	resp := ToContentResponseWithProjection(content, media, projection)
 
@@ -441,7 +442,7 @@ func (h *ContentHandler) loadContentResourceProjection(
 	tx db.Tx,
 	viewerID uuid.UUID,
 	contentID uuid.UUID,
-) (*contentApp.ContentResourceProjection, error) {
+) (*commerceshared.ResourceProjection, error) {
 	resolver := contentApp.NewContentResourceProjectionResolver()
 	return resolver.ResolveContentResourceProjection(ctx, tx, viewerID, contentID)
 }
@@ -599,7 +600,7 @@ func (h *ContentHandler) CreateContent(c *gin.Context) {
 	// Fetch media and author card for the response in a single tx.
 	var media []*entity.ContentMedia
 	var authorCard publiccard.UserCard
-	var projection *contentApp.ContentResourceProjection
+	var projection *commerceshared.ResourceProjection
 	err = h.db.WithTx(ctx, func(tx db.Tx) error {
 		var err error
 		media, err = h.contentService.GetContentMedia(ctx, tx, newContent.ID)
@@ -796,7 +797,7 @@ func (h *ContentHandler) UpdateContent(c *gin.Context) {
 	// Fetch media and author card for the response in a single tx.
 	var media []*entity.ContentMedia
 	var authorCard publiccard.UserCard
-	var projection *contentApp.ContentResourceProjection
+	var projection *commerceshared.ResourceProjection
 	err = h.db.WithTx(ctx, func(tx db.Tx) error {
 		media, err = h.contentService.GetContentMedia(ctx, tx, contentID)
 		if err != nil {
@@ -913,7 +914,7 @@ func (h *ContentHandler) GetContent(c *gin.Context) {
 	var content *entity.Content
 	var media []*entity.ContentMedia
 	var authorCard publiccard.UserCard
-	var projection *contentApp.ContentResourceProjection
+	var projection *commerceshared.ResourceProjection
 	var tc *viewercontext.TargetContext
 	var likeCount int
 	var commentCount int
@@ -1190,7 +1191,7 @@ func (h *ContentHandler) GetUserContent(c *gin.Context) {
 				)
 				media = []*entity.ContentMedia{}
 			}
-			var projection *contentApp.ContentResourceProjection
+			var projection *commerceshared.ResourceProjection
 			if proj, projErr := h.loadContentResourceProjection(ctx, tx, viewerID, ct.ID); projErr == nil {
 				projection = proj
 			}
@@ -1257,8 +1258,8 @@ type CreateRepostRequest struct {
 	OriginalAuthorID        string `json:"original_author_id"`
 	OriginalContentTitle    string `json:"original_content_title"`
 	OriginalContentImageURL string `json:"original_content_image_url"`
-	TargetType              string `json:"target_type"`  // content | for_sale | auction | profile
-	TargetID                string `json:"target_id"`    // Entity ID for non-content shares
+	TargetType              string `json:"target_type"` // content | for_sale | auction | profile
+	TargetID                string `json:"target_id"`   // Entity ID for non-content shares
 }
 
 // RepostContent handles POST /api/v1/contents/{id}/repost
@@ -1389,7 +1390,7 @@ func (h *ContentHandler) RepostContent(c *gin.Context) {
 	// the canonical PublicCard and resource_projection blocks.
 	var media []*entity.ContentMedia
 	var authorCard publiccard.UserCard
-	var projection *contentApp.ContentResourceProjection
+	var projection *commerceshared.ResourceProjection
 	if hydrateErr := h.db.WithTx(ctx, func(tx db.Tx) error {
 		var err error
 		authorCard, err = h.buildContentAuthorCardWithLifecycle(ctx, tx, repost.AuthorID)

@@ -13,6 +13,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	fpsEntity "github.com/labuda/backend/internal/commerce/forsale/entity"
+	commerceshared "github.com/labuda/backend/internal/commerce/shared"
 	chatApp "github.com/labuda/backend/internal/interaction/chat/application"
 	chatEntity "github.com/labuda/backend/internal/interaction/chat/entity"
 	"github.com/labuda/backend/pkg/db"
@@ -231,32 +232,31 @@ func newFPSOccurrence(messageID, saleID uuid.UUID) *chatEntity.ChatMessageResour
 	)
 }
 
-func requireLiveFPSProjection(t *testing.T, proj *chatApp.ResourceProjection) chatApp.ForSaleLivePayload {
+func requireLiveFPSProjection(t *testing.T, proj *chatApp.ResourceProjection) commerceshared.ForSaleLivePayload {
 	t.Helper()
 	require.NotNil(t, proj)
 	require.Equal(t, chatApp.ProjectionStateLive, proj.State)
-	require.Equal(t, chatEntity.ResourceOccurrenceResourceTypeForSale, proj.Identity.ResourceType)
-	require.NotNil(t, proj.Payload)
+	require.Equal(t, string(chatEntity.ResourceOccurrenceResourceTypeForSale), string(proj.ResourceType))
+	require.NotNil(t, proj.ForSale)
 	require.NotNil(t, proj.CommerceActions)
-
-	payload, ok := proj.Payload.(chatApp.ForSaleLivePayload)
-	require.True(t, ok, "expected ForSaleLivePayload, got %T", proj.Payload)
-	require.NotNil(t, payload.Price)
-	require.NotNil(t, payload.Seller)
-	return payload
+	return *proj.ForSale
 }
 
 func requireTombstoneFPSProjection(t *testing.T, proj *chatApp.ResourceProjection) {
 	t.Helper()
 	require.NotNil(t, proj)
 	require.Equal(t, chatApp.ProjectionStateTombstone, proj.State)
-	require.Equal(t, chatEntity.ResourceOccurrenceResourceTypeForSale, proj.Identity.ResourceType)
-	require.Nil(t, proj.Payload)
+	require.Equal(t, string(chatEntity.ResourceOccurrenceResourceTypeForSale), string(proj.ResourceType))
+	require.Nil(t, proj.ForSale)
+	require.Nil(t, proj.Profile)
+	require.Nil(t, proj.Content)
+	require.Nil(t, proj.Auction)
 	require.Nil(t, proj.CommerceActions)
 	assert.False(t, proj.ViewerCapabilities.CanView)
 	assert.False(t, proj.ViewerCapabilities.CanInteract)
 	assert.True(t, proj.ViewerCapabilities.BlockedByTombstone)
-	assert.Equal(t, uuid.Nil, proj.Identity.ResourceID)
+	// Canonical contract: the resource id survives death.
+	assert.NotEqual(t, uuid.Nil, proj.ResourceID)
 }
 
 func TestForSaleProjectionResolver_MixedStatesAndPayloadContract(t *testing.T) {
@@ -345,15 +345,19 @@ func TestForSaleProjectionResolver_MixedStatesAndPayloadContract(t *testing.T) {
 		case activeSaleID:
 			payload := requireLiveFPSProjection(t, proj)
 			require.Equal(t, "Showa Koi 30cm", payload.Title)
-			require.NotNil(t, payload.ImageURL)
-			require.Equal(t, "https://cdn.example.test/product-thumb.jpg", *payload.ImageURL)
+			require.NotNil(t, payload.ThumbnailURL)
+			require.Equal(t, "https://cdn.example.test/product-thumb.jpg", *payload.ThumbnailURL)
+			require.Len(t, payload.Media, 1)
+			require.Equal(t, "https://cdn.example.test/product-thumb.jpg", payload.Media[0].URL)
 			require.Equal(t, int64(1500000), payload.Price.Amount)
 			require.Equal(t, "IDR", payload.Price.Currency)
 			require.Equal(t, "active", payload.Status)
 			require.Equal(t, 3, payload.QuantityAvailable)
-			require.Equal(t, activeSellerID, payload.Seller.ID)
-			require.Equal(t, "Active Farm", payload.Seller.StoreName)
-			require.Equal(t, "active", payload.Seller.Lifecycle)
+			require.Equal(t, activeSellerID, payload.Seller.User.ID)
+			require.NotNil(t, payload.Seller.FarmName)
+			require.Equal(t, "Active Farm", *payload.Seller.FarmName)
+			require.NotNil(t, payload.Seller.User.Lifecycle)
+			require.Equal(t, "active", *payload.Seller.User.Lifecycle)
 			require.True(t, proj.CommerceActions.CanChat)
 			require.True(t, proj.CommerceActions.CanBuy)
 			require.True(t, proj.CommerceActions.CanNegotiate)

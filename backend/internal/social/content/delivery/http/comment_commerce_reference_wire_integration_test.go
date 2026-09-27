@@ -26,9 +26,11 @@ import (
 )
 
 // newCommentCommerceWireHandler wires a production-shaped CommentHandler over
-// a real DB: real forSaleService (live for_sale previews), real idempotency,
-// no-op outbox, commerce response reference validator. contentService is the
-// canonical real ContentService instance (visibility gate dependency).
+// a real DB: real forSaleService (comment-service dependency), real
+// idempotency, no-op outbox, commerce response reference validator.
+// contentService is the canonical real ContentService instance (visibility
+// gate dependency). The handler itself resolves reference display through the
+// canonical projection authority.
 func newCommentCommerceWireHandler(appDB *db.DB) *CommentHandler {
 	contentService := contentApp.NewContentService(
 		contentrepo.NewContentRepository(),
@@ -66,7 +68,6 @@ func newCommentCommerceWireHandler(appDB *db.DB) *CommentHandler {
 	return NewCommentHandler(
 		commentService,
 		contentService,
-		forSaleSvc,
 		commentListHTTPRoleChecker{},
 		appDB,
 		zap.NewNop(),
@@ -94,6 +95,75 @@ func seedCommentCommerceFPS(t *testing.T, ctx context.Context, appDB *db.DB, sel
 	})
 	require.NoError(t, err)
 	return fpsID
+}
+
+// seedCommentAuctionRefRow inserts an auction-reference comment row +
+// linkage directly (auction references cannot be created through the test
+// validator, but existing rows must still resolve their envelope).
+func seedCommentAuctionRefRow(t *testing.T, ctx context.Context, appDB *db.DB, authorID, contentID, auctionID uuid.UUID) {
+	t.Helper()
+	err := appDB.WithTx(ctx, func(tx db.Tx) error {
+		var commentID uuid.UUID
+		if err := tx.QueryRow(ctx, `
+			INSERT INTO comments (id, author_id, body, target_id, target_type, created_at, updated_at)
+			VALUES (gen_random_uuid(), $1, 'auction ref', $2, 'content', NOW(), NOW())
+			RETURNING id
+		`, authorID, contentID).Scan(&commentID); err != nil {
+			return err
+		}
+		_, err := tx.Exec(ctx, `
+			INSERT INTO comment_commerce_references (comment_id, auction_id)
+			VALUES ($1, $2)
+		`, commentID, auctionID)
+		return err
+	})
+	require.NoError(t, err)
+}
+
+// TestCommentCommerceReference_AuctionReferenceCarriesProjection proves the
+// canonical envelope exists for auction references. The deleted legacy path
+// hydrated a for_sale-only snapshot, so an auction comment had no display data
+// and no state — it now answers with the same LIVE payload chat and content
+// detail give for that auction.
+func TestCommentCommerceReference_AuctionReferenceCarriesProjection(t *testing.T) {
+	tdb, cleanup := testdb.SetupDB(t)
+	defer cleanup()
+	appDB := db.NewFromPool(tdb.Pool())
+	ctx := context.Background()
+
+	authorID := seedCommentListHTTPUser(t, ctx, appDB, "auc-author")
+	sellerID := seedCommentListHTTPUser(t, ctx, appDB, "auc-seller")
+
+	handler := newCommentCommerceWireHandler(appDB)
+	contentID := seedCommentListHTTPContent(t, ctx, appDB, handler, authorID)
+	auctionID := seedVisibilityHTTPAuction(t, ctx, appDB, sellerID)
+	seedCommentAuctionRefRow(t, ctx, appDB, authorID, contentID, auctionID)
+
+	router := gin.New()
+	router.GET("/contents/:id/comments", handler.ListComments)
+
+	wList := performWireListComments(t, router, contentID.String(), "", 20)
+	require.Equal(t, http.StatusOK, wList.Code, "body=%s", wList.Body.String())
+	var env struct {
+		Data struct {
+			Comments []map[string]any `json:"comments"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(wList.Body.Bytes(), &env))
+	require.Len(t, env.Data.Comments, 1)
+
+	row := env.Data.Comments[0]
+	require.Equal(t, "commerce_reference", row["type"])
+	_, hasLegacy := row["forSale"]
+	require.False(t, hasLegacy, "legacy `forSale` snapshot preview must stay deleted")
+
+	proj := row["resource_projection"].(map[string]any)
+	require.Equal(t, "LIVE", proj["state"])
+	require.Equal(t, "auction", proj["resource_type"])
+	require.Equal(t, auctionID.String(), proj["resource_id"])
+	auction := proj["auction"].(map[string]any)
+	require.Equal(t, "active", auction["lifecycle"])
+	require.NotEmpty(t, auction["end_at"], "auction envelope must carry its end time")
 }
 
 // seedCommentCommerceRefRow inserts a commerce-reference comment row +
@@ -164,15 +234,26 @@ func TestCommentCommerceReferenceWire_CreateListShape_SurvivesReload_NoLeak(t *t
 	preview := ref["preview"].(map[string]any)
 	require.NotEmpty(t, preview["title"], "create-time snapshot must carry the for_sale title")
 
-	// Live for_sale preview attached to the create response.
-	forSale := data["forSale"].(map[string]any)
+	// Canonical viewer-aware envelope attached to the create response.
+	proj := data["resource_projection"].(map[string]any)
+	require.Equal(t, "LIVE", proj["state"])
+	require.Equal(t, "for_sale", proj["resource_type"])
+	require.Equal(t, fpsID.String(), proj["resource_id"])
+	forSale := proj["for_sale"].(map[string]any)
 	require.Equal(t, "Wire Product", forSale["title"])
-	require.Equal(t, float64(100000), forSale["price"])
+	// CANONICAL MONEY ENVELOPE (scope #3): price is {amount, currency}, never a
+	// bare scalar — the content scalar died with the envelope convergence.
+	price := forSale["price"].(map[string]any)
+	require.Equal(t, float64(100000), price["amount"])
+	require.Equal(t, "IDR", price["currency"])
 	require.Equal(t, "active", forSale["status"])
+	_, hasLegacyPreview := data["forSale"]
+	require.False(t, hasLegacyPreview, "legacy `forSale` snapshot preview must stay deleted from the comment wire")
 
 	// C2/C3 — GET list. Reference identity survives the store/reload round
 	// trip; the snapshot preview is empty (only the linkage is persisted);
-	// the live `forSale` preview is re-hydrated by the handler.
+	// the viewer-aware `resource_projection` envelope is re-resolved by the
+	// handler through the canonical projection authority.
 	wList := performWireListComments(t, router, contentID.String(), "", 20)
 	require.Equal(t, http.StatusOK, wList.Code, "body=%s", wList.Body.String())
 	var env struct {
@@ -190,9 +271,14 @@ func TestCommentCommerceReferenceWire_CreateListShape_SurvivesReload_NoLeak(t *t
 	require.Equal(t, fpsID.String(), refList["targetId"])
 	previewList := refList["preview"].(map[string]any)
 	require.Equal(t, "", previewList["title"], "reference.preview is not persisted; empty on the list surface")
-	forSaleList := first["forSale"].(map[string]any)
+	projList := first["resource_projection"].(map[string]any)
+	require.Equal(t, "LIVE", projList["state"])
+	require.Equal(t, "for_sale", projList["resource_type"])
+	forSaleList := projList["for_sale"].(map[string]any)
 	require.Equal(t, "Wire Product", forSaleList["title"])
 	require.Equal(t, "active", forSaleList["status"])
+	_, hasLegacyList := first["forSale"]
+	require.False(t, hasLegacyList, "legacy `forSale` snapshot preview must stay deleted from the list wire")
 
 	// C6 — a withdrawn (inaccessible/hidden) commerce target on the list still
 	// carries only its canonical identity + status; the create gate plus FK
@@ -224,6 +310,8 @@ func TestCommentCommerceReferenceWire_CreateListShape_SurvivesReload_NoLeak(t *t
 	require.Equal(t, "for_sale", refW["targetType"])
 	require.Equal(t, withdrawnFPS.String(), refW["targetId"])
 	require.Equal(t, "", refW["preview"].(map[string]any)["title"])
-	forSaleW := withdrawnRow["forSale"].(map[string]any)
-	require.Equal(t, "withdrawn", forSaleW["status"], "inaccessible for_sale surfaces status so the UI fails closed")
+	projW := withdrawnRow["resource_projection"].(map[string]any)
+	require.Equal(t, "LIVE", projW["state"], "a public withdrawn listing stays visible, exactly like chat and content detail")
+	forSaleW := projW["for_sale"].(map[string]any)
+	require.Equal(t, "unavailable", forSaleW["status"], "internal enum must never cross the wire; public lifecycle makes the UI fail closed")
 }

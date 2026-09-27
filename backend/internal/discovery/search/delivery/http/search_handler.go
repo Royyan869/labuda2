@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	commerceshared "github.com/labuda/backend/internal/commerce/shared"
 	searchApp "github.com/labuda/backend/internal/discovery/search/application"
 	"github.com/labuda/backend/internal/discovery/search/entity"
 	"github.com/labuda/backend/internal/governance/evaluator"
@@ -229,7 +230,7 @@ func (h *SearchHandler) SearchContent(c *gin.Context) {
 	var targetCtx *viewercontext.TargetContext
 	// E9.1 — author lifecycle map built inside WithTx; used after tx closes.
 	var authorLifecycleByID map[uuid.UUID]string
-	var resourceProjections map[uuid.UUID]*contentApp.ContentResourceProjection
+	var resourceProjections map[uuid.UUID]*commerceshared.ResourceProjection
 
 	err := h.db.WithTx(ctx, func(tx db.Tx) error {
 		// Construct canonical Pattern A ViewerContext inside the transaction
@@ -847,7 +848,7 @@ func contentPreviewsToResponseWithProjections(
 	contents []*entity.ContentPreview,
 	lifecycleOverrides map[uuid.UUID]string,
 	authorLifecycleByID map[uuid.UUID]string,
-	projections map[uuid.UUID]*contentApp.ContentResourceProjection,
+	projections map[uuid.UUID]*commerceshared.ResourceProjection,
 ) []map[string]interface{} {
 	return newSearchProjectionAdapter().contentPreviewsToResponseWithProjections(contents, lifecycleOverrides, authorLifecycleByID, projections)
 }
@@ -873,9 +874,9 @@ func hydrateSearchContentResourceProjections(
 	tx db.Tx,
 	vc *viewercontext.ViewerContext,
 	contents []*entity.ContentPreview,
-) map[uuid.UUID]*contentApp.ContentResourceProjection {
+) map[uuid.UUID]*commerceshared.ResourceProjection {
 	if tx == nil || len(contents) == 0 {
-		return map[uuid.UUID]*contentApp.ContentResourceProjection{}
+		return map[uuid.UUID]*commerceshared.ResourceProjection{}
 	}
 
 	contentIDs := make([]uuid.UUID, 0, len(contents))
@@ -885,7 +886,7 @@ func hydrateSearchContentResourceProjections(
 		}
 	}
 	if len(contentIDs) == 0 {
-		return map[uuid.UUID]*contentApp.ContentResourceProjection{}
+		return map[uuid.UUID]*commerceshared.ResourceProjection{}
 	}
 
 	viewerID := uuid.Nil
@@ -896,7 +897,7 @@ func hydrateSearchContentResourceProjections(
 	resolver := contentApp.NewContentResourceProjectionResolver()
 	projections, err := resolver.ResolveContentResourceProjections(ctx, tx, viewerID, contentIDs)
 	if err != nil {
-		return map[uuid.UUID]*contentApp.ContentResourceProjection{}
+		return map[uuid.UUID]*commerceshared.ResourceProjection{}
 	}
 	return projections
 }

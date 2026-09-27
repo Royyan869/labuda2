@@ -6,11 +6,11 @@ import (
 
 	"github.com/google/uuid"
 	auctionentity "github.com/labuda/backend/internal/commerce/auction/entity"
+	commerceshared "github.com/labuda/backend/internal/commerce/shared"
 	"github.com/labuda/backend/internal/discovery/search/entity"
 	"github.com/labuda/backend/internal/pkg/mediaref"
 	"github.com/labuda/backend/internal/pkg/publiccard"
 	"github.com/labuda/backend/internal/platform/mediaresolve"
-	contentApp "github.com/labuda/backend/internal/social/content/application"
 )
 
 // searchProjectionAdapter centralizes the current search wire assembly.
@@ -69,7 +69,7 @@ func (searchProjectionAdapter) forSalePreviewsToResponse(
 			"seller_username":   projection.Author.Username,
 			"seller_farm_name":  projection.FarmName,
 			"seller_avatar_url": projection.Author.AvatarURL,
-			"seller_lifecycle":   seller.Lifecycle,
+			"seller_lifecycle":  seller.Lifecycle,
 			"author":            projection.Author,
 			"media":             media,
 			"for_sale": publiccard.NewForSaleCard(
@@ -90,7 +90,7 @@ func (searchProjectionAdapter) contentPreviewsToResponseWithProjections(
 	contents []*entity.ContentPreview,
 	lifecycleOverrides map[uuid.UUID]string,
 	authorLifecycleByID map[uuid.UUID]string,
-	projections map[uuid.UUID]*contentApp.ContentResourceProjection,
+	projections map[uuid.UUID]*commerceshared.ResourceProjection,
 ) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, len(contents))
 	for _, c := range contents {
@@ -228,7 +228,7 @@ func (searchProjectionAdapter) auctionPreviewsToResponse(
 			"seller_username":   projection.Author.Username,
 			"seller_farm_name":  projection.FarmName,
 			"seller_avatar_url": projection.Author.AvatarURL,
-			"seller_lifecycle":   seller.Lifecycle,
+			"seller_lifecycle":  seller.Lifecycle,
 			"author":            projection.Author,
 			"media":             media,
 			"auction": publiccard.NewAuctionCard(

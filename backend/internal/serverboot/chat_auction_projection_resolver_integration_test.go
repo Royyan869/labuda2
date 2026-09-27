@@ -248,29 +248,31 @@ func makeRepeatedAuctionOccurrences(
 	return occurrences
 }
 
-func requireLiveAuctionProjection(t *testing.T, proj *chatApp.ResourceProjection) chatApp.AuctionLivePayload {
+func requireLiveAuctionProjection(t *testing.T, proj *chatApp.ResourceProjection) commerceshared.AuctionLivePayload {
 	t.Helper()
 	require.NotNil(t, proj)
 	require.Equal(t, chatApp.ProjectionStateLive, proj.State)
-	require.Equal(t, chatEntity.ResourceOccurrenceResourceTypeAuction, proj.Identity.ResourceType)
-	require.NotNil(t, proj.Payload)
+	require.Equal(t, string(chatEntity.ResourceOccurrenceResourceTypeAuction), string(proj.ResourceType))
+	require.NotNil(t, proj.Auction)
 	require.NotNil(t, proj.CommerceActions)
 	require.True(t, proj.ViewerCapabilities.CanView)
 	require.False(t, proj.ViewerCapabilities.BlockedByTombstone)
 	require.Equal(t, proj.CommerceActions.CanBid || proj.CommerceActions.CanBuy, proj.ViewerCapabilities.CanInteract)
 
-	payload, ok := proj.Payload.(chatApp.AuctionLivePayload)
-	require.True(t, ok, "expected AuctionLivePayload, got %T", proj.Payload)
-	return payload
+	return *proj.Auction
 }
 
 func requireTombstoneAuctionProjection(t *testing.T, proj *chatApp.ResourceProjection) {
 	t.Helper()
 	require.NotNil(t, proj)
 	require.Equal(t, chatApp.ProjectionStateTombstone, proj.State)
-	require.Equal(t, chatEntity.ResourceOccurrenceResourceTypeAuction, proj.Identity.ResourceType)
-	require.Equal(t, uuid.Nil, proj.Identity.ResourceID)
-	require.Nil(t, proj.Payload)
+	require.Equal(t, string(chatEntity.ResourceOccurrenceResourceTypeAuction), string(proj.ResourceType))
+	// Canonical contract: the resource id survives death.
+	require.NotEqual(t, uuid.Nil, proj.ResourceID)
+	require.Nil(t, proj.Auction)
+	require.Nil(t, proj.ForSale)
+	require.Nil(t, proj.Profile)
+	require.Nil(t, proj.Content)
 	require.Nil(t, proj.CommerceActions)
 	require.False(t, proj.ViewerCapabilities.CanView)
 	require.False(t, proj.ViewerCapabilities.CanInteract)
@@ -309,7 +311,7 @@ func assertAuctionProjectionMatchesAuthority(
 	}
 
 	_ = requireLiveAuctionProjection(t, proj)
-	require.Equal(t, auctionID, proj.Identity.ResourceID)
+	require.Equal(t, auctionID, proj.ResourceID)
 
 	expectedCaps := commerceshared.EvaluateAuctionViewerCapabilities(commerceshared.AuctionViewerCapabilitiesInput{
 		ViewerID:          viewerID,
@@ -329,7 +331,7 @@ func assertAuctionProjectionMatchesAuthority(
 
 func assertAuctionLivePayloadContract(
 	t *testing.T,
-	payload chatApp.AuctionLivePayload,
+	payload commerceshared.AuctionLivePayload,
 	wantTitle string,
 	wantThumbnail string,
 	wantCurrentBid *int64,
@@ -350,16 +352,17 @@ func assertAuctionLivePayloadContract(
 	require.Equal(t, wantEndAt, payload.EndAt)
 
 	if wantThumbnail == "" {
-		require.Nil(t, payload.Thumbnail)
+		require.Nil(t, payload.ThumbnailURL)
+		require.Empty(t, payload.Media)
 	} else {
-		require.NotNil(t, payload.Thumbnail)
-		require.Equal(t, wantThumbnail, *payload.Thumbnail)
+		require.NotNil(t, payload.ThumbnailURL)
+		require.Equal(t, wantThumbnail, *payload.ThumbnailURL)
+		require.Len(t, payload.Media, 1)
+		require.Equal(t, wantThumbnail, payload.Media[0].URL)
 	}
 
-	require.NotNil(t, payload.Lifecycle)
-	require.Equal(t, wantAuctionLifecycle, *payload.Lifecycle)
+	require.Equal(t, wantAuctionLifecycle, payload.Lifecycle)
 
-	require.NotNil(t, payload.Seller)
 	require.Equal(t, wantSellerID, payload.Seller.User.ID)
 	require.Equal(t, wantSellerUsername, payload.Seller.User.Username)
 	if wantUserLifecycle == "" {
@@ -424,7 +427,8 @@ func TestAuctionProjectionResolver_OperationParity(t *testing.T) {
 	require.NotNil(t, shareProj)
 	require.NotNil(t, directProj)
 	require.Equal(t, shareProj.State, directProj.State)
-	require.Equal(t, shareProj.Identity, directProj.Identity)
+	require.Equal(t, shareProj.ResourceType, directProj.ResourceType)
+	require.Equal(t, shareProj.ResourceID, directProj.ResourceID)
 	require.Equal(t, shareProj.ViewerCapabilities, directProj.ViewerCapabilities)
 	require.Equal(t, shareProj.CommerceActions, directProj.CommerceActions)
 
@@ -485,7 +489,9 @@ func TestAuctionProjectionResolver_LivePayloadContract(t *testing.T) {
 	assertAuctionLivePayloadContract(
 		t,
 		payload,
-		"Showa Koi 30cm",
+		// seedAuction mints the product title with a " product" suffix; the
+		// canonical projection Title sources p.title (parity with FPS).
+		"Showa Koi 30cm product",
 		"https://cdn.example.test/product.jpg",
 		&currentBid,
 		&buyNow,
@@ -535,7 +541,7 @@ func TestAuctionProjectionResolver_LivePayloadContract(t *testing.T) {
 	assertAuctionLivePayloadContract(
 		t,
 		payload,
-		"Expired Trust Auction",
+		"Expired Trust Auction product",
 		"",
 		nil,
 		nil,
@@ -580,8 +586,10 @@ func TestAuctionProjectionResolver_TombstonePrivacy(t *testing.T) {
 	requireTombstoneAuctionProjection(t, proj)
 
 	got := projectionJSONMap(t, proj)
-	requireTopLevelKeys(t, got, []string{"state", "resource_type", "viewer_capabilities"})
-	requireAbsentKeys(t, got, []string{"resource_id", "canonical_url", "commerce_actions", "auction", "for_sale", "profile", "content"})
+	requireTopLevelKeys(t, got, []string{"state", "resource_type", "resource_id", "viewer_capabilities"})
+	requireAbsentKeys(t, got, []string{"canonical_url", "commerce_actions", "auction", "for_sale", "profile", "content"})
+	// Canonical contract: identity survives death (chat's omission rule died).
+	require.Equal(t, auctionID.String(), mustStringValue(t, got["resource_id"]))
 }
 
 func TestAuctionProjectionResolver_AuthorityParityMatrix(t *testing.T) {

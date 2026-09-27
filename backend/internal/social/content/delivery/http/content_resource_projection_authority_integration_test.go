@@ -167,6 +167,69 @@ func TestContentResourceProjectionAuthority_GetContentMatrix(t *testing.T) {
 		assertNoLegacyLeak(t, data, "legacy fps leak", "https://example.com/legacy-fps-leak.jpg")
 	})
 
+	t.Run("fixed price sale tombstones when seller lifecycle is not active", func(t *testing.T) {
+		// CANONICAL: commerceshared.EvaluateForSaleViewAccess gates the seller
+		// lifecycle (suspended/deleted seller → not viewable). Chat projection
+		// already answers TOMBSTONE here; content projection must answer the
+		// same way — one authority, one answer.
+		viewerID := seedVisibilityHTTPUser(t, ctx, appDB, "active")
+		sellerID := seedVisibilityHTTPUser(t, ctx, appDB, "suspended")
+		saleID := seedVisibilityHTTPForSale(t, ctx, appDB, sellerID)
+		contentID := createCanonicalContentWithOccurrence(t, ctx, tdb, handler, viewerID, "fps suspended seller", &contententity.ContentResourceOccurrenceIdentity{
+			Operation:    contententity.ContentResourceOccurrenceOperationShareToFeed,
+			ResourceType: contententity.ContentResourceOccurrenceResourceTypeForSale,
+			ResourceID:   saleID,
+		})
+
+		data := getContentData(t, handler, viewerContext{userID: viewerID}, contentID)
+		assertProjectionTombstone(t, data, contententity.ContentResourceOccurrenceResourceTypeForSale, saleID)
+	})
+
+	t.Run("fixed price sale live payload carries public lifecycle vocabulary only", func(t *testing.T) {
+		// CANONICAL: the projection wire only ever carries
+		// ForSaleStatus.PublicLifecycle() — {active, sold, unavailable}. The raw
+		// internal enum (draft/withdrawn) must never cross the content wire, and
+		// a withdrawn-but-public listing stays LIVE exactly like chat shows it.
+		viewerID := seedVisibilityHTTPUser(t, ctx, appDB, "active")
+		sellerID := seedVisibilityHTTPUser(t, ctx, appDB, "active")
+		saleID := seedVisibilityHTTPForSale(t, ctx, appDB, sellerID)
+		contentID := createCanonicalContentWithOccurrence(t, ctx, tdb, handler, viewerID, "fps withdrawn vocabulary", &contententity.ContentResourceOccurrenceIdentity{
+			Operation:    contententity.ContentResourceOccurrenceOperationShareToFeed,
+			ResourceType: contententity.ContentResourceOccurrenceResourceTypeForSale,
+			ResourceID:   saleID,
+		})
+		// The producer only accepts live listings for a share, so the stale-share
+		// path is reproduced faithfully: share while active, then withdraw.
+		require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
+			_, err := tx.Exec(ctx, `UPDATE for_sales SET status = 'withdrawn' WHERE id = $1`, saleID)
+			return err
+		}))
+
+		data := getContentData(t, handler, viewerContext{userID: viewerID}, contentID)
+		assertProjectionLive(t, data, contententity.ContentResourceOccurrenceResourceTypeForSale, saleID)
+		payload := mustMap(t, mustMap(t, data, "resource_projection"), "for_sale")
+		status := mustString(t, payload, "status")
+		if status != "unavailable" {
+			t.Fatalf("for_sale status = %q; want public lifecycle %q (raw internal enum must not cross the wire)", status, "unavailable")
+		}
+	})
+
+	t.Run("auction tombstones when seller lifecycle is not active", func(t *testing.T) {
+		// Same canonical authority as the fixed-price case above: auction view
+		// access also fails closed on a suspended seller.
+		viewerID := seedVisibilityHTTPUser(t, ctx, appDB, "active")
+		sellerID := seedVisibilityHTTPUser(t, ctx, appDB, "suspended")
+		auctionID := seedVisibilityHTTPAuction(t, ctx, appDB, sellerID)
+		contentID := createCanonicalContentWithOccurrence(t, ctx, tdb, handler, viewerID, "auction suspended seller", &contententity.ContentResourceOccurrenceIdentity{
+			Operation:    contententity.ContentResourceOccurrenceOperationShareToFeed,
+			ResourceType: contententity.ContentResourceOccurrenceResourceTypeAuction,
+			ResourceID:   auctionID,
+		})
+
+		data := getContentData(t, handler, viewerContext{userID: viewerID}, contentID)
+		assertProjectionTombstone(t, data, contententity.ContentResourceOccurrenceResourceTypeAuction, auctionID)
+	})
+
 	t.Run("fixed price sale missing source tombstones despite legacy blob", func(t *testing.T) {
 		viewerID := seedVisibilityHTTPUser(t, ctx, appDB, "active")
 		contentID, missingSaleID := createContentWithMissingForSaleOccurrence(t, ctx, tdb, handler, viewerID, "fps missing source")
@@ -681,6 +744,7 @@ func assertNoLegacyLeak(t *testing.T, data map[string]any, legacyTitle, legacyUR
 		t.Fatalf("response leaked legacy URL %q", legacyURL)
 	}
 }
+
 
 type viewerContext struct {
 	userID uuid.UUID

@@ -4,52 +4,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	commerceshared "github.com/labuda/backend/internal/commerce/shared"
 	"github.com/labuda/backend/internal/pkg/publiccard"
 	"github.com/labuda/backend/internal/social/content/entity"
-	"github.com/labuda/backend/pkg/money"
 )
 
-// ForSalePreview represents a lightweight preview of a commerce resource for comment responses.
-// Only contains essential fields for display purposes.
-//
-// PHASE C — ForSaleRef convergence (third horizontal layer, inline hybrid).
-// The legacy fields ID/Title/Price/MediaURLs are preserved for existing consumers.
-// The new Currency/Thumbnail/Seller/Status fields make this struct canonical-
-// compatible with the ForSaleRef contract without renaming or removing legacy
-// fields. See backend/internal/pkg/publiccard/for_sale_card.go for the canonical
-// contract (Batch 2C — forSaleref collapsed onto publiccard.ForSaleCard).
-//
-// Hydration rules in this layer:
-//   - Thumbnail mirrors the first element of MediaURLs (set in
-//     GetForSalePreviewFromForSale after JSONB unmarshal). Nil when no media.
-//   - Status mirrors forSale.Status.String() from the full ForSale entity
-//     fetched in the comment handler. Empty string maps to nil.
-//   - Currency is nil — the comment surface does not hydrate currency today.
-//   - Seller is nil — seller identity is not hydrated in the comment path.
-//     (Batch 2B: type collapsed onto *publiccard.UserCard; same JSON shape.)
-type ForSalePreview struct {
-	ID        uuid.UUID `json:"id"`
-	Title     string    `json:"title"`
-	Price     int64     `json:"price"`      // Price in minor currency units (e.g., cents)
-	MediaURLs []string  `json:"media_urls"` // Array of media URLs
-
-	// Canonical-compatible additive fields (Phase C, third horizontal layer).
-	// Always emitted (no omitempty) so the wire shape is canonical-compatible;
-	// null until hydrated.
-	Currency  *string              `json:"currency"`
-	Thumbnail *string              `json:"thumbnail"`
-	Seller    *publiccard.UserCard `json:"seller"`
-	Status    *string              `json:"status"`
-}
-
-// CommentResponse represents a comment with optional embedded resource preview.
-// This is the response format for comment list and detail endpoints.
-//
-// PUBLIC BOUNDARY (Phase 2A):
-//   - `author` is now the canonical CommentAuthorCard (publiccard.UserCard).
-//     JSON shape matches the previous authorref.AuthorRef so this is a
-//     drop-in replacement; the difference is doctrinal — the card is the
-//     canonical exposure type, not an "additive ref".
+// CommentMediaResponse represents a foto+video attachment on a comment.
 type CommentMediaResponse struct {
 	ID         uuid.UUID `json:"id"`
 	StorageKey string    `json:"storage_key"`
@@ -58,7 +18,15 @@ type CommentMediaResponse struct {
 	Position   int       `json:"position"`
 }
 
-// CommentResponse represents a comment with optional embedded resource preview.
+// CommentResponse represents a comment with its optional canonical resource
+// projection (commerce-reference comments only).
+// This is the response format for comment list and detail endpoints.
+//
+// PUBLIC BOUNDARY (Phase 2A):
+//   - `author` is the canonical CommentAuthorCard (publiccard.UserCard).
+//     JSON shape matches the previous authorref.AuthorRef so this is a
+//     drop-in replacement; the difference is doctrinal — the card is the
+//     canonical exposure type, not an "additive ref".
 type CommentResponse struct {
 	ID       uuid.UUID `json:"id"`
 	TargetID uuid.UUID `json:"target_id"`
@@ -72,14 +40,20 @@ type CommentResponse struct {
 	Type      string                 `json:"type"`
 	ParentID  *uuid.UUID             `json:"parent_id,omitempty"` // Set for replies
 	Reference *entity.ShareReference `json:"reference,omitempty"`
-	ForSale   *ForSalePreview        `json:"forSale,omitempty"` // Populated only for commerce-reference comments
-	Media     []CommentMediaResponse `json:"media,omitempty"`   // foto+video attachments (max 5)
-	CreatedAt time.Time              `json:"created_at"`
-	DeletedAt *time.Time             `json:"deleted_at,omitempty"`
+	// ResourceProjection is the viewer-aware envelope for a commerce-reference
+	// comment (for_sale / auction), resolved by the canonical projection
+	// authority — LIVE payload or TOMBSTONE. The legacy `forSale` snapshot
+	// preview has no consumer and is deleted; comments answer exactly like
+	// chat, content detail, feed and search.
+	ResourceProjection *commerceshared.ResourceProjection `json:"resource_projection,omitempty"`
+	Media              []CommentMediaResponse             `json:"media,omitempty"` // foto+video attachments (max 5)
+	CreatedAt          time.Time                          `json:"created_at"`
+	DeletedAt          *time.Time                         `json:"deleted_at,omitempty"`
 }
 
 // NewCommentResponse creates a comment response from a comment entity.
-// For commerce-reference comments, resource data should be provided separately.
+// For commerce-reference comments, the viewer-aware resource projection should
+// be provided separately by the caller (canonical projection authority).
 // Author info (username, avatar) should be provided for proper UI rendering.
 //
 // E3.2 — authorLifecycle is the coarsened public user lifecycle for the
@@ -92,18 +66,18 @@ type CommentResponse struct {
 // flow into this parameter — coarsening is the caller's responsibility.
 func NewCommentResponse(
 	comment *entity.Comment,
-	forSale *ForSalePreview,
+	projection *commerceshared.ResourceProjection,
 	authorUsername string,
 	authorAvatarURL *string,
 	authorLifecycle string,
 ) *CommentResponse {
-	return NewCommentResponseWithMedia(comment, forSale, nil, authorUsername, authorAvatarURL, authorLifecycle)
+	return NewCommentResponseWithMedia(comment, projection, nil, authorUsername, authorAvatarURL, authorLifecycle)
 }
 
 // NewCommentResponseWithMedia is the foto+video-aware variant.
 func NewCommentResponseWithMedia(
 	comment *entity.Comment,
-	forSale *ForSalePreview,
+	projection *commerceshared.ResourceProjection,
 	media []*entity.CommentMedia,
 	authorUsername string,
 	authorAvatarURL *string,
@@ -147,9 +121,10 @@ func NewCommentResponseWithMedia(
 		DeletedAt:       comment.DeletedAt,
 	}
 
-	// Only include forSale preview if this is a commerce reference comment
-	if comment.IsCommerceReference() && forSale != nil {
-		resp.ForSale = forSale
+	// Commerce-reference comments carry the canonical viewer-aware envelope
+	// (LIVE or TOMBSTONE) instead of a snapshot preview.
+	if comment.IsCommerceReference() && projection != nil {
+		resp.ResourceProjection = projection
 	}
 
 	if len(media) > 0 {
@@ -166,46 +141,4 @@ func NewCommentResponseWithMedia(
 	}
 
 	return resp
-}
-
-// GetForSalePreviewFromForSale converts a forSale entity to a lightweight preview.
-// This is used when embedding commerce-resource data in comment responses.
-//
-// status is the string representation of the forSale's lifecycle status
-// (e.g. "active", "sold"). Pass an empty string when unavailable; it maps to nil.
-func GetForSalePreviewFromForSale(
-	forSaleID uuid.UUID,
-	title string,
-	price money.Money,
-	mediaURLs []string,
-	status string,
-) (*ForSalePreview, error) {
-	// Canonical media authority: callers pass Product.MediaURLs directly —
-	// the deprecated ForSale alias (json.RawMessage) was purged.
-	urls := mediaURLs
-
-	// Canonical additive thumbnail: first element of media_urls, nil when absent.
-	var thumbnail *string
-	if len(urls) > 0 {
-		t := urls[0]
-		thumbnail = &t
-	}
-
-	// Canonical additive status: nil when unavailable.
-	var statusPtr *string
-	if status != "" {
-		statusPtr = &status
-	}
-
-	return &ForSalePreview{
-		ID:        forSaleID,
-		Title:     title,
-		Price:     price.Int64(),
-		MediaURLs: urls,
-		// Additive ForSaleRef fields:
-		Currency:  nil,       // not hydrated on this surface
-		Thumbnail: thumbnail, // first of media_urls
-		Seller:    nil,       // seller identity not hydrated in comment path
-		Status:    statusPtr,
-	}, nil
 }

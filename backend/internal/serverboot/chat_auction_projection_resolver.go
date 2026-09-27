@@ -14,6 +14,7 @@ import (
 	chatApp "github.com/labuda/backend/internal/interaction/chat/application"
 	chatEntity "github.com/labuda/backend/internal/interaction/chat/entity"
 	"github.com/labuda/backend/internal/pkg/blockcheck"
+	"github.com/labuda/backend/internal/pkg/mediaref"
 	"github.com/labuda/backend/internal/pkg/publiccard"
 	"github.com/labuda/backend/internal/platform/mediaresolve"
 	"github.com/labuda/backend/pkg/db"
@@ -249,7 +250,7 @@ func (r *auctionProjectionBatchResolver) ResolveAuctions(
 					SubscriptionStatus: sellerRow.subscriptionStatus,
 				},
 			}) {
-				proj, projErr := chatApp.NewTombstoneProjection(chatEntity.ResourceOccurrenceResourceTypeAuction)
+				proj, projErr := commerceshared.NewTombstoneResourceProjection(commerceshared.ProjectionResourceTypeAuction, sourceID)
 				if projErr != nil {
 					return projErr
 				}
@@ -274,17 +275,18 @@ func (r *auctionProjectionBatchResolver) ResolveAuctions(
 			thumbnail := firstResolvedAuctionURLFromJSONStrings(row.productMediaURLs)
 			lifecycle := auctionEntity.Status(row.status).PublicLifecycle()
 
-			proj, projErr := chatApp.NewLiveProjection(
-				chatEntity.ResourceOccurrenceResourceTypeAuction,
+			proj, projErr := commerceshared.NewLiveResourceProjection(
+				commerceshared.ProjectionResourceTypeAuction,
 				sourceID,
-				chatApp.AuctionLivePayload{
-					Title:       row.productTitle,
-					Thumbnail:   thumbnail,
-					CurrentBid:  row.currentBid,
-					BuyNowPrice: row.buyNowPrice,
-					EndAt:       row.endAt.Format(time.RFC3339),
-					Lifecycle:   &lifecycle,
-					Seller:      sellerCard,
+				commerceshared.AuctionLivePayload{
+					Title:        row.productTitle,
+					Media:        buildAuctionMediaRefs(row.productMediaURLs),
+					ThumbnailURL: thumbnail,
+					CurrentBid:   row.currentBid,
+					BuyNowPrice:  row.buyNowPrice,
+					EndAt:        row.endAt.Format(time.RFC3339),
+					Lifecycle:    lifecycle,
+					Seller:       *sellerCard,
 				},
 				viewerCaps,
 				&commerceActions,
@@ -466,4 +468,19 @@ func firstResolvedAuctionURLFromJSONStrings(raw json.RawMessage) *string {
 		}
 	}
 	return nil
+}
+
+// buildAuctionMediaRefs maps the product media list onto canonical media refs
+// (scope #3: media[] replaces the singular thumbnail-only wire).
+func buildAuctionMediaRefs(raw json.RawMessage) []mediaref.MediaRef {
+	values := decodeJSONStringSlice(raw)
+	refs := make([]mediaref.MediaRef, 0, len(values))
+	for _, value := range values {
+		if trimmed := strings.TrimSpace(value); trimmed != "" {
+			if resolved := resolveReadableAuctionMediaReference(trimmed); resolved != "" {
+				refs = append(refs, mediaref.MediaRef{URL: resolved})
+			}
+		}
+	}
+	return refs
 }

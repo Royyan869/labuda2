@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	commerceshared "github.com/labuda/backend/internal/commerce/shared"
 	chatApp "github.com/labuda/backend/internal/interaction/chat/application"
 	chatEntity "github.com/labuda/backend/internal/interaction/chat/entity"
 	"github.com/labuda/backend/internal/pkg/mediaref"
@@ -203,8 +204,8 @@ func projectMapFromOccurrences(
 
 func mustProfileLiveProjection(t *testing.T, resourceID uuid.UUID) *chatApp.ResourceProjection {
 	t.Helper()
-	proj, err := chatApp.NewLiveProjection(
-		chatEntity.ResourceOccurrenceResourceTypeProfile,
+	proj, err := commerceshared.NewLiveResourceProjection(
+		commerceshared.ProjectionResourceTypeProfile,
 		resourceID,
 		chatApp.ProfileLivePayload{
 			Username:  "profile-" + resourceID.String()[:8],
@@ -221,17 +222,17 @@ func mustProfileLiveProjection(t *testing.T, resourceID uuid.UUID) *chatApp.Reso
 	return &proj
 }
 
-func mustProfileTombstoneProjection(t *testing.T) *chatApp.ResourceProjection {
+func mustProfileTombstoneProjection(t *testing.T, resourceID uuid.UUID) *chatApp.ResourceProjection {
 	t.Helper()
-	proj, err := chatApp.NewTombstoneProjection(chatEntity.ResourceOccurrenceResourceTypeProfile)
+	proj, err := commerceshared.NewTombstoneResourceProjection(commerceshared.ProjectionResourceTypeProfile, resourceID)
 	require.NoError(t, err)
 	return &proj
 }
 
 func mustContentLiveProjection(t *testing.T, resourceID uuid.UUID) *chatApp.ResourceProjection {
 	t.Helper()
-	proj, err := chatApp.NewLiveProjection(
-		chatEntity.ResourceOccurrenceResourceTypeContent,
+	proj, err := commerceshared.NewLiveResourceProjection(
+		commerceshared.ProjectionResourceTypeContent,
 		resourceID,
 		chatApp.ContentLivePayload{
 			Caption:   nil,
@@ -251,9 +252,9 @@ func mustContentLiveProjection(t *testing.T, resourceID uuid.UUID) *chatApp.Reso
 	return &proj
 }
 
-func mustContentTombstoneProjection(t *testing.T) *chatApp.ResourceProjection {
+func mustContentTombstoneProjection(t *testing.T, resourceID uuid.UUID) *chatApp.ResourceProjection {
 	t.Helper()
-	proj, err := chatApp.NewTombstoneProjection(chatEntity.ResourceOccurrenceResourceTypeContent)
+	proj, err := commerceshared.NewTombstoneResourceProjection(commerceshared.ProjectionResourceTypeContent, resourceID)
 	require.NoError(t, err)
 	return &proj
 }
@@ -261,18 +262,18 @@ func mustContentTombstoneProjection(t *testing.T) *chatApp.ResourceProjection {
 func mustForSaleLiveProjection(t *testing.T, resourceID uuid.UUID) *chatApp.ResourceProjection {
 	t.Helper()
 	sellerID := uuid.New()
-	seller := chatApp.ForSaleLiveSeller{
-		ID:        sellerID,
-		StoreName: "store-" + sellerID.String()[:8],
-		Username:  "seller-" + sellerID.String()[:8],
-		Lifecycle: "active",
+	// Canonical seller shape (scope #3): flat ForSaleLiveSeller is dead;
+	// every projection carries publiccard.SellerCard.
+	seller := publiccard.SellerCard{
+		User:     publiccard.NewWithLifecycle(sellerID, "seller-"+sellerID.String()[:8], nil, "active"),
+		FarmName: strPtr("store-" + sellerID.String()[:8]),
 	}
-	proj, err := chatApp.NewLiveProjection(
-		chatEntity.ResourceOccurrenceResourceTypeForSale,
+	proj, err := commerceshared.NewLiveResourceProjection(
+		commerceshared.ProjectionResourceTypeForSale,
 		resourceID,
-		chatApp.ForSaleLivePayload{
+		commerceshared.ForSaleLivePayload{
 			Title:             "sale-" + resourceID.String()[:8],
-			Price:             chatApp.ForSaleLivePrice{Amount: 1000, Currency: "IDR"},
+			Price:             commerceshared.LivePrice{Amount: 1000, Currency: commerceshared.LivePriceCurrencyIDR},
 			Status:            "active",
 			Seller:            seller,
 			QuantityAvailable: 1,
@@ -294,9 +295,9 @@ func mustForSaleLiveProjection(t *testing.T, resourceID uuid.UUID) *chatApp.Reso
 	return &proj
 }
 
-func mustForSaleTombstoneProjection(t *testing.T) *chatApp.ResourceProjection {
+func mustForSaleTombstoneProjection(t *testing.T, resourceID uuid.UUID) *chatApp.ResourceProjection {
 	t.Helper()
-	proj, err := chatApp.NewTombstoneProjection(chatEntity.ResourceOccurrenceResourceTypeForSale)
+	proj, err := commerceshared.NewTombstoneResourceProjection(commerceshared.ProjectionResourceTypeForSale, resourceID)
 	require.NoError(t, err)
 	return &proj
 }
@@ -305,14 +306,14 @@ func mustAuctionLiveProjection(t *testing.T, resourceID uuid.UUID) *chatApp.Reso
 	t.Helper()
 	sellerID := uuid.New()
 	seller := publiccard.NewSellerCardWithUserLifecycle(sellerID, "seller-"+sellerID.String()[:8], nil, "farm-"+sellerID.String()[:8], "active")
-	proj, err := chatApp.NewLiveProjection(
-		chatEntity.ResourceOccurrenceResourceTypeAuction,
+	proj, err := commerceshared.NewLiveResourceProjection(
+		commerceshared.ProjectionResourceTypeAuction,
 		resourceID,
-		chatApp.AuctionLivePayload{
+		commerceshared.AuctionLivePayload{
 			Title:     "auction-" + resourceID.String()[:8],
 			EndAt:     time.Date(2026, time.August, 9, 1, 0, 0, 0, time.UTC).Format(time.RFC3339),
-			Lifecycle: strPtr("active"),
-			Seller:    &seller,
+			Lifecycle: "active",
+			Seller:    seller,
 		},
 		chatApp.ProjectionViewerCapabilities{
 			CanView:            true,
@@ -331,9 +332,9 @@ func mustAuctionLiveProjection(t *testing.T, resourceID uuid.UUID) *chatApp.Reso
 	return &proj
 }
 
-func mustAuctionTombstoneProjection(t *testing.T) *chatApp.ResourceProjection {
+func mustAuctionTombstoneProjection(t *testing.T, resourceID uuid.UUID) *chatApp.ResourceProjection {
 	t.Helper()
-	proj, err := chatApp.NewTombstoneProjection(chatEntity.ResourceOccurrenceResourceTypeAuction)
+	proj, err := commerceshared.NewTombstoneResourceProjection(commerceshared.ProjectionResourceTypeAuction, resourceID)
 	require.NoError(t, err)
 	return &proj
 }
@@ -358,17 +359,22 @@ func assertProjectionMatchesOccurrence(
 	t.Helper()
 	require.NotNil(t, projection)
 	require.NoError(t, projection.Validate())
-	require.Equal(t, occurrence.ResourceType(), projection.Identity.ResourceType)
+	require.Equal(t, string(occurrence.ResourceType()), string(projection.ResourceType))
+	// Canonical contract (scope #3): identity survives in BOTH states —
+	// a TOMBSTONE still carries the source resource id.
+	require.Equal(t, occurrence.SourceID(), projection.ResourceID)
 	switch projection.State {
 	case chatApp.ProjectionStateTombstone:
-		require.Equal(t, uuid.Nil, projection.Identity.ResourceID)
-		require.Nil(t, projection.Payload)
+		require.Nil(t, projection.Profile)
+		require.Nil(t, projection.Content)
+		require.Nil(t, projection.ForSale)
+		require.Nil(t, projection.Auction)
 		require.Nil(t, projection.CommerceActions)
 		require.False(t, projection.ViewerCapabilities.CanView)
 		require.False(t, projection.ViewerCapabilities.CanInteract)
 		require.True(t, projection.ViewerCapabilities.BlockedByTombstone)
 	default:
-		require.Equal(t, occurrence.SourceID(), projection.Identity.ResourceID)
+		require.NotEqual(t, uuid.Nil, projection.ResourceID)
 	}
 }
 
@@ -605,7 +611,7 @@ func TestResourceProjectionAggregateResolver_Matrix(t *testing.T) {
 		require.Len(t, got, len(occurrences))
 		for messageID, projection := range got {
 			assertProjectionMatchesOccurrence(t, projection, occurrences[messageID])
-			require.Equal(t, sharedSourceID, projection.Identity.ResourceID)
+			require.Equal(t, sharedSourceID, projection.ResourceID)
 		}
 		expectCalls(t, h, 1, 0, 0, 0)
 	})
@@ -619,7 +625,7 @@ func TestResourceProjectionAggregateResolver_Matrix(t *testing.T) {
 			if idx == 0 {
 				h.content.outputs[messageID] = mustContentLiveProjection(t, occurrence.SourceID())
 			} else {
-				h.content.outputs[messageID] = mustContentTombstoneProjection(t)
+				h.content.outputs[messageID] = mustContentTombstoneProjection(t, occurrence.SourceID())
 			}
 			idx++
 		}
@@ -780,7 +786,7 @@ func TestResourceProjectionAggregateResolver_Matrix(t *testing.T) {
 		occurrences := buildOccurrences(chatEntity.ResourceOccurrenceResourceTypeAuction, []uuid.UUID{uuid.New()})
 		messageID := onlyMessageID(t, occurrences)
 		h.auction.outputs = map[uuid.UUID]*chatApp.ResourceProjection{
-			messageID: mustForSaleTombstoneProjection(t),
+			messageID: mustForSaleTombstoneProjection(t, occurrences[messageID].SourceID()),
 		}
 
 		got, err := h.resolve(ctx, viewerID, occurrences)
@@ -836,10 +842,10 @@ func TestResourceProjectionAggregateResolver_Matrix(t *testing.T) {
 		for messageID, projection := range got {
 			assertProjectionMatchesOccurrence(t, projection, occurrences[messageID])
 		}
-		require.Equal(t, sharedProfileID, projectionByTypeAndState(t, got, chatEntity.ResourceOccurrenceResourceTypeProfile, chatApp.ProjectionStateLive).Identity.ResourceID)
-		require.Equal(t, sharedContentID, projectionByTypeAndState(t, got, chatEntity.ResourceOccurrenceResourceTypeContent, chatApp.ProjectionStateLive).Identity.ResourceID)
-		require.Equal(t, sharedFPSID, projectionByTypeAndState(t, got, chatEntity.ResourceOccurrenceResourceTypeForSale, chatApp.ProjectionStateLive).Identity.ResourceID)
-		require.Equal(t, sharedAuctionID, projectionByTypeAndState(t, got, chatEntity.ResourceOccurrenceResourceTypeAuction, chatApp.ProjectionStateLive).Identity.ResourceID)
+		require.Equal(t, sharedProfileID, projectionByTypeAndState(t, got, chatEntity.ResourceOccurrenceResourceTypeProfile, chatApp.ProjectionStateLive).ResourceID)
+		require.Equal(t, sharedContentID, projectionByTypeAndState(t, got, chatEntity.ResourceOccurrenceResourceTypeContent, chatApp.ProjectionStateLive).ResourceID)
+		require.Equal(t, sharedFPSID, projectionByTypeAndState(t, got, chatEntity.ResourceOccurrenceResourceTypeForSale, chatApp.ProjectionStateLive).ResourceID)
+		require.Equal(t, sharedAuctionID, projectionByTypeAndState(t, got, chatEntity.ResourceOccurrenceResourceTypeAuction, chatApp.ProjectionStateLive).ResourceID)
 		expectCalls(t, h, 1, 1, 1, 1)
 	})
 
@@ -925,7 +931,7 @@ func projectionByTypeAndState(
 ) *chatApp.ResourceProjection {
 	t.Helper()
 	for _, projection := range projections {
-		if projection.Identity.ResourceType == resourceType && projection.State == state {
+		if string(projection.ResourceType) == string(resourceType) && projection.State == state {
 			return projection
 		}
 	}

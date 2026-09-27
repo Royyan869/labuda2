@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	commerceshared "github.com/labuda/backend/internal/commerce/shared"
 	"github.com/labuda/backend/internal/governance/viewercontext"
 	chatApp "github.com/labuda/backend/internal/interaction/chat/application"
 	chatEntity "github.com/labuda/backend/internal/interaction/chat/entity"
@@ -145,7 +146,7 @@ func (r *profileProjectionBatchResolver) ResolveProfiles(
 			blocked := viewerID != uuid.Nil && viewerID != sourceID && blockedSet[sourceID]
 
 			if lifecycle != viewercontext.PublicLifecycleStateActive || blocked {
-				proj, err := chatApp.NewTombstoneProjection(chatEntity.ResourceOccurrenceResourceTypeProfile)
+				proj, err := commerceshared.NewTombstoneResourceProjection(commerceshared.ProjectionResourceTypeProfile, sourceID)
 				if err != nil {
 					return err
 				}
@@ -173,11 +174,11 @@ func (r *profileProjectionBatchResolver) ResolveProfiles(
 				Lifecycle: string(lifecycle),
 			}
 
-			proj, err := chatApp.NewLiveProjection(
-				chatEntity.ResourceOccurrenceResourceTypeProfile,
+			proj, err := commerceshared.NewLiveResourceProjection(
+				commerceshared.ProjectionResourceTypeProfile,
 				sourceID,
 				payload,
-				chatApp.ProjectionViewerCapabilities{
+				commerceshared.ProjectionViewerCapabilities{
 					CanView:            true,
 					CanInteract:        false,
 					BlockedByTombstone: false,

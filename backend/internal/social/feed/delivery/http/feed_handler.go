@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	commerceshared "github.com/labuda/backend/internal/commerce/shared"
 	"github.com/labuda/backend/internal/governance/evaluator"
 	"github.com/labuda/backend/internal/governance/viewercontext"
 	"github.com/labuda/backend/internal/platform/response"
@@ -211,7 +212,7 @@ func (h *FeedHandler) GetFeed(c *gin.Context) {
 	// Convert feed items to response format. lifecycleOverrides is nil
 	// when no row took the override path; the renderer short-circuits
 	// cleanly in that case.
-	projections := make(map[uuid.UUID]*contentApp.ContentResourceProjection)
+	projections := make(map[uuid.UUID]*commerceshared.ResourceProjection)
 	// Anonymous viewers skip commerce-resource projection hydration — the
 	// Guest Home feed is a public content discovery feed.
 	if !isAnonymous && len(result.Items) > 0 {
@@ -282,9 +283,9 @@ func loadFeedContentResourceProjections(
 	database *db.DB,
 	viewerID uuid.UUID,
 	items []*entity.FeedItem,
-) (map[uuid.UUID]*contentApp.ContentResourceProjection, error) {
+) (map[uuid.UUID]*commerceshared.ResourceProjection, error) {
 	if database == nil || len(items) == 0 {
-		return map[uuid.UUID]*contentApp.ContentResourceProjection{}, nil
+		return map[uuid.UUID]*commerceshared.ResourceProjection{}, nil
 	}
 
 	contentIDs := make([]uuid.UUID, 0, len(items))
@@ -294,11 +295,11 @@ func loadFeedContentResourceProjections(
 		}
 	}
 	if len(contentIDs) == 0 {
-		return map[uuid.UUID]*contentApp.ContentResourceProjection{}, nil
+		return map[uuid.UUID]*commerceshared.ResourceProjection{}, nil
 	}
 
 	resolver := contentApp.NewContentResourceProjectionResolver()
-	var projections map[uuid.UUID]*contentApp.ContentResourceProjection
+	var projections map[uuid.UUID]*commerceshared.ResourceProjection
 	err := database.WithTx(ctx, func(tx db.Tx) error {
 		var err error
 		projections, err = resolver.ResolveContentResourceProjections(ctx, tx, viewerID, contentIDs)

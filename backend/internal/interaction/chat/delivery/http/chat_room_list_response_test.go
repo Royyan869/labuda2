@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	commerceshared "github.com/labuda/backend/internal/commerce/shared"
 	chatApp "github.com/labuda/backend/internal/interaction/chat/application"
 	chatEntity "github.com/labuda/backend/internal/interaction/chat/entity"
 	"github.com/stretchr/testify/assert"
@@ -82,8 +83,8 @@ func TestRoomListItemResponse_AttachesResourceProjectionToLastMessage(t *testing
 		CreatedAt:   time.Now(),
 	}
 
-	proj, err := chatApp.NewLiveProjection(
-		chatEntity.ResourceOccurrenceResourceTypeProfile,
+	proj, err := commerceshared.NewLiveResourceProjection(
+		commerceshared.ProjectionResourceTypeProfile,
 		uuid.New(),
 		chatApp.ProfileLivePayload{Username: "alice", IsSeller: false, Lifecycle: "active"},
 		chatApp.ProjectionViewerCapabilities{CanView: true, CanInteract: false, BlockedByTombstone: false},

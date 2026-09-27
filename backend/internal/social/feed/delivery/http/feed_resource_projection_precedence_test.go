@@ -5,8 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	contentApp "github.com/labuda/backend/internal/social/content/application"
-	contententity "github.com/labuda/backend/internal/social/content/entity"
+	commerceshared "github.com/labuda/backend/internal/commerce/shared"
 	feedentity "github.com/labuda/backend/internal/social/feed/entity"
 )
 
@@ -21,16 +20,18 @@ func TestFeedItemToResponseCanonicalWithProjection_PrefersCanonicalProjection(t 
 		UpdatedAt: time.Date(2026, time.August, 10, 10, 0, 0, 0, time.UTC),
 	}
 
-	projection, err := contentApp.NewLiveContentResourceProjection(
-		contententity.ContentResourceOccurrenceResourceTypeProfile,
+	projection, err := commerceshared.NewLiveResourceProjection(
+		commerceshared.ProjectionResourceTypeProfile,
 		uuid.New(),
-		contentApp.ProfileLivePayload{
+		commerceshared.ProfileLivePayload{
 			Username:  "alice",
 			Lifecycle: "active",
 		},
+		commerceshared.ProjectionViewerCapabilities{CanView: true},
+		nil,
 	)
 	if err != nil {
-		t.Fatalf("NewLiveContentResourceProjection: %v", err)
+		t.Fatalf("NewLiveResourceProjection: %v", err)
 	}
 
 	resp, err := feedItemToResponseCanonicalWithProjection(item, nil, nil, &projection)

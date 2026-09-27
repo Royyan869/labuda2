@@ -3,12 +3,11 @@ package http
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	forSaleApp "github.com/labuda/backend/internal/commerce/forsale/application"
+	commerceshared "github.com/labuda/backend/internal/commerce/shared"
 	"github.com/labuda/backend/internal/governance/viewercontext"
 	"github.com/labuda/backend/internal/identity/auth"
 	"github.com/labuda/backend/internal/platform/response"
@@ -22,7 +21,6 @@ import (
 type CommentHandler struct {
 	commentService *contentApp.CommentService
 	contentService *contentApp.ContentService
-	forSaleService *forSaleApp.ForSaleService
 	roleChecker    auth.RoleChecker
 	db             *db.DB
 	log            *zap.Logger
@@ -47,25 +45,10 @@ func NewCommentHandler(
 		if v, ok := extra[1].(*zap.Logger); ok {
 			handler.log = v
 		}
-	case 4:
-		if v, ok := extra[0].(*forSaleApp.ForSaleService); ok {
-			handler.forSaleService = v
-		}
-		if v, ok := extra[1].(auth.RoleChecker); ok {
-			handler.roleChecker = v
-		}
-		if v, ok := extra[2].(*db.DB); ok {
-			handler.db = v
-		}
-		if v, ok := extra[3].(*zap.Logger); ok {
-			handler.log = v
-		}
 	default:
-		// Best effort for partial wiring in unit tests.
+		// Partial wiring in unit tests: assign by type, any arity.
 		for _, arg := range extra {
 			switch v := arg.(type) {
-			case *forSaleApp.ForSaleService:
-				handler.forSaleService = v
 			case auth.RoleChecker:
 				handler.roleChecker = v
 			case *db.DB:
@@ -222,38 +205,16 @@ func (h *CommentHandler) CreateComment(c *gin.Context) {
 
 	// C-RESP — POST returns the canonical snake_case CommentResponse (same
 	// wire shape as the list endpoint), never the raw entity.
-	response.Created(c, h.buildCreateCommentResponse(ctx, newComment))
+	response.Created(c, h.buildCreateCommentResponse(ctx, userID, newComment))
 }
 
 // buildCreateCommentResponse hydrates the canonical CommentResponse for a
 // freshly created or idempotently replayed comment. C-RESP: create endpoints
 // return the same snake_case wire shape as the list endpoint, with the
-// embedded author card and (for FPS commerce references) forSale preview.
-func (h *CommentHandler) buildCreateCommentResponse(ctx context.Context, comment *entity.Comment) *contentApp.CommentResponse {
-	var preview *contentApp.ForSalePreview
-	if comment.IsCommerceReference() && comment.Reference != nil && comment.Reference.TargetType == entity.ShareTargetTypeForSale {
-		forSaleID, err := uuid.Parse(comment.Reference.TargetID)
-		if err == nil && h.forSaleService != nil {
-			perr := h.db.WithTx(ctx, func(tx db.Tx) error {
-				forSale, lerr := h.forSaleService.GetByID(ctx, tx, forSaleID)
-				if lerr != nil {
-					return lerr
-				}
-				if forSale.Product == nil {
-					return fmt.Errorf("for_sale %s has no canonical product", forSaleID)
-				}
-				lp, lperr := contentApp.GetForSalePreviewFromForSale(forSale.ID, forSale.Product.Title, forSale.PricePerUnit, forSale.Product.MediaURLs, forSale.Status.String())
-				if lperr != nil {
-					return lperr
-				}
-				preview = lp
-				return nil
-			})
-			if perr != nil {
-				h.log.Warn("Failed to fetch forSale preview for created comment", zap.Error(perr))
-			}
-		}
-	}
+// embedded author card and — for commerce references — the viewer-aware
+// resource projection resolved by the canonical projection authority.
+func (h *CommentHandler) buildCreateCommentResponse(ctx context.Context, viewerID uuid.UUID, comment *entity.Comment) *contentApp.CommentResponse {
+	projection := h.resolveCommentReferenceProjection(ctx, viewerID, comment)
 
 	var username, lifecycle string
 	var avatarURL *string
@@ -276,7 +237,7 @@ func (h *CommentHandler) buildCreateCommentResponse(ctx context.Context, comment
 		return nil
 	})
 
-	return contentApp.NewCommentResponseWithMedia(comment, preview, media, username, avatarURL, lifecycle)
+	return contentApp.NewCommentResponseWithMedia(comment, projection, media, username, avatarURL, lifecycle)
 }
 
 // DeleteComment handles DELETE /api/v1/comments/{id}
@@ -385,7 +346,7 @@ func (h *CommentHandler) UpdateComment(c *gin.Context) {
 		response.InternalServerError(c, "Failed to update comment")
 		return
 	}
-	resp := h.buildCreateCommentResponse(ctx, updated)
+	resp := h.buildCreateCommentResponse(ctx, userID, updated)
 	response.Success(c, resp)
 }
 
@@ -518,64 +479,41 @@ func (h *CommentHandler) ListComments(c *gin.Context) {
 		return
 	}
 
-	// Build enriched response with forSale previews and author info
+	// Build enriched response with canonical resource projections and author info
 	commentResponses := make([]*contentApp.CommentResponse, 0, len(comments))
 
-	// Collect commerce target IDs and author IDs that need to be fetched.
-	forSaleIDsMap := make(map[uuid.UUID]bool)
+	// Collect commerce reference targets (identity only) and author IDs.
 	authorIDsMap := make(map[uuid.UUID]bool)
+	targetByComment := make(map[uuid.UUID]contentApp.CommerceTarget, len(comments))
+	targets := make([]contentApp.CommerceTarget, 0, len(comments))
 	for _, comment := range comments {
-		if comment.IsCommerceReference() && comment.Reference != nil && comment.Reference.TargetType == entity.ShareTargetTypeForSale {
-			forSaleID, err := uuid.Parse(comment.Reference.TargetID)
-			if err == nil {
-				forSaleIDsMap[forSaleID] = true
-			}
+		if target, ok := commentReferenceTarget(comment); ok {
+			targetByComment[comment.ID] = target
+			targets = append(targets, target)
 		}
 		authorIDsMap[comment.AuthorID] = true
 	}
 
-	// Fetch forSale data in a separate transaction
-	forSalesMap := make(map[uuid.UUID]*contentApp.ForSalePreview)
-	if len(forSaleIDsMap) > 0 {
-		err = h.db.WithTx(ctx, func(tx db.Tx) error {
-			for forSaleID := range forSaleIDsMap {
-				forSale, err := h.forSaleService.GetByID(ctx, tx, forSaleID)
-				if err != nil {
-					// Log but continue - forSale might have been deleted
-					h.log.Warn("Failed to fetch forSale for comment preview",
-						zap.String("for_sale_id", forSaleID.String()),
-						zap.Error(err),
-					)
-					continue
-				}
-
-				// Convert to preview
-				if forSale.Product == nil {
-					h.log.Warn("forSale without canonical product, skipping comment preview",
-						zap.String("for_sale_id", forSaleID.String()),
-					)
-					continue
-				}
-				preview, err := contentApp.GetForSalePreviewFromForSale(
-					forSale.ID,
-					forSale.Product.Title,
-					forSale.PricePerUnit,
-					forSale.Product.MediaURLs,
-					forSale.Status.String(),
-				)
-				if err != nil {
-					h.log.Warn("Failed to create forSale preview",
-						zap.String("for_sale_id", forSaleID.String()),
-						zap.Error(err),
-					)
-					continue
-				}
-				forSalesMap[forSaleID] = preview
+	// Resolve the viewer-aware envelope (LIVE payload or TOMBSTONE) for every
+	// referenced commerce target in one batch through the canonical projection
+	// authority — the same answer chat, content detail, feed and search give.
+	viewer := uuid.Nil
+	if viewerID != nil {
+		viewer = *viewerID
+	}
+	projections := make(map[contentApp.CommerceTarget]*commerceshared.ResourceProjection, len(targets))
+	if len(targets) > 0 {
+		if perr := h.db.WithTx(ctx, func(tx db.Tx) error {
+			resolved, rerr := contentApp.NewContentResourceProjectionResolver().ResolveCommerceTargets(ctx, tx, viewer, targets)
+			if rerr != nil {
+				return rerr
 			}
+			projections = resolved
 			return nil
-		})
-		if err != nil {
-			h.log.Warn("Failed to fetch forSale previews", zap.Error(err))
+		}); perr != nil {
+			// Fail closed: without an envelope the comment renders as plain text
+			// instead of falling back to a stale snapshot preview.
+			h.log.Warn("Failed to resolve comment reference projections", zap.Error(perr))
 		}
 	}
 
@@ -600,12 +538,9 @@ func (h *CommentHandler) ListComments(c *gin.Context) {
 
 	// Build comment responses
 	for _, comment := range comments {
-		var preview *contentApp.ForSalePreview
-		if comment.IsCommerceReference() && comment.Reference != nil && comment.Reference.TargetType == entity.ShareTargetTypeForSale {
-			forSaleID, err := uuid.Parse(comment.Reference.TargetID)
-			if err == nil {
-				preview = forSalesMap[forSaleID]
-			}
+		var projection *commerceshared.ResourceProjection
+		if target, ok := targetByComment[comment.ID]; ok {
+			projection = projections[target]
 		}
 
 		// Get author info
@@ -620,7 +555,7 @@ func (h *CommentHandler) ListComments(c *gin.Context) {
 
 		commentResponses = append(commentResponses, contentApp.NewCommentResponseWithMedia(
 			comment,
-			preview,
+			projection,
 			mediaMap[comment.ID],
 			authorUsername,
 			authorAvatarURL,
@@ -734,6 +669,65 @@ func (h *CommentHandler) fetchCommentAuthorsInfo(ctx context.Context, authorIDs 
 	}
 
 	return result
+}
+
+// commentReferenceTarget maps a comment's stored reference identity to the
+// canonical commerce resource type. The reference carries identity only —
+// display data is never read from it; it comes from the projection authority.
+func commentReferenceTarget(comment *entity.Comment) (contentApp.CommerceTarget, bool) {
+	if !comment.IsCommerceReference() || comment.Reference == nil {
+		return contentApp.CommerceTarget{}, false
+	}
+
+	var resourceType entity.ContentResourceOccurrenceResourceType
+	switch comment.Reference.TargetType {
+	case entity.ShareTargetTypeForSale:
+		resourceType = entity.ContentResourceOccurrenceResourceTypeForSale
+	case entity.ShareTargetTypeAuction:
+		resourceType = entity.ContentResourceOccurrenceResourceTypeAuction
+	default:
+		return contentApp.CommerceTarget{}, false
+	}
+
+	id, err := uuid.Parse(comment.Reference.TargetID)
+	if err != nil {
+		return contentApp.CommerceTarget{}, false
+	}
+	return contentApp.CommerceTarget{Type: resourceType, ID: id}, true
+}
+
+// resolveCommentReferenceProjection resolves the envelope for a single
+// comment's reference (create/update responses), through the same authority
+// the list surface uses. A resolution failure fails closed to no envelope,
+// never to a snapshot.
+func (h *CommentHandler) resolveCommentReferenceProjection(
+	ctx context.Context,
+	viewerID uuid.UUID,
+	comment *entity.Comment,
+) *commerceshared.ResourceProjection {
+	target, ok := commentReferenceTarget(comment)
+	if !ok {
+		return nil
+	}
+
+	var projection *commerceshared.ResourceProjection
+	if err := h.db.WithTx(ctx, func(tx db.Tx) error {
+		resolved, err := contentApp.NewContentResourceProjectionResolver().ResolveCommerceTargets(
+			ctx, tx, viewerID, []contentApp.CommerceTarget{target},
+		)
+		if err != nil {
+			return err
+		}
+		projection = resolved[target]
+		return nil
+	}); err != nil {
+		h.log.Warn("Failed to resolve comment reference projection",
+			zap.String("comment_id", comment.ID.String()),
+			zap.Error(err),
+		)
+		return nil
+	}
+	return projection
 }
 
 // filterBlockedComments resolves the bidirectional block set for viewerID
@@ -942,5 +936,5 @@ func (h *CommentHandler) CreateCommerceReferenceComment(c *gin.Context) {
 
 	// C-RESP — POST .../comments/reference returns the canonical snake_case
 	// CommentResponse, consistent with the normal-comment create and list.
-	response.Created(c, h.buildCreateCommentResponse(ctx, newComment))
+	response.Created(c, h.buildCreateCommentResponse(ctx, userID, newComment))
 }

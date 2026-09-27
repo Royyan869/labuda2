@@ -197,29 +197,25 @@ func mergeResolvedProjections(
 			return fmt.Errorf("chat: invalid projection for message %s: %w", messageID, err)
 		}
 
-		if projection.Identity.ResourceType != occurrence.ResourceType() {
+		if string(projection.ResourceType) != string(occurrence.ResourceType()) {
 			return fmt.Errorf(
 				"chat: projection resource type mismatch for message %s: got %s want %s",
 				messageID,
-				projection.Identity.ResourceType,
+				projection.ResourceType,
 				occurrence.ResourceType(),
 			)
 		}
 
-		switch projection.State {
-		case chatApp.ProjectionStateTombstone:
-			if projection.Identity.ResourceID != uuid.Nil {
-				return fmt.Errorf("chat: tombstone projection leaked resource id for message %s", messageID)
-			}
-		default:
-			if projection.Identity.ResourceID != occurrence.SourceID() {
-				return fmt.Errorf(
-					"chat: projection resource id mismatch for message %s: got %s want %s",
-					messageID,
-					projection.Identity.ResourceID,
-					occurrence.SourceID(),
-				)
-			}
+		// Canonical contract (scope #3): the resource ID survives in BOTH
+		// states — a TOMBSTONE still identifies what died (dedup/audit); the
+		// former chat tombstone ID-omission rule is dead.
+		if projection.ResourceID != occurrence.SourceID() {
+			return fmt.Errorf(
+				"chat: projection resource id mismatch for message %s: got %s want %s",
+				messageID,
+				projection.ResourceID,
+				occurrence.SourceID(),
+			)
 		}
 
 		dst[messageID] = projection

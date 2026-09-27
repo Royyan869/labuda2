@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	auctionentity "github.com/labuda/backend/internal/commerce/auction/entity"
 	fpsentity "github.com/labuda/backend/internal/commerce/forsale/entity"
+	commerceshared "github.com/labuda/backend/internal/commerce/shared"
 	"github.com/labuda/backend/internal/governance/viewercontext"
 	"github.com/labuda/backend/internal/pkg/blockcheck"
 	"github.com/labuda/backend/internal/pkg/publiccard"
@@ -32,7 +33,7 @@ func (r *ContentResourceProjectionResolver) ResolveContentResourceProjection(
 	tx db.Tx,
 	viewerID uuid.UUID,
 	contentID uuid.UUID,
-) (*ContentResourceProjection, error) {
+) (*commerceshared.ResourceProjection, error) {
 	m, err := r.ResolveContentResourceProjections(ctx, tx, viewerID, []uuid.UUID{contentID})
 	if err != nil {
 		return nil, err
@@ -50,9 +51,9 @@ func (r *ContentResourceProjectionResolver) ResolveContentResourceProjections(
 	tx db.Tx,
 	viewerID uuid.UUID,
 	contentIDs []uuid.UUID,
-) (map[uuid.UUID]*ContentResourceProjection, error) {
+) (map[uuid.UUID]*commerceshared.ResourceProjection, error) {
 	if len(contentIDs) == 0 {
-		return map[uuid.UUID]*ContentResourceProjection{}, nil
+		return map[uuid.UUID]*commerceshared.ResourceProjection{}, nil
 	}
 	if tx == nil {
 		return nil, fmt.Errorf("content: projection resolver requires transaction")
@@ -63,7 +64,7 @@ func (r *ContentResourceProjectionResolver) ResolveContentResourceProjections(
 		return nil, err
 	}
 	if len(occurrences) == 0 {
-		return map[uuid.UUID]*ContentResourceProjection{}, nil
+		return map[uuid.UUID]*commerceshared.ResourceProjection{}, nil
 	}
 
 	profileTargets := make([]uuid.UUID, 0, len(occurrences))
@@ -119,13 +120,13 @@ func (r *ContentResourceProjectionResolver) ResolveContentResourceProjections(
 		return nil, fmt.Errorf("content: follow batch failed: %w", err)
 	}
 
-	result := make(map[uuid.UUID]*ContentResourceProjection, len(occurrences))
+	result := make(map[uuid.UUID]*commerceshared.ResourceProjection, len(occurrences))
 	for contentID, occ := range occurrences {
 		switch occ.ResourceType() {
 		case contententity.ContentResourceOccurrenceResourceTypeProfile:
 			row, ok := profileRows[occ.SourceID()]
 			if !ok || !row.isLive {
-				proj, err := NewTombstoneContentResourceProjection(contententity.ContentResourceOccurrenceResourceTypeProfile, occ.SourceID())
+				proj, err := commerceshared.NewTombstoneResourceProjection(commerceshared.ProjectionResourceTypeProfile, occ.SourceID())
 				if err != nil {
 					return nil, err
 				}
@@ -133,19 +134,25 @@ func (r *ContentResourceProjectionResolver) ResolveContentResourceProjections(
 				continue
 			}
 			if viewerID != uuid.Nil && blockedProfiles[occ.SourceID()] {
-				proj, err := NewTombstoneContentResourceProjection(contententity.ContentResourceOccurrenceResourceTypeProfile, occ.SourceID())
+				proj, err := commerceshared.NewTombstoneResourceProjection(commerceshared.ProjectionResourceTypeProfile, occ.SourceID())
 				if err != nil {
 					return nil, err
 				}
 				result[contentID] = &proj
 				continue
 			}
-			payload := ProfileLivePayload{
+			payload := commerceshared.ProfileLivePayload{
 				Username:  row.username,
 				AvatarURL: row.avatarURL,
 				Lifecycle: string(viewercontext.CoarsenLifecycle(row.accountStatus, row.deletedAt.Valid)),
 			}
-			proj, err := NewLiveContentResourceProjection(contententity.ContentResourceOccurrenceResourceTypeProfile, occ.SourceID(), payload)
+			proj, err := commerceshared.NewLiveResourceProjection(
+				commerceshared.ProjectionResourceTypeProfile,
+				occ.SourceID(),
+				payload,
+				commerceshared.ProjectionViewerCapabilities{CanView: true},
+				nil,
+			)
 			if err != nil {
 				return nil, err
 			}
@@ -154,14 +161,14 @@ func (r *ContentResourceProjectionResolver) ResolveContentResourceProjections(
 		case contententity.ContentResourceOccurrenceResourceTypeContent:
 			row, ok := contentRows[occ.SourceID()]
 			if !ok || !row.isLive(viewerID, blockedContentAuthors, followedAuthors) {
-				proj, err := NewTombstoneContentResourceProjection(contententity.ContentResourceOccurrenceResourceTypeContent, occ.SourceID())
+				proj, err := commerceshared.NewTombstoneResourceProjection(commerceshared.ProjectionResourceTypeContent, occ.SourceID())
 				if err != nil {
 					return nil, err
 				}
 				result[contentID] = &proj
 				continue
 			}
-			payload := ContentLivePayload{
+			payload := commerceshared.ContentLivePayload{
 				Caption:   row.caption,
 				Media:     resolveMediaRefs(row.mediaURLs),
 				Lifecycle: contententity.PublicLifecycleFromString(row.status),
@@ -171,7 +178,13 @@ func (r *ContentResourceProjectionResolver) ResolveContentResourceProjections(
 			if row.nestedOccurrence != nil {
 				payload.NestedResource = row.nestedOccurrence
 			}
-			proj, err := NewLiveContentResourceProjection(contententity.ContentResourceOccurrenceResourceTypeContent, occ.SourceID(), payload)
+			proj, err := commerceshared.NewLiveResourceProjection(
+				commerceshared.ProjectionResourceTypeContent,
+				occ.SourceID(),
+				payload,
+				commerceshared.ProjectionViewerCapabilities{CanView: true},
+				nil,
+			)
 			if err != nil {
 				return nil, err
 			}
@@ -179,16 +192,11 @@ func (r *ContentResourceProjectionResolver) ResolveContentResourceProjections(
 
 		case contententity.ContentResourceOccurrenceResourceTypeForSale:
 			row, ok := fpsRows[occ.SourceID()]
-			if !ok || !row.isLive {
-				proj, err := NewTombstoneContentResourceProjection(contententity.ContentResourceOccurrenceResourceTypeForSale, occ.SourceID())
-				if err != nil {
-					return nil, err
-				}
-				result[contentID] = &proj
-				continue
-			}
-			if viewerID != uuid.Nil && blockedSellers[row.sellerID] {
-				proj, err := NewTombstoneContentResourceProjection(contententity.ContentResourceOccurrenceResourceTypeForSale, occ.SourceID())
+			// CANONICAL AUTHORITY: LIVE/TOMBSTONE and can_interact are decided by
+			// commerceshared — the same evaluator chat projection and the for-sale
+			// detail endpoint use. Content owns the occurrence, never the policy.
+			if !ok || !forSaleViewAllowed(viewerID, row, blockedSellers) {
+				proj, err := commerceshared.NewTombstoneResourceProjection(commerceshared.ProjectionResourceTypeForSale, occ.SourceID())
 				if err != nil {
 					return nil, err
 				}
@@ -196,17 +204,23 @@ func (r *ContentResourceProjectionResolver) ResolveContentResourceProjections(
 				continue
 			}
 			sellerCard := buildSellerCard(row.sellerID, row.username, row.avatarURL, row.storeName, row.accountStatus, row.authorDeleted, row.subscriptionStatus, row.tier)
-			payload := ForSaleLivePayload{
+			payload := commerceshared.ForSaleLivePayload{
 				Title:             row.title,
 				Media:             resolveMediaRefs(row.mediaURLs),
 				ThumbnailURL:      firstResolvedMediaURL(row.mediaURLs),
-				Price:             row.price,
-				Status:            row.status,
+				Price:             commerceshared.LivePrice{Amount: row.price, Currency: commerceshared.LivePriceCurrencyIDR},
+				Status:            fpsentity.ForSaleStatus(row.status).PublicLifecycle(),
 				QuantityAvailable: row.quantityAvailable,
-				CanInteract:       row.status == string(fpsentity.ForSaleStatusActive) && row.quantityAvailable > 0,
 				Seller:            sellerCard,
 			}
-			proj, err := NewLiveContentResourceProjection(contententity.ContentResourceOccurrenceResourceTypeForSale, occ.SourceID(), payload)
+			viewerCaps, commerceActions := forSaleProjectionCapabilities(viewerID, row)
+			proj, err := commerceshared.NewLiveResourceProjection(
+				commerceshared.ProjectionResourceTypeForSale,
+				occ.SourceID(),
+				payload,
+				viewerCaps,
+				commerceActions,
+			)
 			if err != nil {
 				return nil, err
 			}
@@ -214,16 +228,9 @@ func (r *ContentResourceProjectionResolver) ResolveContentResourceProjections(
 
 		case contententity.ContentResourceOccurrenceResourceTypeAuction:
 			row, ok := auctionRows[occ.SourceID()]
-			if !ok || !row.isLive {
-				proj, err := NewTombstoneContentResourceProjection(contententity.ContentResourceOccurrenceResourceTypeAuction, occ.SourceID())
-				if err != nil {
-					return nil, err
-				}
-				result[contentID] = &proj
-				continue
-			}
-			if viewerID != uuid.Nil && blockedSellers[row.sellerID] {
-				proj, err := NewTombstoneContentResourceProjection(contententity.ContentResourceOccurrenceResourceTypeAuction, occ.SourceID())
+			// Same canonical authority as the fixed-price branch above.
+			if !ok || !auctionViewAllowed(viewerID, row, blockedSellers) {
+				proj, err := commerceshared.NewTombstoneResourceProjection(commerceshared.ProjectionResourceTypeAuction, occ.SourceID())
 				if err != nil {
 					return nil, err
 				}
@@ -231,7 +238,7 @@ func (r *ContentResourceProjectionResolver) ResolveContentResourceProjections(
 				continue
 			}
 			sellerCard := buildSellerCard(row.sellerID, row.username, row.avatarURL, row.storeName, row.accountStatus, row.authorDeleted, row.subscriptionStatus, row.tier)
-			payload := AuctionLivePayload{
+			payload := commerceshared.AuctionLivePayload{
 				Title:        row.title,
 				Media:        resolveMediaRefs(row.mediaURLs),
 				ThumbnailURL: firstResolvedMediaURL(row.mediaURLs),
@@ -239,10 +246,16 @@ func (r *ContentResourceProjectionResolver) ResolveContentResourceProjections(
 				BuyNowPrice:  row.buyNowPrice,
 				EndAt:        row.endAt.Format(time.RFC3339),
 				Lifecycle:    auctionentity.Status(row.status).PublicLifecycle(),
-				CanInteract:  row.status == string(auctionentity.StatusActive),
 				Seller:       sellerCard,
 			}
-			proj, err := NewLiveContentResourceProjection(contententity.ContentResourceOccurrenceResourceTypeAuction, occ.SourceID(), payload)
+			viewerCaps, commerceActions := auctionProjectionCapabilities(viewerID, row)
+			proj, err := commerceshared.NewLiveResourceProjection(
+				commerceshared.ProjectionResourceTypeAuction,
+				occ.SourceID(),
+				payload,
+				viewerCaps,
+				commerceActions,
+			)
 			if err != nil {
 				return nil, err
 			}
@@ -250,6 +263,137 @@ func (r *ContentResourceProjectionResolver) ResolveContentResourceProjections(
 
 		default:
 			return nil, fmt.Errorf("content: unsupported resource type %q", occ.ResourceType())
+		}
+	}
+
+	return result, nil
+}
+
+// CommerceTarget identifies a commerce resource referenced directly (comment
+// reference) rather than through the occurrence graph. The reference stores
+// identity only; the display envelope is resolved here under the same
+// authority as every other surface.
+type CommerceTarget struct {
+	Type contententity.ContentResourceOccurrenceResourceType
+	ID   uuid.UUID
+}
+
+// ResolveCommerceTargets resolves viewer-aware projections for commerce
+// resources referenced outside the occurrence graph. It reuses the same
+// loaders, the same commerceshared view-access authority and the same
+// tombstone rules as the content occurrence path, so a comment answers
+// identically to chat, content detail, feed and search for one viewer.
+func (r *ContentResourceProjectionResolver) ResolveCommerceTargets(
+	ctx context.Context,
+	tx db.Tx,
+	viewerID uuid.UUID,
+	targets []CommerceTarget,
+) (map[CommerceTarget]*commerceshared.ResourceProjection, error) {
+	result := make(map[CommerceTarget]*commerceshared.ResourceProjection, len(targets))
+	if len(targets) == 0 {
+		return result, nil
+	}
+	if tx == nil {
+		return nil, fmt.Errorf("content: commerce target resolver requires transaction")
+	}
+
+	forSaleIDs := make([]uuid.UUID, 0, len(targets))
+	auctionIDs := make([]uuid.UUID, 0, len(targets))
+	seen := make(map[CommerceTarget]struct{}, len(targets))
+	for _, target := range targets {
+		if _, ok := seen[target]; ok {
+			continue
+		}
+		seen[target] = struct{}{}
+		switch target.Type {
+		case contententity.ContentResourceOccurrenceResourceTypeForSale:
+			forSaleIDs = append(forSaleIDs, target.ID)
+		case contententity.ContentResourceOccurrenceResourceTypeAuction:
+			auctionIDs = append(auctionIDs, target.ID)
+		default:
+			return nil, fmt.Errorf("content: unsupported commerce target type %q", target.Type)
+		}
+	}
+
+	fpsRows, err := r.loadForSales(ctx, tx, forSaleIDs)
+	if err != nil {
+		return nil, err
+	}
+	auctionRows, err := r.loadAuctions(ctx, tx, auctionIDs)
+	if err != nil {
+		return nil, err
+	}
+	blockedSellers, err := blockcheck.BlockedSet(ctx, tx, viewerID, sellerIDsForCommerce(fpsRows, auctionRows))
+	if err != nil {
+		return nil, fmt.Errorf("content: commerce target block batch failed: %w", err)
+	}
+
+	for target := range seen {
+		switch target.Type {
+		case contententity.ContentResourceOccurrenceResourceTypeForSale:
+			row, ok := fpsRows[target.ID]
+			if !ok || !forSaleViewAllowed(viewerID, row, blockedSellers) {
+				proj, projErr := commerceshared.NewTombstoneResourceProjection(commerceshared.ProjectionResourceType(target.Type), target.ID)
+				if projErr != nil {
+					return nil, projErr
+				}
+				result[target] = &proj
+				continue
+			}
+			payload := commerceshared.ForSaleLivePayload{
+				Title:             row.title,
+				Media:             resolveMediaRefs(row.mediaURLs),
+				ThumbnailURL:      firstResolvedMediaURL(row.mediaURLs),
+				Price:             commerceshared.LivePrice{Amount: row.price, Currency: commerceshared.LivePriceCurrencyIDR},
+				Status:            fpsentity.ForSaleStatus(row.status).PublicLifecycle(),
+				QuantityAvailable: row.quantityAvailable,
+				Seller:            buildSellerCard(row.sellerID, row.username, row.avatarURL, row.storeName, row.accountStatus, row.authorDeleted, row.subscriptionStatus, row.tier),
+			}
+			viewerCaps, commerceActions := forSaleProjectionCapabilities(viewerID, row)
+			proj, projErr := commerceshared.NewLiveResourceProjection(
+				commerceshared.ProjectionResourceTypeForSale,
+				target.ID,
+				payload,
+				viewerCaps,
+				commerceActions,
+			)
+			if projErr != nil {
+				return nil, projErr
+			}
+			result[target] = &proj
+
+		case contententity.ContentResourceOccurrenceResourceTypeAuction:
+			row, ok := auctionRows[target.ID]
+			if !ok || !auctionViewAllowed(viewerID, row, blockedSellers) {
+				proj, projErr := commerceshared.NewTombstoneResourceProjection(commerceshared.ProjectionResourceType(target.Type), target.ID)
+				if projErr != nil {
+					return nil, projErr
+				}
+				result[target] = &proj
+				continue
+			}
+			payload := commerceshared.AuctionLivePayload{
+				Title:        row.title,
+				Media:        resolveMediaRefs(row.mediaURLs),
+				ThumbnailURL: firstResolvedMediaURL(row.mediaURLs),
+				CurrentBid:   row.currentBid,
+				BuyNowPrice:  row.buyNowPrice,
+				EndAt:        row.endAt.Format(time.RFC3339),
+				Lifecycle:    auctionentity.Status(row.status).PublicLifecycle(),
+				Seller:       buildSellerCard(row.sellerID, row.username, row.avatarURL, row.storeName, row.accountStatus, row.authorDeleted, row.subscriptionStatus, row.tier),
+			}
+			viewerCaps, commerceActions := auctionProjectionCapabilities(viewerID, row)
+			proj, projErr := commerceshared.NewLiveResourceProjection(
+				commerceshared.ProjectionResourceTypeAuction,
+				target.ID,
+				payload,
+				viewerCaps,
+				commerceActions,
+			)
+			if projErr != nil {
+				return nil, projErr
+			}
+			result[target] = &proj
 		}
 	}
 
@@ -347,7 +491,7 @@ type contentTargetRow struct {
 	accountStatus    string
 	authorDeleted    bool
 	mediaURLs        []string
-	nestedOccurrence *NestedResourceIndicator
+	nestedOccurrence *commerceshared.NestedResourceIndicator
 }
 
 func (r contentTargetRow) isLive(viewerID uuid.UUID, blockedAuthors map[uuid.UUID]bool, followedAuthors map[uuid.UUID]bool) bool {
@@ -375,10 +519,13 @@ func (r contentTargetRow) isLive(viewerID uuid.UUID, blockedAuthors map[uuid.UUI
 
 type fpsTargetRow struct {
 	sellerID           uuid.UUID
+	productID          uuid.UUID
 	title              string
 	price              int64
 	status             string
 	quantityAvailable  int
+	negotiationEnabled bool
+	publishedAt        sql.NullTime
 	username           string
 	avatarURL          *string
 	storeName          string
@@ -387,7 +534,6 @@ type fpsTargetRow struct {
 	subscriptionStatus string
 	tier               string
 	mediaURLs          []string
-	isLive             bool
 }
 
 type auctionTargetRow struct {
@@ -405,7 +551,6 @@ type auctionTargetRow struct {
 	subscriptionStatus string
 	tier               string
 	mediaURLs          []string
-	isLive             bool
 }
 
 func (r *ContentResourceProjectionResolver) loadProfileTargets(
@@ -525,16 +670,16 @@ func (r *ContentResourceProjectionResolver) loadContentTargets(
 		if err := rows.Scan(&id, &caption, &visibility, &isHidden, &status, &deletedAt, &createdAt, &authorID, &username, &avatarURL, &accountStatus, &authorDeleted, &mediaURLs, &profileSourceID, &contentSourceID, &fpsSourceID, &auctionSourceID); err != nil {
 			return nil, fmt.Errorf("content: scan content target failed: %w", err)
 		}
-		var nested *NestedResourceIndicator
+		var nested *commerceshared.NestedResourceIndicator
 		switch {
 		case profileSourceID != nil:
-			nested = &NestedResourceIndicator{ResourceType: contententity.ContentResourceOccurrenceResourceTypeProfile, ResourceID: *profileSourceID}
+			nested = &commerceshared.NestedResourceIndicator{ResourceType: commerceshared.ProjectionResourceTypeProfile, ResourceID: *profileSourceID}
 		case contentSourceID != nil:
-			nested = &NestedResourceIndicator{ResourceType: contententity.ContentResourceOccurrenceResourceTypeContent, ResourceID: *contentSourceID}
+			nested = &commerceshared.NestedResourceIndicator{ResourceType: commerceshared.ProjectionResourceTypeContent, ResourceID: *contentSourceID}
 		case fpsSourceID != nil:
-			nested = &NestedResourceIndicator{ResourceType: contententity.ContentResourceOccurrenceResourceTypeForSale, ResourceID: *fpsSourceID}
+			nested = &commerceshared.NestedResourceIndicator{ResourceType: commerceshared.ProjectionResourceTypeForSale, ResourceID: *fpsSourceID}
 		case auctionSourceID != nil:
-			nested = &NestedResourceIndicator{ResourceType: contententity.ContentResourceOccurrenceResourceTypeAuction, ResourceID: *auctionSourceID}
+			nested = &commerceshared.NestedResourceIndicator{ResourceType: commerceshared.ProjectionResourceTypeAuction, ResourceID: *auctionSourceID}
 		}
 		result[id] = contentTargetRow{
 			caption:          caption,
@@ -581,7 +726,10 @@ func (r *ContentResourceProjectionResolver) loadForSales(
 		       (u.deleted_at IS NOT NULL) AS is_deleted,
 		       COALESCE(ss.status::text, '') AS subscription_status,
 		       COALESCE(sp.tier::text, '') AS tier,
-		       COALESCE(p.media_urls, '[]'::jsonb) AS media_urls
+		       COALESCE(p.media_urls, '[]'::jsonb) AS media_urls,
+		       fps.product_id,
+		       fps.negotiation_enabled,
+		       fps.published_at
 		FROM for_sales fps
 		JOIN products p ON p.id = fps.product_id
 		JOIN users u ON u.id = fps.seller_id
@@ -618,16 +766,22 @@ func (r *ContentResourceProjectionResolver) loadForSales(
 			subscriptionStatus string
 			tier               string
 			mediaURLsRaw       json.RawMessage
+			productID          uuid.UUID
+			negotiationEnabled bool
+			publishedAt        sql.NullTime
 		)
-		if err := rows.Scan(&id, &sellerID, &title, &price, &status, &quantityAvailable, &username, &avatarURL, &storeName, &accountStatus, &authorDeleted, &subscriptionStatus, &tier, &mediaURLsRaw); err != nil {
+		if err := rows.Scan(&id, &sellerID, &title, &price, &status, &quantityAvailable, &username, &avatarURL, &storeName, &accountStatus, &authorDeleted, &subscriptionStatus, &tier, &mediaURLsRaw, &productID, &negotiationEnabled, &publishedAt); err != nil {
 			return nil, fmt.Errorf("content: scan fixed price sale target failed: %w", err)
 		}
 		result[id] = fpsTargetRow{
 			sellerID:           sellerID,
+			productID:          productID,
 			title:              title,
 			price:              price,
 			status:             status,
 			quantityAvailable:  quantityAvailable,
+			negotiationEnabled: negotiationEnabled,
+			publishedAt:        publishedAt,
 			username:           username,
 			avatarURL:          avatarURL,
 			storeName:          storeName,
@@ -636,7 +790,6 @@ func (r *ContentResourceProjectionResolver) loadForSales(
 			subscriptionStatus: subscriptionStatus,
 			tier:               tier,
 			mediaURLs:          decodeJSONStrings(mediaURLsRaw),
-			isLive:             true,
 		}
 	}
 	if err := rows.Err(); err != nil {
@@ -726,7 +879,6 @@ func (r *ContentResourceProjectionResolver) loadAuctions(
 			subscriptionStatus: subscriptionStatus,
 			tier:               tier,
 			mediaURLs:          decodeJSONStrings(mediaURLsRaw),
-			isLive:             true,
 		}
 	}
 	if err := rows.Err(); err != nil {
@@ -812,6 +964,91 @@ func buildSellerCard(
 	}
 	card.Tier = publiccard.GatedSellerTier(tier, userLifecycle, trustLifecycle)
 	return card
+}
+
+// forSaleViewAllowed delegates the LIVE/TOMBSTONE decision to the canonical
+// commerce view-access authority (commerceshared.EvaluateForSaleViewAccess).
+// The content projection resolver owns the occurrence graph only; it must never
+// re-implement for-sale visibility, block, seller-lifecycle or status policy.
+func forSaleViewAllowed(viewerID uuid.UUID, row fpsTargetRow, blockedSellers map[uuid.UUID]bool) bool {
+	var publishedAt *time.Time
+	if row.publishedAt.Valid {
+		publishedAt = &row.publishedAt.Time
+	}
+	return commerceshared.EvaluateForSaleViewAccess(commerceshared.ForSaleViewAccessInput{
+		ViewerID:   viewerID,
+		SellerID:   row.sellerID,
+		Status:     row.status,
+		Visibility: string(fpsentity.DeriveVisibility(fpsentity.ForSaleStatus(row.status), publishedAt)),
+		Blocked:    commerceBlocked(viewerID, row.sellerID, blockedSellers),
+		Seller: commerceshared.SellerAccessSnapshot{
+			AccountStatus:      row.accountStatus,
+			IsDeleted:          row.authorDeleted,
+			SubscriptionStatus: row.subscriptionStatus,
+		},
+	})
+}
+
+// auctionViewAllowed mirrors forSaleViewAllowed with the canonical auction
+// view-access rule set.
+func auctionViewAllowed(viewerID uuid.UUID, row auctionTargetRow, blockedSellers map[uuid.UUID]bool) bool {
+	return commerceshared.EvaluateAuctionViewAccess(commerceshared.AuctionViewAccessInput{
+		ViewerID: viewerID,
+		SellerID: row.sellerID,
+		Status:   row.status,
+		Blocked:  commerceBlocked(viewerID, row.sellerID, blockedSellers),
+		Seller: commerceshared.SellerAccessSnapshot{
+			AccountStatus:      row.accountStatus,
+			IsDeleted:          row.authorDeleted,
+			SubscriptionStatus: row.subscriptionStatus,
+		},
+	})
+}
+
+// commerceBlocked is the canonical block semantics: a viewer is never blocked
+// from their own listing, and anonymous viewers are never blocked.
+func commerceBlocked(viewerID, sellerID uuid.UUID, blockedSellers map[uuid.UUID]bool) bool {
+	return viewerID != uuid.Nil && viewerID != sellerID && blockedSellers[sellerID]
+}
+
+// forSaleProjectionCapabilities evaluates the canonical capability evaluator ONCE
+// and projects it onto BOTH envelope halves: viewer_capabilities (can_view/
+// can_interact) and commerce_actions. The parity contract with the chat wire
+// lives in commerceshared.ForSaleCommerceActions — one mapping, two surfaces.
+func forSaleProjectionCapabilities(viewerID uuid.UUID, row fpsTargetRow) (commerceshared.ProjectionViewerCapabilities, *commerceshared.CommerceActionCapabilities) {
+	caps := commerceshared.EvaluateForSaleViewerCapabilities(commerceshared.ForSaleViewerCapabilitiesInput{
+		ViewerID:           viewerID,
+		SellerID:           row.sellerID,
+		ProductID:          row.productID,
+		Status:             row.status,
+		QuantityAvailable:  row.quantityAvailable,
+		NegotiationEnabled: row.negotiationEnabled,
+		SellerTrustActive:  viewercontext.CoarsenSellerTrust(row.subscriptionStatus) == viewercontext.PublicLifecycleStateActive,
+	})
+	actions := commerceshared.ForSaleCommerceActions(caps)
+	viewerCaps := commerceshared.ProjectionViewerCapabilities{
+		CanView:     true,
+		CanInteract: actions.CanBuy || actions.CanNegotiate,
+	}
+	return viewerCaps, &actions
+}
+
+// auctionProjectionCapabilities mirrors forSaleProjectionCapabilities for the
+// auction wire (CanBid || CanBuy[Now]) with the same single-evaluation rule.
+func auctionProjectionCapabilities(viewerID uuid.UUID, row auctionTargetRow) (commerceshared.ProjectionViewerCapabilities, *commerceshared.CommerceActionCapabilities) {
+	caps := commerceshared.EvaluateAuctionViewerCapabilities(commerceshared.AuctionViewerCapabilitiesInput{
+		ViewerID:          viewerID,
+		SellerID:          row.sellerID,
+		Status:            row.status,
+		SellerTrustActive: viewercontext.CoarsenSellerTrust(row.subscriptionStatus) == viewercontext.PublicLifecycleStateActive,
+		BuyNowPrice:       row.buyNowPrice,
+	})
+	actions := commerceshared.AuctionCommerceActions(caps)
+	viewerCaps := commerceshared.ProjectionViewerCapabilities{
+		CanView:     true,
+		CanInteract: actions.CanBid || actions.CanBuy,
+	}
+	return viewerCaps, &actions
 }
 
 func decodeJSONStrings(raw json.RawMessage) []string {

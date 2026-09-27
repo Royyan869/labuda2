@@ -5,9 +5,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	commerceshared "github.com/labuda/backend/internal/commerce/shared"
 	"github.com/labuda/backend/internal/discovery/search/entity"
-	contentApp "github.com/labuda/backend/internal/social/content/application"
-	contententity "github.com/labuda/backend/internal/social/content/entity"
 )
 
 func TestContentPreviewsToResponseWithProjections_PrefersCanonicalProjection(t *testing.T) {
@@ -20,23 +19,25 @@ func TestContentPreviewsToResponseWithProjections_PrefersCanonicalProjection(t *
 		AuthorUsername: "alice",
 	}
 
-	projection, err := contentApp.NewLiveContentResourceProjection(
-		contententity.ContentResourceOccurrenceResourceTypeProfile,
+	projection, err := commerceshared.NewLiveResourceProjection(
+		commerceshared.ProjectionResourceTypeProfile,
 		uuid.New(),
-		contentApp.ProfileLivePayload{
+		commerceshared.ProfileLivePayload{
 			Username:  "alice",
 			Lifecycle: "active",
 		},
+		commerceshared.ProjectionViewerCapabilities{CanView: true},
+		nil,
 	)
 	if err != nil {
-		t.Fatalf("NewLiveContentResourceProjection: %v", err)
+		t.Fatalf("NewLiveResourceProjection: %v", err)
 	}
 
 	items := contentPreviewsToResponseWithProjections(
 		[]*entity.ContentPreview{preview},
 		nil,
 		nil,
-		map[uuid.UUID]*contentApp.ContentResourceProjection{preview.ID: &projection},
+		map[uuid.UUID]*commerceshared.ResourceProjection{preview.ID: &projection},
 	)
 	if len(items) != 1 {
 		t.Fatalf("expected 1 item; got %d", len(items))

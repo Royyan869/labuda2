@@ -14,6 +14,7 @@ import (
 	negotiationEntity "github.com/labuda/backend/internal/commerce/negotiation/entity"
 	negotiationImpl "github.com/labuda/backend/internal/commerce/negotiation/infrastructure/repository"
 	negotiationRepo "github.com/labuda/backend/internal/commerce/negotiation/repository"
+	commerceshared "github.com/labuda/backend/internal/commerce/shared"
 	"github.com/labuda/backend/internal/governance/viewercontext"
 	chatApp "github.com/labuda/backend/internal/interaction/chat/application"
 	chatEntity "github.com/labuda/backend/internal/interaction/chat/entity"
@@ -239,7 +240,7 @@ func (h *Handler) ListRooms(c *gin.Context) {
 			zap.String("user_id", userID.String()),
 			zap.Error(projErr),
 		)
-		latestProjections = map[uuid.UUID]*chatApp.ResourceProjection{}
+		latestProjections = map[uuid.UUID]*commerceshared.ResourceProjection{}
 	}
 
 	// Convert to response
@@ -350,7 +351,7 @@ func (h *Handler) GetRoom(c *gin.Context) {
 
 	latestMessage := latestMessageByRoom[room.ID]
 
-	var projections map[uuid.UUID]*chatApp.ResourceProjection
+	var projections map[uuid.UUID]*commerceshared.ResourceProjection
 	if latestMessage != nil {
 		resolved, projErr := h.resolveMessageProjections(ctx, userID, []*chatEntity.ChatMessage{latestMessage})
 		if projErr != nil {
@@ -1073,7 +1074,7 @@ func roomListItemResponse(
 	participantCards map[uuid.UUID]publiccard.UserCard,
 	lastMessage *chatEntity.ChatMessage,
 	unreadCount int,
-	projections map[uuid.UUID]*chatApp.ResourceProjection,
+	projections map[uuid.UUID]*commerceshared.ResourceProjection,
 ) map[string]interface{} {
 	resp := roomToResponse(room, userID, participantCards)
 	if lastMessage != nil {
@@ -1230,8 +1231,8 @@ func (h *Handler) resolveMessageProjections(
 	ctx context.Context,
 	viewerID uuid.UUID,
 	messages []*chatEntity.ChatMessage,
-) (map[uuid.UUID]*chatApp.ResourceProjection, error) {
-	out := map[uuid.UUID]*chatApp.ResourceProjection{}
+) (map[uuid.UUID]*commerceshared.ResourceProjection, error) {
+	out := map[uuid.UUID]*commerceshared.ResourceProjection{}
 	if len(messages) == 0 {
 		return out, nil
 	}
@@ -1529,7 +1530,7 @@ func extractReferencedItemIDFromAttachment(att map[string]interface{}) string {
 	case "auction":
 		s, _ := data["auction_id"].(string)
 		return s
-	case "negotiation_offer", "negotiation_result", "negotiation_proposal":
+	case "negotiation_proposal":
 		s, _ := data["for_sale_id"].(string)
 		return s
 	case "shipping_quote":
@@ -1589,7 +1590,7 @@ func (h *Handler) hydrateAttachmentSellerLifecycles(
 		case "auction":
 			itemIDStr, _ = data["auction_id"].(string)
 			isAuction = true
-		case "negotiation_offer", "negotiation_result", "negotiation_proposal":
+		case "negotiation_proposal":
 			itemIDStr, _ = data["for_sale_id"].(string)
 		case "shipping_quote":
 			itemIDStr, _ = data["linked_item_id"].(string)

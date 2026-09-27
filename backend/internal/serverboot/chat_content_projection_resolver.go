@@ -347,7 +347,7 @@ func (r *contentProjectionBatchResolver) ResolveContents(
 			authorRow := authorRows[row.authorID]
 			lifecycle := viewercontext.CoarsenLifecycle(authorRow.accountStatus, authorRow.deletedAt.Valid)
 			if !contentCanResolveToLive(viewerID, row, lifecycle, blockedSet, followedSet) {
-				proj, projErr := chatApp.NewTombstoneProjection(chatEntity.ResourceOccurrenceResourceTypeContent)
+				proj, projErr := commerceshared.NewTombstoneResourceProjection(commerceshared.ProjectionResourceTypeContent, *contentID)
 				if projErr != nil {
 					return projErr
 				}
@@ -375,8 +375,8 @@ func (r *contentProjectionBatchResolver) ResolveContents(
 				payload.NestedResource = nested
 			}
 
-			proj, projErr := chatApp.NewLiveProjection(
-				chatEntity.ResourceOccurrenceResourceTypeContent,
+			proj, projErr := commerceshared.NewLiveResourceProjection(
+				commerceshared.ProjectionResourceTypeContent,
 				row.contentID,
 				payload,
 				chatApp.ProjectionViewerCapabilities{
@@ -731,7 +731,7 @@ func (r *contentProjectionBatchResolver) resolveNestedContentIndicators(
 
 		for _, sourceContentID := range sourceIDs {
 			indicator := &chatApp.NestedResourceIndicator{
-				ResourceType: chatEntity.ResourceOccurrenceResourceTypeContent,
+				ResourceType: commerceshared.ProjectionResourceTypeContent,
 				ResourceID:   row.contentID,
 			}
 			result[sourceContentID] = indicator
@@ -908,7 +908,7 @@ func (r *contentProjectionBatchResolver) resolveNestedProfileIndicators(
 
 		for _, sourceContentID := range sourceIDs {
 			indicator := &chatApp.NestedResourceIndicator{
-				ResourceType: chatEntity.ResourceOccurrenceResourceTypeProfile,
+				ResourceType: commerceshared.ProjectionResourceTypeProfile,
 				ResourceID:   profileID,
 			}
 			result[sourceContentID] = indicator
@@ -1016,7 +1016,7 @@ func (r *contentProjectionBatchResolver) resolveNestedForSaleIndicators(
 
 		for _, sourceContentID := range sourceIDs {
 			indicator := &chatApp.NestedResourceIndicator{
-				ResourceType: chatEntity.ResourceOccurrenceResourceTypeForSale,
+				ResourceType: commerceshared.ProjectionResourceTypeForSale,
 				ResourceID:   saleID,
 			}
 			result[sourceContentID] = indicator
@@ -1117,7 +1117,7 @@ func (r *contentProjectionBatchResolver) resolveNestedAuctionIndicators(
 
 		for _, sourceContentID := range sourceIDs {
 			indicator := &chatApp.NestedResourceIndicator{
-				ResourceType: chatEntity.ResourceOccurrenceResourceTypeAuction,
+				ResourceType: commerceshared.ProjectionResourceTypeAuction,
 				ResourceID:   auctionID,
 			}
 			result[sourceContentID] = indicator

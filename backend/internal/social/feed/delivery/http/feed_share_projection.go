@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	commerceshared "github.com/labuda/backend/internal/commerce/shared"
 	"github.com/labuda/backend/internal/pkg/publiccard"
 	"github.com/labuda/backend/internal/platform/mediaresolve"
 	contentApp "github.com/labuda/backend/internal/social/content/application"
@@ -21,7 +22,7 @@ func feedItemToResponseCanonicalStrict(
 	item *feedentity.FeedItem,
 	lifecycleOverrides map[uuid.UUID]string,
 	origAuthorLifecycles map[uuid.UUID]string,
-	projection *contentApp.ContentResourceProjection,
+	projection *commerceshared.ResourceProjection,
 ) (map[string]interface{}, error) {
 	resp, err := feedItemToResponseCanonicalWithProjection(item, lifecycleOverrides, origAuthorLifecycles, projection)
 	if resp == nil {
@@ -34,7 +35,7 @@ func feedItemToResponseCanonicalWithProjection(
 	item *feedentity.FeedItem,
 	lifecycleOverrides map[uuid.UUID]string,
 	origAuthorLifecycles map[uuid.UUID]string,
-	projection *contentApp.ContentResourceProjection,
+	projection *commerceshared.ResourceProjection,
 ) (map[string]interface{}, error) {
 	if item == nil {
 		return map[string]interface{}{}, nil

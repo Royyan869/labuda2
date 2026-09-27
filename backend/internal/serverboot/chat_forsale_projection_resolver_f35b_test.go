@@ -193,23 +193,28 @@ func assertLiveFPSProjectionMatchesAuthority(
 	require.Equal(t, wantAmount, payload.Price.Amount)
 	require.Equal(t, wantCurrency, payload.Price.Currency)
 	require.Equal(t, wantQuantity, payload.QuantityAvailable)
-	require.Equal(t, wantSellerID, payload.Seller.ID)
-	require.Equal(t, wantStoreName, payload.Seller.StoreName)
-	require.Equal(t, wantUsername, payload.Seller.Username)
-	require.Equal(t, wantSellerLifecycle, payload.Seller.Lifecycle)
+	require.Equal(t, wantSellerID, payload.Seller.User.ID)
+	require.NotNil(t, payload.Seller.FarmName)
+	require.Equal(t, wantStoreName, *payload.Seller.FarmName)
+	require.Equal(t, wantUsername, payload.Seller.User.Username)
+	require.NotNil(t, payload.Seller.User.Lifecycle)
+	require.Equal(t, wantSellerLifecycle, *payload.Seller.User.Lifecycle)
 
 	if wantStoreImage == "" {
-		require.Nil(t, payload.Seller.StoreImage)
+		require.Nil(t, payload.Seller.AvatarURL)
 	} else {
-		require.NotNil(t, payload.Seller.StoreImage)
-		require.Equal(t, wantStoreImage, *payload.Seller.StoreImage)
+		require.NotNil(t, payload.Seller.AvatarURL)
+		require.Equal(t, wantStoreImage, *payload.Seller.AvatarURL)
 	}
 
 	if wantImageURL == "" {
-		require.Nil(t, payload.ImageURL)
+		require.Nil(t, payload.ThumbnailURL)
+		require.Empty(t, payload.Media)
 	} else {
-		require.NotNil(t, payload.ImageURL)
-		require.Equal(t, wantImageURL, *payload.ImageURL)
+		require.NotNil(t, payload.ThumbnailURL)
+		require.Equal(t, wantImageURL, *payload.ThumbnailURL)
+		require.Len(t, payload.Media, 1)
+		require.Equal(t, wantImageURL, payload.Media[0].URL)
 	}
 }
 
@@ -640,16 +645,23 @@ func TestForSaleProjectionResolver_JSONContracts(t *testing.T) {
 	requireAbsentKeys(t, liveJSON, []string{"profile", "content", "auction"})
 	require.Equal(t, "LIVE", mustStringValue(t, liveJSON["state"]))
 	require.Equal(t, "for_sale", mustStringValue(t, liveJSON["resource_type"]))
-	require.Equal(t, liveProj.Identity.ResourceID.String(), mustStringValue(t, liveJSON["resource_id"]))
+	require.Equal(t, liveProj.ResourceID.String(), mustStringValue(t, liveJSON["resource_id"]))
 	require.Equal(t, "/for-sale/"+saleID.String(), mustStringValue(t, liveJSON["canonical_url"]))
 
 	var livePayload map[string]json.RawMessage
 	require.NoError(t, json.Unmarshal(liveJSON["for_sale"], &livePayload))
-	requireTopLevelKeys(t, livePayload, []string{"title", "image_url", "price", "status", "seller", "quantity_available"})
+	requireTopLevelKeys(t, livePayload, []string{"title", "media", "thumbnail_url", "price", "status", "seller", "quantity_available"})
 	require.Equal(t, "JSON Koi", mustStringValue(t, livePayload["title"]))
-	require.Equal(t, "https://cdn.example.test/product-thumb.jpg", mustStringValue(t, livePayload["image_url"]))
+	require.Equal(t, "https://cdn.example.test/product-thumb.jpg", mustStringValue(t, livePayload["thumbnail_url"]))
 	require.Equal(t, "active", mustStringValue(t, livePayload["status"]))
 	require.Equal(t, int64(3), mustInt64Value(t, livePayload["quantity_available"]))
+
+	// media[] replaced the former singular image_url.
+	var media []map[string]json.RawMessage
+	require.NoError(t, json.Unmarshal(livePayload["media"], &media))
+	require.Len(t, media, 1)
+	require.Equal(t, "https://cdn.example.test/product-thumb.jpg", mustStringValue(t, media[0]["url"]))
+	requireAbsentKeys(t, livePayload, []string{"image_url", "can_interact"})
 
 	var price map[string]json.RawMessage
 	require.NoError(t, json.Unmarshal(livePayload["price"], &price))
@@ -659,12 +671,18 @@ func TestForSaleProjectionResolver_JSONContracts(t *testing.T) {
 
 	var seller map[string]json.RawMessage
 	require.NoError(t, json.Unmarshal(livePayload["seller"], &seller))
-	requireTopLevelKeys(t, seller, []string{"id", "store_name", "store_image", "username", "lifecycle"})
-	require.Equal(t, sellerID.String(), mustStringValue(t, seller["id"]))
-	require.Equal(t, "Active Farm", mustStringValue(t, seller["store_name"]))
-	require.Equal(t, "https://cdn.example.test/active-store.jpg", mustStringValue(t, seller["store_image"]))
-	require.Equal(t, "active_seller", mustStringValue(t, seller["username"]))
+	// Canonical seller wire: publiccard.SellerCard (flat ForSaleLiveSeller is dead).
+	requireTopLevelKeys(t, seller, []string{"user", "farm_name", "avatar_url", "lifecycle"})
+	var sellerUser map[string]json.RawMessage
+	require.NoError(t, json.Unmarshal(seller["user"], &sellerUser))
+	requireTopLevelKeys(t, sellerUser, []string{"id", "username", "avatar_url", "lifecycle"})
+	require.Equal(t, sellerID.String(), mustStringValue(t, sellerUser["id"]))
+	require.Equal(t, "active_seller", mustStringValue(t, sellerUser["username"]))
+	require.Equal(t, string(viewercontext.PublicLifecycleStateActive), mustStringValue(t, sellerUser["lifecycle"]))
+	require.Equal(t, "Active Farm", mustStringValue(t, seller["farm_name"]))
+	require.Equal(t, "https://cdn.example.test/active-store.jpg", mustStringValue(t, seller["avatar_url"]))
 	require.Equal(t, string(viewercontext.PublicLifecycleStateActive), mustStringValue(t, seller["lifecycle"]))
+	requireAbsentKeys(t, seller, []string{"id", "store_name", "store_image", "username"})
 
 	tombstoneSellerID := fx.seedSellerWithSubscriptionStatus(t, "active", nil, "draft_owner", "Draft Farm", "https://cdn.example.test/draft-store.jpg", "expired")
 	tombstoneSaleID := fx.seedSale(
@@ -680,10 +698,12 @@ func TestForSaleProjectionResolver_JSONContracts(t *testing.T) {
 	)
 	tombstoneProj := resolveSingleFPS(t, fx, viewerID, newFPSOccurrence(uuid.New(), tombstoneSaleID))
 	tombstoneJSON := projectionJSONMap(t, tombstoneProj)
-	requireTopLevelKeys(t, tombstoneJSON, []string{"state", "resource_type", "viewer_capabilities"})
-	requireAbsentKeys(t, tombstoneJSON, []string{"resource_id", "canonical_url", "commerce_actions", "for_sale", "profile", "content", "auction"})
+	requireTopLevelKeys(t, tombstoneJSON, []string{"state", "resource_type", "resource_id", "viewer_capabilities"})
+	requireAbsentKeys(t, tombstoneJSON, []string{"canonical_url", "commerce_actions", "for_sale", "profile", "content", "auction"})
 	require.Equal(t, "TOMBSTONE", mustStringValue(t, tombstoneJSON["state"]))
 	require.Equal(t, "for_sale", mustStringValue(t, tombstoneJSON["resource_type"]))
+	// Canonical contract: identity survives death (chat's omission rule died).
+	require.Equal(t, tombstoneSaleID.String(), mustStringValue(t, tombstoneJSON["resource_id"]))
 }
 
 func TestForSaleProjectionResolver_FailurePropagationAndIntegrity(t *testing.T) {
