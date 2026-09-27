@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/core/api/api_error_codes.dart' as api_codes;
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
@@ -146,6 +147,7 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
       action = () => Navigator.pop(context);
     }
 
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(title: const Text('Detail Auction')),
       body: Center(
@@ -154,7 +156,7 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.error_outline, size: 64, color: AppColors.statusError),
+              Icon(Icons.error_outline, size: 64, color: scheme.error),
               const SizedBox(height: 16),
               Text(
                 errorTitle,
@@ -167,15 +169,18 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
               const SizedBox(height: 8),
               Text(
                 errorMessage,
-                style: TextStyle(fontSize: 14, color: AppColors.neutralGray600),
+                style: TextStyle(
+                  fontSize: 14,
+                  color: scheme.onSurfaceVariant,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: action,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryRed,
-                  foregroundColor: Colors.white,
+                  backgroundColor: scheme.primary,
+                  foregroundColor: scheme.onPrimary,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 24,
                     vertical: 12,
@@ -192,6 +197,7 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
 
   Widget _buildNotFoundScaffold() {
     // TRANSACTION CLARITY: No dead-end - provide next action
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(title: const Text('Detail Auction')),
       body: Center(
@@ -200,7 +206,11 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.search_off, size: 64, color: AppColors.neutralGray400),
+              Icon(
+                Icons.search_off,
+                size: 64,
+                color: scheme.onSurfaceVariant,
+              ),
               const SizedBox(height: 16),
               const Text(
                 'Lelang Tidak Ditemukan',
@@ -209,15 +219,18 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
               const SizedBox(height: 8),
               Text(
                 'Lelang ini mungkin telah dihapus atau ID tidak valid.',
-                style: TextStyle(fontSize: 14, color: AppColors.neutralGray600),
+                style: TextStyle(
+                  fontSize: 14,
+                  color: scheme.onSurfaceVariant,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: () => Navigator.pop(context),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryRed,
-                  foregroundColor: Colors.white,
+                  backgroundColor: scheme.primary,
+                  foregroundColor: scheme.onPrimary,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 24,
                     vertical: 12,
@@ -428,7 +441,7 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
       id: auction.id,
       type: ExternalShareType.auction,
       title: auction.title,
-      description: 'Current bid: Rp ${currentBid.toStringAsFixed(0)}',
+      description: 'Current bid: Rp ${formatGroupedAmount(currentBid.round())}',
       imageUrl: auction.media.isNotEmpty
           ? auction.media.first.originalUrl
           : null,
@@ -526,7 +539,10 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
     Navigator.of(this.context).pop();
 
     if (success) {
-      AppSnackBar.showSuccess(this.context, 'Bid successful! Rp $amount');
+      AppSnackBar.showSuccess(
+        this.context,
+        'Bid berhasil! Rp ${formatGroupedAmount(amount)}',
+      );
     } else {
       final notifierState = ref.read(auctionNotifierProvider);
       // Backend-rejection handler (defense-in-depth): the backend stays the
@@ -827,14 +843,15 @@ class _SettlementWarningBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF7ED), // Light orange background
+        color: AppColors.statusWarning.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: const Color(0xFFF97316).withValues(alpha: 0.3),
+          color: AppColors.statusWarning.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -844,12 +861,12 @@ class _SettlementWarningBanner extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: const Color(0xFFF97316).withValues(alpha: 0.15),
+              color: AppColors.statusWarning.withValues(alpha: 0.15),
               shape: BoxShape.circle,
             ),
             child: const Icon(
               Icons.warning_amber_rounded,
-              color: Color(0xFFF97316),
+              color: AppColors.statusWarning,
               size: 18,
             ),
           ),
@@ -863,7 +880,7 @@ class _SettlementWarningBanner extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: const Color(0xFF9A3412),
+                    color: scheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -871,7 +888,7 @@ class _SettlementWarningBanner extends StatelessWidget {
                   'Jika tidak, Anda dapat dikenai pembatasan akun',
                   style: TextStyle(
                     fontSize: 12,
-                    color: const Color(0xFF9A3412),
+                    color: scheme.onSurfaceVariant,
                   ),
                 ),
               ],

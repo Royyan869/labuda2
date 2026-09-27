@@ -1,17 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/domains/chat/chat/domain/entities/chat_resource_projection.dart';
 import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_marketplace_primitives.dart';
-import 'package:labuda/domains/social/content/domain/entities/content.dart'
-    show MediaType;
+import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/shared/widgets/carousel_video_player.dart';
 
 class ChatResourceProjectionCard extends StatelessWidget {
-  final ChatResourceProjection resourceProjection;
+  final ResourceProjection resourceProjection;
+
+  /// CTA "Beli Sekarang" intent, delegated to the owning screen.
+  ///
+  /// Checkout navigation resolves `product_id` + the seller trust gate in the
+  /// chat screen (Commerce stays the transaction authority — the card is a
+  /// display layer and never carries a price or a preview). When no owner is
+  /// wired, the button falls back to the canonical resource detail page.
+  final VoidCallback? onBuy;
 
   const ChatResourceProjectionCard({
     super.key,
     required this.resourceProjection,
+    this.onBuy,
   });
 
   @override
@@ -30,6 +37,7 @@ class ChatResourceProjectionCard extends StatelessWidget {
       media: _buildMedia(context),
       value: _buildValue(context),
       metadata: _buildMetadata(context),
+      footer: _buildFooter(context),
       badges: _buildBadges(context),
       contentPadding: const EdgeInsets.all(12),
     );
@@ -38,7 +46,7 @@ class ChatResourceProjectionCard extends StatelessWidget {
   Widget _buildMedia(BuildContext context) {
     final payload = resourceProjection.payload;
     switch (payload) {
-      case ChatResourceProfileLivePayload():
+      case ProfileLivePayload():
         return CommerceMarketplaceCardMedia(
           imageUrl: payload.avatarUrl,
           fallback: _placeholderMedia(context, Icons.person_outline_rounded),
@@ -48,11 +56,11 @@ class ChatResourceProjectionCard extends StatelessWidget {
             topRight: Radius.circular(16),
           ),
         );
-      case ChatResourceContentLivePayload():
+      case ContentLivePayload():
         return _buildContentMedia(context, payload);
-      case ChatResourceForSaleLivePayload():
+      case ForSaleLivePayload():
         return CommerceMarketplaceCardMedia(
-          imageUrl: payload.imageUrl,
+          imageUrl: resourceProjection.primaryImageUrl,
           fallback: _placeholderMedia(context, Icons.storefront_outlined),
           aspectRatio: 4 / 3,
           borderRadius: const BorderRadius.only(
@@ -60,9 +68,9 @@ class ChatResourceProjectionCard extends StatelessWidget {
             topRight: Radius.circular(16),
           ),
         );
-      case ChatResourceAuctionLivePayload():
+      case AuctionLivePayload():
         return CommerceMarketplaceCardMedia(
-          imageUrl: payload.thumbnailUrl,
+          imageUrl: resourceProjection.primaryImageUrl,
           fallback: _placeholderMedia(context, Icons.gavel_rounded),
           aspectRatio: 4 / 3,
           borderRadius: const BorderRadius.only(
@@ -73,14 +81,12 @@ class ChatResourceProjectionCard extends StatelessWidget {
         );
       case null:
         return _placeholderMedia(context, Icons.block_outlined);
-      default:
-        return _placeholderMedia(context, Icons.block_outlined);
     }
   }
 
   /// Canonical Content media frame for the chat resource projection card.
   ///
-  /// [ChatContentMediaRef.mediaType] — the transported persisted
+  /// [ResourceMediaRef.mediaKind] — the transported persisted
   /// `content_media.media_type` — is the render authority:
   /// - image — [CommerceMarketplaceCardMedia], i.e. [StableNetworkImage] / the
   ///   shared network-media path (`resolveNetworkImageUrl`).
@@ -88,7 +94,7 @@ class ChatResourceProjectionCard extends StatelessWidget {
   ///   reference must never reach the image decoder.
   Widget _buildContentMedia(
     BuildContext context,
-    ChatResourceContentLivePayload payload,
+    ContentLivePayload payload,
   ) {
     const borderRadius = BorderRadius.only(
       topLeft: Radius.circular(16),
@@ -105,7 +111,7 @@ class ChatResourceProjectionCard extends StatelessWidget {
     }
 
     final media = payload.media.first;
-    if (media.mediaType == MediaType.video) {
+    if (media.mediaKind == ResourceMediaKind.video) {
       return ClipRRect(
         borderRadius: borderRadius,
         child: AspectRatio(
@@ -130,27 +136,150 @@ class ChatResourceProjectionCard extends StatelessWidget {
     );
   }
 
+  /// Navigation-only CTA row (owner contract: chat = display layer).
+  ///
+  /// - for-sale + `canBuy` → "Beli Sekarang" → checkout (delegated via
+  ///   [onBuy]; Commerce resolves product id, preview and trust gates).
+  /// - auction + `canBid` → "Bid" → the canonical auction detail, which is
+  ///   the bidding surface.
+  Widget? _buildFooter(BuildContext context) {
+    if (!resourceProjection.isLive) return null;
+    final actions = resourceProjection.commerceActions;
+    if (actions == null) return null;
+
+    final buttons = <Widget>[];
+    if (actions.canBuy) {
+      final onPressed = onBuy ?? _canonicalPushAction(context);
+      if (onPressed != null) {
+        buttons.add(
+          _ctaButton(
+            context,
+            label: 'Beli Sekarang',
+            icon: Icons.shopping_cart_outlined,
+            emphasis: true,
+            onPressed: onPressed,
+          ),
+        );
+      }
+    }
+    if (actions.canBid) {
+      final onPressed = _canonicalPushAction(context);
+      if (onPressed != null) {
+        buttons.add(
+          _ctaButton(
+            context,
+            label: 'Bid',
+            icon: Icons.gavel_rounded,
+            emphasis: false,
+            onPressed: onPressed,
+          ),
+        );
+      }
+    }
+    if (buttons.isEmpty) return null;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Wrap(spacing: 8, runSpacing: 8, children: buttons),
+    );
+  }
+
+  VoidCallback? _canonicalPushAction(BuildContext context) {
+    final url = resourceProjection.canonicalUrl;
+    if (url == null || url.isEmpty) return null;
+    return () => context.push(url);
+  }
+
+  Widget _ctaButton(
+    BuildContext context, {
+    required String label,
+    required IconData icon,
+    required bool emphasis,
+    required VoidCallback onPressed,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return FilledButton.icon(
+      onPressed: onPressed,
+      icon: Icon(icon, size: 16),
+      label: Text(label),
+      style: FilledButton.styleFrom(
+        visualDensity: VisualDensity.compact,
+        minimumSize: const Size(0, 34),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        backgroundColor: emphasis
+            ? scheme.primary
+            : scheme.surfaceContainerHighest,
+        foregroundColor: emphasis ? scheme.onPrimary : scheme.onSurface,
+        textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+      ),
+    );
+  }
+
   Widget _buildValue(BuildContext context) {
-    final text = resourceProjection.valueText;
+    final text = _valueText();
     return CommerceMarketplaceCardValue(
       value: text?.isNotEmpty == true
           ? text!
           : resourceProjection.canonicalDisplayLabel,
-      caption: resourceProjection.state == ChatResourceProjectionState.live
-          ? 'Status'
-          : 'Diblokir',
+      caption: _captionText(),
       compact: true,
     );
+  }
+
+  /// PRICE IS RENDERED ON EVERY SURFACE (owner decision, 2026-09-27).
+  ///
+  /// The envelope carries the canonical money on LIVE and chat shows the very
+  /// same string as discovery — money formatting is owned by the envelope
+  /// (`formattedPrice` / `formattedAmount`), never re-derived here.
+  String? _valueText() {
+    if (!resourceProjection.isLive) {
+      return 'Tidak dapat ditampilkan';
+    }
+    return switch (resourceProjection.payload) {
+      ProfileLivePayload p =>
+        p.storeName?.trim().isNotEmpty == true
+            ? p.storeName!.trim()
+            : (p.isSeller ? 'Penjual' : 'Profil'),
+      ContentLivePayload p => '@${p.author.username}',
+      ForSaleLivePayload p => p.formattedPrice,
+      AuctionLivePayload p => p.formattedAmount,
+      null => null,
+    };
+  }
+
+  /// Availability/lifecycle stays visible as the caption, so rendering the
+  /// price never costs the honest status.
+  String _captionText() {
+    if (!resourceProjection.isLive) {
+      return 'Diblokir';
+    }
+    return switch (resourceProjection.payload) {
+      ForSaleLivePayload p => _forSaleStatusText(p.status),
+      AuctionLivePayload p =>
+        p.lifecycle == 'active' ? 'Berlangsung' : p.lifecycle,
+      _ => 'Status',
+    };
+  }
+
+  /// Indonesian availability label for a for-sale projection status wire value.
+  String _forSaleStatusText(String status) {
+    switch (status) {
+      case 'available':
+      case 'active':
+        return 'Tersedia';
+      case 'reserved':
+        return 'Dipesan';
+      case 'sold':
+        return 'Terjual';
+      default:
+        return 'Tidak tersedia';
+    }
   }
 
   Widget? _buildMetadata(BuildContext context) {
     final parts = <String>[];
     parts.add(resourceProjection.resourceType.displayLabel);
-    parts.add(
-      resourceProjection.state == ChatResourceProjectionState.live
-          ? 'LIVE'
-          : 'TOMBSTONE',
-    );
+    parts.add(resourceProjection.isLive ? 'LIVE' : 'TOMBSTONE');
     final actions = resourceProjection.commerceActions;
     if (actions != null && actions.hasAnyAction) {
       parts.add(_actionSummary(actions));
@@ -189,16 +318,8 @@ class ChatResourceProjectionCard extends StatelessWidget {
           const CommerceMarketplaceCardBadge(label: 'Nego', compact: true),
         );
       }
-      if (actions.canBuy) {
-        badges.add(
-          const CommerceMarketplaceCardBadge(label: 'Beli', compact: true),
-        );
-      }
-      if (actions.canBid) {
-        badges.add(
-          const CommerceMarketplaceCardBadge(label: 'Bid', compact: true),
-        );
-      }
+      // NOTE (CTA contract): "Beli" / "Bid" capability chips are intentionally
+      // absent — the footer renders them as real navigation buttons instead.
       if (actions.canManage) {
         badges.add(
           const CommerceMarketplaceCardBadge(label: 'Kelola', compact: true),
@@ -219,7 +340,7 @@ class ChatResourceProjectionCard extends StatelessWidget {
     );
   }
 
-  String _actionSummary(ChatCommerceActionCapabilities actions) {
+  String _actionSummary(CommerceActionCapabilities actions) {
     final labels = <String>[];
     if (actions.canChat) labels.add('chat');
     if (actions.canNegotiate) labels.add('nego');

@@ -24,7 +24,7 @@ import 'package:labuda/shared/shared.dart';
 import 'package:labuda/features/home/domain/domain.dart'; // R3.1: Import FeedItem from home domain
 import 'package:go_router/go_router.dart';
 import 'package:labuda/domains/social/content/domain/entities/content.dart';
-import 'package:labuda/domains/social/content/domain/entities/content_resource_projection.dart';
+import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/shared/widgets/carousel_video_player.dart';
 import 'package:labuda/shared/widgets/stable_network_image.dart';
 import 'package:labuda/domains/social/content/presentation/widgets/content_resource_projection_card.dart';
@@ -113,12 +113,12 @@ class FeedCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     // QUALITY PASS: Extract repost data from additionalData
     final isRepost = item.additionalData['isRepost'] == true;
     final resourceProjection =
-        item.additionalData['resourceProjection'] as ContentResourceProjection?;
+        item.additionalData['resourceProjection'] as ResourceProjection?;
     final originalAuthorId = item.additionalData['originalAuthorId'] as String?;
 
     // FIX-3: Use canonical enum-safe getter — no raw magic-string compare.
@@ -134,11 +134,11 @@ class FeedCard extends ConsumerWidget {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       elevation: 0,
-      color: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
+      color: scheme.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: isDark ? AppColors.darkGray700 : AppColors.neutralGray200,
+          color: scheme.outlineVariant,
         ),
       ),
       child: InkWell(
@@ -149,7 +149,7 @@ class FeedCard extends ConsumerWidget {
           children: [
             // Governance unavailable banner sits above the content
             // affordances so the user sees "tidak tersedia" first.
-            if (isUnavailable) _buildUnavailableBanner(context, isDark),
+            if (isUnavailable) _buildUnavailableBanner(context),
             // SHARE CONTRACT V1: Canonical RepostAttributionBar
             if (isRepost)
               RepostAttributionBar(
@@ -165,9 +165,9 @@ class FeedCard extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildAuthorInfo(context, isDark),
+                  _buildAuthorInfo(context),
                   const SizedBox(height: 8),
-                  _buildContentText(context, isDark),
+                  _buildContentText(context),
                 ],
               ),
             ),
@@ -186,7 +186,7 @@ class FeedCard extends ConsumerWidget {
             // Footer with Like, Comment, Share — canonical icon+count
             Padding(
               padding: const EdgeInsets.all(12),
-              child: _buildHonestFooter(context, ref, isDark),
+              child: _buildHonestFooter(context, ref),
             ),
           ],
         ),
@@ -209,7 +209,7 @@ class FeedCard extends ConsumerWidget {
   /// QUALITY PASS: Navigate to canonical resource projection when tapped.
   void _navigateToResource(
     BuildContext context,
-    ContentResourceProjection resourceProjection,
+    ResourceProjection resourceProjection,
   ) {
     if (resourceProjection.isLive) {
       context.push(resourceProjection.canonicalPath);
@@ -249,28 +249,32 @@ class FeedCard extends ConsumerWidget {
   /// loaded — the [StableNetworkImage] contract keeps one fallback for both
   /// states (same convention as the commerce marketplace card media).
   Widget _buildMediaPlaceholder() {
-    return Container(
-      width: double.infinity,
-      height: _mediaCardHeight,
-      color: AppColors.neutralGray200,
-      child: const Icon(Icons.image, size: 48, color: AppColors.neutralGray400),
+    return Builder(
+      builder: (context) {
+        final scheme = Theme.of(context).colorScheme;
+        return Container(
+          width: double.infinity,
+          height: _mediaCardHeight,
+          color: scheme.surfaceContainerHighest,
+          child: Icon(Icons.image, size: 48, color: scheme.onSurfaceVariant),
+        );
+      },
     );
   }
 
   /// Governance UNAVAILABLE banner.
   /// Renders at the top of a card whose canonical lifecycle is `unavailable`.
   /// Tap is disabled at the InkWell, so the banner is the user-facing signal.
-  Widget _buildUnavailableBanner(BuildContext context, bool isDark) {
+  Widget _buildUnavailableBanner(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: isDark
-            ? AppColors.neutralGray800.withValues(alpha: 0.5)
-            : AppColors.neutralGray100,
+        color: scheme.surfaceContainerHigh,
         border: Border(
           bottom: BorderSide(
-            color: isDark ? AppColors.darkGray700 : AppColors.neutralGray200,
+            color: scheme.outlineVariant,
           ),
         ),
       ),
@@ -279,13 +283,13 @@ class FeedCard extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: AppColors.neutralGray400.withValues(alpha: 0.2),
+              color: scheme.onSurfaceVariant.withValues(alpha: 0.2),
               shape: BoxShape.circle,
             ),
-            child: const Icon(
+            child: Icon(
               Icons.visibility_off_outlined,
               size: 16,
-              color: AppColors.neutralGray500,
+              color: scheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(width: 8),
@@ -294,9 +298,7 @@ class FeedCard extends ConsumerWidget {
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: isDark
-                  ? AppColors.neutralGray300
-                  : AppColors.neutralGray700,
+              color: scheme.onSurface,
             ),
           ),
         ],
@@ -304,16 +306,13 @@ class FeedCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildAuthorInfo(BuildContext context, bool isDark) {
+  Widget _buildAuthorInfo(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final authorRedacted = item.authorLifecycle.isDegraded;
     final authorPlaceholder = _authorRedactionLabel(item.authorLifecycle);
 
-    final authorMutedColor = isDark
-        ? AppColors.neutralGray500
-        : AppColors.neutralGray500;
-    final authorNormalColor = isDark
-        ? AppColors.neutralGray300
-        : AppColors.neutralGray900;
+    final authorMutedColor = scheme.onSurfaceVariant;
+    final authorNormalColor = scheme.onSurface;
 
     return Consumer(
       builder: (context, ref, _) {
@@ -369,7 +368,7 @@ class FeedCard extends ConsumerWidget {
                       Icon(
                         visibilityIcon,
                         size: 14,
-                        color: AppColors.neutralGray500,
+                        color: scheme.onSurfaceVariant,
                       ),
                     ],
                   ],
@@ -377,7 +376,7 @@ class FeedCard extends ConsumerWidget {
               ),
               Text(
                 _formatTime(item.createdAt),
-                style: TextStyle(fontSize: 12, color: AppColors.neutralGray500),
+                style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
               ),
             ],
           ),
@@ -411,8 +410,9 @@ class FeedCard extends ConsumerWidget {
     }
   }
 
-  Widget _buildContentText(BuildContext context, bool isDark) {
+  Widget _buildContentText(BuildContext context) {
     // FIX-3: Use canonical enum-safe getter — no raw magic-string compare.
+    final scheme = Theme.of(context).colorScheme;
 
     return Text(
       item.content,
@@ -420,14 +420,15 @@ class FeedCard extends ConsumerWidget {
       overflow: TextOverflow.ellipsis,
       style: TextStyle(
         fontSize: 14,
-        color: isDark ? AppColors.neutralGray300 : AppColors.neutralGray700,
+        color: scheme.onSurface,
       ),
     );
   }
 
   /// Footer with Like, Comment, and Share actions.
   /// Like uses live stats from the canonical Like domain.
-  Widget _buildHonestFooter(BuildContext context, WidgetRef ref, bool isDark) {
+  Widget _buildHonestFooter(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
     // Watch like stats for this content (only if authenticated)
     final authState = ref.watch(authControllerProvider);
     final currentUserId = authState is AuthStateAuthenticated
@@ -472,10 +473,10 @@ class FeedCard extends ConsumerWidget {
                   isLiked ? Icons.favorite : Icons.favorite_border,
                   size: 16,
                   color: isLiked
-                      ? AppColors.primaryRed
+                      ? scheme.primary
                       : (isAuthenticated
-                            ? AppColors.primaryRed
-                            : AppColors.neutralGray500),
+                            ? scheme.primary
+                            : scheme.onSurfaceVariant),
                 ),
                 if (likeCount > 0) ...[
                   const SizedBox(width: 4),
@@ -484,10 +485,10 @@ class FeedCard extends ConsumerWidget {
                     style: TextStyle(
                       fontSize: 12,
                       color: isLiked
-                          ? AppColors.primaryRed
+                          ? scheme.primary
                           : (isAuthenticated
-                                ? AppColors.primaryRed
-                                : AppColors.neutralGray500),
+                                ? scheme.primary
+                                : scheme.onSurfaceVariant),
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -506,18 +507,18 @@ class FeedCard extends ConsumerWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(
+                Icon(
                   Icons.chat_bubble_outline,
                   size: 16,
-                  color: AppColors.primaryRed,
+                  color: scheme.primary,
                 ),
                 if ((item.additionalData['commentCount'] as int? ?? 0) > 0) ...[
                   const SizedBox(width: 4),
                   Text(
                     '${item.additionalData['commentCount']}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: AppColors.primaryRed,
+                      color: scheme.primary,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -531,12 +532,12 @@ class FeedCard extends ConsumerWidget {
         InkWell(
           onTap: () => _handleShareContent(context),
           borderRadius: BorderRadius.circular(8),
-          child: const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
             child: Icon(
               Icons.share_outlined,
               size: 16,
-              color: AppColors.neutralGray400,
+              color: scheme.onSurfaceVariant,
             ),
           ),
         ),
@@ -780,21 +781,22 @@ class _PromotedBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: AppColors.primaryRed.withValues(alpha: 0.1),
+        color: scheme.primary.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(4),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.campaign_outlined, size: 14, color: AppColors.primaryRed),
+          Icon(Icons.campaign_outlined, size: 14, color: scheme.primary),
           const SizedBox(width: 4),
           Text(
             'Dipromosikan',
             style: TextStyle(
-              color: AppColors.primaryRed,
+              color: scheme.primary,
               fontSize: 11,
               fontWeight: FontWeight.w600,
             ),
@@ -815,7 +817,7 @@ String _formatPrice(int? priceMinor) {
   if (rupiah >= 1000) {
     return 'Rp${(rupiah / 1000).toStringAsFixed(0)}rb';
   }
-  return 'Rp$rupiah';
+  return 'Rp${formatGroupedAmount(rupiah)}';
 }
 
 /// Promoted forSale card — shows forSale image, title, price, seller.
@@ -825,7 +827,7 @@ class PromotedForSaleCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     final data = item.additionalData;
     final imageUrl = data['imageUrl'] as String?;
     final title = data['title'] as String? ?? '';
@@ -852,11 +854,11 @@ class PromotedForSaleCard extends ConsumerWidget {
       child: Card(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         elevation: 0,
-        color: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
+        color: scheme.surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
           side: BorderSide(
-            color: isDark ? AppColors.darkGray700 : AppColors.neutralGray200,
+            color: scheme.outlineVariant,
           ),
         ),
         child: InkWell(
@@ -893,11 +895,11 @@ class PromotedForSaleCard extends ConsumerWidget {
                     errorBuilder: (_, _, _) => Container(
                       width: double.infinity,
                       height: 180,
-                      color: AppColors.neutralGray200,
-                      child: const Icon(
+                      color: scheme.surfaceContainerHighest,
+                      child: Icon(
                         Icons.image_not_supported,
                         size: 48,
-                        color: AppColors.neutralGray400,
+                        color: scheme.onSurfaceVariant,
                       ),
                     ),
                   ),
@@ -916,9 +918,7 @@ class PromotedForSaleCard extends ConsumerWidget {
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: isDark
-                            ? AppColors.neutralWhite
-                            : AppColors.neutralGray900,
+                        color: scheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -927,7 +927,7 @@ class PromotedForSaleCard extends ConsumerWidget {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.primaryRed,
+                        color: scheme.primary,
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -936,14 +936,14 @@ class PromotedForSaleCard extends ConsumerWidget {
                         Icon(
                           Icons.storefront_outlined,
                           size: 14,
-                          color: AppColors.neutralGray500,
+                          color: scheme.onSurfaceVariant,
                         ),
                         const SizedBox(width: 4),
                         Text(
                           sellerLabel,
                           style: TextStyle(
                             fontSize: 13,
-                            color: AppColors.neutralGray500,
+                            color: scheme.onSurfaceVariant,
                           ),
                         ),
                       ],
@@ -966,7 +966,7 @@ class PromotedAuctionCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     final data = item.additionalData;
     final imageUrl = data['imageUrl'] as String?;
     final title = data['title'] as String? ?? '';
@@ -1016,11 +1016,11 @@ class PromotedAuctionCard extends ConsumerWidget {
       child: Card(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         elevation: 0,
-        color: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
+        color: scheme.surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
           side: BorderSide(
-            color: isDark ? AppColors.darkGray700 : AppColors.neutralGray200,
+            color: scheme.outlineVariant,
           ),
         ),
         child: InkWell(
@@ -1052,11 +1052,11 @@ class PromotedAuctionCard extends ConsumerWidget {
                     errorBuilder: (_, _, _) => Container(
                       width: double.infinity,
                       height: 180,
-                      color: AppColors.neutralGray200,
-                      child: const Icon(
+                      color: scheme.surfaceContainerHighest,
+                      child: Icon(
                         Icons.image_not_supported,
                         size: 48,
-                        color: AppColors.neutralGray400,
+                        color: scheme.onSurfaceVariant,
                       ),
                     ),
                   ),
@@ -1077,13 +1077,13 @@ class PromotedAuctionCard extends ConsumerWidget {
                               vertical: 3,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.orange.withValues(alpha: 0.1),
+                              color: AppColors.statusWarning.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
                               timeRemaining,
                               style: const TextStyle(
-                                color: Colors.orange,
+                                color: AppColors.statusWarning,
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -1099,9 +1099,7 @@ class PromotedAuctionCard extends ConsumerWidget {
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: isDark
-                            ? AppColors.neutralWhite
-                            : AppColors.neutralGray900,
+                        color: scheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -1109,7 +1107,7 @@ class PromotedAuctionCard extends ConsumerWidget {
                       priceLabel,
                       style: TextStyle(
                         fontSize: 12,
-                        color: AppColors.neutralGray500,
+                        color: scheme.onSurfaceVariant,
                       ),
                     ),
                     Text(
@@ -1117,7 +1115,7 @@ class PromotedAuctionCard extends ConsumerWidget {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.primaryRed,
+                        color: scheme.primary,
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -1126,7 +1124,7 @@ class PromotedAuctionCard extends ConsumerWidget {
                         Icon(
                           Icons.storefront_outlined,
                           size: 14,
-                          color: AppColors.neutralGray500,
+                          color: scheme.onSurfaceVariant,
                         ),
                         const SizedBox(width: 4),
                         Expanded(
@@ -1134,7 +1132,7 @@ class PromotedAuctionCard extends ConsumerWidget {
                             sellerLabel,
                             style: TextStyle(
                               fontSize: 13,
-                              color: AppColors.neutralGray500,
+                              color: scheme.onSurfaceVariant,
                             ),
                           ),
                         ),
@@ -1143,7 +1141,7 @@ class PromotedAuctionCard extends ConsumerWidget {
                             '$bidCount bid',
                             style: TextStyle(
                               fontSize: 12,
-                              color: AppColors.neutralGray400,
+                              color: scheme.onSurfaceVariant,
                             ),
                           ),
                       ],
@@ -1178,7 +1176,7 @@ class PromotedExternalCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     final data = item.additionalData;
     final title = data['title'] as String? ?? '';
     final externalUrl = data['externalUrl'] as String?;
@@ -1201,11 +1199,11 @@ class PromotedExternalCard extends ConsumerWidget {
       child: Card(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         elevation: 0,
-        color: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
+        color: scheme.surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
           side: BorderSide(
-            color: isDark ? AppColors.darkGray700 : AppColors.neutralGray200,
+            color: scheme.outlineVariant,
           ),
         ),
         child: InkWell(
@@ -1251,9 +1249,7 @@ class PromotedExternalCard extends ConsumerWidget {
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: isDark
-                            ? AppColors.neutralWhite
-                            : AppColors.neutralGray900,
+                        color: scheme.onSurface,
                       ),
                     ),
                     if (externalUrl != null) ...[
@@ -1263,7 +1259,7 @@ class PromotedExternalCard extends ConsumerWidget {
                           Icon(
                             Icons.open_in_new,
                             size: 14,
-                            color: AppColors.neutralGray400,
+                            color: scheme.onSurfaceVariant,
                           ),
                           const SizedBox(width: 4),
                           Expanded(
@@ -1273,7 +1269,7 @@ class PromotedExternalCard extends ConsumerWidget {
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 fontSize: 12,
-                                color: AppColors.neutralGray400,
+                                color: scheme.onSurfaceVariant,
                               ),
                             ),
                           ),

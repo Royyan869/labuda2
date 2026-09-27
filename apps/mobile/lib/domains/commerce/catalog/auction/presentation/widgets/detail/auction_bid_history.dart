@@ -7,6 +7,8 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:labuda/core/core.dart';
+import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction_bid.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 import 'package:labuda/shared/widgets/profile_avatar.dart';
@@ -19,8 +21,9 @@ class AuctionBidHistory extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
-      color: Colors.white,
+      color: colorScheme.surface,
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -31,7 +34,10 @@ class AuctionBidHistory extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           if (bids.isEmpty)
-            const Text('Belum ada bid', style: TextStyle(color: Colors.grey))
+            Text(
+              'Belum ada bid',
+              style: TextStyle(color: colorScheme.onSurfaceVariant),
+            )
           else
             ListView.separated(
               shrinkWrap: true,
@@ -69,10 +75,10 @@ class AuctionBidHistory extends StatelessWidget {
                         )
                       : null,
                   trailing: Text(
-                    'Rp ${bid.amount.toStringAsFixed(0)}',
+                    'Rp ${formatGroupedAmount(bid.amount.round())}',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: Colors.green,
+                      color: AppColors.statusSuccess,
                     ),
                   ),
                 );

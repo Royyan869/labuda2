@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:labuda/domains/chat/chat/domain/entities/chat_resource_projection.dart';
 import 'package:labuda/domains/chat/chat/presentation/widgets/chat_resource_projection_card.dart';
 import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_marketplace_primitives.dart';
+import 'package:labuda/shared/domain/entities/resource_projection.dart';
 
 Map<String, dynamic> _profileLiveJson({
   String resourceId = 'user-resource-1',
@@ -39,10 +39,14 @@ Map<String, dynamic> _profileLiveJson({
   };
 }
 
-Map<String, dynamic> _profileTombstoneJson() {
+Map<String, dynamic> _profileTombstoneJson({
+  String resourceId = 'user-resource-1',
+}) {
   return {
     'state': 'TOMBSTONE',
     'resource_type': 'profile',
+    // Canonical wire: identity survives death (resource_id is always present).
+    'resource_id': resourceId,
     'viewer_capabilities': {
       'can_view': false,
       'can_interact': false,
@@ -88,6 +92,7 @@ Map<String, dynamic> _contentTombstoneJson() {
   return {
     'state': 'TOMBSTONE',
     'resource_type': 'content',
+    'resource_id': 'content-resource-1',
     'viewer_capabilities': {
       'can_view': false,
       'can_interact': false,
@@ -125,7 +130,9 @@ Map<String, dynamic> _fpsLiveJson({
     },
     'for_sale': {
       'title': 'Koi Premium',
-      'image_url': 'https://cdn.example.test/fps.jpg',
+      'media': [
+        {'url': 'https://cdn.example.test/fps.jpg', 'kind': 'image'},
+      ],
       'price': {'amount': 1250000, 'currency': 'IDR'},
       'status': status,
       'seller': {
@@ -144,10 +151,13 @@ Map<String, dynamic> _fpsLiveJson({
   };
 }
 
-Map<String, dynamic> _fpsTombstoneJson() {
+Map<String, dynamic> _fpsTombstoneJson({
+  String resourceId = 'fps-resource-1',
+}) {
   return {
     'state': 'TOMBSTONE',
     'resource_type': 'for_sale',
+    'resource_id': resourceId,
     'viewer_capabilities': {
       'can_view': false,
       'can_interact': false,
@@ -184,7 +194,9 @@ Map<String, dynamic> _auctionLiveJson({
     },
     'auction': {
       'title': 'Auction Premium',
-      'thumbnail_url': 'https://cdn.example.test/auction.jpg',
+      'media': [
+        {'url': 'https://cdn.example.test/auction.jpg', 'kind': 'image'},
+      ],
       'current_bid': 1450000,
       'buy_now_price': 1750000,
       'end_at': endAt,
@@ -208,6 +220,7 @@ Map<String, dynamic> _auctionTombstoneJson() {
   return {
     'state': 'TOMBSTONE',
     'resource_type': 'auction',
+    'resource_id': 'auction-resource-1',
     'viewer_capabilities': {
       'can_view': false,
       'can_interact': false,
@@ -216,11 +229,11 @@ Map<String, dynamic> _auctionTombstoneJson() {
   };
 }
 
-ChatResourceProjection _parseProjection(Map<String, dynamic> json) {
-  return ChatResourceProjection.fromJson(json);
+ResourceProjection _parseProjection(Map<String, dynamic> json) {
+  return ResourceProjection.fromJson(json);
 }
 
-Widget _projectionCard(ChatResourceProjection projection) {
+Widget _projectionCard(ResourceProjection projection) {
   return MaterialApp(
     home: Scaffold(
       body: SingleChildScrollView(
@@ -235,6 +248,16 @@ void main() {
     test('LIVE missing resource_id is rejected', () {
       expect(
         () => _parseProjection({..._profileLiveJson(), 'resource_id': ''}),
+        throwsFormatException,
+      );
+    });
+
+    test('TOMBSTONE missing resource_id is rejected', () {
+      final canonical = _profileTombstoneJson();
+      final withoutId = Map<String, dynamic>.from(canonical)
+        ..remove('resource_id');
+      expect(
+        () => _parseProjection(withoutId),
         throwsFormatException,
       );
     });
@@ -292,16 +315,6 @@ void main() {
       );
     });
 
-    test('TOMBSTONE containing resource_id is rejected', () {
-      expect(
-        () => _parseProjection({
-          ..._profileTombstoneJson(),
-          'resource_id': 'user-resource-1',
-        }),
-        throwsFormatException,
-      );
-    });
-
     test('TOMBSTONE containing canonical_url is rejected', () {
       expect(
         () => _parseProjection({
@@ -339,6 +352,31 @@ void main() {
       );
     });
 
+    test('payload-level can_interact is dead — envelope carries capabilities', () {
+      // A legacy content-era for_sale payload (payload can_interact, scalar
+      // price, image_url) must not parse: the envelope shape is the authority.
+      expect(
+        () => _parseProjection({
+          'state': 'LIVE',
+          'resource_type': 'for_sale',
+          'resource_id': 'fps-legacy-1',
+          'canonical_url': '/for-sale/fps-legacy-1',
+          'for_sale': {
+            'title': 'Koi',
+            'media': const [],
+            'price': 500000,
+            'status': 'active',
+            'quantity_available': 1,
+            'can_interact': true,
+            'seller': {
+              'user': {'id': 'seller-1', 'username': 'seller'},
+            },
+          },
+        }),
+        throwsFormatException,
+      );
+    });
+
     test('unknown projection state is rejected', () {
       expect(
         () =>
@@ -362,8 +400,17 @@ void main() {
       final projection = _parseProjection(json);
 
       expect(projection.toJson(), json);
-      expect(projection.resourceType, ChatResourceType.profile);
-      expect(projection.state, ChatResourceProjectionState.live);
+      expect(projection.resourceType, ResourceProjectionType.profile);
+      expect(projection.state, ResourceProjectionState.live);
+    });
+
+    test('profile TOMBSTONE round trips canonically and keeps identity', () {
+      final json = _profileTombstoneJson();
+      final projection = _parseProjection(json);
+
+      expect(projection.toJson(), json);
+      expect(projection.isTombstone, isTrue);
+      expect(projection.resourceId, 'user-resource-1');
     });
 
     test('content LIVE round trips canonically', () {
@@ -376,8 +423,8 @@ void main() {
       final projection = _parseProjection(json);
 
       expect(projection.toJson(), json);
-      expect(projection.resourceType, ChatResourceType.content);
-      expect(projection.state, ChatResourceProjectionState.live);
+      expect(projection.resourceType, ResourceProjectionType.content);
+      expect(projection.state, ResourceProjectionState.live);
     });
 
     test('fixed price sale LIVE round trips canonically', () {
@@ -385,8 +432,11 @@ void main() {
       final projection = _parseProjection(json);
 
       expect(projection.toJson(), json);
-      expect(projection.resourceType, ChatResourceType.forSale);
-      expect(projection.state, ChatResourceProjectionState.live);
+      expect(
+        projection.resourceType,
+        ResourceProjectionType.fixedPriceSale,
+      );
+      expect(projection.state, ResourceProjectionState.live);
     });
 
     test('auction LIVE round trips canonically', () {
@@ -394,8 +444,8 @@ void main() {
       final projection = _parseProjection(json);
 
       expect(projection.toJson(), json);
-      expect(projection.resourceType, ChatResourceType.auction);
-      expect(projection.state, ChatResourceProjectionState.live);
+      expect(projection.resourceType, ResourceProjectionType.auction);
+      expect(projection.state, ResourceProjectionState.live);
     });
   });
 
@@ -468,7 +518,7 @@ void main() {
 
       expect(find.text('Konten utama'), findsOneWidget);
       expect(find.text('@author_user'), findsOneWidget);
-      expect(projection.compactPreviewText, 'Konten utama');
+      expect(projection.titleText, 'Konten utama');
       expect(
         projection.toJson(),
         _contentLiveJson(
@@ -494,11 +544,19 @@ void main() {
       );
       await tester.pumpWidget(_projectionCard(projection));
 
-      expect(find.text('Beli'), findsOneWidget);
+      // CTA contract: the buy capability renders as a navigation button, not
+      // as a passive capability chip.
+      expect(find.text('Beli Sekarang'), findsOneWidget);
+      expect(find.text('Beli'), findsNothing);
       expect(find.text('Chat'), findsOneWidget);
       expect(find.text('Nego'), findsNothing);
       expect(find.text('Kelola'), findsOneWidget);
       expect(find.text('LIVE'), findsWidgets);
+
+      // Every surface renders the canonical money (owner decision) and keeps
+      // the availability label as the caption.
+      expect(find.text('Rp 1.250.000'), findsOneWidget);
+      expect(find.text('Tersedia'), findsOneWidget);
     });
 
     testWidgets('FPS TOMBSTONE cannot navigate', (tester) async {

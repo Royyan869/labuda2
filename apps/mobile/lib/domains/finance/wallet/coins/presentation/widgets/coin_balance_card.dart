@@ -4,6 +4,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/finance/wallet/coins/domain/entities/coin_balance.dart';
+import 'package:labuda/shared/domain/entities/resource_projection.dart';
 
 /// Displays user's Coin balance with visibility toggle and actions.
 ///
@@ -151,7 +152,7 @@ class _CoinBalanceCardState extends State<CoinBalanceCard> {
                   children: [
                     Text(
                       _isBalanceVisible
-                          ? '${_formatNumber(widget.balance.balance)} Coins'
+                          ? '${formatGroupedAmount(widget.balance.balance)} Coins'
                           : '******** Coins',
                       style: const TextStyle(
                         fontSize: 28,
@@ -162,7 +163,7 @@ class _CoinBalanceCardState extends State<CoinBalanceCard> {
                     const SizedBox(height: 4),
                     Text(
                       _isBalanceVisible
-                          ? '~Potongan Rp ${_formatNumber(widget.balance.balance * 10)}'
+                          ? '~Potongan Rp ${formatGroupedAmount(widget.balance.balance * 10)}'
                           : '~Potongan Rp ********',
                       style: TextStyle(
                         fontSize: 13,
@@ -253,10 +254,4 @@ class _CoinBalanceCardState extends State<CoinBalanceCard> {
     );
   }
 
-  String _formatNumber(int number) {
-    return number.toString().replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (Match m) => '${m[1]}.',
-    );
-  }
 }

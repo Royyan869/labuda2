@@ -5,6 +5,7 @@ import 'package:labuda/shared/shared.dart';
 import 'package:labuda/shared/widgets/link_picker/link_list_item.dart';
 import 'package:labuda/shared/widgets/link_picker/link_picker_tab_label.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/for_sale.dart';
+import 'package:labuda/shared/domain/entities/resource_projection.dart';
 
 /// Link Picker Modal with tabs for Fixed-price sale, Auction
 /// Provides a unified interface for selecting links to attach
@@ -93,12 +94,12 @@ class _LinkPickerModalState extends ConsumerState<LinkPickerModal>
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.9,
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray800 : Colors.white,
+        color: scheme.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Column(
@@ -109,9 +110,7 @@ class _LinkPickerModalState extends ConsumerState<LinkPickerModal>
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: isDark
-                  ? AppColors.neutralGray600
-                  : AppColors.neutralGray300,
+              color: scheme.outlineVariant,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -130,9 +129,7 @@ class _LinkPickerModalState extends ConsumerState<LinkPickerModal>
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          color: isDark
-                              ? Colors.white
-                              : AppColors.neutralGray900,
+                          color: scheme.onSurface,
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -143,10 +140,8 @@ class _LinkPickerModalState extends ConsumerState<LinkPickerModal>
                         style: TextStyle(
                           fontSize: 12,
                           color: _selectedItems.isEmpty
-                              ? (isDark
-                                    ? AppColors.neutralGray400
-                                    : AppColors.neutralGray600)
-                              : AppColors.primaryRed,
+? scheme.onSurfaceVariant
+                              : scheme.primary,
                           fontWeight: _selectedItems.isEmpty
                               ? FontWeight.normal
                               : FontWeight.w600,
@@ -159,9 +154,7 @@ class _LinkPickerModalState extends ConsumerState<LinkPickerModal>
                   onPressed: () => Navigator.pop(context),
                   icon: Icon(
                     Icons.close,
-                    color: isDark
-                        ? AppColors.neutralGray400
-                        : AppColors.neutralGray600,
+                    color: scheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -173,20 +166,16 @@ class _LinkPickerModalState extends ConsumerState<LinkPickerModal>
             decoration: BoxDecoration(
               border: Border(
                 bottom: BorderSide(
-                  color: isDark
-                      ? AppColors.darkGray700
-                      : AppColors.neutralGray200,
+                  color: scheme.surfaceContainerHighest,
                   width: 1,
                 ),
               ),
             ),
             child: TabBar(
               controller: _tabController,
-              labelColor: AppColors.primaryRed,
-              unselectedLabelColor: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray600,
-              indicatorColor: AppColors.primaryRed,
+              labelColor: scheme.primary,
+              unselectedLabelColor: scheme.onSurfaceVariant,
+              indicatorColor: scheme.primary,
               tabs: [
                 Tab(
                   child: buildLinkPickerTabLabel(
@@ -213,9 +202,7 @@ class _LinkPickerModalState extends ConsumerState<LinkPickerModal>
                 hintText: 'Cari...',
                 prefixIcon: const Icon(Icons.search),
                 filled: true,
-                fillColor: isDark
-                    ? AppColors.darkGray700
-                    : AppColors.neutralGray100,
+                fillColor: scheme.surfaceContainerHighest,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
@@ -250,12 +237,10 @@ class _LinkPickerModalState extends ConsumerState<LinkPickerModal>
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: isDark ? AppColors.darkGray800 : Colors.white,
+              color: scheme.surface,
               border: Border(
                 top: BorderSide(
-                  color: isDark
-                      ? AppColors.darkGray700
-                      : AppColors.neutralGray200,
+                  color: scheme.surfaceContainerHighest,
                   width: 1,
                 ),
               ),
@@ -267,8 +252,8 @@ class _LinkPickerModalState extends ConsumerState<LinkPickerModal>
                 child: ElevatedButton(
                   onPressed: _selectedItems.isEmpty ? null : _addSelectedItems,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryRed,
-                    foregroundColor: Colors.white,
+                    backgroundColor: scheme.primary,
+                    foregroundColor: scheme.onPrimary,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -353,7 +338,7 @@ class _ForSaleTab extends ConsumerWidget {
               title: forSale.title,
               subtitle: forSale.description,
               price: forSale.price > 0
-                  ? 'Rp${forSale.price.toStringAsFixed(0)}'
+                  ? 'Rp ${formatGroupedAmount(forSale.price.round())}'
                   : null,
               badge: forSale.status.displayName,
               badgeColor: AppColors.primaryGreen,
@@ -413,7 +398,7 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Center(
       child: Padding(
@@ -424,18 +409,14 @@ class _EmptyState extends StatelessWidget {
             Icon(
               icon,
               size: 64,
-              color: isDark
-                  ? AppColors.neutralGray600
-                  : AppColors.neutralGray400,
+color: scheme.onSurfaceVariant,
             ),
             const SizedBox(height: 16),
             Text(
               message,
               style: TextStyle(
                 fontSize: 16,
-                color: isDark
-                    ? AppColors.neutralGray500
-                    : AppColors.neutralGray600,
+color: scheme.onSurfaceVariant,
               ),
             ),
           ],

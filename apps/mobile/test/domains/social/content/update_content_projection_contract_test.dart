@@ -8,7 +8,7 @@ import 'package:labuda/domains/social/content/data/content_repository_impl.dart'
 import 'package:labuda/domains/social/content/data/dto/content_dto.dart';
 import 'package:labuda/domains/social/content/data/mappers/content_mapper.dart';
 import 'package:labuda/domains/social/content/data/remote/content_api_datasource.dart';
-import 'package:labuda/domains/social/content/domain/entities/content_resource_projection.dart';
+import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/domains/social/content/presentation/providers/content_notifier.dart';
 import 'package:labuda/domains/social/content/presentation/providers/content_state.dart';
 
@@ -26,8 +26,14 @@ Map<String, dynamic> _profileProjectionJson({
     'state': state,
     'resource_type': 'profile',
     'resource_id': resourceId,
+    'viewer_capabilities': <String, dynamic>{
+      'can_view': state == 'LIVE',
+      'can_interact': false,
+      'blocked_by_tombstone': state != 'LIVE',
+    },
   };
   if (state == 'LIVE') {
+    json['canonical_url'] = '/user/$resourceId';
     json['profile'] = <String, dynamic>{
       'username': username,
       'avatar_url': 'https://example.com/profile.jpg',
@@ -153,9 +159,9 @@ void main() {
         expect(updated.resourceProjection, isNotNull);
         expect(
           updated.resourceProjection!.resourceType,
-          ContentResourceProjectionType.profile,
+          ResourceProjectionType.profile,
         );
-        expect(updated.resourceProjection!.state, ContentResourceProjectionState.live);
+        expect(updated.resourceProjection!.state, ResourceProjectionState.live);
         expect(updated.resourceProjection!.canonicalPath, '/user/profile-77');
         expect(updated.resourceProjection!.titleText, '@canonical-alice');
 

@@ -4,8 +4,8 @@
 /// projection card:
 ///   persisted `content_media.media_type`
 ///     → `mediaref.MediaRef.Kind`
-///     → `ChatContentMediaRef.kind`
-///     → `ChatContentMediaRef.mediaType`
+///     → `ResourceMediaRef.kind`
+///     → `ResourceMediaRef.mediaKind`
 ///     → image: `CommerceMarketplaceCardMedia` / `StableNetworkImage`
 ///     → video: `CarouselVideoPlayer` (the shared video primitive).
 ///
@@ -19,7 +19,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/chat/chat/domain/entities/chat_resource_projection.dart';
+import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/domains/chat/chat/presentation/widgets/chat_resource_projection_card.dart';
 import 'package:labuda/shared/widgets/carousel_video_player.dart';
 import 'package:labuda/shared/widgets/stable_network_image.dart';
@@ -74,7 +74,7 @@ Future<void> _pumpProjection(
   WidgetTester tester,
   List<Map<String, dynamic>> media,
 ) async {
-  final projection = ChatResourceProjection.fromJson(_contentLiveJson(media));
+  final projection = ResourceProjection.fromJson(_contentLiveJson(media));
   await tester.pumpWidget(
     MaterialApp(
       home: Scaffold(

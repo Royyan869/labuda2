@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction_status.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction_time_extension.dart';
@@ -35,7 +36,7 @@ class AuctionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
@@ -47,7 +48,7 @@ class AuctionCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             // Image with urgency overlay
-            _buildImageWithUrgency(isDark),
+            _buildImageWithUrgency(scheme),
 
             // Content
             Padding(
@@ -75,14 +76,14 @@ class AuctionCard extends StatelessWidget {
                   // emits a canonical bid-count field.
                   Row(
                     children: [
-                      Icon(Icons.gavel, size: 16, color: AppColors.primaryRed),
+                      Icon(Icons.gavel, size: 16, color: scheme.primary),
                       const SizedBox(width: 4),
                       Text(
                         auction.currentBid > 0
-                            ? 'Rp ${auction.currentBid.toStringAsFixed(0)}'
-                            : 'Mulai Rp ${auction.startingBid.toStringAsFixed(0)}',
+                            ? 'Rp ${formatGroupedAmount(auction.currentBid.round())}'
+                            : 'Mulai Rp ${formatGroupedAmount(auction.startingBid.round())}',
                         style: AppTypography.bodyMedium.copyWith(
-                          color: AppColors.primaryRed,
+                          color: scheme.primary,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -98,9 +99,7 @@ class AuctionCard extends StatelessWidget {
                         Text(
                           _sellerLine1!,
                           style: AppTypography.bodySmall.copyWith(
-                            color: isDark
-                                ? AppColors.neutralGray500
-                                : AppColors.neutralGray400,
+                            color: scheme.onSurfaceVariant,
                             fontStyle: _isSellerDegraded
                                 ? FontStyle.italic
                                 : FontStyle.normal,
@@ -113,9 +112,7 @@ class AuctionCard extends StatelessWidget {
                           Text(
                             _sellerLine2!,
                             style: AppTypography.bodySmall.copyWith(
-                              color: isDark
-                                  ? AppColors.neutralGray500
-                                  : AppColors.neutralGray400,
+                              color: scheme.onSurfaceVariant,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -146,7 +143,7 @@ class AuctionCard extends StatelessWidget {
     );
   }
 
-  Widget _buildImageWithUrgency(bool isDark) {
+  Widget _buildImageWithUrgency(ColorScheme scheme) {
     final hasMedia = auction.media.isNotEmpty;
 
     return Stack(
@@ -154,45 +151,54 @@ class AuctionCard extends StatelessWidget {
         AspectRatio(
           aspectRatio: 16 / 9,
           child: Container(
-            color: isDark ? AppColors.darkGray700 : AppColors.neutralGray200,
+            color: scheme.surfaceContainerHighest,
             child: hasMedia
                 ? Image.network(
                     auction.media.first.originalUrl,
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) =>
-                        _buildPlaceholder(isDark),
+                        _buildPlaceholder(scheme),
                   )
-                : _buildPlaceholder(isDark),
+                : _buildPlaceholder(scheme),
           ),
         ),
 
         // Urgency badge for active auctions
         if (auction.isActive)
-          Positioned(top: 8, right: 8, child: _buildUrgencyBadge()),
+          Positioned(
+            top: 8,
+            right: 8,
+            child: _buildUrgencyBadge(scheme),
+          ),
 
         // Status badge for non-active auctions
         if (!auction.isActive)
-          Positioned(top: 8, right: 8, child: _buildStatusBadge(isDark)),
+          Positioned(top: 8, right: 8, child: _buildStatusBadge(scheme)),
       ],
     );
   }
 
-  Widget _buildPlaceholder(bool isDark) {
+  Widget _buildPlaceholder(ColorScheme scheme) {
     return Container(
-      color: isDark ? AppColors.darkGray700 : AppColors.neutralGray200,
-      child: const Center(
+      color: scheme.surfaceContainerHighest,
+      child: Center(
         child: Icon(
           Icons.image_outlined,
           size: 48,
-          color: AppColors.neutralGray400,
+          color: scheme.onSurfaceVariant,
         ),
       ),
     );
   }
 
-  Widget _buildUrgencyBadge() {
+  Widget _buildUrgencyBadge(ColorScheme scheme) {
     final timeRemaining = auction.getTimeRemaining();
-    final bgColor = _getUrgencyColor(timeRemaining.urgencyLevel);
+    final bgColor = _getUrgencyColor(scheme, timeRemaining.urgencyLevel);
+    // Solid semantic badges pair with onPrimary; the neutral ended badge
+    // (light gray in dark mode) pairs with surface ink instead.
+    final fgColor = timeRemaining.urgencyLevel == AuctionUrgencyLevel.ended
+        ? scheme.surface
+        : scheme.onPrimary;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -202,33 +208,33 @@ class AuctionCard extends StatelessWidget {
       ),
       child: Text(
         timeRemaining.displayText,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w600,
-          color: Colors.white,
+          color: fgColor,
         ),
       ),
     );
   }
 
-  Color _getUrgencyColor(AuctionUrgencyLevel level) {
+  Color _getUrgencyColor(ColorScheme scheme, AuctionUrgencyLevel level) {
     switch (level) {
       case AuctionUrgencyLevel.critical:
-        return Colors.red.withValues(alpha: 0.9);
+        return scheme.error.withValues(alpha: 0.9);
       case AuctionUrgencyLevel.warning:
-        return Colors.orange.withValues(alpha: 0.9);
+        return AppColors.statusWarning.withValues(alpha: 0.9);
       case AuctionUrgencyLevel.normal:
-        return AppColors.primaryGreen.withValues(alpha: 0.9);
+        return AppColors.statusSuccess.withValues(alpha: 0.9);
       case AuctionUrgencyLevel.ended:
-        return AppColors.neutralGray600;
+        return scheme.onSurfaceVariant;
     }
   }
 
-  Widget _buildStatusBadge(bool isDark) {
+  Widget _buildStatusBadge(ColorScheme scheme) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray600 : AppColors.neutralGray300,
+        color: scheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
@@ -236,7 +242,7 @@ class AuctionCard extends StatelessWidget {
         style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w600,
-          color: isDark ? AppColors.neutralGray300 : AppColors.neutralGray700,
+          color: scheme.onSurfaceVariant,
         ),
       ),
     );

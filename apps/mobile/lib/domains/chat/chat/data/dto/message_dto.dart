@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'attachment_dto.dart';
 import 'chat_resource_occurrence_request.dart';
-import 'package:labuda/domains/chat/chat/domain/entities/chat_resource_projection.dart';
+import 'package:labuda/shared/domain/entities/resource_projection.dart';
 
 /// Message DTO from API
 class MessageDto extends Equatable {
@@ -47,7 +47,7 @@ class MessageDto extends Equatable {
   /// Chat resource projection: the server-resolved, viewer-aware representation
   /// of the resource this message references. Null when the message carries no
   /// resource occurrence. Chat renders this; it never derives Commerce truth.
-  final ChatResourceProjection? resourceProjection;
+  final ResourceProjection? resourceProjection;
 
   const MessageDto({
     required this.id,
@@ -247,11 +247,11 @@ bool _readIsHidden(Map<String, dynamic> json) {
 ///
 /// A malformed projection is dropped rather than failing the whole message:
 /// the projection is display decoration, not message authority. Absent → null.
-ChatResourceProjection? _readResourceProjection(Map<String, dynamic> json) {
+ResourceProjection? _readResourceProjection(Map<String, dynamic> json) {
   final raw = json['resource_projection'];
   if (raw is! Map<String, dynamic>) return null;
   try {
-    return ChatResourceProjection.fromJson(raw);
+    return ResourceProjection.fromJson(raw);
   } on FormatException {
     return null;
   }
@@ -351,33 +351,6 @@ class ListMessagesDto {
   List<Object?> get props => [messages, hasMore, nextCursor];
 }
 
-/// Typing Event DTO
-class TypingEventDto extends Equatable {
-  final String chatRoomId;
-  final String userId;
-  final String userName;
-  final bool isTyping;
-
-  const TypingEventDto({
-    required this.chatRoomId,
-    required this.userId,
-    required this.userName,
-    required this.isTyping,
-  });
-
-  factory TypingEventDto.fromJson(Map<String, dynamic> json) {
-    return TypingEventDto(
-      chatRoomId: json['chat_room_id'] as String,
-      userId: json['user_id'] as String,
-      userName: json['user_name'] as String,
-      isTyping: json['is_typing'] as bool,
-    );
-  }
-
-  @override
-  List<Object?> get props => [chatRoomId, userId, isTyping];
-}
-
 /// Mark Read Request DTO
 class MarkReadDto {
   final DateTime timestamp;
@@ -387,30 +360,6 @@ class MarkReadDto {
   Map<String, dynamic> toJson() => {
     'timestamp': timestamp.toUtc().toIso8601String(),
   };
-}
-
-/// Message Read Event DTO
-class MessageReadEventDto extends Equatable {
-  final String chatRoomId;
-  final String messageId;
-  final String userId;
-
-  const MessageReadEventDto({
-    required this.chatRoomId,
-    required this.messageId,
-    required this.userId,
-  });
-
-  factory MessageReadEventDto.fromJson(Map<String, dynamic> json) {
-    return MessageReadEventDto(
-      chatRoomId: json['chat_room_id'] as String,
-      messageId: json['message_id'] as String,
-      userId: json['user_id'] as String,
-    );
-  }
-
-  @override
-  List<Object?> get props => [chatRoomId, messageId, userId];
 }
 
 /// WebSocket Event DTO
@@ -429,42 +378,30 @@ class WebSocketEventDto {
 }
 
 /// WebSocket Event Type
+///
+/// CANONICAL CHAT WIRE CONTRACT (backend `internal/realtime`):
+/// - `chat.message.sent`  → minimal room signal (room_id + message_id);
+/// - `chat.room.created` / `chat.room.updated` → user-targeted room summary.
+///
+/// FORBIDDEN / KILLED — names the backend has never emitted; they map to
+/// [WebSocketEventType.unknown] so any reintroduction is observable drift:
+/// `chat.message.hidden`, `chat.message.restored`, `message.read`,
+/// `message.new`, `typing.started`, `typing.stopped`, `user.online`,
+/// `user.offline`.
 enum WebSocketEventType {
   messageNew,
-  messageHidden,
-  messageRestored,
-  messageRead,
   roomCreated,
   roomUpdated,
-  typingStarted,
-  typingStopped,
-  userOnline,
-  userOffline,
   unknown;
 
   static WebSocketEventType fromString(String value) {
     switch (value) {
-      case 'message.new':
       case 'chat.message.sent':
         return messageNew;
-      case 'chat.message.hidden':
-        return messageHidden;
-      case 'chat.message.restored':
-        return messageRestored;
-      case 'message.read':
-        return messageRead;
       case 'chat.room.created':
         return roomCreated;
       case 'chat.room.updated':
         return roomUpdated;
-      case 'typing.started':
-        return typingStarted;
-      case 'typing.stopped':
-        return typingStopped;
-      case 'user.online':
-        return userOnline;
-      case 'user.offline':
-        return userOffline;
       default:
         return unknown;
     }

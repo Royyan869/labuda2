@@ -3,6 +3,8 @@
 /// Sealed class states for withdraw operations.
 library;
 
+import 'package:labuda/shared/domain/entities/resource_projection.dart';
+
 import '../../domain/entities/withdrawal.dart';
 
 /// Base state class
@@ -72,13 +74,13 @@ class WithdrawError extends WithdrawState {
 
   factory WithdrawError.belowMinimum(double min) {
     return WithdrawError(
-      'Minimum withdrawal amount is Rp ${min.toStringAsFixed(0)}',
+      'Minimum withdrawal amount is Rp ${formatGroupedAmount(min.round())}',
     );
   }
 
   factory WithdrawError.aboveMaximum(double max) {
     return WithdrawError(
-      'Maximum withdrawal amount is Rp ${max.toStringAsFixed(0)}',
+      'Maximum withdrawal amount is Rp ${formatGroupedAmount(max.round())}',
     );
   }
 }

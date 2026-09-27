@@ -1,8 +1,8 @@
 /// CONTENT SHARED-REFERENCE MEDIA RENDER CONTRACT
 ///
 /// Pins the canonical media path for a Content share reference rendered by
-/// `ObjectPreviewCard` — the legacy reference branch a chat message falls back
-/// to when the server has not projected a canonical resource projection:
+/// `ObjectPreviewCard` — the transport-snapshot shell a communication row falls
+/// back to when the server has not projected a canonical resource projection:
 ///   Content reference preview image
 ///     → `ShareTargetType.content`
 ///     → `StableNetworkImage` / `resolveNetworkImageUrl`
@@ -12,19 +12,18 @@
 /// image decoder. Before convergence this branch used `Image.network` directly,
 /// which handed the persisted reference straight to the decoder.
 ///
-/// Commerce (`for_sale` / `auction`) and profile references keep their own
-/// rendering path and are asserted here only to pin that they were not changed.
+/// The shell has no live branch any more (see
+/// `reference_attachment_live_fetch_purge_test.dart`): every case below is the
+/// snapshot path. Commerce (`for_sale` / `auction`) and profile references keep
+/// their own rendering path and are asserted here only to pin that they were
+/// not changed.
 library;
 
-import 'dart:async';
-
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/attachment/entities/share_reference.dart';
 import 'package:labuda/shared/object/object_preview.dart';
-import 'package:labuda/shared/object/object_preview_provider.dart';
 import 'package:labuda/shared/object/presentation/widgets/object_preview_card.dart';
 import 'package:labuda/shared/widgets/stable_network_image.dart';
 
@@ -79,7 +78,7 @@ void main() {
       const storageReference = 'images/1749600000003_shared.jpg';
 
       await tester.pumpWidget(
-        ProviderScope(child: _card(_contentReference(imageUrl: storageReference))),
+        _card(_contentReference(imageUrl: storageReference)),
       );
       await tester.pump();
 
@@ -106,45 +105,16 @@ void main() {
   ) async {
     const absoluteUrl = 'https://cdn.example.com/content/shared-image.jpg';
 
-    await tester.pumpWidget(
-      ProviderScope(child: _card(_contentReference(imageUrl: absoluteUrl))),
-    );
+    await tester.pumpWidget(_card(_contentReference(imageUrl: absoluteUrl)));
     await tester.pump();
 
     expect(_decodedNetworkUrls(tester), contains(absoluteUrl));
   });
 
-  testWidgets(
-    'content reference snapshot path (no live preview yet) uses the canonical '
-    'media path too',
-    (tester) async {
-      const storageReference = 'images/1749600000004_snapshot.jpg';
-
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            // A provider that never resolves keeps the card on its snapshot
-            // branch (the state before a live preview has ever been resolved).
-            objectPreviewProvider.overrideWith(
-              (ref, reference) => Completer<ObjectPreview?>().future,
-            ),
-          ],
-          child: _card(_contentReference(imageUrl: storageReference)),
-        ),
-      );
-      await tester.pump();
-
-      expect(find.byType(StableNetworkImage), findsOneWidget);
-      final urls = _decodedNetworkUrls(tester);
-      expect(urls, contains('$_mediaBaseUrl/$storageReference'));
-      expect(urls, isNot(contains(storageReference)));
-    },
-  );
-
   testWidgets('content reference without a preview image decodes nothing', (
     tester,
   ) async {
-    await tester.pumpWidget(ProviderScope(child: _card(_contentReference())));
+    await tester.pumpWidget(_card(_contentReference()));
     await tester.pump();
 
     expect(find.byType(StableNetworkImage), findsNothing);
@@ -160,18 +130,7 @@ void main() {
         imageUrl: 'https://cdn.example.com/commerce/sale.jpg',
       );
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            // Keep the commerce card on its cached-preview branch so this case
-            // is only about the media path, not about live commerce data.
-            objectPreviewProvider.overrideWith(
-              (ref, objectReference) => Completer<ObjectPreview?>().future,
-            ),
-          ],
-          child: _card(reference),
-        ),
-      );
+      await tester.pumpWidget(_card(reference));
       await tester.pump();
 
       // Commerce references are NOT converged in this scope: they must render

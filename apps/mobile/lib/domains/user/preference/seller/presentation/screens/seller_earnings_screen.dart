@@ -15,6 +15,7 @@ import 'package:labuda/domains/user/preference/seller/presentation/widgets/withd
 import 'package:labuda/shared/utils/app_formatters.dart';
 import 'package:labuda/domains/system/support/presentation/presentation.dart'; // R3.1: Import for showPreChatFormRefactored
 import 'package:labuda/domains/user/preference/seller/domain/entities/withdrawal.dart';
+import 'package:labuda/shared/domain/entities/resource_projection.dart';
 
 /// Seller Earnings Screen
 ///
@@ -268,7 +269,10 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
             const Divider(height: 16),
             _buildInfoItem(
               'Minimum Withdrawal',
-              'Rp 10.000 minimum withdrawal amount',
+              // The minimum is owned by WithdrawRequest.minAmount — a copy
+              // literal here once drifted from the enforced value.
+              'Minimum withdrawal amount is '
+                  'Rp ${formatGroupedAmount(WithdrawRequest.minAmount.round())}',
             ),
           ],
         ),

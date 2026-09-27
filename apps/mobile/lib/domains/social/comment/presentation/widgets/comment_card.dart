@@ -12,14 +12,13 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/social/comment/domain/entities/comment.dart';
+import 'package:labuda/shared/domain/entities/resource_projection.dart';
+import 'package:labuda/domains/social/content/presentation/widgets/content_resource_projection_card.dart';
 import 'package:labuda/domains/social/like/domain/entities/like.dart';
 import 'package:labuda/domains/social/like/presentation/providers/like_notifier.dart';
 import 'package:labuda/domains/social/comment/presentation/utils/comment_like_handlers.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
-import 'package:labuda/shared/object/object_preview.dart' as obj;
-import 'package:labuda/shared/object/presentation/widgets/object_preview_card.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/domains/system/report/domain/entities/entities.dart';
 import 'package:labuda/domains/system/report/presentation/dialogs/report_submission_dialog.dart';
@@ -46,6 +45,9 @@ class CommentCard extends ConsumerWidget {
   /// Callback when user taps on the fixed-price sale attachment
   final Function(String fixedPriceSaleId)? onFixedPriceSaleTap;
 
+  /// Callback when user taps on the auction attachment
+  final Function(String auctionId)? onAuctionTap;
+
   /// Callback when user taps on author name/username
   final Function(String userId)? onAuthorTap;
 
@@ -55,10 +57,6 @@ class CommentCard extends ConsumerWidget {
   /// Edit/delete callbacks for author
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
-
-  /// Pre-resolved live preview data (from batch provider)
-  /// If provided, will be used directly without calling objectPreviewProvider
-  final obj.ObjectPreview? preResolved;
 
   const CommentCard({
     super.key,
@@ -70,16 +68,16 @@ class CommentCard extends ConsumerWidget {
     this.currentUserId,
     this.currentUserName,
     this.onFixedPriceSaleTap,
+    this.onAuctionTap,
     this.onAuthorTap,
     this.onReply,
     this.onEdit,
     this.onDelete,
-    this.preResolved,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     final isSellerResponse = comment.isCommerceReference;
 
     // Watch like stats for this comment (only if authenticated)
@@ -99,12 +97,10 @@ class CommentCard extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: isSellerResponse
           ? BoxDecoration(
-              color: isDark
-                  ? AppColors.primaryRed.withValues(alpha: 0.05)
-                  : AppColors.primaryRed.withValues(alpha: 0.03),
+              color: scheme.primary.withValues(alpha: 0.06),
               border: Border(
                 left: BorderSide(
-                  color: AppColors.primaryRed.withValues(alpha: 0.3),
+                  color: scheme.primary.withValues(alpha: 0.3),
                   width: 3,
                 ),
               ),
@@ -114,25 +110,22 @@ class CommentCard extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header: User info + timestamp + seller response badge
-          _buildHeader(context, isDark),
+          _buildHeader(context),
           const SizedBox(height: 8),
           // Body text
           if (comment.body != null && comment.body!.isNotEmpty)
-            _buildBody(context, isDark),
-          // Fixed-price sale attachment (ShareReference)
-          if (comment.reference != null &&
-              (comment.reference!.targetType == ShareTargetType.forSale ||
-                  comment.reference!.targetType ==
-                      ShareTargetType.auction)) ...[
+            _buildBody(context),
+          // Commerce attachment — canonical viewer-aware envelope. Identity
+          // comes from `reference`, display/state from `resource_projection`
+          // (LIVE payload or TOMBSTONE); there is no snapshot fallback.
+          if (comment.isCommerceReference &&
+              comment.resourceProjection != null) ...[
             if (comment.body != null && comment.body!.isNotEmpty)
               const SizedBox(height: 8),
-            ObjectPreviewCard(
-              reference: comment.reference!,
-              onTap: comment.reference!.targetType == ShareTargetType.forSale
-                  ? () => onFixedPriceSaleTap?.call(comment.reference!.targetId)
-                  : null,
-              showTypeBadge: false, // Don't show type badge in comments
-              preResolved: preResolved, // Use pre-resolved data if available
+            ContentResourceProjectionCard(
+              resourceProjection: comment.resourceProjection!,
+              compact: true,
+              onTap: _commerceAttachmentTap(),
             ),
           ],
           // Like button (shown only for authenticated users)
@@ -143,6 +136,23 @@ class CommentCard extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  /// Attachment tap routing by canonical resource type. Returning null lets
+  /// the projection card fall back to its canonical path push; TOMBSTONE
+  /// envelopes are disabled by the card itself.
+  VoidCallback? _commerceAttachmentTap() {
+    final projection = comment.resourceProjection!;
+    switch (projection.resourceType) {
+      case ResourceProjectionType.fixedPriceSale:
+        final onTap = onFixedPriceSaleTap;
+        return onTap == null ? null : () => onTap(projection.resourceId);
+      case ResourceProjectionType.auction:
+        final onTap = onAuctionTap;
+        return onTap == null ? null : () => onTap(projection.resourceId);
+      default:
+        return null;
+    }
   }
 
   Widget _buildLikeSection(
@@ -182,6 +192,7 @@ class CommentCard extends ConsumerWidget {
   }
 
   Widget _buildReplyButton(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onReply,
       borderRadius: BorderRadius.circular(4),
@@ -190,11 +201,11 @@ class CommentCard extends ConsumerWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.reply, size: 16, color: AppColors.neutralGray600),
+            Icon(Icons.reply, size: 16, color: scheme.onSurfaceVariant),
             const SizedBox(width: 4),
             Text(
               'Balas',
-              style: TextStyle(fontSize: 13, color: AppColors.neutralGray600),
+              style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant),
             ),
           ],
         ),
@@ -202,7 +213,8 @@ class CommentCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context, bool isDark) {
+  Widget _buildHeader(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final isSellerResponse = comment.isCommerceReference;
 
     // E3.1 — Comment-author lifecycle redaction. Independent from the
@@ -246,10 +258,8 @@ class CommentCard extends ConsumerWidget {
                             ? FontStyle.italic
                             : FontStyle.normal,
                         color: authorRedacted
-                            ? AppColors.neutralGray500
-                            : (isDark
-                                  ? AppColors.neutralWhite
-                                  : AppColors.neutralGray900),
+                            ? scheme.onSurfaceVariant
+                            : scheme.onSurface,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -266,7 +276,7 @@ class CommentCard extends ConsumerWidget {
                         vertical: 2,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.primaryRed.withValues(alpha: 0.1),
+                        color: scheme.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
@@ -274,7 +284,7 @@ class CommentCard extends ConsumerWidget {
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w600,
-                          color: AppColors.primaryRed,
+                          color: scheme.primary,
                         ),
                       ),
                     ),
@@ -292,14 +302,14 @@ class CommentCard extends ConsumerWidget {
                   '@${userUsername!}',
                   style: TextStyle(
                     fontSize: 12,
-                    color: AppColors.neutralGray600,
+                    color: scheme.onSurfaceVariant,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
               Text(
                 _formatTimestamp(comment.createdAt),
-                style: TextStyle(fontSize: 12, color: AppColors.neutralGray600),
+                style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
               ),
             ],
           ),
@@ -308,7 +318,7 @@ class CommentCard extends ConsumerWidget {
         if (userId != null && currentUserId != null)
           if (userId == currentUserId)
             PopupMenuButton<String>(
-              icon: Icon(Icons.more_horiz, size: 16, color: AppColors.neutralGray600),
+              icon: Icon(Icons.more_horiz, size: 16, color: scheme.onSurfaceVariant),
               onSelected: (value) {
                 if (value == 'edit' && onEdit != null) onEdit!.call();
                 if (value == 'delete' && onDelete != null) onDelete!.call();
@@ -372,12 +382,13 @@ class CommentCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildBody(BuildContext context, bool isDark) {
+  Widget _buildBody(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Text(
       comment.body ?? '',
       style: TextStyle(
         fontSize: 14,
-        color: isDark ? AppColors.neutralWhite : AppColors.neutralGray900,
+        color: scheme.onSurface,
         height: 1.4,
       ),
     );
@@ -415,6 +426,7 @@ class _LikeButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(4),
@@ -426,13 +438,13 @@ class _LikeButton extends StatelessWidget {
             Icon(
               isLiked ? Icons.favorite : Icons.favorite_border,
               size: 16,
-              color: isLiked ? Colors.red : AppColors.neutralGray600,
+              color: isLiked ? scheme.error : scheme.onSurfaceVariant,
             ),
             if (likeCount != null) ...[
               const SizedBox(width: 4),
               Text(
                 likeCount! > 0 ? '$likeCount' : '',
-                style: TextStyle(fontSize: 13, color: AppColors.neutralGray600),
+                style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant),
               ),
             ],
           ],

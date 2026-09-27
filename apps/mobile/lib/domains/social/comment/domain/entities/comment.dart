@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/shared/attachment/entities/share_reference.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 
@@ -24,6 +25,12 @@ class Comment extends Equatable {
   final String? body;
   final String type;
   final ShareReference? reference; // Unified reference using ShareReference
+
+  /// Canonical viewer-aware envelope for the referenced commerce resource
+  /// (for_sale / auction): LIVE payload or TOMBSTONE, resolved per viewer by
+  /// the backend projection authority. This is the ONLY display source for a
+  /// commerce-reference comment — [reference] carries identity only.
+  final ResourceProjection? resourceProjection;
   final String? parentId; // Set for replies (max depth = 1)
   final DateTime createdAt;
   final DateTime? updatedAt;
@@ -51,6 +58,7 @@ class Comment extends Equatable {
     this.body,
     required this.type,
     this.reference,
+    this.resourceProjection,
     this.parentId,
     required this.createdAt,
     this.updatedAt,
@@ -86,6 +94,7 @@ class Comment extends Equatable {
     body,
     type,
     reference,
+    resourceProjection,
     parentId,
     createdAt,
     updatedAt,
@@ -102,6 +111,7 @@ class Comment extends Equatable {
     String? body,
     String? type,
     ShareReference? reference,
+    ResourceProjection? resourceProjection,
     String? parentId,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -117,6 +127,7 @@ class Comment extends Equatable {
       body: body ?? this.body,
       type: type ?? this.type,
       reference: reference ?? this.reference,
+      resourceProjection: resourceProjection ?? this.resourceProjection,
       parentId: parentId ?? this.parentId,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

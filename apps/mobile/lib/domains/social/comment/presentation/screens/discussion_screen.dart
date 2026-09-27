@@ -25,9 +25,6 @@ import 'package:labuda/domains/social/comment/presentation/providers/comment_not
 import 'package:labuda/domains/social/comment/presentation/providers/comment_state.dart';
 import 'package:labuda/domains/social/content/content.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
-import 'package:labuda/shared/object/object_preview.dart';
-import 'package:labuda/shared/object/object_preview_batch_provider.dart';
-import 'package:labuda/shared/object/object_reference.dart';
 import 'package:labuda/domains/social/like/domain/entities/like.dart';
 import 'package:labuda/domains/social/like/presentation/providers/like_notifier.dart';
 import 'package:labuda/domains/social/comment/presentation/utils/comment_like_handlers.dart';
@@ -217,7 +214,7 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
     final groupedComments = _groupCommentsWithReplies(comments);
     final flatList = _flattenCommentGroups(groupedComments);
 
-    // BATCH RESOLUTION: Collect all comment references and resolve in one call
+    // GROUPED: top-level comments with their replies
     return _CommentsBatchWidget(
       flatList: flatList,
       scrollController: _scrollController,
@@ -229,6 +226,9 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
             fixedPriceSaleId,
           ),
         );
+      },
+      onAuctionTap: (auctionId) {
+        context.push(RoutePaths.auctionDetail(auctionId));
       },
       onAuthorTap: (userId) {
         context.push('/user/$userId');
@@ -379,6 +379,7 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
   }
 
   Widget _buildEmptyState(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -386,7 +387,7 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
           Icon(
             Icons.comment_outlined,
             size: 64,
-            color: AppColors.neutralGray300,
+            color: scheme.outline,
           ),
           const SizedBox(height: 16),
           Text(
@@ -394,13 +395,13 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w500,
-              color: AppColors.neutralGray600,
+              color: scheme.onSurface,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'Jadilah yang pertama berkomentar!',
-            style: TextStyle(fontSize: 14, color: AppColors.neutralGray500),
+            style: TextStyle(fontSize: 14, color: scheme.onSurfaceVariant),
           ),
         ],
       ),
@@ -408,24 +409,25 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
   }
 
   Widget _buildErrorState(BuildContext context, String error) {
+    final scheme = Theme.of(context).colorScheme;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.error_outline, size: 64, color: AppColors.statusError),
+          Icon(Icons.error_outline, size: 64, color: scheme.error),
           const SizedBox(height: 16),
           Text(
             'Gagal memuat komentar',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w500,
-              color: AppColors.neutralGray900,
+              color: scheme.onSurface,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             error,
-            style: TextStyle(fontSize: 14, color: AppColors.neutralGray500),
+            style: TextStyle(fontSize: 14, color: scheme.onSurfaceVariant),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
@@ -445,8 +447,7 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
     );
   }
 
-  Widget _buildCommentComposer(BuildContext context) {
-    final authState = ref.watch(authControllerProvider);
+  Widget _buildCommentComposer(BuildContext context) {    final authState = ref.watch(authControllerProvider);
 
     // Check if user is a seller - use PermissionHelper
     final isSeller =
@@ -464,38 +465,43 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
       children: [
         // Reply indicator bar
         if (isReplying)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: AppColors.primaryRed.withValues(alpha: 0.1),
-              border: Border(
-                top: BorderSide(color: AppColors.neutralGray200, width: 1),
-              ),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.reply, size: 16, color: AppColors.primaryRed),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Membalas @${_replyingToComment!.authorUsername}',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: AppColors.primaryRed,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+          Builder(
+            builder: (context) {
+              final scheme = Theme.of(context).colorScheme;
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: scheme.primary.withValues(alpha: 0.1),
+                  border: Border(
+                    top: BorderSide(color: scheme.outlineVariant, width: 1),
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.close, size: 18),
-                  onPressed: _cancelReply,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
+                child: Row(
+                  children: [
+                    Icon(Icons.reply, size: 16, color: scheme.primary),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Membalas @${_replyingToComment!.authorUsername}',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: scheme.primary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, size: 18),
+                      onPressed: _cancelReply,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              );
+            },
           ),
         CommentInputWithCommerceReference(
           hintText: replyHintText,
@@ -529,15 +535,16 @@ class _CommentItem {
   _CommentItem({required this.comment, required this.isReply});
 }
 
-/// Batch Comments Widget
+/// Comments list widget.
 ///
-/// Resolves all comment attachments in one batch call instead of N individual calls.
-/// Reduces API calls from N to 2-3 (For Sale + Auction).
+/// Commerce attachments render from the canonical `resource_projection`
+/// envelope carried by each comment — no client-side batch preview fetching.
 class _CommentsBatchWidget extends ConsumerWidget {
   final List<_CommentItem> flatList;
   final ScrollController scrollController;
   final bool isLoadingMore;
   final Function(String) onFixedPriceSaleTap;
+  final Function(String) onAuctionTap;
   final Function(String) onAuthorTap;
   final Function(Comment) onReply;
   final Future<void> Function() onRefresh;
@@ -547,6 +554,7 @@ class _CommentsBatchWidget extends ConsumerWidget {
     required this.scrollController,
     required this.isLoadingMore,
     required this.onFixedPriceSaleTap,
+    required this.onAuctionTap,
     required this.onAuthorTap,
     required this.onReply,
     required this.onRefresh,
@@ -562,26 +570,6 @@ class _CommentsBatchWidget extends ConsumerWidget {
     final currentUserName = authState is AuthStateAuthenticated
         ? authState.user.username
         : null;
-
-    // STEP 1: Collect all ObjectReferences from comments
-    final references = <ObjectReference>[];
-    final commentMap = <String, _CommentItem>{};
-
-    for (final item in flatList) {
-      if (item.comment.reference != null) {
-        final ref = ObjectReference(
-          type: item.comment.reference!.objectType,
-          id: item.comment.reference!.targetId,
-        );
-        references.add(ref);
-        commentMap[getCacheKey(ref)] = item;
-      }
-    }
-
-    // STEP 2: Watch batch provider
-    final batchPreviewsAsync = ref.watch(
-      objectPreviewBatchProvider(references),
-    );
 
     return RefreshIndicator(
       onRefresh: onRefresh,
@@ -613,18 +601,6 @@ class _CommentsBatchWidget extends ConsumerWidget {
 
           final comment = item.comment;
 
-          // STEP 3: Get pre-resolved data if available
-          ObjectPreview? preResolved;
-          if (comment.reference != null) {
-            final cacheKey = getCacheKey(
-              ObjectReference(
-                type: comment.reference!.objectType,
-                id: comment.reference!.targetId,
-              ),
-            );
-            preResolved = batchPreviewsAsync.asData?.value[cacheKey];
-          }
-
           return CommentCard(
             comment: comment,
             userName: '@${comment.authorUsername}',
@@ -634,11 +610,11 @@ class _CommentsBatchWidget extends ConsumerWidget {
             currentUserId: currentUserId,
             currentUserName: currentUserName,
             onFixedPriceSaleTap: onFixedPriceSaleTap,
+            onAuctionTap: onAuctionTap,
             onAuthorTap: onAuthorTap,
             onReply: () => onReply(comment),
             onEdit: () => _showEditDialog(context, ref, comment),
             onDelete: () => _showDeleteConfirm(context, ref, comment),
-            preResolved: preResolved,
           );
         },
       ),
@@ -738,6 +714,7 @@ class _CommentsBatchWidget extends ConsumerWidget {
     String? currentUserId,
     String? currentUserName,
   ) {
+    final scheme = Theme.of(context).colorScheme;
     // E3.1 — Reply renderer mirrors the CommentCard header redaction
     // rules. The reply has no tap target / no avatar / no badge, so the
     // only gate needed is the username label. Comment body remains
@@ -767,10 +744,10 @@ class _CommentsBatchWidget extends ConsumerWidget {
         children: [
           Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.reply,
                 size: 16,
-                color: AppColors.neutralGray400,
+                color: scheme.onSurfaceVariant,
               ),
               const SizedBox(width: 8),
               Text(
@@ -781,15 +758,15 @@ class _CommentsBatchWidget extends ConsumerWidget {
                   fontStyle: authorRedacted
                       ? FontStyle.italic
                       : FontStyle.normal,
-                  color: authorRedacted ? AppColors.neutralGray500 : null,
+                  color: authorRedacted ? scheme.onSurfaceVariant : scheme.onSurface,
                 ),
               ),
               const SizedBox(width: 8),
               Text(
                 _formatDate(comment.createdAt),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: AppColors.neutralGray400,
+                  color: scheme.onSurfaceVariant,
                 ),
               ),
             ],
@@ -891,6 +868,7 @@ class _ReplyLikeButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(4),
@@ -902,15 +880,15 @@ class _ReplyLikeButton extends StatelessWidget {
             Icon(
               isLiked ? Icons.favorite : Icons.favorite_border,
               size: 14,
-              color: isLiked ? Colors.red : AppColors.neutralGray600,
+              color: isLiked ? scheme.error : scheme.onSurfaceVariant,
             ),
             if (likeCount != null) ...[
               const SizedBox(width: 4),
               Text(
                 likeCount! > 0 ? '$likeCount' : '',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: AppColors.neutralGray600,
+                  color: scheme.onSurfaceVariant,
                 ),
               ),
             ],

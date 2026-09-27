@@ -1,12 +1,16 @@
-/// Object Preview
+/// Object Preview — transport snapshot
 ///
-/// Live preview data for a domain object.
-/// Contains the most up-to-date information fetched from the backend.
+/// The display data a share reference carries on the wire at the moment it is
+/// written (title, image, coarse availability flags). It is a SNAPSHOT: it can
+/// be stale, so it is never business truth and never drives business decisions
+/// (no resolver consults it; the client holds no live-fetch path for it).
+/// The canonical, viewer-aware representation of a resource is the server's
+/// `ResourceProjection` envelope.
 library;
 
 import 'package:equatable/equatable.dart';
 
-/// Live preview data for a domain object
+/// Transport snapshot of a shared object's display identity
 class ObjectPreview extends Equatable {
   /// Unique identifier
   final String id;
@@ -20,10 +24,11 @@ class ObjectPreview extends Equatable {
   /// Image URL (if available)
   final String? imageUrl;
 
-  /// Price (for forSales and auctions)
+  /// Snapshot-era price field. Kept for the transport shape only — it carries
+  /// no money authority; money comes from the canonical projection envelope.
   final int? price;
 
-  /// Current status
+  /// Snapshot-era status string (coarse; not a commerce vocabulary)
   final String status;
 
   /// Status flags (unified from SharePreview)
@@ -44,49 +49,6 @@ class ObjectPreview extends Equatable {
     this.isClosed = false,
     this.isDeleted = false,
   });
-
-  /// Create from a forSale entity
-  factory ObjectPreview.fromForSale(Map<String, dynamic> forSale) {
-    final status = forSale['status'] as String? ?? 'unknown';
-    return ObjectPreview(
-      id: forSale['id'] as String,
-      type: 'forSale',
-      title: forSale['title'] as String? ?? '',
-      imageUrl:
-          forSale['media'] is List && (forSale['media'] as List).isNotEmpty
-          ? (forSale['media'] as List).first['originalUrl'] as String?
-          : null,
-      price: forSale['price'] as int?,
-      status: status,
-      isAvailable: status == 'available',
-      isSold: status == 'sold',
-      isClosed: false,
-      isDeleted: status == 'deleted',
-    );
-  }
-
-  /// Create from an auction entity
-  factory ObjectPreview.fromAuction(Map<String, dynamic> auction) {
-    final status = auction['status'] as String? ?? 'unknown';
-    return ObjectPreview(
-      id: auction['id'] as String,
-      type: 'auction',
-      title: auction['title'] as String? ?? '',
-      imageUrl:
-          auction['media'] is List && (auction['media'] as List).isNotEmpty
-          ? (auction['media'] as List).first['originalUrl'] as String?
-          : null,
-      price: auction['currentBid'] as int?,
-      status: status,
-      isAvailable: status == 'active' || status == 'scheduled',
-      isSold: false,
-      isClosed:
-          status == 'ended' ||
-          status == 'cancelled' ||
-          status == 'waiting_settlement',
-      isDeleted: status == 'deleted',
-    );
-  }
 
   @override
   List<Object?> get props => [

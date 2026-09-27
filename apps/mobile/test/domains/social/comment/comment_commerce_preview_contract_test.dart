@@ -1,14 +1,122 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:labuda/domains/social/comment/domain/entities/comment.dart';
+import 'package:labuda/domains/social/comment/presentation/widgets/comment_card.dart';
+import 'package:labuda/shared/domain/entities/resource_projection.dart';
+import 'package:labuda/domains/social/content/presentation/widgets/content_resource_projection_card.dart';
 import 'package:labuda/shared/attachment/entities/share_reference.dart';
-import 'package:labuda/shared/object/object_preview.dart';
-import 'package:labuda/shared/object/object_preview_provider.dart';
-import 'package:labuda/shared/object/object_reference.dart';
 import 'package:labuda/shared/object/presentation/widgets/object_preview_card.dart';
 
+/// Canonical fixtures — the wire shapes the backend projection authority emits
+/// for a commerce-reference comment (see CommentResponse.resource_projection).
+/// Capabilities live on the envelope; a TOMBSTONE carries none of the live
+/// halves (canonical_url, commerce_actions, payload) but always keeps the id.
+Map<String, dynamic> _liveEnvelope(String resourceType, String id) => {
+  'state': 'LIVE',
+  'resource_type': resourceType,
+  'resource_id': id,
+  'canonical_url': '/${resourceType.replaceAll('_', '-')}/$id',
+  'viewer_capabilities': {
+    'can_view': true,
+    'can_interact': true,
+    'blocked_by_tombstone': false,
+  },
+};
+
+Map<String, dynamic> _tombstoneEnvelope(String resourceType, String id) => {
+  'state': 'TOMBSTONE',
+  'resource_type': resourceType,
+  'resource_id': id,
+  'viewer_capabilities': {
+    'can_view': false,
+    'can_interact': false,
+    'blocked_by_tombstone': true,
+  },
+};
+
+ResourceProjection _forSaleProjection({
+  String id = 'sale-1',
+  String state = 'LIVE',
+}) {
+  if (state == 'TOMBSTONE') {
+    return ResourceProjection.fromJson(_tombstoneEnvelope('for_sale', id));
+  }
+  return ResourceProjection.fromJson({
+    ..._liveEnvelope('for_sale', id),
+    'commerce_actions': const {
+      'role': 'buyer',
+      'can_chat': true,
+      'can_negotiate': true,
+      'can_buy': true,
+      'can_bid': false,
+      'can_manage': false,
+    },
+    'for_sale': const {
+      'title': 'Kohaku 50cm',
+      'media': <Map<String, dynamic>>[],
+      'price': {'amount': 500000, 'currency': 'IDR'},
+      'status': 'active',
+      'quantity_available': 3,
+      'seller': {
+        'user': {'id': 'seller-1', 'username': 'seller'},
+      },
+    },
+  });
+}
+
+ResourceProjection _auctionProjection({String id = 'auction-1'}) {
+  return ResourceProjection.fromJson({
+    ..._liveEnvelope('auction', id),
+    'commerce_actions': const {
+      'role': 'buyer',
+      'can_chat': true,
+      'can_negotiate': false,
+      'can_buy': false,
+      'can_bid': true,
+      'can_manage': false,
+    },
+    'auction': const {
+      'title': 'Lelang Kohaku',
+      'media': <Map<String, dynamic>>[],
+      'end_at': '2026-10-01T00:00:00Z',
+      'lifecycle': 'active',
+      'current_bid': 150000,
+      'seller': {
+        'user': {'id': 'seller-1', 'username': 'seller'},
+      },
+    },
+  });
+}
+
+Comment _commerceComment(ResourceProjection projection) {
+  return Comment(
+    id: 'c1',
+    authorId: 'u1',
+    contentId: 'content-1',
+    authorUsername: 'seller',
+    type: 'commerce_reference',
+    body: 'cek listing',
+    createdAt: DateTime.utc(2026, 1, 1),
+    reference: ShareReference.forSale(
+      forSaleId: projection.resourceId,
+      title: 'snapshot-title',
+    ),
+    resourceProjection: projection,
+  );
+}
+
+Widget _wrap(CommentCard card) => ProviderScope(
+  child: MaterialApp(
+    home: Scaffold(
+      // The production surface is a ListView — scrollable, unbounded height.
+      body: SingleChildScrollView(child: card),
+    ),
+  ),
+);
+
 void main() {
-  group('comment commerce preview contract', () {
+  group('comment commerce reference identity', () {
     test('backend wire fixed_price_sale maps to canonical object type', () {
       final ref = ShareReference.fromJson(const {
         'targetType': 'for_sale',
@@ -37,61 +145,104 @@ void main() {
         throwsA(isA<FormatException>()),
       );
     });
+  });
 
-    testWidgets('ObjectPreviewCard dispatches the resolver with canonical '
-        'fixed_price_sale type and renders live preview', (tester) async {
-      ObjectReference? seen;
-
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            objectPreviewProvider.overrideWith((ref, reference) async {
-              seen = reference;
-              return ObjectPreview(
-                id: 'sale-1',
-                type: reference.type,
-                title: 'Kohaku 50cm',
-                price: 500000,
-                status: 'active',
-              );
-            }),
-          ],
-          child: MaterialApp(
-            home: Scaffold(
-              body: ObjectPreviewCard(
-                reference: ShareReference.forSale(
-                  forSaleId: 'sale-1',
-                  title: 'snapshot-title',
-                ),
-              ),
+  group('comment resource projection contract', () {
+    testWidgets(
+      'commerce comment renders the canonical projection envelope',
+      (tester) async {
+        await tester.pumpWidget(
+          _wrap(
+            CommentCard(
+              comment: _commerceComment(_forSaleProjection()),
+              userName: '@seller',
             ),
           ),
-        ),
-      );
-
-      await tester.pumpAndSettle();
-
-      expect(seen, isNotNull);
-      expect(seen!.type, 'for_sale');
-      expect(seen!.id, 'sale-1');
-      expect(find.text('Kohaku 50cm'), findsOneWidget);
-      expect(find.textContaining('500'), findsOneWidget);
-    });
-
-    test(
-      'objectPreviewProvider fails closed for an unsupported type',
-      () async {
-        final container = ProviderContainer();
-        addTearDown(container.dispose);
-
-        final preview = await container.read(
-          objectPreviewProvider(
-            const ObjectReference(type: 'bogus', id: 'x'),
-          ).future,
         );
+        await tester.pumpAndSettle();
 
-        expect(preview, isNull);
+        expect(find.byType(ContentResourceProjectionCard), findsOneWidget);
+        expect(find.text('Kohaku 50cm'), findsOneWidget);
+
+        // Negative proof: the comment surface must never fall back to the
+        // legacy snapshot/detail-endpoint card.
+        expect(find.byType(ObjectPreviewCard), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'for-sale attachment tap dispatches with the canonical resource id',
+      (tester) async {
+        String? tapped;
+        await tester.pumpWidget(
+          _wrap(
+            CommentCard(
+              comment: _commerceComment(_forSaleProjection()),
+              userName: '@seller',
+              onFixedPriceSaleTap: (id) => tapped = id,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byType(ContentResourceProjectionCard));
+        await tester.pumpAndSettle();
+
+        expect(tapped, 'sale-1');
+      },
+    );
+
+    testWidgets(
+      'auction attachment tap dispatches onAuctionTap (previously dead CTA)',
+      (tester) async {
+        String? tapped;
+        await tester.pumpWidget(
+          _wrap(
+            CommentCard(
+              comment: _commerceComment(_auctionProjection()),
+              userName: '@seller',
+              onAuctionTap: (id) => tapped = id,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Lelang Kohaku'), findsOneWidget);
+
+        await tester.tap(find.byType(ContentResourceProjectionCard));
+        await tester.pumpAndSettle();
+
+        expect(tapped, 'auction-1');
+      },
+    );
+
+    testWidgets(
+      'TOMBSTONE envelope disables attachment navigation (fail-closed)',
+      (tester) async {
+        String? tapped;
+        await tester.pumpWidget(
+          _wrap(
+            CommentCard(
+              comment: _commerceComment(
+                _forSaleProjection(state: 'TOMBSTONE'),
+              ),
+              userName: '@seller',
+              onFixedPriceSaleTap: (id) => tapped = id,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byType(ContentResourceProjectionCard));
+        await tester.pumpAndSettle();
+
+        expect(tapped, isNull, reason: 'a tombstoned resource is never tappable');
+        expect(find.byType(ObjectPreviewCard), findsNothing);
       },
     );
   });
+
+  // The legacy chat path this file used to exercise — a per-row client-side
+  // resolver (`objectPreviewProvider` keyed on a client-built `ObjectReference`)
+  // — is deleted; see `shared/object/reference_attachment_live_fetch_purge_test.dart`.
 }

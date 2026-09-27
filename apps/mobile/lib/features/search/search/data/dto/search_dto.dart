@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:labuda/domains/social/content/domain/entities/content_resource_projection.dart';
+import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/features/search/search/domain/entities/user_search.dart';
 
 // E9.1 — Walk the canonical PublicCard author lifecycle slot on content
@@ -63,12 +63,25 @@ String? _readFixedPriceSaleSearchSellerTrustLifecycle(
   return null;
 }
 
-ContentResourceProjection? _readContentSearchResourceProjection(
+ResourceProjection? _readContentSearchResourceProjection(
   Map<String, dynamic> json,
 ) {
   final raw = json['resource_projection'];
-  if (raw is Map<String, dynamic>) {
-    return ContentResourceProjection.fromJson(raw);
+  if (raw is! Map<String, dynamic>) return null;
+  try {
+    return ResourceProjection.fromJson(raw);
+  } on FormatException {
+    // Malformed projection is dropped (the envelope is display decoration);
+    // the canonical wire shape is pinned by the projection ratchet test.
+    return null;
+  }
+}
+
+/// Money carried by the canonical envelope, when the resource is a sale.
+double? _projectionPrice(ResourceProjection? projection) {
+  final payload = projection?.payload;
+  if (payload is ForSaleLivePayload) {
+    return payload.price.amount.toDouble();
   }
   return null;
 }
@@ -198,7 +211,7 @@ class ContentSearchResultDto extends Equatable {
 
   final DateTime createdAt;
   final double? price;
-  final ContentResourceProjection? resourceProjection;
+  final ResourceProjection? resourceProjection;
   // Canonical governance lifecycle ({active, unavailable, removed}). Wire field
   // is optional; absence is parsed as active by the mapper. Separate from any
   // raw entity status — never coerce one into the other.
@@ -252,7 +265,7 @@ class ContentSearchResultDto extends Equatable {
           [],
       createdAt: DateTime.parse(json['created_at'] as String),
       price:
-          resourceProjection?.fixedPriceSale?.price.toDouble() ??
+          _projectionPrice(resourceProjection) ??
           (json['price'] as num?)?.toDouble(),
       resourceProjection: resourceProjection,
       lifecycle: json['lifecycle'] as String?,

@@ -36,31 +36,6 @@ class ForSaleRemoteDatasource extends BaseApiRepository {
     );
   }
 
-  /// Get multiple forSales by IDs
-  ///
-  /// Backend API: POST /api/v1/for-sale/batch
-  /// Request body: { "ids": ["id1", "id2", ...] }
-  Future<Result<List<ForSaleResponseDto>>> getForSalesByIds(
-    List<String> forSaleIds,
-  ) async {
-    if (forSaleIds.isEmpty) {
-      return Result.success([]);
-    }
-
-    return executeRequest(
-      () => apiClient.post('/for-sale/batch', data: {'ids': forSaleIds}),
-      parser: (data) {
-        final list = data as List;
-        return list
-            .map(
-              (item) =>
-                  ForSaleResponseDto.fromJson(item as Map<String, dynamic>),
-            )
-            .toList();
-      },
-    );
-  }
-
   /// List public forSales with pagination
   ///
   /// Backend API: GET /api/v1/for-sale

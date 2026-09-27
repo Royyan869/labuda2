@@ -1,6 +1,6 @@
 /// Checkout Screen
 ///
-/// Real Transaction Flow - Supports Direct Buy, Seller Quote, Negotiation, and Auction
+/// Real Transaction Flow - Supports Direct Buy, Negotiation, and Auction
 ///
 /// Flow:
 /// 1. User views forSale details OR negotiates price OR wins auction
@@ -35,7 +35,7 @@
 /// - User can manually refresh pricing when needed
 ///
 /// **DISCOUNT HONESTY:**
-/// - Promo discounts ONLY apply to direct forSale purchase (not seller quote, negotiation, auction)
+/// - Promo discounts ONLY apply to direct forSale purchase (not negotiation, auction)
 /// - Discount codes are validated by backend, frontend only displays result
 /// - Applied discount shows clear description and amount from backend
 /// - No fake pricing or misleading savings - all numbers come from backend preview
@@ -60,6 +60,7 @@ import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 import 'package:labuda/domains/commerce/transaction/order/domain/domain.dart';
 import 'package:labuda/domains/commerce/transaction/order/presentation/providers/order_providers.dart';
+import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/domains/finance/transaction/payment/presentation/presentation.dart'
     show
@@ -88,7 +89,7 @@ part 'checkout_screen_logic.dart';
 /// Checkout Screen
 ///
 /// Checkout screen for transaction flow
-/// Supports direct buy, seller quote, negotiation, and auction commerce contexts
+/// Supports direct buy, negotiation, and auction commerce contexts
 ///
 /// **CANONICAL PRICING FLOW:**
 /// All pricing comes from backend preview API with pricing token.
@@ -139,7 +140,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   String? _selectedAddressId;
   AddressEntity? _selectedAddress;
 
-  // Shipping option state Ã¢â‚¬â€ for standard checkout (not seller quote)
+  // Shipping option state Ã¢â‚¬â€ for standard checkout (not negotiation)
   String? _selectedShippingOptionId;
   List<DeliveryOption> _deliveryOptions = [];
   bool _isLoadingDeliveryOptions = false;
@@ -365,13 +366,6 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             CheckoutHonestyMessages.negotiationUnavailableTitle,
             suggestion: CheckoutHonestyMessages.negotiationUnavailableMessage,
           );
-        } else if (errorMessage.contains('QUOTE_UNAVAILABLE') ||
-            errorMessage.contains('seller quote') &&
-                errorMessage.contains('available')) {
-          _showOrderError(
-            CheckoutHonestyMessages.quoteUnavailableTitle,
-            suggestion: CheckoutHonestyMessages.quoteUnavailableMessage,
-          );
         } else if (errorMessage.contains('AUCTION_UNAVAILABLE') ||
             errorMessage.contains('auction') &&
                 errorMessage.contains('available')) {
@@ -487,7 +481,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
               const SizedBox(height: 24),
 
-              // Shipping Option Picker Ã¢â‚¬â€ only for standard checkout (not seller quote)
+              // Shipping Option Picker Ã¢â‚¬â€ only for standard checkout (not negotiation)
               if (widget.shippingQuoteId == null)
                 _ShippingSetupPickerSection(
                   deliveryOptions: _deliveryOptions,
@@ -515,7 +509,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
               // - The applied discount is NOT rendered as its own summary row:
               //   the backend folds it into the canonical money model
               //   (subtotal / total_before_coins_amount) returned by the preview
-              // - Hidden for seller quote / negotiation only
+              // - Hidden for negotiation only
               if (_supportsDiscounts())
                 _DiscountSection(
                   sellerId: displayPreview?.sellerId ?? '',

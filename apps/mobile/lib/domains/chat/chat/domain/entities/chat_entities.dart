@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 import 'package:labuda/domains/chat/attachment/attachment.dart';
-import 'package:labuda/domains/chat/chat/domain/entities/chat_resource_projection.dart';
+import 'package:labuda/shared/domain/entities/resource_projection.dart';
 
 // Support ticket enums — canonical source is the Support/CS domain.
 // Imported for use within this file; re-exported so Chat consumers that
@@ -62,7 +62,7 @@ enum ChatStatus { active, blocked, deleted }
 ///
 /// **Migration Note:** Do NOT add new message types for business features.
 /// Use ShareReference for object references (forSale, auction, content)
-/// Use Attachment system for workflow payloads (NegotiationOfferAttachment, etc.)
+/// Use Attachment system for workflow payloads (NegotiationProposalAttachment, etc.)
 enum MessageType {
   text,
   image, // UI-only - normalizes to "text" for API
@@ -361,9 +361,7 @@ class Chat extends Equatable {
 /// Removed MessageAttachment wrapper abstraction - now using explicit fields for clarity.
 /// Each attachment type has its own nullable field:
 /// - objectReference: ShareReference (forSale, auction, content, profile)
-/// - negotiationOffer: NegotiationOfferAttachment (active negotiation state)
 /// - negotiationProposal: NegotiationProposalAttachment (live backend proposal payload)
-/// - negotiationResult: NegotiationResultAttachment (negotiation outcome)
 /// - shippingQuote: ShippingQuoteAttachment (shipping offer data)
 /// - location: LocationAttachment (location data)
 ///
@@ -394,14 +392,8 @@ class Message extends Equatable {
   /// Object Reference - ShareReference for forSale, auction, content, profile
   final ShareReference? objectReference;
 
-  /// Negotiation Offer - active negotiation state
-  final NegotiationOfferAttachment? negotiationOffer;
-
   /// Negotiation Proposal - live backend proposal payload (initial / counter)
   final NegotiationProposalAttachment? negotiationProposal;
-
-  /// Negotiation Result - negotiation outcome
-  final NegotiationResultAttachment? negotiationResult;
 
   /// Shipping Quote - shipping offer data
   final ShippingQuoteAttachment? shippingQuote;
@@ -441,7 +433,7 @@ class Message extends Equatable {
   /// references (LIVE or TOMBSTONE). Null when the message carries no resource
   /// occurrence. Chat only DISPLAYS this — the owning domain remains the
   /// authority for the resource.
-  final ChatResourceProjection? resourceProjection;
+  final ResourceProjection? resourceProjection;
 
   const Message({
     required this.id,
@@ -455,9 +447,7 @@ class Message extends Equatable {
     this.type = MessageType.text,
     this.mediaUrls = const [],
     this.objectReference,
-    this.negotiationOffer,
     this.negotiationProposal,
-    this.negotiationResult,
     this.shippingQuote,
     this.location,
     required this.createdAt,
@@ -477,9 +467,7 @@ class Message extends Equatable {
   /// Check if message has any attachment
   bool get hasAttachment =>
       objectReference != null ||
-      negotiationOffer != null ||
       negotiationProposal != null ||
-      negotiationResult != null ||
       shippingQuote != null ||
       location != null;
 
@@ -496,9 +484,7 @@ class Message extends Equatable {
     type,
     mediaUrls,
     objectReference,
-    negotiationOffer,
     negotiationProposal,
-    negotiationResult,
     shippingQuote,
     location,
     createdAt,
@@ -524,9 +510,7 @@ class Message extends Equatable {
     MessageType? type,
     List<String>? mediaUrls,
     ShareReference? objectReference,
-    NegotiationOfferAttachment? negotiationOffer,
     NegotiationProposalAttachment? negotiationProposal,
-    NegotiationResultAttachment? negotiationResult,
     ShippingQuoteAttachment? shippingQuote,
     LocationAttachment? location,
     DateTime? createdAt,
@@ -537,7 +521,7 @@ class Message extends Equatable {
     List<String>? deletedBy,
     ContentLifecycle? senderLifecycle,
     ContentLifecycle? attachmentSellerTrustLifecycle,
-    ChatResourceProjection? resourceProjection,
+    ResourceProjection? resourceProjection,
   }) {
     return Message(
       id: id ?? this.id,
@@ -551,9 +535,7 @@ class Message extends Equatable {
       type: type ?? this.type,
       mediaUrls: mediaUrls ?? this.mediaUrls,
       objectReference: objectReference ?? this.objectReference,
-      negotiationOffer: negotiationOffer ?? this.negotiationOffer,
       negotiationProposal: negotiationProposal ?? this.negotiationProposal,
-      negotiationResult: negotiationResult ?? this.negotiationResult,
       shippingQuote: shippingQuote ?? this.shippingQuote,
       location: location ?? this.location,
       createdAt: createdAt ?? this.createdAt,
@@ -593,35 +575,6 @@ class Message extends Equatable {
       deletedBy: deletedBy,
       senderLifecycle: senderLifecycle,
       attachmentSellerTrustLifecycle: attachmentSellerTrustLifecycle,
-    );
-  }
-}
-
-/// Typing indicator state
-class TypingIndicator extends Equatable {
-  final String chatId;
-  final Map<String, DateTime> typingUsers; // userId -> last typing time
-
-  const TypingIndicator({required this.chatId, this.typingUsers = const {}});
-
-  List<String> get activeTypingUsers {
-    final now = DateTime.now();
-    return typingUsers.entries
-        .where((e) => now.difference(e.value).inSeconds < 5)
-        .map((e) => e.key)
-        .toList();
-  }
-
-  @override
-  List<Object?> get props => [chatId, typingUsers];
-
-  TypingIndicator copyWith({
-    String? chatId,
-    Map<String, DateTime>? typingUsers,
-  }) {
-    return TypingIndicator(
-      chatId: chatId ?? this.chatId,
-      typingUsers: typingUsers ?? this.typingUsers,
     );
   }
 }

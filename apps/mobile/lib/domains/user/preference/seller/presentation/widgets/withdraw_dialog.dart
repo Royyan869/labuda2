@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/domains/user/preference/seller/presentation/providers/withdraw_notifier.dart';
 import 'package:labuda/domains/user/preference/seller/presentation/providers/withdraw_state.dart';
 import 'package:labuda/shared/utils/app_formatters.dart';
@@ -93,13 +94,15 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
         _errorMessage = null;
       } else if (amount < minWithdrawAmount) {
         _isValid = false;
-        _errorMessage = 'Minimum Rp ${minWithdrawAmount.toStringAsFixed(0)}';
+        _errorMessage =
+            'Minimum Rp ${formatGroupedAmount(minWithdrawAmount.round())}';
       } else if (totalDebit > widget.availableBalance) {
         _isValid = false;
         _errorMessage = 'Exceeds available balance';
       } else if (amount > maxWithdrawAmount) {
         _isValid = false;
-        _errorMessage = 'Maximum Rp ${maxWithdrawAmount.toStringAsFixed(0)}';
+        _errorMessage =
+            'Maximum Rp ${formatGroupedAmount(maxWithdrawAmount.round())}';
       } else {
         _isValid = true;
         _errorMessage = null;
@@ -332,7 +335,7 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Minimum pencairan: Rp ${minWithdrawAmount.toStringAsFixed(0)}',
+                      'Minimum pencairan: Rp ${formatGroupedAmount(minWithdrawAmount.round())}',
                       style: TextStyle(
                         fontSize: 12,
                         color: AppColors.primaryRed,

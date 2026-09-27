@@ -5,6 +5,7 @@
 library;
 
 import 'package:labuda/domains/commerce/transaction/order/domain/repositories/repository_result.dart';
+import 'package:labuda/shared/domain/entities/resource_projection.dart';
 
 import '../../domain/entities/seller_dashboard.dart';
 import '../../domain/entities/seller_analytics.dart';
@@ -360,10 +361,10 @@ class SellerRepositoryImpl implements SellerRepository {
         String error;
         if (request.isBelowMin) {
           error =
-              'Minimum withdrawal amount is Rp ${WithdrawRequest.minAmount.toStringAsFixed(0)}';
+              'Minimum withdrawal amount is Rp ${formatGroupedAmount(WithdrawRequest.minAmount.round())}';
         } else if (request.exceedsMax) {
           error =
-              'Maximum withdrawal amount is Rp ${WithdrawRequest.maxAmount.toStringAsFixed(0)}';
+              'Maximum withdrawal amount is Rp ${formatGroupedAmount(WithdrawRequest.maxAmount.round())}';
         } else {
           error = 'Invalid withdrawal amount';
         }
@@ -403,10 +404,10 @@ class SellerRepositoryImpl implements SellerRepository {
         errorMessage = 'Please add a default bank account first';
       } else if (errorStr.contains('minimum')) {
         errorMessage =
-            'Minimum withdrawal amount is Rp ${WithdrawRequest.minAmount.toStringAsFixed(0)}';
+            'Minimum withdrawal amount is Rp ${formatGroupedAmount(WithdrawRequest.minAmount.round())}';
       } else if (errorStr.contains('maximum')) {
         errorMessage =
-            'Maximum withdrawal amount is Rp ${WithdrawRequest.maxAmount.toStringAsFixed(0)}';
+            'Maximum withdrawal amount is Rp ${formatGroupedAmount(WithdrawRequest.maxAmount.round())}';
       }
 
       return RepositoryResult.error(errorMessage);

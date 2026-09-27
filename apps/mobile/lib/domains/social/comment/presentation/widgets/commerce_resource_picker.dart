@@ -9,7 +9,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
+import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/domain.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/seller_auctions_pager.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/domain/domain.dart';
@@ -84,7 +84,7 @@ class _CommerceResourcePickerState extends ConsumerState<CommerceResourcePicker>
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       height: MediaQuery.of(context).size.height * 0.7,
       padding: const EdgeInsets.only(top: 8),
@@ -95,7 +95,7 @@ class _CommerceResourcePickerState extends ConsumerState<CommerceResourcePicker>
             height: 4,
             margin: const EdgeInsets.only(bottom: 8),
             decoration: BoxDecoration(
-              color: AppColors.neutralGray300,
+              color: scheme.outlineVariant,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -106,10 +106,8 @@ class _CommerceResourcePickerState extends ConsumerState<CommerceResourcePicker>
           const SizedBox(height: 8),
           TabBar(
             controller: _tabController,
-            labelColor: AppColors.primaryRed,
-            unselectedLabelColor: isDark
-                ? AppColors.neutralGray400
-                : AppColors.neutralGray600,
+            labelColor: scheme.primary,
+            unselectedLabelColor: scheme.onSurfaceVariant,
             tabs: const [
               Tab(text: 'Fixed Price'),
               Tab(text: 'Lelang'),
@@ -155,6 +153,7 @@ class _FPSTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
     final createNewForSale = onCreateNewForSale;
     final pagerState = ref.watch(sellerFPSPagerProvider);
     final active = pagerState.items
@@ -196,13 +195,13 @@ class _FPSTab extends ConsumerWidget {
       itemBuilder: (context, index) {
         if (showCreateNewForSale && index == 0) {
           return ListTile(
-            leading: const Icon(
+            leading: Icon(
               Icons.add_circle_outline,
-              color: AppColors.primaryRed,
+              color: scheme.primary,
             ),
-            title: const Text(
+            title: Text(
               'Buat Produk Baru',
-              style: TextStyle(color: AppColors.primaryRed),
+              style: TextStyle(color: scheme.primary),
             ),
             onTap: () {
               unawaited(createNewForSale.call());
@@ -300,8 +299,8 @@ class _AuctionTabState extends ConsumerState<_AuctionTab> {
       itemBuilder: (context, index) {
         final a = promotable[index];
         final priceText = a.currentBid > 0
-            ? 'Rp ${a.currentBid}'
-            : 'Rp ${a.openingBid}';
+            ? 'Rp ${formatGroupedAmount(a.currentBid.round())}'
+            : 'Rp ${formatGroupedAmount(a.openingBid.round())}';
         return _Tile(
           title: a.title,
           price: priceText,
@@ -329,24 +328,27 @@ class _EmptyTab extends StatelessWidget {
   final VoidCallback? onAction;
   const _EmptyTab({required this.message, this.actionLabel, this.onAction});
   @override
-  Widget build(BuildContext context) => Center(
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          Icons.inventory_2_outlined,
-          size: 48,
-          color: AppColors.neutralGray400,
-        ),
-        const SizedBox(height: 12),
-        Text(message, style: TextStyle(color: AppColors.neutralGray500)),
-        if (actionLabel != null && onAction != null) ...[
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.inventory_2_outlined,
+            size: 48,
+            color: scheme.outline,
+          ),
           const SizedBox(height: 12),
-          ElevatedButton(onPressed: onAction, child: Text(actionLabel!)),
+          Text(message, style: TextStyle(color: scheme.onSurfaceVariant)),
+          if (actionLabel != null && onAction != null) ...[
+            const SizedBox(height: 12),
+            ElevatedButton(onPressed: onAction, child: Text(actionLabel!)),
+          ],
         ],
-      ],
-    ),
-  );
+      ),
+    );
+  }
 }
 
 class _Tile extends StatelessWidget {
@@ -364,9 +366,10 @@ class _Tile extends StatelessWidget {
   });
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return ListTile(
       selected: isSelected,
-      selectedTileColor: AppColors.primaryRed.withValues(alpha: 0.05),
+      selectedTileColor: scheme.primary.withValues(alpha: 0.05),
       leading: ClipRRect(
         borderRadius: BorderRadius.circular(6),
         child: imageUrl != null
@@ -375,31 +378,34 @@ class _Tile extends StatelessWidget {
                 width: 48,
                 height: 48,
                 fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => _placeholder(),
+                errorBuilder: (_, _, _) => _placeholder(context),
               )
-            : _placeholder(),
+            : _placeholder(context),
       ),
       title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
       subtitle: price != null
           ? Text(
               price!,
               style: TextStyle(
-                color: AppColors.primaryRed,
+                color: scheme.primary,
                 fontWeight: FontWeight.w600,
               ),
             )
           : null,
       trailing: isSelected
-          ? const Icon(Icons.check_circle, color: AppColors.primaryRed)
+          ? Icon(Icons.check_circle, color: scheme.primary)
           : null,
       onTap: onTap,
     );
   }
 
-  Widget _placeholder() => Container(
-    width: 48,
-    height: 48,
-    color: AppColors.neutralGray200,
-    child: const Icon(Icons.image, color: AppColors.neutralGray400),
-  );
+  Widget _placeholder(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      width: 48,
+      height: 48,
+      color: scheme.surfaceContainerHighest,
+      child: Icon(Icons.image, color: scheme.onSurfaceVariant),
+    );
+  }
 }

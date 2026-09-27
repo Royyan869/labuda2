@@ -8,6 +8,8 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:labuda/core/core.dart';
+import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction_bid.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction_status.dart';
@@ -64,23 +66,28 @@ class AuctionBidPositionIndicator extends StatelessWidget {
     return BidPosition.outbid;
   }
 
-  /// Get display data for the current position
-  _BidPositionDisplay get _display {
+  /// Get display data for the current position.
+  ///
+  /// Tones come from the scheme authority (semantic palette only where the
+  /// scheme has no role: success/warning). Text on tinted fills uses the
+  /// display color derived from those same tokens via alpha — no light-only
+  /// hex, no local brightness branch.
+  _BidPositionDisplay _display(ColorScheme scheme) {
     switch (_bidPosition) {
       case BidPosition.leading:
         return _BidPositionDisplay(
           label: 'Anda Memimpin',
           icon: Icons.emoji_events,
-          color: Colors.green,
-          backgroundColor: Colors.green.shade50,
+          color: AppColors.statusSuccess,
+          backgroundColor: AppColors.statusSuccess.withValues(alpha: 0.12),
           message: 'Bid Anda saat ini adalah yang tertinggi',
         );
       case BidPosition.outbid:
         return _BidPositionDisplay(
           label: 'Ter-Lelang',
           icon: Icons.trending_up,
-          color: Colors.red,
-          backgroundColor: Colors.red.shade50,
+          color: scheme.error,
+          backgroundColor: scheme.error.withValues(alpha: 0.12),
           message: 'Kamu telah dikalahkan',
           isOutbid: true,
         );
@@ -88,8 +95,8 @@ class AuctionBidPositionIndicator extends StatelessWidget {
         return _BidPositionDisplay(
           label: 'Belum Bid',
           icon: Icons.info_outline,
-          color: Colors.grey,
-          backgroundColor: Colors.grey.shade100,
+          color: scheme.onSurfaceVariant,
+          backgroundColor: scheme.surfaceContainerHighest,
           message: 'Anda belum memasang bid pada lelang ini',
         );
       case BidPosition.notActive:
@@ -99,17 +106,18 @@ class AuctionBidPositionIndicator extends StatelessWidget {
           return _BidPositionDisplay(
             label: 'Anda Menang! 🎉',
             icon: Icons.emoji_events,
-            color: Colors.green,
-            backgroundColor: Colors.green.shade50,
-            message: 'Bid Menang: Rp ${winningBid.toStringAsFixed(0)}',
+            color: AppColors.statusSuccess,
+            backgroundColor: AppColors.statusSuccess.withValues(alpha: 0.12),
+            message:
+                'Bid Menang: Rp ${formatGroupedAmount(winningBid.round())}',
             deadline: _getClaimDeadline(),
           );
         }
         return _BidPositionDisplay(
           label: _getEndedLabel(),
           icon: Icons.info,
-          color: Colors.grey.shade600,
-          backgroundColor: Colors.grey.shade200,
+          color: scheme.onSurfaceVariant,
+          backgroundColor: scheme.surfaceContainerHighest,
           message: _getEndedMessage(),
         );
     }
@@ -131,7 +139,7 @@ class AuctionBidPositionIndicator extends StatelessWidget {
   String _getEndedMessage() {
     if (auction.isUserWinner(currentUserId)) {
       final winningBid = auction.currentBid;
-      return 'Selamat! Menang di Rp ${winningBid.toStringAsFixed(0)} - Lanjut klaim kemenangan Anda';
+      return 'Selamat! Menang di Rp ${formatGroupedAmount(winningBid.round())} - Lanjut klaim kemenangan Anda';
     }
     if (auction.isExpired) {
       return 'Lelang ini berakhir tanpa pemenang';
@@ -155,7 +163,8 @@ class AuctionBidPositionIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final display = _display;
+    final scheme = Theme.of(context).colorScheme;
+    final display = _display(scheme);
 
     // Hide indicator for scheduled auctions (not relevant yet)
     if (auction.status == AuctionStatus.scheduled) {
@@ -213,10 +222,10 @@ class AuctionBidPositionIndicator extends StatelessWidget {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.orange.withValues(alpha: 0.15),
+                      color: AppColors.statusWarning.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(4),
                       border: Border.all(
-                        color: Colors.orange.withValues(alpha: 0.3),
+                        color: AppColors.statusWarning.withValues(alpha: 0.3),
                         width: 1,
                       ),
                     ),
@@ -226,13 +235,13 @@ class AuctionBidPositionIndicator extends StatelessWidget {
                         const Icon(
                           Icons.access_time,
                           size: 12,
-                          color: Colors.orange,
+                          color: AppColors.statusWarning,
                         ),
                         const SizedBox(width: 4),
                         Text(
                           'Selesaikan sebelum: ${display.deadline}',
                           style: const TextStyle(
-                            color: Colors.orange,
+                            color: AppColors.statusWarning,
                             fontSize: 11,
                             fontWeight: FontWeight.w500,
                           ),
@@ -254,7 +263,7 @@ class AuctionBidPositionIndicator extends StatelessWidget {
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
-                'Bid: Rp ${userBids.map((b) => b.amount).reduce((a, b) => a > b ? a : b).toStringAsFixed(0)}',
+                'Bid: Rp ${formatGroupedAmount(userBids.map((b) => b.amount).reduce((a, b) => a > b ? a : b).round())}',
                 style: TextStyle(
                   color: display.color,
                   fontSize: 11,
@@ -350,7 +359,7 @@ class AuctionBidPositionIndicator extends StatelessWidget {
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
-                'Bid kamu: Rp ${userHighestBid.toStringAsFixed(0)}',
+                'Bid kamu: Rp ${formatGroupedAmount(userHighestBid.round())}',
                 style: TextStyle(
                   color: display.color.withValues(alpha: 0.8),
                   fontSize: 12,
@@ -367,7 +376,7 @@ class AuctionBidPositionIndicator extends StatelessWidget {
               onPressed: onBidAgain,
               style: ElevatedButton.styleFrom(
                 backgroundColor: display.color,
-                foregroundColor: Colors.white,
+                foregroundColor: Theme.of(context).colorScheme.onPrimary,
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(6),

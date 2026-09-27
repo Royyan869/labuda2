@@ -46,6 +46,7 @@ import 'package:equatable/equatable.dart';
 
 // Import MediaEntity from shared entities
 import 'package:labuda/domains/social/content/domain/entities/content.dart';
+import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 
 // Import PreparationTime
@@ -277,8 +278,10 @@ class ForSale extends Equatable {
   /// Can be published when: draft status
   bool get canBePublished => status == ForSaleStatus.draft;
 
+  /// Display price for surfaces without a canonical envelope (draft/workspace).
+  /// Grouping belongs to the single formatting authority, never to an entity.
   String get formattedPrice {
-    return 'Rp ${price.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}';
+    return 'Rp ${formatGroupedAmount(price.round())}';
   }
 
   ForSale copyWith({

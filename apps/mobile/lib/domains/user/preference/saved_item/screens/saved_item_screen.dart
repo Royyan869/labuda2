@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/domains/user/preference/saved_item/models/saved_item_model.dart';
 import 'package:labuda/domains/user/preference/saved_item/data/services/saved_item_service.dart';
 import 'package:labuda/domains/user/preference/saved_item/data/repositories/saved_item_repository.dart';
@@ -101,8 +102,8 @@ class _SavedItemScreenState extends State<SavedItemScreen> {
         ),
         subtitle: Text(
           item.isForSale
-              ? 'Rp ${item.forSalePrice ?? 0}'
-              : 'Rp ${item.currentBid ?? item.startPrice ?? 0}',
+              ? 'Rp ${formatGroupedAmount(item.forSalePrice ?? 0)}'
+              : 'Rp ${formatGroupedAmount(item.currentBid ?? item.startPrice ?? 0)}',
         ),
         trailing: IconButton(
           icon: const Icon(Icons.bookmark_remove),

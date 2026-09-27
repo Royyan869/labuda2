@@ -3,17 +3,23 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:labuda/features/home/domain/entities/feed_item.dart';
 import 'package:labuda/features/home/presentation/providers/feed_renderers.dart';
-import 'package:labuda/shared/object/object_preview_provider.dart';
 import 'package:labuda/shared/object/presentation/widgets/object_preview_card.dart';
-import 'package:labuda/domains/social/content/domain/entities/content_resource_projection.dart';
+import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/domains/social/content/presentation/widgets/content_resource_projection_card.dart';
+import 'package:labuda/domains/user/identity/authentication/presentation/providers/auth_controller.dart';
+import 'package:labuda/domains/user/identity/authentication/presentation/providers/auth_state.dart';
 import 'package:labuda/shared/widgets/repost_attribution_bar.dart';
+
+/// Guest auth state: the feed footer reads the auth controller, and a guest
+/// state keeps this harness free of the apiClient wiring main.dart owns.
+class _GuestAuthController extends AuthController {
+  @override
+  AuthState build() => const AuthState.unauthenticated();
+}
 
 Widget _wrap(Widget child) {
   return ProviderScope(
-    overrides: [
-      objectPreviewProvider.overrideWith((ref, reference) async => null),
-    ],
+    overrides: [authControllerProvider.overrideWith(_GuestAuthController.new)],
     child: MaterialApp(
       home: Scaffold(
         body: SingleChildScrollView(child: child),
@@ -53,14 +59,29 @@ Map<String, dynamic> _fixedPriceSaleProjection({
     'state': 'LIVE',
     'resource_type': 'for_sale',
     'resource_id': resourceId,
+    'canonical_url': '/for-sale/$resourceId',
+    'viewer_capabilities': <String, dynamic>{
+      'can_view': true,
+      'can_interact': true,
+      'blocked_by_tombstone': false,
+    },
+    'commerce_actions': <String, dynamic>{
+      'role': 'buyer',
+      'can_chat': true,
+      'can_negotiate': true,
+      'can_buy': true,
+      'can_bid': false,
+      'can_manage': false,
+    },
     'for_sale': <String, dynamic>{
       'title': title,
-      'media': <Map<String, dynamic>>[],
+      'media': <Map<String, dynamic>>[
+        {'url': thumbnailUrl, 'kind': 'image'},
+      ],
       'thumbnail_url': thumbnailUrl,
-      'price': 1500000,
+      'price': {'amount': 1500000, 'currency': 'IDR'},
       'status': 'active',
       'quantity_available': 3,
-      'can_interact': true,
       'seller': <String, dynamic>{
         'user': <String, dynamic>{
           'id': 'seller-1',
@@ -80,6 +101,20 @@ Map<String, dynamic> _auctionProjection({
     'state': 'LIVE',
     'resource_type': 'auction',
     'resource_id': resourceId,
+    'canonical_url': '/auction/$resourceId',
+    'viewer_capabilities': <String, dynamic>{
+      'can_view': true,
+      'can_interact': true,
+      'blocked_by_tombstone': false,
+    },
+    'commerce_actions': <String, dynamic>{
+      'role': 'buyer',
+      'can_chat': true,
+      'can_negotiate': false,
+      'can_buy': false,
+      'can_bid': true,
+      'can_manage': false,
+    },
     'auction': <String, dynamic>{
       'title': title,
       'media': <Map<String, dynamic>>[],
@@ -88,7 +123,6 @@ Map<String, dynamic> _auctionProjection({
       'current_bid': 1750000,
       'buy_now_price': 2500000,
       'end_at': '2026-08-10T10:00:00.000Z',
-      'can_interact': true,
       'seller': <String, dynamic>{
         'user': <String, dynamic>{
           'id': 'seller-1',
@@ -108,6 +142,12 @@ Map<String, dynamic> _profileProjection({
     'state': 'LIVE',
     'resource_type': 'profile',
     'resource_id': resourceId,
+    'canonical_url': '/user/$resourceId',
+    'viewer_capabilities': <String, dynamic>{
+      'can_view': true,
+      'can_interact': false,
+      'blocked_by_tombstone': false,
+    },
     'profile': <String, dynamic>{
       'username': username,
       'avatar_url': avatarUrl,
@@ -160,7 +200,7 @@ void main() {
             content: 'forSale share content',
             type: FeedItemType.content,
             additionalData: {
-              'resourceProjection': ContentResourceProjection.fromJson(
+              'resourceProjection': ResourceProjection.fromJson(
                 _fixedPriceSaleProjection(
                   resourceId: 'sale-1',
                   title: 'forSale share',
@@ -191,7 +231,7 @@ void main() {
             content: 'auction share content',
             type: FeedItemType.content,
             additionalData: {
-              'resourceProjection': ContentResourceProjection.fromJson(
+              'resourceProjection': ResourceProjection.fromJson(
                 _auctionProjection(
                   resourceId: 'auction-1',
                   title: 'auction share',
@@ -222,7 +262,7 @@ void main() {
             content: 'profile share content',
             type: FeedItemType.content,
             additionalData: {
-              'resourceProjection': ContentResourceProjection.fromJson(
+              'resourceProjection': ResourceProjection.fromJson(
                 _profileProjection(
                   resourceId: 'profile-1',
                   username: 'profile share',

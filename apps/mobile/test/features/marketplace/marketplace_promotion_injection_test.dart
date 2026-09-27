@@ -47,17 +47,6 @@ class _FakeForSaleRepository implements ForSaleRepository {
   }
 
   @override
-  Future<Result<List<ForSale>>> getForSalesByIds(
-    List<String> forSaleIds,
-  ) async {
-    return Result.success(
-      forSales
-          .where((forSale) => forSaleIds.contains(forSale.forSaleId))
-          .toList(),
-    );
-  }
-
-  @override
   Future<Result<List<ForSale>>> getSellerForSales(
     String sellerId, {
     int page = 1,

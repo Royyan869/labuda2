@@ -28,19 +28,18 @@ class _CheckoutBottomBar extends StatelessWidget {
   /// Builds the button text based on auction winner context
   String _buildButtonText(BuildContext context) {
     if (previewResult != null) {
-      final total = (previewResult!.totalPayableAmount ?? 0)
-          .toStringAsFixed(0)
-          .replaceAllMapped(
-            RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-            (Match m) => '${m[1]}.',
-          );
+      // The label owns the 'Rp ' prefix so no caller can interpolate a bare
+      // number behind it (money authority: formatGroupedAmount).
+      final total = 'Rp ${formatGroupedAmount(
+        (previewResult!.totalPayableAmount ?? 0).round(),
+      )}';
 
       if (isAuctionWinner) {
         // Winner framing: "Secure Your Victory - Rp X"
-        return 'Amankan Kemenangan - Rp $total';
+        return 'Amankan Kemenangan - $total';
       }
       // Regular purchase: "Create Order - Rp X"
-      return 'Buat Pesanan - Rp $total';
+      return 'Buat Pesanan - $total';
     }
     return isAuctionWinner ? 'Amankan Kemenangan' : 'Buat Pesanan';
   }
@@ -84,7 +83,7 @@ class _CheckoutBottomBar extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      'Rp ${(previewResult!.totalPayableAmount ?? 0).toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}',
+                      'Rp ${formatGroupedAmount((previewResult!.totalPayableAmount ?? 0).round())}',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,

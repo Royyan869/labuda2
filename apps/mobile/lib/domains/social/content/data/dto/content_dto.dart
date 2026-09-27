@@ -7,7 +7,7 @@
 // - FRONTEND-ONLY FIELDS REMOVED: shippingCity, shippingProvince
 
 import 'package:json_annotation/json_annotation.dart';
-import 'package:labuda/domains/social/content/domain/entities/content_resource_projection.dart';
+import 'package:labuda/shared/domain/entities/resource_projection.dart';
 
 part 'content_dto.g.dart';
 
@@ -155,7 +155,7 @@ class ContentDto {
   @JsonKey(name: 'original_author_id')
   final String? originalAuthorId;
   @JsonKey(includeFromJson: false, includeToJson: false)
-  final ContentResourceProjection? resourceProjection;
+  final ResourceProjection? resourceProjection;
 
   const ContentDto({
     required this.id,
@@ -273,14 +273,18 @@ String? _readContentAuthorLifecycle(Map<String, dynamic> json) {
   return null;
 }
 
-ContentResourceProjection? _readContentResourceProjection(
+ResourceProjection? _readContentResourceProjection(
   Map<String, dynamic> json,
 ) {
   final raw = json['resource_projection'];
-  if (raw is Map<String, dynamic>) {
-    return ContentResourceProjection.fromJson(raw);
+  if (raw is! Map<String, dynamic>) return null;
+  try {
+    return ResourceProjection.fromJson(raw);
+  } on FormatException {
+    // Malformed projection is dropped (the envelope is display decoration);
+    // the canonical wire shape is pinned by the projection ratchet test.
+    return null;
   }
-  return null;
 }
 
 void _validateVisibilityWire(Object? raw) {

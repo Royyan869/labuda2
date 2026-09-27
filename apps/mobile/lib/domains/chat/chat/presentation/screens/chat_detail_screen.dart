@@ -2,18 +2,16 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/shared/object/object_preview.dart' as obj;
-import 'package:labuda/shared/object/object_preview_batch_provider.dart';
-import 'package:labuda/shared/object/object_reference.dart';
 import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/chat/chat/presentation/providers/chat_state.dart';
+import 'package:labuda/domains/chat/chat/data/dto/chat_resource_occurrence_request.dart';
 import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart';
+import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/domains/chat/chat/presentation/providers/chat_providers.dart';
 import 'package:labuda/domains/chat/chat/presentation/utils/chat_identity_display.dart';
 import 'package:labuda/domains/chat/chat/presentation/widgets/chat_input_area.dart';
 import 'package:labuda/domains/chat/chat/presentation/widgets/message_bubble.dart';
-import 'package:labuda/domains/chat/chat/presentation/widgets/typing_indicator.dart';
 import 'package:labuda/domains/chat/chat/presentation/widgets/chat/chat_order_status_banner.dart';
 import 'package:labuda/domains/chat/chat/presentation/utils/chat_lifecycle_redaction.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
@@ -22,11 +20,12 @@ import 'package:labuda/core/media/media_upload_config.dart';
 import 'package:labuda/core/media/media_upload_orchestrator.dart';
 import 'package:labuda/shared/providers/block_state_provider.dart';
 import 'package:labuda/shared/widgets/block_confirmation_dialog.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/presentation/widgets/for_sale_picker_bottom_sheet.dart';
+import 'package:labuda/domains/commerce/catalog/for_sale/presentation/create_for_sale_route_contract.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/screens/for_sale_detail_screen.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/presentation/screens/create_for_sale_screen.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/domain/entities/for_sale.dart';
+import 'package:labuda/domains/commerce/catalog/for_sale/domain/entities/for_sale.dart' show ForSale;
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart';
+import 'package:labuda/domains/social/comment/presentation/widgets/commerce_resource_picker.dart';
+import 'package:labuda/domains/social/comment/presentation/widgets/resource_identity.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/auction_providers.dart';
 import 'package:labuda/domains/commerce/transaction/order/presentation/screens/order_detail_screen.dart';
 import 'package:labuda/domains/commerce/negotiation/negotiation/presentation/providers/negotiation_providers.dart';
@@ -83,11 +82,6 @@ Future<ShippingQuoteCheckoutTarget?> resolveShippingQuoteCheckoutTarget({
 }
 
 @visibleForTesting
-String resolveChatForSaleAttachmentId(ForSalePickerSelection selection) {
-  return selection.forSaleId;
-}
-
-@visibleForTesting
 CreateShippingQuoteRequestDto buildForSaleShippingQuoteRequest({
   required String productId,
   required String forSaleId,
@@ -103,13 +97,26 @@ CreateShippingQuoteRequestDto buildForSaleShippingQuoteRequest({
   );
 }
 
+/// Pending commerce attachment held by the composer (identity + display
+/// title only — chat never stores commerce payload data).
+class _PendingCommerceAttachment {
+  final ChatResourceOccurrenceResourceType resourceType;
+  final String resourceId;
+  final String title;
+
+  const _PendingCommerceAttachment({
+    required this.resourceType,
+    required this.resourceId,
+    required this.title,
+  });
+}
+
 /// Chat Detail Screen
 ///
 /// **DOMAIN BOUNDARY:**
 /// - This screen is a THIN UI LAYER - displays chat messages and handles user input
 /// - Business logic is delegated to appropriate domain services
 /// - Negotiation → NegotiationNotifier (features/negotiation/)
-/// - Seller Quote → ChatCommerceProvider (chat-specific convenience)
 /// - Chat does NOT make commerce decisions - only triggers domain actions
 /// - State is managed by providers (chatDetailProvider, etc)
 ///
@@ -162,6 +169,12 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   // Pending commerce reference lifecycle (detail Chat/Nego CTA entry)
   bool _pendingReferenceSent = false;
   bool _negotiationOpened = false;
+
+  // Pending commerce attachment (composer "Lampirkan Produk") — identity +
+  // display title only. Chat never resolves commerce data beyond the title;
+  // the resource is sent on Send as a resourceOccurrence (O4: chat is a
+  // display layer that delegates to commerce authority).
+  _PendingCommerceAttachment? _pendingCommerce;
 
   @override
   void initState() {
@@ -313,7 +326,6 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final chatDetailState = ref.watch(chatDetailProvider(widget.chatId));
-    final typingIndicatorEnabled = ref.watch(typingIndicatorEnabledProvider);
     final chat = chatDetailState.chat;
 
     // Check if the other user is blocked
@@ -347,12 +359,16 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
           // Blocked User Banner (shows when user is blocked)
           if (isUserBlocked) _buildBlockedUserBanner(context, otherUserId),
           Expanded(child: _buildMessagesList(context, chatDetailState)),
-          if (typingIndicatorEnabled) _buildTypingIndicator(context),
+
           // Pending commerce reference chip (detail Chat CTA entry)
           if (!isUserBlocked &&
               widget.pendingReference != null &&
               !_pendingReferenceSent)
             _buildPendingReferenceChip(context),
+          // Pending commerce attachment chip (composer) — stays until removed
+          // or sent; never auto-sends.
+          if (!isUserBlocked && _pendingCommerce != null)
+            _buildCommerceAttachmentChip(context),
           // Disable input when user is blocked
           if (!isUserBlocked) _buildInputArea(context),
         ],
@@ -431,7 +447,16 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
       final otherUserHandle = formatChatHandle(otherUserName);
       final otherUserId = chat.getOtherParticipantId(userId);
       final otherUserAvatar = chat.participantAvatars[otherUserId];
-      final isOnline = ref.watch(isUserOnlineProvider(otherUserId));
+      // PRESENCE IS OPTIONAL DECORATION — IDENTITY IS CANONICAL.
+      // A presence provider in error state (e.g. transport not wired) must
+      // never collapse the whole title into the generic fallback; the peer
+      // handle has to keep rendering. Isolate the watch.
+      var isOnline = false;
+      try {
+        isOnline = ref.watch(isUserOnlineProvider(otherUserId));
+      } catch (_) {
+        isOnline = false;
+      }
 
       // E4.3 — Participant lifecycle redaction in the chat appbar. When
       // the other participant is unavailable/removed:
@@ -545,8 +570,10 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
       return _buildEmptyView(context);
     }
 
-    // BATCH RESOLUTION: Use batch widget for all messages
-    return _MessagesBatchWidget(
+    // Resource display authority lives on each message: a row renders its
+    // server-resolved projection when it has one, otherwise the transport
+    // snapshot it already carries. Nothing is resolved client-side.
+    return _MessageListWidget(
       messages: messages,
       hasMoreMessages: state.hasMoreMessages,
       scrollController: _scrollController,
@@ -557,6 +584,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
           _handleCommerceAction(context, message, 'negotiate'),
       onPurchase: (message) =>
           _handleCommerceAction(context, message, 'purchase'),
+      onProjectionBuy: _handleProjectionBuy,
     );
   }
 
@@ -607,16 +635,13 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     );
   }
 
-  Widget _buildTypingIndicator(BuildContext context) {
-    return TypingIndicatorWidget(chatId: widget.chatId);
-  }
-
   Widget _buildInputArea(BuildContext context) {
     return ChatInputArea(
       chatId: widget.chatId,
       messageController: _messageController,
       onSendMessage: _handleSendMessage,
       onAttachmentTap: _handleAttachmentTap,
+      hasPendingAttachment: _pendingCommerce != null,
     );
   }
 
@@ -624,7 +649,9 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     String content, {
     MessageType type = MessageType.text,
   }) async {
-    if (content.trim().isEmpty) return;
+    final pending = _pendingCommerce;
+    // Empty text is only valid as a resource-only send (attachment present).
+    if (content.trim().isEmpty && pending == null) return;
 
     // Guard against double-tap / concurrent sends
     if (_isSendingMessage) return;
@@ -640,10 +667,23 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
         senderName: user,
         content: content,
         type: type,
+        resourceOccurrence: pending == null
+            ? null
+            : ChatResourceOccurrenceRequest(
+                operation:
+                    ChatResourceOccurrenceOperation.directCommerceInsertChat,
+                resourceType: pending.resourceType,
+                resourceId: pending.resourceId,
+              ),
       );
 
       if (result != null) {
         _messageController.clear();
+        if (pending != null) {
+          setState(() {
+            _pendingCommerce = null;
+          });
+        }
         _scrollToBottom();
       } else if (mounted) {
         // Message send failed - show error to user
@@ -764,83 +804,44 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   }
 
   void _handleAttachmentTap() {
-    final authState = ref.read(authControllerProvider);
-    // **PHASE 1A AUTHORITY NORMALIZATION:**
-    // Use hasMarketAuthority (capability check) instead of sellerBadge (deprecated tier indicator)
-    // Seller-only options require active subscription capability
-    final isSeller =
-        authState is AuthStateAuthenticated &&
-        authState.user.hasMarketAuthority == true;
+    final screenContext = context;
 
     showModalBottomSheet(
-      context: context,
-      builder: (context) => SafeArea(
+      context: screenContext,
+      builder: (sheetContext) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Seller-only forSale options
-            if (isSeller) ...[
-              ListTile(
-                leading: Icon(
-                  Icons.storefront,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                title: const Text('Kirim For Sale'),
-                subtitle: const Text('Pilih for sale yang sudah ada'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _showForSalePicker();
-                },
-              ),
-              ListTile(
-                leading: Icon(
-                  Icons.add_circle_outline,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                title: const Text('Buat For Sale Baru'),
-                subtitle: const Text('Buat for sale dari chat ini'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _navigateToCreateForSale();
-                },
-              ),
-              const Divider(),
-            ],
-            // Foto+video — 1 mesin (orchestrator) foto & video support
+            // Foto & video — 1 mesin (orchestrator) foto & video support.
             ListTile(
               leading: const Icon(Icons.photo_library),
-              title: const Text('Galeri'),
-              subtitle: const Text('Foto & video dari galeri'),
+              title: const Text('Foto'),
+              subtitle: const Text('Kirim foto dari galeri'),
               onTap: () {
-                final outer = context;
-                Navigator.pop(context);
-                MediaUploadOrchestrator.showPicker(
-                  context: outer,
-                  config: MediaUploadConfig.forChat,
-                  onUploaded: (urls) async {
-                    for (final url in urls) {
-                      await _sendMediaMessage(url);
-                    }
-                  },
-                );
+                Navigator.pop(sheetContext);
+                _pickChatMedia();
               },
             ),
             ListTile(
-              leading: const Icon(Icons.camera_alt),
-              title: const Text('Kamera'),
-              subtitle: const Text('Ambil foto/video'),
+              leading: const Icon(Icons.videocam),
+              title: const Text('Video'),
+              subtitle: const Text('Kirim video dari galeri'),
               onTap: () {
-                final outer = context;
-                Navigator.pop(context);
-                MediaUploadOrchestrator.showPicker(
-                  context: outer,
-                  config: MediaUploadConfig.forChat,
-                  onUploaded: (urls) async {
-                    for (final url in urls) {
-                      await _sendMediaMessage(url);
-                    }
-                  },
-                );
+                Navigator.pop(sheetContext);
+                _pickChatMedia();
+              },
+            ),
+            const Divider(),
+            // Single direct-commerce entry (O4): chat only delegates to the
+            // canonical commerce resource picker — it never resolves or
+            // decides commerce data itself.
+            ListTile(
+              leading: const Icon(Icons.storefront),
+              title: const Text('Lampirkan Produk'),
+              subtitle: const Text('For Sale atau Lelang'),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                _showCommercePicker();
               },
             ),
           ],
@@ -849,62 +850,129 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     );
   }
 
-  /// Show for-sale picker for seller to attach existing item
-  void _showForSalePicker() async {
+  void _pickChatMedia() {
+    MediaUploadOrchestrator.showPicker(
+      context: context,
+      config: MediaUploadConfig.forChat,
+      onUploaded: (urls) async {
+        for (final url in urls) {
+          await _sendMediaMessage(url);
+        }
+      },
+    );
+  }
+
+  /// Opens the canonical commerce resource picker. A selection only becomes
+  /// a pending composer attachment — nothing is sent until the user taps
+  /// Send (pending-until-Send authority).
+  Future<void> _showCommercePicker() async {
     final authState = ref.read(authControllerProvider);
     if (authState is! AuthStateAuthenticated) return;
+    final currentUserId = authState.user.id;
 
-    await ForSalePickerBottomSheet.show(
+    final selection = await CommerceResourcePicker.show(
       context,
-      intent: ForSalePickerIntent.forSaleAttachment,
-      selectedForSaleId: null,
-      onForSaleSelected: (selection) {
-        _sendForSaleAttachment(selection.forSaleId);
-      },
-      onCreateNewForSale: () {
-        _navigateToCreateForSale();
+      sellerId: currentUserId,
+      selectedResourceId: _pendingCommerce?.resourceId,
+      onCreateNewForSale: () async {
+        Navigator.of(context).pop(); // close picker
+        final result = await context.pushNamed(
+          RouteNames.createForSale,
+          extra: const CreateForSaleRouteArgs.chatDirectCommerce(),
+        );
+        if (!mounted) return;
+        // Only the canonical CreatedForSaleResult attaches: null / raw
+        // ForSale / unknown shapes attach nothing (route contract).
+        if (result is CreatedForSaleResult) {
+          await _attachCreatedForSale(result.forSaleId);
+        }
       },
     );
+
+    // Cancel/dismiss keeps any existing pending attachment untouched.
+    if (!mounted || selection == null) return;
+    setState(() {
+      _pendingCommerce = _PendingCommerceAttachment(
+        resourceType: selection.resource.resourceType == ResourceType.auction
+            ? ChatResourceOccurrenceResourceType.auction
+            : ChatResourceOccurrenceResourceType.forSale,
+        resourceId: selection.resource.resourceId,
+        title: selection.title,
+      );
+    });
   }
 
-  /// Navigate to create for-sale screen with chat context
-  void _navigateToCreateForSale() async {
-    final result = await Navigator.of(context).push<ForSale>(
-      MaterialPageRoute(
-        builder: (context) => const CreateForSaleScreen(),
+  /// Resolves ONLY the display title for a freshly created for-sale, then
+  /// attaches it as the pending composer selection.
+  Future<void> _attachCreatedForSale(String forSaleId) async {
+    final result = await ref
+        .read(forSaleControllerProvider)
+        .getForSaleById(forSaleId);
+    if (!mounted) return;
+    final title =
+        result.isSuccess && result.data != null
+            ? result.data!.title
+            : forSaleId;
+    setState(() {
+      _pendingCommerce = _PendingCommerceAttachment(
+        resourceType: ChatResourceOccurrenceResourceType.forSale,
+        resourceId: forSaleId,
+        title: title,
+      );
+    });
+  }
+
+  /// Pending commerce attachment chip above the composer: identity + title,
+  /// removable, never auto-sends.
+  Widget _buildCommerceAttachmentChip(BuildContext context) {
+    final pending = _pendingCommerce!;
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: Material(
+        color: scheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          child: Row(
+            children: [
+              Icon(Icons.sell_outlined, size: 20, color: scheme.primary),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Lampiran produk',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: scheme.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                    Text(
+                      pending.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                tooltip: 'Hapus lampiran',
+                onPressed: () {
+                  setState(() {
+                    _pendingCommerce = null;
+                  });
+                },
+                icon: const Icon(Icons.close, size: 20),
+              ),
+            ],
+          ),
+        ),
       ),
-    );
-
-    // Auto-attach for-sale if created successfully
-    if (result != null) {
-      await _sendForSaleAttachment(result.forSaleId);
-    }
-  }
-
-  Future<void> _sendForSaleAttachment(String forSaleId) async {
-    final authState = ref.read(authControllerProvider);
-    if (authState is! AuthStateAuthenticated) return;
-
-    final senderId = authState.user.id;
-    final senderName = authState.user.username.isNotEmpty
-        ? authState.user.username
-        : 'User';
-
-    // **ARCHITECTURE FIX:** Create ShareReference with minimal preview data
-    // Commerce domain provides actual data through separate flow
-    final shareReference = ShareReference.forSale(
-      forSaleId: forSaleId,
-      title: 'Produk Dijual',
-      imageUrl: null,
-    );
-
-    // **FINAL CLEANUP:** Send message with ShareReference as objectReference
-    final chatNotifier = ref.read(chatDetailProvider(widget.chatId).notifier);
-    await chatNotifier.sendMessage(
-      senderId: senderId,
-      senderName: senderName,
-      content: 'Mengirimkan produk dijual untuk Anda',
-      objectReference: shareReference,
     );
   }
 
@@ -1077,6 +1145,25 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     }
   }
 
+  /// CTA "Beli Sekarang" on the chat resource projection card.
+  ///
+  /// Chat is a display layer: it only forwards the intent. Product id, the
+  /// fresh pricing preview and both seller trust gates stay in Commerce — see
+  /// [_navigateToCheckout] with `resolveForSale: true`.
+  Future<void> _handleProjectionBuy(Message message) async {
+    final projection = message.resourceProjection;
+    // Identity survives death, so a TOMBSTONE still carries a resource_id:
+    // liveness must be checked explicitly — it is not implied by the id.
+    if (projection == null ||
+        !projection.isLive ||
+        projection.resourceType != ResourceProjectionType.fixedPriceSale) {
+      return;
+    }
+    final forSaleId = projection.resourceId;
+    if (forSaleId.isEmpty) return;
+    await _navigateToCheckout(forSaleId, returnToChat: true, resolveForSale: true);
+  }
+
   void _handleCommerceAction(
     BuildContext context,
     Message message,
@@ -1223,18 +1310,37 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     }
   }
 
-  void _navigateToCheckout(
+  Future<void> _navigateToCheckout(
     String forSaleId, {
     String? negotiationId,
     String? auctionId,
     String? shippingQuoteId,
     bool returnToChat = false,
-  }) {
+
+    /// CTA path from the resource projection card: the detail may not be in
+    /// the cache yet, so await the canonical future instead of reading a
+    /// possibly-still-loading AsyncValue (a transient miss must not dead-end
+    /// the button into "ID produk belum tersedia").
+    bool resolveForSale = false,
+  }) async {
     // SELLER TRUST GATE: Best-effort check against cached data.
     // If the item is cached and seller is inactive, block navigation early.
     // Checkout screen (A3) and backend Guard 6 remain the authoritative checks.
-    final forSaleAsync = ref.read(forSaleDetailProvider(forSaleId));
-    final forSale = forSaleAsync.value;
+    ForSale? forSale;
+    if (resolveForSale) {
+      try {
+        forSale = await ref.read(forSaleDetailProvider(forSaleId).future);
+      } catch (_) {
+        forSale = null;
+      }
+      if (!mounted) return;
+      if (forSale == null) {
+        AppSnackBar.showError(context, 'Produk tidak ditemukan');
+        return;
+      }
+    } else {
+      forSale = ref.read(forSaleDetailProvider(forSaleId)).value;
+    }
     if (forSale != null &&
         forSale.sellerTrustLifecycle != ContentLifecycle.active) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1681,11 +1787,13 @@ extension DateTimeComparison on DateTime {
   }
 }
 
-/// Batch Messages Widget
+/// Message list.
 ///
-/// Resolves all message attachments in one batch call instead of N individual calls.
-/// Reduces API calls from N to 2-3 (forSales + auctions).
-class _MessagesBatchWidget extends ConsumerWidget {
+/// One message per row. Resource-bearing rows are rendered from their own
+/// payload only: the canonical `resource_projection` when the server resolved
+/// one, else the transport snapshot the message already carries. The list makes
+/// no per-item resource resolution — no detail-endpoint fan-out per page.
+class _MessageListWidget extends ConsumerWidget {
   final List<Message> messages;
   final bool hasMoreMessages;
   final ScrollController scrollController;
@@ -1694,8 +1802,9 @@ class _MessagesBatchWidget extends ConsumerWidget {
   final Function(ShareReference) onForSaleTap;
   final Function(Message) onNegotiate;
   final Function(Message) onPurchase;
+  final Future<void> Function(Message) onProjectionBuy;
 
-  const _MessagesBatchWidget({
+  const _MessageListWidget({
     required this.messages,
     required this.hasMoreMessages,
     required this.scrollController,
@@ -1704,32 +1813,11 @@ class _MessagesBatchWidget extends ConsumerWidget {
     required this.onForSaleTap,
     required this.onNegotiate,
     required this.onPurchase,
+    required this.onProjectionBuy,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // STEP 1: Collect all ObjectReferences from message attachments
-    final references = <ObjectReference>[];
-    final messageMap = <String, Message>{};
-
-    for (final message in messages) {
-      if (message.objectReference != null) {
-        // Convert attachment to ShareReference
-        final shareReference = message.objectReference!;
-        final ref = ObjectReference(
-          type: shareReference.objectType,
-          id: shareReference.targetId,
-        );
-        references.add(ref);
-        messageMap[getCacheKey(ref)] = message;
-      }
-    }
-
-    // STEP 2: Watch batch provider
-    final batchPreviewsAsync = ref.watch(
-      objectPreviewBatchProvider(references),
-    );
-
     return ListView.builder(
       controller: scrollController,
       reverse:
@@ -1757,19 +1845,6 @@ class _MessagesBatchWidget extends ConsumerWidget {
               nextMessage == null || nextMessage.senderId != message.senderId;
           final showDateHeader = _shouldShowDateHeader(message, nextMessage);
 
-          // STEP 3: Get pre-resolved data if available
-          obj.ObjectPreview? preResolved;
-          if (message.objectReference != null) {
-            final shareReference = message.objectReference!;
-            final cacheKey = getCacheKey(
-              ObjectReference(
-                type: shareReference.objectType,
-                id: shareReference.targetId,
-              ),
-            );
-            preResolved = batchPreviewsAsync.value?[cacheKey];
-          }
-
           return Column(
             children: [
               if (showDateHeader) _buildDateHeader(context, message.createdAt),
@@ -1791,7 +1866,9 @@ class _MessagesBatchWidget extends ConsumerWidget {
                 onPurchase: message.hasAttachment
                     ? () => onPurchase(message)
                     : null,
-                preResolved: preResolved,
+                onProjectionBuy: message.resourceProjection != null
+                    ? () => onProjectionBuy(message)
+                    : null,
               ),
             ],
           );

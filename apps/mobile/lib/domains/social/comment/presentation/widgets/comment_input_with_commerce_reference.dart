@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/domain/domain.dart';
 import 'package:labuda/domains/social/comment/presentation/widgets/commerce_resource_picker.dart';
 import 'package:labuda/domains/social/comment/presentation/widgets/resource_identity.dart';
@@ -73,15 +74,15 @@ class _CommentInputWithCommerceReferenceState
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
+        color: scheme.surface,
         border: Border(
           top: BorderSide(
-            color: isDark ? AppColors.darkGray700 : AppColors.neutralGray200,
+            color: scheme.outlineVariant,
           ),
         ),
       ),
@@ -122,11 +123,9 @@ class _CommentInputWithCommerceReferenceState
                     maxLength: 500,
                     decoration: InputDecoration(
                       hintText: widget.hintText,
-                      hintStyle: TextStyle(color: AppColors.neutralGray600),
+                      hintStyle: TextStyle(color: scheme.onSurfaceVariant),
                       filled: true,
-                      fillColor: isDark
-                          ? AppColors.darkGray700
-                          : AppColors.neutralGray100,
+                      fillColor: scheme.surfaceContainerHigh,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(24),
                         borderSide: BorderSide.none,
@@ -145,7 +144,7 @@ class _CommentInputWithCommerceReferenceState
                   onPressed: _pickMedia,
                   icon: Icon(
                     Icons.add_photo_alternate_outlined,
-                    color: _mediaUrls.isNotEmpty ? AppColors.primaryRed : AppColors.neutralGray600,
+                    color: _mediaUrls.isNotEmpty ? scheme.primary : scheme.onSurfaceVariant,
                     size: 26,
                   ),
                   tooltip: 'Tambah foto/video',
@@ -157,8 +156,8 @@ class _CommentInputWithCommerceReferenceState
                     icon: Icon(
                       Icons.add_circle_outline,
                       color: _selectedResource != null
-                          ? AppColors.primaryRed
-                          : AppColors.neutralGray600,
+                          ? scheme.primary
+                          : scheme.onSurfaceVariant,
                       size: 28,
                     ),
                     tooltip: 'Lampirkan Produk',
@@ -167,8 +166,8 @@ class _CommentInputWithCommerceReferenceState
                 Container(
                   decoration: BoxDecoration(
                     color: _canSubmit() && !_isSubmitting
-                        ? AppColors.primaryRed
-                        : AppColors.neutralGray400,
+                        ? scheme.primary
+                        : scheme.surfaceContainerHighest,
                     shape: BoxShape.circle,
                   ),
                   child: IconButton(
@@ -177,17 +176,17 @@ class _CommentInputWithCommerceReferenceState
                         ? _handleSubmit
                         : null,
                     icon: _isSubmitting
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 20,
                             height: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
                               valueColor: AlwaysStoppedAnimation<Color>(
-                                AppColors.neutralWhite,
+                                scheme.onPrimary,
                               ),
                             ),
                           )
-                        : const Icon(Icons.send, color: AppColors.neutralWhite),
+                        : Icon(Icons.send, color: scheme.onPrimary),
                   ),
                 ),
               ],
@@ -297,14 +296,14 @@ class _SelectedResourceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray700 : AppColors.neutralGray50,
+        color: scheme.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: AppColors.primaryRed.withValues(alpha: 0.3),
+          color: scheme.primary.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -318,9 +317,9 @@ class _SelectedResourceCard extends StatelessWidget {
                     width: 45,
                     height: 45,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => _placeholder(isDark),
+                    errorBuilder: (_, _, _) => _placeholder(context),
                   )
-                : _placeholder(isDark),
+                : _placeholder(context),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -332,9 +331,7 @@ class _SelectedResourceCard extends StatelessWidget {
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 13,
-                    color: isDark
-                        ? AppColors.neutralWhite
-                        : AppColors.neutralGray900,
+                    color: scheme.onSurface,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -342,9 +339,9 @@ class _SelectedResourceCard extends StatelessWidget {
                 const SizedBox(height: 2),
                 if (selection.price != null)
                   Text(
-                    'Rp ${selection.price}',
-                    style: const TextStyle(
-                      color: AppColors.primaryRed,
+                    'Rp ${formatGroupedAmount(selection.price!)}',
+                    style: TextStyle(
+                      color: scheme.primary,
                       fontWeight: FontWeight.bold,
                       fontSize: 13,
                     ),
@@ -363,17 +360,20 @@ class _SelectedResourceCard extends StatelessWidget {
     );
   }
 
-  Widget _placeholder(bool isDark) => Container(
-    width: 45,
-    height: 45,
-    decoration: BoxDecoration(
-      color: AppColors.neutralGray200,
-      borderRadius: BorderRadius.circular(6),
-    ),
-    child: Icon(
-      Icons.image_not_supported,
-      size: 16,
-      color: AppColors.neutralGray400,
-    ),
-  );
+  Widget _placeholder(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      width: 45,
+      height: 45,
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Icon(
+        Icons.image_not_supported,
+        size: 16,
+        color: scheme.onSurfaceVariant,
+      ),
+    );
+  }
 }

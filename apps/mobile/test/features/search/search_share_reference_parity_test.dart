@@ -32,14 +32,29 @@ Map<String, dynamic> _fixedPriceSaleProjection({
     'state': 'LIVE',
     'resource_type': 'for_sale',
     'resource_id': resourceId,
+    'canonical_url': '/for-sale/$resourceId',
+    'viewer_capabilities': <String, dynamic>{
+      'can_view': true,
+      'can_interact': true,
+      'blocked_by_tombstone': false,
+    },
+    'commerce_actions': <String, dynamic>{
+      'role': 'buyer',
+      'can_chat': true,
+      'can_negotiate': true,
+      'can_buy': true,
+      'can_bid': false,
+      'can_manage': false,
+    },
     'for_sale': <String, dynamic>{
       'title': title,
-      'media': <Map<String, dynamic>>[],
+      'media': <Map<String, dynamic>>[
+        {'url': thumbnail, 'kind': 'image'},
+      ],
       'thumbnail_url': thumbnail,
-      'price': 1500000,
+      'price': {'amount': 1500000, 'currency': 'IDR'},
       'status': 'active',
       'quantity_available': 3,
-      'can_interact': true,
       'seller': <String, dynamic>{
         'user': <String, dynamic>{
           'id': 'seller-1',
@@ -59,15 +74,30 @@ Map<String, dynamic> _auctionProjection({
     'state': 'LIVE',
     'resource_type': 'auction',
     'resource_id': resourceId,
+    'canonical_url': '/auction/$resourceId',
+    'viewer_capabilities': <String, dynamic>{
+      'can_view': true,
+      'can_interact': true,
+      'blocked_by_tombstone': false,
+    },
+    'commerce_actions': <String, dynamic>{
+      'role': 'buyer',
+      'can_chat': true,
+      'can_negotiate': false,
+      'can_buy': false,
+      'can_bid': true,
+      'can_manage': false,
+    },
     'auction': <String, dynamic>{
       'title': title,
-      'media': <Map<String, dynamic>>[],
+      'media': <Map<String, dynamic>>[
+        {'url': thumbnail, 'kind': 'image'},
+      ],
       'thumbnail_url': thumbnail,
       'lifecycle': 'active',
       'current_bid': 1750000,
       'buy_now_price': 2500000,
       'end_at': '2026-08-10T10:00:00.000Z',
-      'can_interact': true,
       'seller': <String, dynamic>{
         'user': <String, dynamic>{
           'id': 'seller-1',
@@ -87,6 +117,12 @@ Map<String, dynamic> _profileProjection({
     'state': 'LIVE',
     'resource_type': 'profile',
     'resource_id': resourceId,
+    'canonical_url': '/user/$resourceId',
+    'viewer_capabilities': <String, dynamic>{
+      'can_view': true,
+      'can_interact': false,
+      'blocked_by_tombstone': false,
+    },
     'profile': <String, dynamic>{
       'username': username,
       'avatar_url': avatarUrl,
@@ -109,7 +145,10 @@ void main() {
     );
     expect(dto.resourceProjection, isNotNull);
     expect(dto.resourceProjection!.titleText, 'FixedPriceSale Title');
-    expect(dto.resourceProjection!.imageUrl, 'https://img.example/fixed-price-sale.jpg');
+    expect(
+      dto.resourceProjection!.primaryImageUrl,
+      'https://img.example/fixed-price-sale.jpg',
+    );
 
     final entity = dto.toDomain();
     expect(entity.title, 'FixedPriceSale Title');
@@ -130,7 +169,10 @@ void main() {
 
     expect(dto.resourceProjection, isNotNull);
     expect(dto.resourceProjection!.titleText, 'Auction Title');
-    expect(dto.resourceProjection!.imageUrl, 'https://img.example/auction.jpg');
+    expect(
+      dto.resourceProjection!.primaryImageUrl,
+      'https://img.example/auction.jpg',
+    );
 
     final entity = dto.toDomain();
     expect(entity.title, 'Auction Title');
@@ -151,7 +193,10 @@ void main() {
 
     expect(dto.resourceProjection, isNotNull);
     expect(dto.resourceProjection!.titleText, '@profile-title');
-    expect(dto.resourceProjection!.imageUrl, 'https://img.example/profile.jpg');
+    expect(
+      dto.resourceProjection!.primaryImageUrl,
+      'https://img.example/profile.jpg',
+    );
 
     final entity = dto.toDomain();
     expect(entity.title, '@profile-title');

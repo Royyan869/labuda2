@@ -150,12 +150,8 @@ class ChatMapper {
       type: _stringToMessageType(dto.type),
       mediaUrls: dto.mediaUrls ?? const [],
       objectReference: attachments['objectReference'] as ShareReference?,
-      negotiationOffer:
-          attachments['negotiationOffer'] as NegotiationOfferAttachment?,
       negotiationProposal:
           attachments['negotiationProposal'] as NegotiationProposalAttachment?,
-      negotiationResult:
-          attachments['negotiationResult'] as NegotiationResultAttachment?,
       shippingQuote: attachments['shippingQuote'] as ShippingQuoteAttachment?,
       location: attachments['location'] as LocationAttachment?,
       createdAt: dto.createdAt,
@@ -449,12 +445,6 @@ class ChatMapper {
     final map = <String, dynamic>{'type': dto.type};
 
     switch (dto.type) {
-      case 'negotiation_offer':
-        map['negotiationId'] = dto.data['negotiation_id'];
-        map['forSaleId'] = dto.data['for_sale_id'];
-        map['status'] = dto.data['status'];
-        map['preview'] = dto.data['preview'];
-        break;
       case 'negotiation_proposal':
         final proposalDto = dto as NegotiationProposalAttachmentDto;
         map['sessionId'] = proposalDto.sessionId;
@@ -463,12 +453,6 @@ class ChatMapper {
         map['resourceType'] = proposalDto.resourceType;
         map['resourceId'] = proposalDto.resourceId;
         map['note'] = proposalDto.note;
-        break;
-      case 'negotiation_result':
-        map['negotiationId'] = dto.data['negotiation_id'];
-        map['forSaleId'] = dto.data['for_sale_id'];
-        map['status'] = dto.data['status'];
-        map['preview'] = dto.data['preview'];
         break;
       case 'shipping_quote':
         map['offerId'] = dto.data['offer_id'];
@@ -499,12 +483,8 @@ class ChatMapper {
     // Convert to specific attachment types
     final attachment = AttachmentMapper.fromMap(map);
 
-    if (attachment is NegotiationOfferAttachment) {
-      return {'negotiationOffer': attachment};
-    } else if (attachment is NegotiationProposalAttachment) {
+    if (attachment is NegotiationProposalAttachment) {
       return {'negotiationProposal': attachment};
-    } else if (attachment is NegotiationResultAttachment) {
-      return {'negotiationResult': attachment};
     } else if (attachment is ShippingQuoteAttachment) {
       return {'shippingQuote': attachment};
     } else if (attachment is LocationAttachment) {
@@ -518,7 +498,7 @@ class ChatMapper {
   }
 
   static AttachmentDto? domainAttachmentToDto(Message message) {
-    // Handle ObjectReference (ShareReference)
+    // Handle a shared object reference (ShareReference)
     if (message.objectReference != null) {
       final chatReference = message.objectReference!.asChatReference();
       if (chatReference == null) {
@@ -537,20 +517,6 @@ class ChatMapper {
       );
     }
 
-    // Handle NegotiationOfferAttachment
-    if (message.negotiationOffer != null) {
-      final attachment = message.negotiationOffer!;
-      return NegotiationOfferAttachmentDto(
-        negotiationId: attachment.negotiationId,
-        forSaleId: attachment.forSaleId,
-        status: attachment.status,
-        preview: SharePreviewDto(
-          title: attachment.forSaleName,
-          imageUrl: attachment.forSaleImage,
-        ),
-      );
-    }
-
     // Handle NegotiationProposalAttachment
     if (message.negotiationProposal != null) {
       final proposal = message.negotiationProposal!;
@@ -561,20 +527,6 @@ class ChatMapper {
         resourceType: proposal.resourceType,
         resourceId: proposal.resourceId,
         note: proposal.note,
-      );
-    }
-
-    // Handle NegotiationResultAttachment
-    if (message.negotiationResult != null) {
-      final attachment = message.negotiationResult!;
-      return NegotiationResultAttachmentDto(
-        negotiationId: attachment.negotiationId,
-        forSaleId: attachment.forSaleId,
-        status: attachment.status,
-        preview: SharePreviewDto(
-          title: attachment.forSaleName,
-          imageUrl: attachment.forSaleImage,
-        ),
       );
     }
 

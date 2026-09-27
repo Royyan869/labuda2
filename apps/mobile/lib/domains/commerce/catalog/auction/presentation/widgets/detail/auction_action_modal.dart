@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 import 'package:labuda/shared/governance/seller_inactive_badge.dart';
@@ -101,14 +102,15 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
     // explicitly at this boundary. "1000000.9" never reaches the chain as a
     // coerced 1000000; there is no round/floor/ceil and no double detour
     // anywhere below this parse.
+    final scheme = Theme.of(context).colorScheme;
     final amount = parseCanonicalBidAmount(_bidController.text);
     if (amount == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
+        SnackBar(
+          content: const Text(
             'Nominal bid harus bilangan bulat rupiah (tanpa desimal).',
           ),
-          backgroundColor: Colors.red,
+          backgroundColor: scheme.error,
         ),
       );
       return;
@@ -116,8 +118,10 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
     if (amount < _minimumBid) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Bid minimum: Rp $_minimumBid'),
-          backgroundColor: Colors.red,
+          content: Text(
+            'Bid minimum: Rp ${formatGroupedAmount(_minimumBid)}',
+          ),
+          backgroundColor: scheme.error,
         ),
       );
       return;
@@ -135,11 +139,11 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
             const Text('Kamu akan menawar sebesar'),
             const SizedBox(height: 12),
             Text(
-              'Rp $amount',
+              'Rp ${formatGroupedAmount(amount)}',
               style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
-                color: Colors.green,
+                color: AppColors.statusSuccess,
               ),
             ),
             const SizedBox(height: 16),
@@ -167,7 +171,9 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
                       'Jika Anda menang dan tidak membayar, akun Anda dapat dibatasi',
                       style: TextStyle(
                         fontSize: 12,
-                        color: AppColors.neutralGray700,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ),
@@ -188,8 +194,8 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
               widget.onPlaceBid(amount);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-              foregroundColor: Colors.white,
+              backgroundColor: AppColors.statusSuccess,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
             ),
             child: const Text('Konfirmasi'),
           ),
@@ -200,6 +206,7 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final currentBid = widget.auction.currentBid;
     // Expired-seller visibility — disable bid & buy-now when the seller's
     // subscription has lapsed. Backend rejects these calls anyway (Guard 6 +
@@ -235,7 +242,7 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey[300],
+                color: scheme.outlineVariant,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -251,7 +258,7 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.grey[100],
+              color: scheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
@@ -259,10 +266,10 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
               children: [
                 const Text('Bid Saat Ini'),
                 Text(
-                  'Rp $currentBid',
+                  'Rp ${formatGroupedAmount(currentBid)}',
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Colors.green,
+                    color: AppColors.statusSuccess,
                   ),
                 ),
               ],
@@ -273,7 +280,7 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.blue[50],
+              color: scheme.secondary.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
@@ -281,10 +288,10 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
               children: [
                 const Text('Bid Minimum'),
                 Text(
-                  'Rp $_minimumBid',
-                  style: const TextStyle(
+                  'Rp ${formatGroupedAmount(_minimumBid)}',
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Colors.blue,
+                    color: scheme.secondary,
                   ),
                 ),
               ],
@@ -323,8 +330,8 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
           ElevatedButton(
             onPressed: sellerInactive ? null : _handlePlaceBid,
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-              foregroundColor: Colors.white,
+              backgroundColor: AppColors.statusSuccess,
+              foregroundColor: scheme.onPrimary,
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -346,15 +353,15 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
                       widget.onBuyNow();
                     },
               style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.blue,
+                foregroundColor: scheme.secondary,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
-                side: const BorderSide(color: Colors.blue),
+                side: BorderSide(color: scheme.secondary),
               ),
               child: Text(
-                'Buy Now - Rp ${widget.auction.buyNowPrice!.toStringAsFixed(0)}',
+                'Buy Now - Rp ${formatGroupedAmount(widget.auction.buyNowPrice!.round())}',
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
             ),

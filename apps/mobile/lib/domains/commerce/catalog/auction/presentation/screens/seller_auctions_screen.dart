@@ -8,6 +8,7 @@ import 'package:labuda/domains/commerce/catalog/auction/domain/domain.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/auction_notifier.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/seller_auctions_pager.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/screens/seller_auction_draft_edit_screen.dart';
+import 'package:labuda/shared/domain/entities/resource_projection.dart';
 
 class SellerAuctionsScreen extends ConsumerWidget {
   const SellerAuctionsScreen({super.key});
@@ -361,11 +362,11 @@ class _SellerAuctionCard extends StatelessWidget {
                 children: [
                   _MetaChip(
                     icon: Icons.payments_outlined,
-                    label: 'Harga awal Rp ${auction.openingBid}',
+                    label: 'Harga awal Rp ${formatGroupedAmount(auction.openingBid)}',
                   ),
                   _MetaChip(
                     icon: Icons.trending_up_outlined,
-                    label: 'Terkini Rp $currentBid',
+                    label: 'Terkini Rp ${formatGroupedAmount(currentBid)}',
                   ),
                 ],
               ),

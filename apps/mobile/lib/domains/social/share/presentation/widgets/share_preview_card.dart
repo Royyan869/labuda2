@@ -1,34 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import '../../domain/entities/share_target.dart';
 
 /// Preview card showing what content will be shared
 class SharePreviewCard extends StatelessWidget {
   final ShareTarget target;
-  final bool isDark;
 
   const SharePreviewCard({
     super.key,
     required this.target,
-    this.isDark = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final cardColor = isDark ? AppColors.darkGray700 : AppColors.neutralGray50;
-    final borderColor = isDark
-        ? AppColors.darkGray600
-        : AppColors.neutralGray200;
-    final textColor = isDark
-        ? AppColors.neutralGray100
-        : AppColors.neutralGray900;
-    final secondaryTextColor = isDark
-        ? AppColors.neutralGray400
-        : AppColors.neutralGray500;
-    final placeholderColor = isDark
-        ? AppColors.darkGray600
-        : AppColors.neutralGray200;
+    final scheme = Theme.of(context).colorScheme;
+    final cardColor = scheme.surfaceContainerHigh;
+    final borderColor = scheme.outlineVariant;
+    final textColor = scheme.onSurface;
+    final secondaryTextColor = scheme.onSurfaceVariant;
+    final placeholderColor = scheme.surfaceContainerHighest;
 
     return Container(
       margin: const EdgeInsets.all(16),
@@ -402,8 +394,8 @@ class SharePreviewCard extends StatelessWidget {
     }
   }
 
+  /// Formatting authority: the envelope entity owns the thousand separators.
   String _formatPrice(num price) {
-    final priceStr = price.toStringAsFixed(0);
-    return 'Rp ${priceStr.replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}';
+    return 'Rp ${formatGroupedAmount(price.round())}';
   }
 }

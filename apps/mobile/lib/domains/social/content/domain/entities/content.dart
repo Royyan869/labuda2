@@ -22,7 +22,7 @@
 
 import 'package:equatable/equatable.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
-import 'package:labuda/domains/social/content/domain/entities/content_resource_projection.dart';
+import 'package:labuda/shared/domain/entities/resource_projection.dart';
 
 /// Status content - Canonical status aligned with backend
 ///
@@ -70,7 +70,7 @@ enum ContentStatus {
 }
 
 // ContentLinkedItemType REMOVED (HARD CLEANUP BATCH):
-// Content domain now uses canonical ContentResourceProjection for all cross-domain references.
+// Content domain now uses the canonical ResourceProjection for all cross-domain references.
 // ShareTargetType.forSale and ShareTargetType.auction should be used instead.
 
 /// Enum untuk visibility post
@@ -186,7 +186,7 @@ class ContentLocation extends Equatable {
 }
 
 // ContentLinkedItem REMOVED (HARD CLEANUP BATCH):
-// Content domain now uses canonical ContentResourceProjection for all cross-domain references.
+// Content domain now uses the canonical ResourceProjection for all cross-domain references.
 //
 // MIGRATION:
 // - resourceProjection.fixedPriceSale / resourceProjection.auction
@@ -360,7 +360,7 @@ class Content extends Equatable {
   final String? originalAuthorId;
 
   /// Canonical resource projection for linked content/card rendering.
-  final ContentResourceProjection? resourceProjection;
+  final ResourceProjection? resourceProjection;
 
   const Content({
     required this.id,
@@ -462,7 +462,7 @@ class Content extends Equatable {
     DateTime? createdAt,
     DateTime? updatedAt,
     String? originalAuthorId,
-    ContentResourceProjection? resourceProjection,
+    ResourceProjection? resourceProjection,
   }) {
     return Content(
       id: id ?? this.id,

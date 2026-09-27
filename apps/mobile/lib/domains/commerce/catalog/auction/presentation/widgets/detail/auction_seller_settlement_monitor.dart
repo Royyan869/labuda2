@@ -4,6 +4,8 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:labuda/core/core.dart';
+import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction_status.dart';
 
@@ -95,21 +97,22 @@ class _AuctionSellerSettlementMonitorState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Status header
-          _buildStatusHeader(),
+          _buildStatusHeader(context),
           const SizedBox(height: 12),
 
           // Winner info
-          _buildWinnerInfo(),
+          _buildWinnerInfo(context),
           const SizedBox(height: 12),
 
           // Status-specific content
-          _buildStatusContent(),
+          _buildStatusContent(context),
         ],
       ),
     );
   }
 
-  Widget _buildStatusHeader() {
+  Widget _buildStatusHeader(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Row(
       children: [
         Container(
@@ -127,7 +130,7 @@ class _AuctionSellerSettlementMonitorState
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w600,
-              color: _getStatusTextColor(),
+              color: colorScheme.onSurface,
             ),
           ),
         ),
@@ -135,14 +138,15 @@ class _AuctionSellerSettlementMonitorState
     );
   }
 
-  Widget _buildWinnerInfo() {
+  Widget _buildWinnerInfo(BuildContext context) {
     final winnerUsername = 'Pemenang';
     final winningBid = widget.auction.currentBid;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.6),
+        color: colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
@@ -150,7 +154,10 @@ class _AuctionSellerSettlementMonitorState
         children: [
           Text(
             'Pemenang:',
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+            style: TextStyle(
+              fontSize: 12,
+              color: colorScheme.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
@@ -159,10 +166,10 @@ class _AuctionSellerSettlementMonitorState
           ),
           const SizedBox(height: 8),
           Text(
-            'Bid: Rp ${winningBid.toStringAsFixed(0)}',
+            'Bid: Rp ${formatGroupedAmount(winningBid.round())}',
             style: TextStyle(
               fontSize: 14,
-              color: Colors.grey.shade700,
+              color: colorScheme.onSurfaceVariant,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -171,35 +178,43 @@ class _AuctionSellerSettlementMonitorState
     );
   }
 
-  Widget _buildStatusContent() {
+  Widget _buildStatusContent(BuildContext context) {
     switch (_settlementStatus) {
       case SellerSettlementStatus.waitingSettlement:
-        return _buildWaitingSettlementContent();
+        return _buildWaitingSettlementContent(context);
       case SellerSettlementStatus.claimed:
-        return _buildClaimedContent();
+        return _buildClaimedContent(context);
     }
   }
 
-  Widget _buildWaitingSettlementContent() {
+  Widget _buildWaitingSettlementContent(BuildContext context) {
     // Canonical deadline derivation: end_at + 24h (backend
     // Auction.SettlementDeadline()). Non-null by definition.
     final deadline = widget.auction.settlementDeadline;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Menunggu pembayaran dari pemenang',
-          style: TextStyle(fontSize: 13, color: _getStatusTextColor()),
+          style: TextStyle(fontSize: 13, color: colorScheme.onSurface),
         ),
         const SizedBox(height: 8),
         Row(
           children: [
-            Icon(Icons.schedule, size: 14, color: _getStatusTextColor()),
+            Icon(
+              Icons.schedule,
+              size: 14,
+              color: colorScheme.onSurfaceVariant,
+            ),
             const SizedBox(width: 4),
             Text(
               'Selesaikan sebelum:',
-              style: TextStyle(fontSize: 12, color: _getStatusTextColor()),
+              style: TextStyle(
+                fontSize: 12,
+                color: colorScheme.onSurfaceVariant,
+              ),
             ),
           ],
         ),
@@ -209,13 +224,14 @@ class _AuctionSellerSettlementMonitorState
     );
   }
 
-  Widget _buildClaimedContent() {
+  Widget _buildClaimedContent(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Pembayaran sedang diproses',
-          style: TextStyle(fontSize: 13, color: _getStatusTextColor()),
+          style: TextStyle(fontSize: 13, color: colorScheme.onSurface),
         ),
         const SizedBox(height: 12),
         // TODO: Add link to order when order_id is available
@@ -225,20 +241,24 @@ class _AuctionSellerSettlementMonitorState
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color: _getStatusTextColor().withValues(alpha: 0.1),
+            color: _getStatusIconColor().withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(6),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.receipt_long, size: 16, color: _getStatusTextColor()),
+              Icon(
+                Icons.receipt_long,
+                size: 16,
+                color: colorScheme.onSurface,
+              ),
               const SizedBox(width: 8),
               Text(
                 'Lihat Pesanan',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
-                  color: _getStatusTextColor(),
+                  color: colorScheme.onSurface,
                 ),
               ),
             ],
@@ -252,6 +272,7 @@ class _AuctionSellerSettlementMonitorState
     return StreamBuilder(
       stream: Stream.periodic(const Duration(seconds: 1), (count) => count),
       builder: (context, snapshot) {
+        final colorScheme = Theme.of(context).colorScheme;
         final now = DateTime.now();
         final remaining = deadline.difference(now);
 
@@ -261,7 +282,7 @@ class _AuctionSellerSettlementMonitorState
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: Colors.red.shade700,
+              color: colorScheme.error,
             ),
           );
         }
@@ -274,10 +295,10 @@ class _AuctionSellerSettlementMonitorState
 
         if (hours > 0) {
           timeText = '$hours jam $minutes menit tersisa';
-          timeColor = _getStatusTextColor();
+          timeColor = colorScheme.onSurface;
         } else {
           timeText = '$minutes menit tersisa';
-          timeColor = Colors.red.shade700;
+          timeColor = colorScheme.error;
         }
 
         return Row(
@@ -298,41 +319,35 @@ class _AuctionSellerSettlementMonitorState
     );
   }
 
-  // Status-based styling helpers
-
+  // Status-based styling helpers.
+  //
+  // Semantic tones (warning/success) have no scheme role, so they stay
+  // palette authority; all body text uses scheme ink so it stays readable
+  // in both modes. No light-only hex, no local brightness branch.
   Color _getStatusBackgroundColor() {
     switch (_settlementStatus) {
       case SellerSettlementStatus.waitingSettlement:
-        return const Color(0xFFFFF7ED); // Light orange
+        return AppColors.statusWarning.withValues(alpha: 0.12);
       case SellerSettlementStatus.claimed:
-        return const Color(0xFFECFDF5); // Light green
+        return AppColors.statusSuccess.withValues(alpha: 0.12);
     }
   }
 
   Color _getStatusBorderColor() {
     switch (_settlementStatus) {
       case SellerSettlementStatus.waitingSettlement:
-        return const Color(0xFFF97316).withValues(alpha: 0.3);
+        return AppColors.statusWarning.withValues(alpha: 0.3);
       case SellerSettlementStatus.claimed:
-        return const Color(0xFF10B981).withValues(alpha: 0.3);
-    }
-  }
-
-  Color _getStatusTextColor() {
-    switch (_settlementStatus) {
-      case SellerSettlementStatus.waitingSettlement:
-        return const Color(0xFF9A3412);
-      case SellerSettlementStatus.claimed:
-        return const Color(0xFF065F46);
+        return AppColors.statusSuccess.withValues(alpha: 0.3);
     }
   }
 
   Color _getStatusIconColor() {
     switch (_settlementStatus) {
       case SellerSettlementStatus.waitingSettlement:
-        return const Color(0xFFF97316);
+        return AppColors.statusWarning;
       case SellerSettlementStatus.claimed:
-        return const Color(0xFF10B981);
+        return AppColors.statusSuccess;
     }
   }
 

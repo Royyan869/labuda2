@@ -4,8 +4,10 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/bidding_item.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/bidding_notifier.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/bidding_state.dart';
@@ -85,12 +87,13 @@ class _BiddingScreenState extends ConsumerState<BiddingScreen> {
   }
 
   Widget _buildSummaryStats(BiddingResult result) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        color: scheme.surface,
         border: Border(
-          bottom: BorderSide(color: Theme.of(context).dividerColor, width: 1),
+          bottom: BorderSide(color: scheme.outlineVariant, width: 1),
         ),
       ),
       child: Row(
@@ -99,17 +102,17 @@ class _BiddingScreenState extends ConsumerState<BiddingScreen> {
           _StatItem(
             label: 'Active',
             value: result.activeCount.toString(),
-            color: AppColors.successGreen,
+            color: AppColors.statusSuccess,
           ),
           _StatItem(
             label: 'Won',
             value: result.wonCount.toString(),
-            color: AppColors.neutralGray500,
+            color: scheme.onSurfaceVariant,
           ),
           _StatItem(
             label: 'Lost',
             value: result.lostCount.toString(),
-            color: AppColors.statusError,
+            color: scheme.error,
           ),
         ],
       ),
@@ -117,15 +120,12 @@ class _BiddingScreenState extends ConsumerState<BiddingScreen> {
   }
 
   Widget _buildError(String error) {
+    final scheme = Theme.of(context).colorScheme;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(
-            Icons.error_outline,
-            size: 64,
-            color: AppColors.statusError,
-          ),
+          Icon(Icons.error_outline, size: 64, color: scheme.error),
           const SizedBox(height: 16),
           Text(
             'Error loading bidding data',
@@ -136,7 +136,7 @@ class _BiddingScreenState extends ConsumerState<BiddingScreen> {
             error,
             style: Theme.of(
               context,
-            ).textTheme.bodyMedium?.copyWith(color: AppColors.statusError),
+            ).textTheme.bodyMedium?.copyWith(color: scheme.error),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
@@ -150,24 +150,27 @@ class _BiddingScreenState extends ConsumerState<BiddingScreen> {
   }
 
   Widget _buildEmpty() {
+    final scheme = Theme.of(context).colorScheme;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.gavel_outlined, size: 64, color: AppColors.neutralGray400),
+          Icon(
+            Icons.gavel_outlined,
+            size: 64,
+            color: scheme.onSurfaceVariant,
+          ),
           const SizedBox(height: 16),
           Text(
             'No Bidding Activity',
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(color: AppColors.neutralGray600),
+            style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: 8),
           Text(
             'Start bidding on auctions to track your activity here',
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: AppColors.neutralGray500),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
             textAlign: TextAlign.center,
           ),
         ],
@@ -203,9 +206,9 @@ class _StatItem extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           label,
-          style: Theme.of(
-            context,
-          ).textTheme.bodySmall?.copyWith(color: AppColors.neutralGray500),
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
         ),
       ],
     );
@@ -220,10 +223,6 @@ class BiddingItemCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final currencyFormat = NumberFormat.currency(
-      symbol: 'Rp ',
-      decimalDigits: 0,
-    );
     final dateFormat = DateFormat('MMM dd, yyyy • HH:mm');
 
     return InkWell(
@@ -234,7 +233,9 @@ class BiddingItemCard extends ConsumerWidget {
           color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: _getStatusColor().withValues(alpha: 0.3),
+            color: _getStatusColor(
+              Theme.of(context).colorScheme,
+            ).withValues(alpha: 0.3),
             width: 1,
           ),
         ),
@@ -268,7 +269,6 @@ class BiddingItemCard extends ConsumerWidget {
                     child: _BidInfo(
                       label: 'Your Bid',
                       amount: item.yourLastBid,
-                      currencyFormat: currencyFormat,
                       isHighlight:
                           item.status == BiddingStatus.leading ||
                           item.status == BiddingStatus.waitingClaim,
@@ -279,7 +279,6 @@ class BiddingItemCard extends ConsumerWidget {
                     child: _BidInfo(
                       label: 'Current Bid',
                       amount: item.currentBid,
-                      currencyFormat: currencyFormat,
                       isHighlight: false,
                     ),
                   ),
@@ -289,16 +288,16 @@ class BiddingItemCard extends ConsumerWidget {
               // End time row
               Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.access_time,
                     size: 14,
-                    color: AppColors.neutralGray500,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                   const SizedBox(width: 4),
                   Text(
                     'Ends: ${dateFormat.format(item.endAt.toLocal())}',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.neutralGray500,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ],
@@ -313,10 +312,10 @@ class BiddingItemCard extends ConsumerWidget {
                     vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFF7ED), // Light orange background
+                    color: AppColors.statusWarning.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(6),
                     border: Border.all(
-                      color: const Color(0xFFF97316).withValues(alpha: 0.3),
+                      color: AppColors.statusWarning.withValues(alpha: 0.3),
                       width: 1,
                     ),
                   ),
@@ -325,15 +324,15 @@ class BiddingItemCard extends ConsumerWidget {
                       Container(
                         padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
-                          color: const Color(
-                            0xFFF97316,
-                          ).withValues(alpha: 0.15),
+                          color: AppColors.statusWarning.withValues(
+                            alpha: 0.15,
+                          ),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(
                           Icons.warning_amber_rounded,
                           size: 14,
-                          color: Color(0xFFF97316),
+                          color: AppColors.statusWarning,
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -345,7 +344,9 @@ class BiddingItemCard extends ConsumerWidget {
                               '⚠️ Segera selesaikan pembayaran',
                               style: Theme.of(context).textTheme.bodySmall
                                   ?.copyWith(
-                                    color: const Color(0xFF9A3412),
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurface,
                                     fontWeight: FontWeight.w600,
                                   ),
                             ),
@@ -354,7 +355,9 @@ class BiddingItemCard extends ConsumerWidget {
                               'Keterlambatan dapat memengaruhi kepercayaan akun',
                               style: Theme.of(context).textTheme.bodySmall
                                   ?.copyWith(
-                                    color: const Color(0xFF9A3412),
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
                                     fontSize: 10,
                                   ),
                             ),
@@ -372,21 +375,24 @@ class BiddingItemCard extends ConsumerWidget {
     );
   }
 
-  Color _getStatusColor() {
+  Color _getStatusColor(ColorScheme scheme) {
     switch (item.status) {
       case BiddingStatus.leading:
       case BiddingStatus.waitingClaim:
-        return AppColors.successGreen;
+        return AppColors.statusSuccess;
       case BiddingStatus.outbid:
-        return AppColors.statusError;
+        return scheme.error;
       case BiddingStatus.won:
       case BiddingStatus.lost:
-        return AppColors.neutralGray500;
+        return scheme.onSurfaceVariant;
     }
   }
 
   void _navigateToAuction(BuildContext context) {
-    Navigator.of(context).pushNamed('/auction/${item.auctionId}');
+    // Samakan dengan For Sale + entry lain: go_router push agar stack
+    // terjaga. Navigator.pushNamed bypass go_router dan route tidak
+    // terdaftar di Navigator biasa.
+    context.push('/auction/${item.auctionId}');
   }
 }
 
@@ -394,13 +400,11 @@ class BiddingItemCard extends ConsumerWidget {
 class _BidInfo extends StatelessWidget {
   final String label;
   final int amount;
-  final NumberFormat currencyFormat;
   final bool isHighlight;
 
   const _BidInfo({
     required this.label,
     required this.amount,
-    required this.currencyFormat,
     required this.isHighlight,
   });
 
@@ -411,18 +415,18 @@ class _BidInfo extends StatelessWidget {
       children: [
         Text(
           label,
-          style: Theme.of(
-            context,
-          ).textTheme.bodySmall?.copyWith(color: AppColors.neutralGray500),
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
         ),
         const SizedBox(height: 2),
         Text(
-          currencyFormat.format(amount),
+          'Rp ${formatGroupedAmount(amount)}',
           style: Theme.of(context).textTheme.titleSmall?.copyWith(
             fontWeight: FontWeight.w600,
             color: isHighlight
-                ? AppColors.primaryBlue
-                : AppColors.neutralGray900,
+                ? Theme.of(context).colorScheme.secondary
+                : Theme.of(context).colorScheme.onSurface,
           ),
         ),
       ],
@@ -438,7 +442,7 @@ class _StatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final info = _getStatusInfo();
+    final info = _getStatusInfo(context);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -457,37 +461,38 @@ class _StatusChip extends StatelessWidget {
     );
   }
 
-  _StatusInfo _getStatusInfo() {
+  _StatusInfo _getStatusInfo(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     switch (status) {
       case BiddingStatus.leading:
         return _StatusInfo(
           'Leading',
-          AppColors.successGreen,
-          AppColors.neutralGray50,
+          AppColors.statusSuccess,
+          AppColors.statusSuccess.withValues(alpha: 0.12),
         );
       case BiddingStatus.outbid:
         return _StatusInfo(
           'Outbid',
-          AppColors.statusError,
-          AppColors.neutralGray100,
+          scheme.error,
+          scheme.error.withValues(alpha: 0.12),
         );
       case BiddingStatus.waitingClaim:
         return _StatusInfo(
           'Claim',
           AppColors.statusWarning,
-          AppColors.neutralGray100,
+          AppColors.statusWarning.withValues(alpha: 0.12),
         );
       case BiddingStatus.won:
         return _StatusInfo(
           'Won',
-          AppColors.neutralGray600,
-          AppColors.neutralGray100,
+          scheme.onSurfaceVariant,
+          scheme.surfaceContainerHighest,
         );
       case BiddingStatus.lost:
         return _StatusInfo(
           'Lost',
-          AppColors.neutralGray500,
-          AppColors.neutralGray100,
+          scheme.onSurfaceVariant,
+          scheme.surfaceContainerHighest,
         );
     }
   }

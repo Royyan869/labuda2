@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/src/localization/l10n_extension.dart';
-// E4.3 — import AppColors directly (not via core/core.dart) because the
-// core umbrella re-exports core/src/websocket/chat_websocket_handler.dart
-// which also defines `MessageStatus`, clashing with the chat-entities
-// MessageStatus consumed by this widget.
+// E4.3 — import AppColors directly (not via core/core.dart) to keep the
+// dependency surface explicit. The chat-entities `MessageStatus` consumed by
+// this widget must stay the single MessageStatus in scope.
 import 'package:labuda/core/src/theme/app_colors.dart';
 import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart';
 import 'package:labuda/domains/chat/chat/presentation/utils/chat_identity_display.dart';
@@ -12,7 +11,6 @@ import 'package:labuda/domains/chat/chat/presentation/utils/chat_lifecycle_redac
 import 'package:labuda/domains/chat/chat/presentation/widgets/chat_resource_projection_card.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 import 'package:labuda/shared/widgets/attachment_widget.dart' as widget_lib;
-import 'package:labuda/shared/object/object_preview.dart' as obj;
 import 'package:labuda/shared/object/presentation/widgets/object_preview_card.dart';
 
 /// Message Bubble Widget
@@ -30,11 +28,11 @@ class MessageBubble extends ConsumerWidget {
   final VoidCallback? onTap;
   final VoidCallback? onNegotiate;
   final VoidCallback? onPurchase;
-  final String? currentUserId;
 
-  /// Pre-resolved live preview data (from batch provider)
-  /// If provided, will be used directly without calling objectPreviewProvider
-  final obj.ObjectPreview? preResolved;
+  /// CTA "Beli Sekarang" on the resource projection card. Wired by the chat
+  /// screen, which resolves checkout navigation (product id + trust gate).
+  final VoidCallback? onProjectionBuy;
+  final String? currentUserId;
 
   const MessageBubble({
     super.key,
@@ -45,8 +43,8 @@ class MessageBubble extends ConsumerWidget {
     this.onTap,
     this.onNegotiate,
     this.onPurchase,
+    this.onProjectionBuy,
     this.currentUserId,
-    this.preResolved,
   });
 
   @override
@@ -302,20 +300,22 @@ class MessageBubble extends ConsumerWidget {
     // Handle ShareReference (forSale, auction, content)
     // ========================================================================
     if (message.objectReference != null) {
-      // When the server has resolved a viewer-aware projection for this
-      // message's resource, the projection card is the canonical display and
-      // the client-cached attachment preview is suppressed (avoids rendering
-      // two representations of the same resource).
+      // The canonical authority for a resource-bearing row is the
+      // server-resolved projection. When it is present, the projection card is
+      // the display and the client-cached transport preview is suppressed
+      // (never two representations of the same resource).
       if (message.resourceProjection != null) {
         return const SizedBox.shrink();
       }
+      // No projection (e.g. rows persisted before the projection authority
+      // existed): render the transport snapshot the message already carries.
+      // Display-only — no resolver call, no derived status, no money.
       return Padding(
         padding: const EdgeInsets.only(bottom: 8),
         child: ObjectPreviewCard(
           reference: message.objectReference!,
           onTap: onTap,
           showTypeBadge: true,
-          preResolved: preResolved,
         ),
       );
     }
@@ -327,36 +327,9 @@ class MessageBubble extends ConsumerWidget {
     // These use the legacy widget_lib.AttachmentWidget
     // ========================================================================
 
-    // Handle Negotiation attachments
-    if (message.negotiationOffer != null) {
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: widget_lib.AttachmentWidget(
-          attachment: message.negotiationOffer!,
-          isFromCurrentUser: isFromUser,
-          onTap: onTap,
-          onNegotiate: onNegotiate,
-          onPurchase: onPurchase,
-          currentUserId: currentUserId,
-        ),
-      );
-    }
-
-    if (message.negotiationResult != null) {
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: widget_lib.AttachmentWidget(
-          attachment: message.negotiationResult!,
-          isFromCurrentUser: isFromUser,
-          onTap: onTap,
-          onNegotiate: onNegotiate,
-          onPurchase: onPurchase,
-          currentUserId: currentUserId,
-        ),
-      );
-    }
-
     // Handle live backend Negotiation Proposal (initial / counter)
+    // NEGOTIATION ATTACHMENT PURGE (Z3): negotiation_offer and
+    // negotiation_result are forbidden legacy types with no producer.
     if (message.negotiationProposal != null) {
       return Padding(
         padding: const EdgeInsets.only(bottom: 8),
@@ -409,6 +382,7 @@ class MessageBubble extends ConsumerWidget {
       padding: const EdgeInsets.only(bottom: 8),
       child: ChatResourceProjectionCard(
         resourceProjection: message.resourceProjection!,
+        onBuy: onProjectionBuy,
       ),
     );
   }

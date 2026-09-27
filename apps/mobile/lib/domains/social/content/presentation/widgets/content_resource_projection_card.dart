@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_marketplace_primitives.dart';
-import 'package:labuda/domains/social/content/domain/entities/content_resource_projection.dart';
+import 'package:labuda/shared/domain/entities/resource_projection.dart';
 
+/// Discovery-surface card for the canonical resource projection.
+///
+/// PRICE IS RENDERED ON EVERY SURFACE (owner decision, 2026-09-27): this card
+/// and the chat card both render the money the envelope carries on LIVE, using
+/// the same canonical strings (`formattedPrice` / `formattedAmount`).
 class ContentResourceProjectionCard extends StatelessWidget {
-  final ContentResourceProjection resourceProjection;
+  final ResourceProjection resourceProjection;
   final VoidCallback? onTap;
   final bool compact;
 
@@ -18,8 +23,10 @@ class ContentResourceProjectionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final resolvedTap = resourceProjection.isLive
-        ? onTap ?? () => context.push(resourceProjection.canonicalPath)
+        ? onTap ?? () => context.push(resourceProjection.resolvedPath)
         : null;
+
+    final value = _valueText();
 
     return CommerceMarketplaceCardShell(
       onTap: resolvedTap,
@@ -28,10 +35,8 @@ class ContentResourceProjectionCard extends StatelessWidget {
       media: _buildMedia(context),
       title: resourceProjection.titleText,
       value: CommerceMarketplaceCardValue(
-        value: resourceProjection.valueText?.isNotEmpty == true
-            ? resourceProjection.valueText!
-            : resourceProjection.typeLabel,
-        caption: resourceProjection.statusText,
+        value: value?.isNotEmpty == true ? value! : resourceProjection.typeLabel,
+        caption: resourceProjection.statusLabel ?? 'TOMBSTONE',
         compact: compact,
       ),
       badges: _buildBadges(context),
@@ -40,13 +45,24 @@ class ContentResourceProjectionCard extends StatelessWidget {
     );
   }
 
+  /// Value: identity for profile/content, canonical money for commerce — the
+  /// same strings the chat card renders (one formatting authority).
+  String? _valueText() {
+    final p = resourceProjection.payload;
+    return switch (p) {
+      ProfileLivePayload(:final username) => username,
+      ContentLivePayload(:final author) => author.username,
+      ForSaleLivePayload sale => sale.formattedPrice,
+      AuctionLivePayload auction => auction.formattedAmount,
+      null => null,
+    };
+  }
+
   Widget _buildMedia(BuildContext context) {
     final isProfile =
-        resourceProjection.resourceType ==
-        ContentResourceProjectionType.profile;
-    final imageUrl = resourceProjection.imageUrl;
+        resourceProjection.resourceType == ResourceProjectionType.profile;
     return CommerceMarketplaceCardMedia(
-      imageUrl: imageUrl,
+      imageUrl: resourceProjection.primaryImageUrl,
       aspectRatio: isProfile ? 1 : 4 / 3,
       showVideoBadge: false,
       borderRadius: const BorderRadius.only(
@@ -62,14 +78,11 @@ class ContentResourceProjectionCard extends StatelessWidget {
 
   Widget? _buildMetadata(BuildContext context) {
     final parts = <String>[resourceProjection.typeLabel];
-    if (resourceProjection.nestedResourceLabel != null) {
-      parts.add(resourceProjection.nestedResourceLabel!);
+    final nested = resourceProjection.nestedResourceLabel;
+    if (nested != null) {
+      parts.add(nested);
     }
-    if (resourceProjection.isLive) {
-      parts.add('LIVE');
-    } else {
-      parts.add('TOMBSTONE');
-    }
+    parts.add(resourceProjection.isLive ? 'LIVE' : 'TOMBSTONE');
     return Text(
       parts.join(' - '),
       style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -92,13 +105,9 @@ class ContentResourceProjectionCard extends StatelessWidget {
       ),
     ];
 
-    if (resourceProjection.nestedResourceLabel != null) {
-      badges.add(
-        CommerceMarketplaceCardBadge(
-          label: resourceProjection.nestedResourceLabel!,
-          compact: true,
-        ),
-      );
+    final nested = resourceProjection.nestedResourceLabel;
+    if (nested != null) {
+      badges.add(CommerceMarketplaceCardBadge(label: nested, compact: true));
     }
 
     return badges;
@@ -114,15 +123,15 @@ class ContentResourceProjectionCard extends StatelessWidget {
     );
   }
 
-  IconData _iconForType(ContentResourceProjectionType type) {
+  IconData _iconForType(ResourceProjectionType type) {
     switch (type) {
-      case ContentResourceProjectionType.profile:
+      case ResourceProjectionType.profile:
         return Icons.person_outline_rounded;
-      case ContentResourceProjectionType.content:
+      case ResourceProjectionType.content:
         return Icons.article_outlined;
-      case ContentResourceProjectionType.fixedPriceSale:
+      case ResourceProjectionType.fixedPriceSale:
         return Icons.storefront_outlined;
-      case ContentResourceProjectionType.auction:
+      case ResourceProjectionType.auction:
         return Icons.gavel_rounded;
     }
   }

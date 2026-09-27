@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:labuda/domains/chat/chat/data/dto/message_dto.dart';
-import 'package:labuda/domains/chat/chat/domain/entities/chat_resource_projection.dart';
+import 'package:labuda/shared/domain/entities/resource_projection.dart';
 
 /// Chat resource-projection INGESTION contract:
 /// HTTP `resource_projection` → MessageDto → domain Message.
@@ -41,10 +41,10 @@ void main() {
       messageJson(projection: liveProfileProjection(profileId)),
     );
 
-    expect(dto.resourceProjection, isA<ChatLiveResourceProjection>());
-    final live = dto.resourceProjection! as ChatLiveResourceProjection;
+    expect(dto.resourceProjection, isA<LiveResourceProjection>());
+    final live = dto.resourceProjection! as LiveResourceProjection;
     expect(live.resourceId, profileId);
-    expect(live.resourceType, ChatResourceType.profile);
+    expect(live.resourceType, ResourceProjectionType.profile);
     expect(live.canonicalUrl, '/user/$profileId');
   });
 
@@ -54,6 +54,7 @@ void main() {
         projection: {
           'state': 'TOMBSTONE',
           'resource_type': 'for_sale',
+          'resource_id': 'sale-tombstone-1',
           'viewer_capabilities': {
             'can_view': false,
             'can_interact': false,
@@ -63,8 +64,11 @@ void main() {
       ),
     );
 
-    expect(dto.resourceProjection, isA<ChatTombstoneResourceProjection>());
+    expect(dto.resourceProjection, isA<TombstoneResourceProjection>());
     expect(dto.resourceProjection!.isTombstone, isTrue);
+    // Canonical contract: identity survives death — a tombstone is still
+    // identifiable for dedup/audit (the chat omission rule is dead).
+    expect(dto.resourceProjection!.resourceId, 'sale-tombstone-1');
   });
 
   test('absent resource_projection yields null', () {

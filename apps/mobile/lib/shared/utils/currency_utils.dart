@@ -1,11 +1,16 @@
 library;
 
-import 'package:intl/intl.dart';
+import 'package:labuda/shared/domain/entities/resource_projection.dart';
 
 /// Centralized Currency Formatting Utility
 ///
-/// This is the SINGLE SOURCE OF TRUTH for all currency formatting in the app.
-/// All modules should use this utility instead of creating their own formatting logic.
+/// This is the SINGLE DISPLAY AUTHORITY for Rupiah strings. It no longer
+/// owns a second formatting engine: every grouping below delegates to
+/// [formatGroupedAmount] (the canonical envelope loop), so seller/wallet
+/// screens and chat/discovery cards cannot drift apart. `intl` is kept out
+/// of display entirely — it survives only in `currency_input_formatter.dart`,
+/// which is an input mask (groups while the user types), not a display
+/// formatter.
 ///
 /// Usage:
 /// ```dart
@@ -23,27 +28,22 @@ import 'package:intl/intl.dart';
 class CurrencyUtils {
   CurrencyUtils._();
 
-  static final _currencyFormat = NumberFormat.currency(
-    locale: 'id_ID',
-    symbol: 'Rp ',
-    decimalDigits: 0,
-  );
+  /// Standard currency format with Rupiah symbol.
+  ///
+  /// Example: 1000000 -> "Rp 1.000.000"; -1500 -> "-Rp 1.500" (the minus
+  /// stays ahead of the symbol, exactly as the ICU engine emitted it).
+  static String format(double amount) => _rupiah(amount.round());
 
-  static final _numberFormat = NumberFormat('#,##0', 'id_ID');
-
-  /// Standard currency format with Rupiah symbol
+  /// Format from int value.
   ///
   /// Example: 1000000 -> "Rp 1.000.000"
-  static String format(double amount) {
-    return _currencyFormat.format(amount);
-  }
+  static String formatInt(int amount) => _rupiah(amount);
 
-  /// Format from int value
-  ///
-  /// Example: 1000000 -> "Rp 1.000.000"
-  static String formatInt(int amount) {
-    return _currencyFormat.format(amount);
-  }
+  /// The only place a 'Rp ' prefix is attached to a number outside the
+  /// canonical envelope. The grouping itself is [formatGroupedAmount].
+  static String _rupiah(int amount) => amount < 0
+      ? '-Rp ${formatGroupedAmount(-amount)}'
+      : 'Rp ${formatGroupedAmount(amount)}';
 
   /// Shorthand format for compact display (dashboards, cards)
   ///
@@ -74,19 +74,16 @@ class CurrencyUtils {
     return value.toStringAsFixed(1);
   }
 
-  /// Number format without currency symbol
+  /// Number format without currency symbol.
   ///
   /// Example: 1000000 -> "1.000.000"
-  static String formatNumber(double amount) {
-    return _numberFormat.format(amount);
-  }
+  static String formatNumber(double amount) =>
+      formatGroupedAmount(amount.round());
 
-  /// Number format from int without currency symbol
+  /// Number format from int without currency symbol.
   ///
   /// Example: 1000000 -> "1.000.000"
-  static String formatNumberInt(int amount) {
-    return _numberFormat.format(amount);
-  }
+  static String formatNumberInt(int amount) => formatGroupedAmount(amount);
 
   /// Parse formatted currency string back to double
   ///

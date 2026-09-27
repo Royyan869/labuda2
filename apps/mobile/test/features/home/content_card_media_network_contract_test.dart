@@ -25,7 +25,6 @@ import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/social/content/domain/entities/content.dart';
 import 'package:labuda/features/home/domain/entities/feed_item.dart';
 import 'package:labuda/features/home/presentation/providers/feed_renderers.dart';
-import 'package:labuda/shared/object/object_preview_provider.dart';
 import 'package:labuda/shared/widgets/carousel_video_player.dart';
 import 'package:labuda/shared/widgets/stable_network_image.dart';
 
@@ -42,7 +41,6 @@ class _FakeUnauthenticatedAuthController extends AuthController {
 Widget _wrap(Widget child) {
   return ProviderScope(
     overrides: [
-      objectPreviewProvider.overrideWith((ref, reference) async => null),
       authControllerProvider.overrideWith(
         _FakeUnauthenticatedAuthController.new,
       ),

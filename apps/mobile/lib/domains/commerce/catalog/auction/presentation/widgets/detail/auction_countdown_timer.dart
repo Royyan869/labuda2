@@ -10,6 +10,8 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:labuda/core/core.dart';
+import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction_status.dart';
 
@@ -38,8 +40,10 @@ class AuctionCountdownTimer extends StatelessWidget {
     // Backend auction.status is authoritative, client time is display only
     final hasEnded = auction.status == AuctionStatus.ended;
 
-    // Determine display based on auction state
-    final display = _getDisplay(hasEnded, timeRemaining);
+    // Determine display based on auction state. All tones come from the
+    // scheme authority — no light-only hex, no local brightness branch.
+    final scheme = Theme.of(context).colorScheme;
+    final display = _getDisplay(scheme, hasEnded, timeRemaining);
 
     return Container(
       color: display.backgroundColor,
@@ -81,7 +85,7 @@ class AuctionCountdownTimer extends StatelessWidget {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: _getTimeColor(timeRemaining),
+                color: _getTimeColor(scheme, timeRemaining),
               ),
             ),
           ],
@@ -92,7 +96,7 @@ class AuctionCountdownTimer extends StatelessWidget {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: Colors.blue,
+                color: scheme.secondary,
               ),
             ),
           ],
@@ -101,16 +105,20 @@ class AuctionCountdownTimer extends StatelessWidget {
     );
   }
 
-  _TimerDisplay _getDisplay(bool hasEnded, Duration timeRemaining) {
+  _TimerDisplay _getDisplay(
+    ColorScheme scheme,
+    bool hasEnded,
+    Duration timeRemaining,
+  ) {
     // Active auction
     if (auction.status == AuctionStatus.active && !hasEnded) {
       return _TimerDisplay(
         label: 'Berakhir dalam:',
         subtitle: '',
         icon: Icons.access_time,
-        iconColor: Colors.grey,
-        textColor: Colors.black87,
-        backgroundColor: Colors.white,
+        iconColor: scheme.onSurfaceVariant,
+        textColor: scheme.onSurface,
+        backgroundColor: scheme.surface,
         fontWeight: FontWeight.normal,
       );
     }
@@ -124,9 +132,9 @@ class AuctionCountdownTimer extends StatelessWidget {
             '${auction.startTime.hour.toString().padLeft(2, '0')}:'
             '${auction.startTime.minute.toString().padLeft(2, '0')}',
         icon: Icons.schedule,
-        iconColor: Colors.blue,
-        textColor: Colors.blue,
-        backgroundColor: Colors.blue.shade50,
+        iconColor: scheme.secondary,
+        textColor: scheme.onSurface,
+        backgroundColor: scheme.secondary.withValues(alpha: 0.12),
         fontWeight: FontWeight.w500,
       );
     }
@@ -137,9 +145,9 @@ class AuctionCountdownTimer extends StatelessWidget {
         label: 'Lelang Dibatalkan',
         subtitle: 'Lelang ini telah dibatalkan oleh penjual',
         icon: Icons.cancel,
-        iconColor: Colors.grey.shade600,
-        textColor: Colors.grey.shade700,
-        backgroundColor: Colors.grey.shade200,
+        iconColor: scheme.onSurfaceVariant,
+        textColor: scheme.onSurface,
+        backgroundColor: scheme.surfaceContainerHighest,
         fontWeight: FontWeight.w500,
       );
     }
@@ -166,9 +174,9 @@ class AuctionCountdownTimer extends StatelessWidget {
           label: '🏆 Anda Menang!',
           subtitle: 'Harus diselesaikan dalam $timeRemainingText',
           icon: Icons.emoji_events,
-          iconColor: Colors.orange,
-          textColor: Colors.orange,
-          backgroundColor: Colors.orange.shade50,
+          iconColor: AppColors.statusWarning,
+          textColor: scheme.onSurface,
+          backgroundColor: AppColors.statusWarning.withValues(alpha: 0.12),
           fontWeight: FontWeight.bold,
         );
       }
@@ -178,9 +186,9 @@ class AuctionCountdownTimer extends StatelessWidget {
         label: 'Menunggu Pembayaran',
         subtitle: 'Pemenang sedang menyelesaikan pembayaran',
         icon: Icons.access_time,
-        iconColor: Colors.orange,
-        textColor: Colors.orange.shade700,
-        backgroundColor: Colors.orange.shade50,
+        iconColor: AppColors.statusWarning,
+        textColor: scheme.onSurface,
+        backgroundColor: AppColors.statusWarning.withValues(alpha: 0.12),
         fontWeight: FontWeight.w500,
       );
     }
@@ -197,11 +205,11 @@ class AuctionCountdownTimer extends StatelessWidget {
         return _TimerDisplay(
           label: 'Selamat! Anda Menang! 🎉',
           subtitle:
-              'Menang di Rp ${winningBid.toStringAsFixed(0)} - Lanjut ke pembayaran untuk amankan',
+              'Menang di Rp ${formatGroupedAmount(winningBid.round())} - Lanjut ke pembayaran untuk amankan',
           icon: Icons.emoji_events,
-          iconColor: Colors.green,
-          textColor: Colors.green,
-          backgroundColor: Colors.green.shade50,
+          iconColor: AppColors.statusSuccess,
+          textColor: scheme.onSurface,
+          backgroundColor: AppColors.statusSuccess.withValues(alpha: 0.12),
           fontWeight: FontWeight.bold,
         );
       }
@@ -212,9 +220,9 @@ class AuctionCountdownTimer extends StatelessWidget {
           label: 'Lelang Berakhir - Terjual',
           subtitle: 'Lelang ini telah terjual kepada pemenang',
           icon: Icons.check_circle,
-          iconColor: Colors.grey.shade600,
-          textColor: Colors.grey.shade700,
-          backgroundColor: Colors.grey.shade200,
+          iconColor: scheme.onSurfaceVariant,
+          textColor: scheme.onSurface,
+          backgroundColor: scheme.surfaceContainerHighest,
           fontWeight: FontWeight.w500,
         );
       }
@@ -225,9 +233,9 @@ class AuctionCountdownTimer extends StatelessWidget {
           label: 'Lelang Berakhir - Tidak Ada Pemenang',
           subtitle: 'Lelang ini berakhir tanpa bid yang memenuhi syarat',
           icon: Icons.info,
-          iconColor: Colors.grey.shade600,
-          textColor: Colors.grey.shade700,
-          backgroundColor: Colors.grey.shade200,
+          iconColor: scheme.onSurfaceVariant,
+          textColor: scheme.onSurface,
+          backgroundColor: scheme.surfaceContainerHighest,
           fontWeight: FontWeight.w500,
         );
       }
@@ -237,9 +245,9 @@ class AuctionCountdownTimer extends StatelessWidget {
         label: 'Lelang Telah Berakhir',
         subtitle: '',
         icon: Icons.access_time,
-        iconColor: Colors.grey.shade600,
-        textColor: Colors.grey.shade700,
-        backgroundColor: Colors.grey.shade200,
+        iconColor: scheme.onSurfaceVariant,
+        textColor: scheme.onSurface,
+        backgroundColor: scheme.surfaceContainerHighest,
         fontWeight: FontWeight.w500,
       );
     }
@@ -249,9 +257,9 @@ class AuctionCountdownTimer extends StatelessWidget {
       label: 'Berakhir dalam:',
       subtitle: '',
       icon: Icons.access_time,
-      iconColor: Colors.grey,
-      textColor: Colors.black87,
-      backgroundColor: Colors.white,
+      iconColor: scheme.onSurfaceVariant,
+      textColor: scheme.onSurface,
+      backgroundColor: scheme.surface,
       fontWeight: FontWeight.normal,
     );
   }
@@ -266,10 +274,10 @@ class AuctionCountdownTimer extends StatelessWidget {
         '${seconds.toString().padLeft(2, '0')}';
   }
 
-  Color _getTimeColor(Duration duration) {
-    if (duration.inHours < 1) return Colors.red;
-    if (duration.inHours < 6) return Colors.orange;
-    return Colors.green;
+  Color _getTimeColor(ColorScheme scheme, Duration duration) {
+    if (duration.inHours < 1) return scheme.error;
+    if (duration.inHours < 6) return AppColors.statusWarning;
+    return AppColors.statusSuccess;
   }
 }
 

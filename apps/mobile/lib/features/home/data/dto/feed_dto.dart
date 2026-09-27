@@ -3,7 +3,7 @@
 
 import 'package:json_annotation/json_annotation.dart';
 import 'package:labuda/domains/social/content/domain/entities/content.dart';
-import 'package:labuda/domains/social/content/domain/entities/content_resource_projection.dart';
+import 'package:labuda/shared/domain/entities/resource_projection.dart';
 
 part 'feed_dto.g.dart';
 
@@ -129,7 +129,7 @@ class FeedItemDto {
   @JsonKey(name: 'original_author_id')
   final String? originalAuthorId;
   @JsonKey(includeFromJson: false, includeToJson: false)
-  final ContentResourceProjection? resourceProjection;
+  final ResourceProjection? resourceProjection;
 
   /// E2.1 — Embedded author lifecycle (canonical PublicCard.UserCard.Lifecycle).
   ///
@@ -282,12 +282,16 @@ String? _readOriginalAuthorLifecycle(Map<String, dynamic> json) {
   return null;
 }
 
-ContentResourceProjection? _readResourceProjection(Map<String, dynamic> json) {
+ResourceProjection? _readResourceProjection(Map<String, dynamic> json) {
   final raw = json['resource_projection'];
-  if (raw is Map<String, dynamic>) {
-    return ContentResourceProjection.fromJson(raw);
+  if (raw is! Map<String, dynamic>) return null;
+  try {
+    return ResourceProjection.fromJson(raw);
+  } on FormatException {
+    // Malformed projection is dropped (the envelope is display decoration);
+    // the canonical wire shape is pinned by the projection ratchet test.
+    return null;
   }
-  return null;
 }
 
 /// Feed media DTO from backend Feed domain

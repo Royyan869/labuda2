@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/shared/attachment/entities/share_reference.dart';
 
 /// API DTO for comment response from backend
@@ -50,6 +51,12 @@ class CommentDto extends Equatable {
   final String? body;
   final String type;
   final ShareReference? reference; // Unified reference using ShareReference
+
+  /// Canonical viewer-aware envelope for a commerce-reference comment
+  /// (for_sale / auction) — LIVE payload or TOMBSTONE, resolved per viewer.
+  /// Tolerant parse: a malformed envelope degrades to null, and there is NO
+  /// snapshot fallback by design.
+  final ResourceProjection? resourceProjection;
   final String? parentId; // Set for replies (max depth = 1)
   final List<CommentMediaDto> media; // foto+video
   final DateTime createdAt;
@@ -76,8 +83,9 @@ class CommentDto extends Equatable {
     required this.authorUsername,
     this.authorAvatarUrl,
     this.body,
-    required this.type,
+    required    this.type,
     this.reference,
+    this.resourceProjection,
     this.parentId,
     this.media = const [],
     required this.createdAt,
@@ -100,6 +108,7 @@ class CommentDto extends Equatable {
       reference: json['reference'] != null
           ? ShareReference.fromJson(json['reference'] as Map<String, dynamic>)
           : null,
+      resourceProjection: _readResourceProjection(json),
       parentId: json['parent_id'] as String?,
       media: (json['media'] as List<dynamic>?)
               ?.map((e) => CommentMediaDto.fromJson(e as Map<String, dynamic>))
@@ -157,6 +166,19 @@ String? _readAuthorLifecycle(Map<String, dynamic> json) {
     }
   }
   return null;
+}
+
+/// Parse the canonical resource projection envelope for a commerce-reference
+/// comment. Any malformed shape degrades to null — the comment then renders
+/// without an envelope instead of falling back to a snapshot.
+ResourceProjection? _readResourceProjection(Map<String, dynamic> json) {
+  final raw = json['resource_projection'];
+  if (raw is! Map<String, dynamic>) return null;
+  try {
+    return ResourceProjection.fromJson(raw);
+  } on FormatException {
+    return null;
+  }
 }
 
 /// Resource reference request for creating commerce reference comments.

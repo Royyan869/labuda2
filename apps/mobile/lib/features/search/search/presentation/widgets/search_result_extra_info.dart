@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/features/search/search/domain/entities/search_result.dart';
+import 'package:labuda/shared/domain/entities/resource_projection.dart';
 
 /// Widget to display extra info for search results
 ///
@@ -49,16 +50,15 @@ class SearchResultExtraInfo extends StatelessWidget {
     }
   }
 
-  Color _auctionStatusColor() {
+  Color _auctionStatusColor(BuildContext context) {
     switch (result.metadata['status']) {
       case 'active':
         return AppColors.primaryGreen;
       case 'scheduled':
-        return const Color(0xFFFF8C00);
+        return AppColors.statusWarning;
       case 'ended':
-        return AppColors.neutralGray500;
       default:
-        return AppColors.neutralGray500;
+        return Theme.of(context).colorScheme.onSurfaceVariant;
     }
   }
 
@@ -89,7 +89,10 @@ class SearchResultExtraInfo extends StatelessWidget {
   }
 
   String _priceLabel(num price) {
-    final formatted = 'Rp ${price.toInt()}';
+    // Same money authority as the projection cards: grouped thousands, never
+    // a locally invented format (a search row and a feed card must not format
+    // the same amount differently).
+    final formatted = 'Rp ${formatGroupedAmount(price.toInt())}';
     if (!_isAuction) return formatted;
     final prefix = result.metadata['currentBid'] != null ? 'Bid' : 'Start';
     return '$prefix $formatted';
@@ -97,7 +100,6 @@ class SearchResultExtraInfo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final price = result.metadata['price'] as num?;
     final likesCount = result.metadata['likesCount'] as int?;
     final commentsCount = result.metadata['commentsCount'] as int?;
@@ -119,37 +121,32 @@ class SearchResultExtraInfo extends StatelessWidget {
             context,
             _priceLabel(price),
             AppColors.primaryGreen,
-            isDark,
           ),
         if (auctionStatusLabel != null)
           _buildInfoChip(
             context,
             auctionStatusLabel,
-            _auctionStatusColor(),
-            isDark,
+            _auctionStatusColor(context),
           ),
         if (endingSoonLabel != null)
           _buildInfoChip(
             context,
             endingSoonLabel,
-            const Color(0xFFFF8C00),
-            isDark,
+            AppColors.statusWarning,
           ),
         if (_isAuction && bidCount > 0)
-          _buildSmallInfo(context, Icons.gavel, bidCount.toString(), isDark),
+          _buildSmallInfo(context, Icons.gavel, bidCount.toString()),
         if (likesCount != null)
           _buildSmallInfo(
             context,
             Icons.favorite,
             likesCount.toString(),
-            isDark,
           ),
         if (commentsCount != null)
           _buildSmallInfo(
             context,
             Icons.comment,
             commentsCount.toString(),
-            isDark,
           ),
       ],
     );
@@ -159,7 +156,6 @@ class SearchResultExtraInfo extends StatelessWidget {
     BuildContext context,
     String text,
     Color color,
-    bool isDark,
   ) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -182,22 +178,22 @@ class SearchResultExtraInfo extends StatelessWidget {
     BuildContext context,
     IconData icon,
     String text,
-    bool isDark,
   ) {
+    final scheme = Theme.of(context).colorScheme;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(
           icon,
           size: 12,
-          color: isDark ? AppColors.neutralGray500 : AppColors.neutralGray400,
+          color: scheme.onSurfaceVariant,
         ),
         const SizedBox(width: 2),
         Text(
           text,
           style: TextStyle(
             fontSize: 11,
-            color: isDark ? AppColors.neutralGray500 : AppColors.neutralGray400,
+            color: scheme.onSurfaceVariant,
           ),
         ),
       ],

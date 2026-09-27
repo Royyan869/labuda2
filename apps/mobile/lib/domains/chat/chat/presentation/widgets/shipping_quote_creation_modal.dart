@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:labuda/core/src/theme/app_colors.dart';
+import 'package:labuda/shared/domain/entities/resource_projection.dart';
 
 /// Shipping Quote Creation Modal
 ///
@@ -84,10 +85,9 @@ class _ShippingQuoteCreationModalState
     final amount = int.tryParse(cleanValue);
     if (amount == null) return value;
 
-    return amount.toString().replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (Match m) => '${m[1]}.',
-    );
+    // Grouping belongs to the single formatting authority, not to an input
+    // formatter: the field shows the same digits a card would.
+    return formatGroupedAmount(amount);
   }
 
   @override

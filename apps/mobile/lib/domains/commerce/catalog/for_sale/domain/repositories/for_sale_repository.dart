@@ -14,9 +14,6 @@ abstract class ForSaleRepository {
   /// Get fixed-price sale by ID
   Future<Result<ForSale?>> getForSaleById(String forSaleId);
 
-  /// Get multiple forSales by IDs
-  Future<Result<List<ForSale>>> getForSalesByIds(List<String> forSaleIds);
-
   /// Get forSales by seller ID
   Future<Result<List<ForSale>>> getSellerForSales(
     String sellerId, {

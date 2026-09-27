@@ -1,4 +1,5 @@
 import 'package:labuda/core/common/result.dart';
+import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/repositories/auction_repository.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction_status.dart';
 
@@ -57,12 +58,14 @@ class PlaceAuctionBidUseCase {
       final minimumBidDouble = auction.currentBid + auction.bidIncrement;
       if (minimumBidDouble != minimumBidDouble.toInt()) {
         return Result.error(
-          'Minimum bid must be integral: Rp ${minimumBidDouble.toStringAsFixed(0)}',
+          'Minimum bid must be integral: Rp ${formatGroupedAmount(minimumBidDouble.round())}',
         );
       }
       final minimumBid = minimumBidDouble.toInt();
       if (amount < minimumBid) {
-        return Result.error('Bid minimum: Rp $minimumBid');
+        return Result.error(
+          'Bid minimum: Rp ${formatGroupedAmount(minimumBid)}',
+        );
       }
 
       // Validate user is not seller

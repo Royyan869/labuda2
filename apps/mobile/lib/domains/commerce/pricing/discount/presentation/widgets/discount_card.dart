@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/domains/commerce/pricing/discount/domain/entities/discount_entity.dart';
 import 'package:intl/intl.dart';
 
@@ -130,7 +131,7 @@ class DiscountCard extends StatelessWidget {
       case DiscountType.percentage:
         return '${discount.value.toInt()}% OFF';
       case DiscountType.flatAmount:
-        return 'Rp ${NumberFormat('#,###', 'id_ID').format(discount.value)} OFF';
+        return 'Rp ${formatGroupedAmount(discount.value.round())} OFF';
     }
   }
 

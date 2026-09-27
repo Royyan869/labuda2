@@ -4,6 +4,7 @@ library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/domains/commerce/catalog/auction/data/auction_providers.dart'
     show auctionRepositoryProvider;
 import 'auction_state.dart';
@@ -177,7 +178,7 @@ class AuctionNotifier extends Notifier<AuctionNotifierState> {
           if (amount < minimumBid) {
             state = state.copyWith(
               isPlacingBid: false,
-              error: 'Bid minimum: Rp ${minimumBid.toStringAsFixed(0)}',
+              error: 'Bid minimum: Rp ${formatGroupedAmount(minimumBid.round())}',
             );
             return false;
           }

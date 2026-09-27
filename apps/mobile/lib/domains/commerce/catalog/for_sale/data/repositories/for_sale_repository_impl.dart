@@ -95,39 +95,6 @@ class ForSaleRepositoryImpl implements ForSaleRepository {
   }
 
   @override
-  Future<Result<List<ForSale>>> getForSalesByIds(
-    List<String> forSaleIds,
-  ) async {
-    try {
-      if (forSaleIds.isEmpty) {
-        return Result.success([]);
-      }
-
-      _logger.info(
-        'Getting forSales by IDs from backend API',
-        extra: {'count': forSaleIds.length},
-      );
-
-      final result = await _datasource.getForSalesByIds(forSaleIds);
-
-      return result.fold((error) => Result.error(error), (dtos) {
-        final forSales = ForSaleDtoMapper.toEntityList(dtos);
-        return Result.success(forSales);
-      });
-    } catch (e, stackTrace) {
-      _logger.error(
-        'Failed to get forSales by IDs',
-        extra: {
-          'count': forSaleIds.length,
-          'error': e.toString(),
-          'stackTrace': stackTrace.toString(),
-        },
-      );
-      return Result.error('Failed to get forSales by IDs: ${e.toString()}');
-    }
-  }
-
-  @override
   Future<Result<List<ForSale>>> getSellerForSales(
     String sellerId, {
     int page = 1,
