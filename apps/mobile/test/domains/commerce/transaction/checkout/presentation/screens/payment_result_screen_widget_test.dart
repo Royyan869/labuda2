@@ -339,5 +339,22 @@ void main() {
       final button = tester.widget<ElevatedButton>(supportButtonFinder);
       expect(button.onPressed, isNull);
     });
+
+    testWidgets(
+      'failed headline comes from the failure authority, not a hardcoded accusation',
+      (tester) async {
+        await _pumpScreen(
+          tester,
+          const PaymentResultState(
+            status: PaymentResultScreenStatus.failed,
+            title: 'Pesanan Dibatalkan',
+            errorMessage: 'Pesanan dibatalkan.',
+          ),
+        );
+
+        expect(find.text('Pesanan Dibatalkan'), findsOneWidget);
+        expect(find.text('Pembayaran Gagal'), findsNothing);
+      },
+    );
   });
 }

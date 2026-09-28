@@ -298,6 +298,8 @@ void main() {
         expect(state.status, PaymentResultScreenStatus.failed);
         expect(state.isPaymentFailed, isTrue);
         expect(state.order?.status, OrderStatus.pending);
+        // Deny is the ONLY honest "Gagal" headline.
+        expect(state.title, 'Pembayaran Gagal');
       },
     );
 
@@ -348,6 +350,9 @@ void main() {
       expect(state.status, PaymentResultScreenStatus.failed);
       expect(state.isPaymentFailed, isTrue);
       expect(state.errorMessage, contains('dibatalkan'));
+      // The headline must not accuse the buyer: cancel carries no verdict.
+      expect(state.title, 'Pesanan Dibatalkan');
+      expect(state.title, isNot('Pembayaran Gagal'));
     });
 
     test('expired order fails from canonical order.status', () async {
@@ -363,7 +368,8 @@ void main() {
       final state = container.read(paymentResultProvider);
       expect(state.status, PaymentResultScreenStatus.failed);
       expect(state.isPaymentFailed, isTrue);
-      expect(state.errorMessage, contains('kadaluarsa'));
+      expect(state.errorMessage, contains('kedaluwarsa'));
+      expect(state.title, 'Pembayaran Kedaluwarsa');
     });
 
     test('network failure keeps existing network error behavior', () async {

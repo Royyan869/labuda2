@@ -265,13 +265,14 @@ class PaymentResultNotifier extends _$PaymentResultNotifier {
 
       if (_isOrderFailed(order.status) || _isPaymentFailed(payment)) {
         // FAILED: Backend confirmed terminal failure state
-        final reason = _isOrderFailed(order.status)
-            ? _getFailureReason(order.status)
-            : _getPaymentFailureReason(payment);
+        final failure = _isOrderFailed(order.status)
+            ? _getOrderFailure(order.status)
+            : _getPaymentFailure(payment);
         state = PaymentResultState.failed(
           order: order,
           payment: payment,
-          reason: reason,
+          title: failure.title,
+          reason: failure.reason,
           pollAttempts: state.pollAttempts + 1,
           startedAt: state.pollingStartedAt,
         );
@@ -367,43 +368,79 @@ class PaymentResultNotifier extends _$PaymentResultNotifier {
     return _slowPollMinInterval + Duration(seconds: jitter);
   }
 
-  /// Get user-friendly failure reason from payment status
-  String _getFailureReason(OrderStatus status) {
+  /// Failure copy (headline + detail) for a canonical order status.
+  ///
+  /// SINGLE AUTHORITY for the failed screen's wording: the headline and the
+  /// detail reason come from this one switch, so the screen never hardcodes
+  /// an accusation. A cancellation, refund, or dispute must NOT read as a
+  /// failed payment (cancel carries no payment verdict at all).
+  ({String title, String reason}) _getOrderFailure(OrderStatus status) {
     switch (status) {
       case OrderStatus.cancelled:
-        return 'Pesanan dibatalkan.';
+        return (title: 'Pesanan Dibatalkan', reason: 'Pesanan dibatalkan.');
       case OrderStatus.cancelledTimeout:
-        return 'Pesanan dibatalkan karena batas waktu telah terlewati.';
+        return (
+          title: 'Pesanan Dibatalkan',
+          reason: 'Pesanan dibatalkan karena batas waktu telah terlewati.',
+        );
       case OrderStatus.refunded:
-        return 'Pembayaran telah dikembalikan.';
+        return (
+          title: 'Pembayaran Dikembalikan',
+          reason: 'Pembayaran telah dikembalikan.',
+        );
       case OrderStatus.partiallyRefunded:
-        return 'Pembayaran telah dikembalikan sebagian.';
+        return (
+          title: 'Pembayaran Dikembalikan',
+          reason: 'Pembayaran telah dikembalikan sebagian.',
+        );
       case OrderStatus.disputeOpen:
-        return 'Pesanan sedang dalam sengketa.';
+        return (
+          title: 'Pesanan Dalam Sengketa',
+          reason: 'Pesanan sedang dalam sengketa.',
+        );
       case OrderStatus.expired:
-        return 'Pembayaran kadaluarsa. Silakan buat pesanan baru.';
+        return (
+          title: 'Pembayaran Kedaluwarsa',
+          reason: 'Pembayaran kedaluwarsa. Silakan buat pesanan baru.',
+        );
       case OrderStatus.pending:
       case OrderStatus.paid:
       case OrderStatus.shipped:
       case OrderStatus.delivered:
       case OrderStatus.completed:
-        return 'Status pesanan tidak valid.';
+        return (
+          title: 'Pembayaran Tidak Berhasil',
+          reason: 'Status pesanan tidak valid.',
+        );
     }
   }
 
-  String _getPaymentFailureReason(Payment? payment) {
+  /// Failure copy (headline + detail) for the linked payment resource.
+  /// Same single-authority rule as [_getOrderFailure]: one switch decides
+  /// both the headline and the detail reason.
+  ({String title, String reason}) _getPaymentFailure(Payment? payment) {
     switch (payment?.status) {
       case PaymentStatus.failed:
-        return 'Pembayaran gagal.';
+        // The ONLY case that is honestly "Gagal": the gateway denied it.
+        return (title: 'Pembayaran Gagal', reason: 'Pembayaran gagal.');
       case PaymentStatus.expired:
-        return 'Pembayaran kadaluarsa. Silakan buat pesanan baru.';
+        return (
+          title: 'Pembayaran Kedaluwarsa',
+          reason: 'Pembayaran kedaluwarsa. Silakan buat pesanan baru.',
+        );
       case PaymentStatus.refunded:
-        return 'Pembayaran telah dikembalikan.';
+        return (
+          title: 'Pembayaran Dikembalikan',
+          reason: 'Pembayaran telah dikembalikan.',
+        );
       case PaymentStatus.pending:
       case PaymentStatus.processing:
       case PaymentStatus.paid:
       case null:
-        return 'Status pembayaran tidak valid.';
+        return (
+          title: 'Pembayaran Tidak Berhasil',
+          reason: 'Status pembayaran tidak valid.',
+        );
     }
   }
 

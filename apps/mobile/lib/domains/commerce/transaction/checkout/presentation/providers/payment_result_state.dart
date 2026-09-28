@@ -64,6 +64,13 @@ class PaymentResultState extends Equatable {
   /// Error message if status is networkError
   final String? errorMessage;
 
+  /// Headline shown for the failed state.
+  ///
+  /// Decided by the SAME authority as [errorMessage] (the notifier's failure
+  /// switch). The screen must never hardcode an accusation like
+  /// "Pembayaran Gagal" - a cancellation or a refund is not a failed payment.
+  final String? title;
+
   /// Whether a status check is currently in flight
   /// IMMEDIATE LOCK - set synchronously to prevent overlap
   final bool isChecking;
@@ -79,6 +86,7 @@ class PaymentResultState extends Equatable {
     this.maxPollAttempts = 20,
     this.pollingStartedAt,
     this.errorMessage,
+    this.title,
     this.isChecking = false,
     this.isCancelled = false,
   });
@@ -128,6 +136,7 @@ class PaymentResultState extends Equatable {
   /// Failed state - backend confirmed payment failed/expired/refunded
   factory PaymentResultState.failed({
     required Order order,
+    required String title,
     required String reason,
     required int pollAttempts,
     DateTime? startedAt,
@@ -140,6 +149,7 @@ class PaymentResultState extends Equatable {
       pollAttempts: pollAttempts,
       pollingStartedAt: startedAt,
       errorMessage: reason,
+      title: title,
       isChecking: false,
     );
   }
@@ -304,6 +314,7 @@ class PaymentResultState extends Equatable {
     int? maxPollAttempts,
     DateTime? pollingStartedAt,
     String? errorMessage,
+    String? title,
     bool? isChecking,
     bool? isCancelled,
     bool clearOrder = false,
@@ -317,6 +328,7 @@ class PaymentResultState extends Equatable {
       maxPollAttempts: maxPollAttempts ?? this.maxPollAttempts,
       pollingStartedAt: pollingStartedAt ?? this.pollingStartedAt,
       errorMessage: errorMessage ?? this.errorMessage,
+      title: title ?? this.title,
       isChecking: isChecking ?? this.isChecking,
       isCancelled: isCancelled ?? this.isCancelled,
     );
@@ -331,6 +343,7 @@ class PaymentResultState extends Equatable {
     maxPollAttempts,
     pollingStartedAt,
     errorMessage,
+    title,
     isChecking,
     isCancelled,
   ];

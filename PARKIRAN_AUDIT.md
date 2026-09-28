@@ -2551,4 +2551,28 @@ Gate baru `test/core/payment_status_authority_contract_test.dart` (4 test):
 - **Probe nyata**: literal `'settlement'` ditanam di `order_mapper.dart` → gate **GAGAL** dan menyebut pelanggar persis (`holds 'settlement'`); probe dilepas → bersih, gate PASS.
 
 ### Status
-**CLOSED — SATU AUTHORITY, SATU VOCABULARY.** `pending` kembali berarti satu hal saja. Yang tersisa dari model ini untuk sesi lain: guard UI/copy yang memakai kata "gagal"/"pending" untuk status pembayaran (audit copy, belum dikerjakan) dan parkiran lama yang tidak tersentuh.
+**CLOSED — SATU AUTHORITY, SATU VOCABULARY.** `pending` kembali berarti satu hal saja. Yang tersisa dari model ini untuk sesi lain: guard UI/copy yang memakai kata "gagal"/"pending" untuk status pembayaran (audit copy, **kini dikerjakan — lihat malam 5**) dan parkiran lama yang tidak tersentuh.
+
+---
+
+## Sesi 2026-09-28 (malam 5) — Audit copy UI status pembayaran: judul gagal tidak boleh menuduh (§11)
+
+**Scope**: sisa parkiran malam-4 ("guard UI/copy kata 'gagal'/'pending'"). Commit sesi ini (authority tunggal + boundary) masuk `637dc32` lebih dulu.
+
+### Temuan audit (1 kebohongan nyata, sisanya sudah jujur)
+- **LIAR — `payment_result_screen_impl.dart` judul hardcode `'Pembayaran Gagal'`** untuk SEMUA state failed. Order `cancelled` (wire `cancel` → tanpa putusan) masuk layar merah berjudul "Pembayaran Gagal" dengan subtitle "Pesanan dibatalkan." — menuduh pembeli gagal bayar = melanggar keputusan terkunci. Refund ("Pembayaran telah dikembalikan.") dan dispute ("Pesanan sedang dalam sengketa.") kena tuduhan sama. Alasan subtitle sudah jujur; yang bohong judulnya.
+- Sudah jujur, TIDAK diubah: reason notifier (cancel → "Pesanan dibatalkan."), layar timeout ("Status Pembayaran Belum Diketahui"), checking ("Menunggu Konfirmasi Pembayaran"), label order-level list/timeline/chat ("Dibatalkan"/"Kedaluwarsa"), badge `order_payment_info_card` (render hanya non-null; `pending` → "BELUM" sesuai makna sempit).
+
+### Perbaikan — satu authority untuk copy gagal
+- `PaymentResultState`: field `title` (ikut `props`+`copyWith`); factory `failed` kini `required title`.
+- Notifier: `_getFailureReason` + `_getPaymentFailureReason` menyatu → **satu switch per kasus, return `(title, reason)`** (`_getOrderFailure`/`_getPaymentFailure`). Judul per kasus: cancel/cancelledTimeout → "Pesanan Dibatalkan"; refunded/partiallyRefunded → "Pembayaran Dikembalikan"; disputeOpen → "Pesanan Dalam Sengketa"; expired → "Pembayaran Kedaluwarsa"; **hanya `PaymentStatus.failed` (deny) yang jujur "Pembayaran Gagal"**.
+- Screen render `state.title ?? 'Pembayaran Tidak Berhasil'` — nol tuduhan hardcode. Ejaan diseragamkan "kadaluarsa" → "kedaluwarsa" (2 alasan notifier).
+- Test mengikuti kode: notifier — deny → title "Pembayaran Gagal"; cancelled → title "Pesanan Dibatalkan" DAN `isNot('Pembayaran Gagal')`; expired → `contains('kedaluwarsa')` + title "Pembayaran Kedaluwarsa". Widget test baru: failed state dengan title authority → dirender, `'Pembayaran Gagal'` absent (menangkal hardcode ulang).
+
+### Proof (command → hasil)
+- `flutter analyze lib` = **0 error** (23 info pre-existing, nol di file tersentuh).
+- `flutter test` 2 file tersentuh = **31 PASS**.
+- Lingkar penuh: gates payment-status + boundary + result-authority + seluruh `checkout` + `order` = **212 PASS / 1 skip**.
+
+### Status
+**CLOSED.** Copy gagal kini berasal dari satu switch di notifier; screen murni render. Sisa parkiran lama (`SupportResult`/`SupportFailure`, dartz ×6 use case follow, `Withdrawal.isSuccess`, dll.) tidak tersentuh — sesi lain.

@@ -495,9 +495,11 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
         ),
         const SizedBox(height: 32),
 
-        // Title
+        // Title - comes from the failure authority (the notifier's switch).
+        // Never hardcoded: a cancellation, refund, or dispute must not be
+        // accused of "Pembayaran Gagal".
         Text(
-          'Pembayaran Gagal',
+          state.title ?? 'Pembayaran Tidak Berhasil',
           style: TextStyle(
             fontSize: core.AppType.s24,
             fontWeight: FontWeight.bold,
