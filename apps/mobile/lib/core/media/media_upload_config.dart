@@ -1,6 +1,5 @@
 /// Canonical media upload config — single source for foto+video limits
 /// across content, for_sale, auction, komentar, chat.
-
 class MediaUploadConfig {
   final int maxImages;
   final int maxVideos;
@@ -46,6 +45,16 @@ class MediaUploadConfig {
     maxImages: 4,
     maxVideos: 1,
     maxTotal: 5,
+    maxImageSizeMb: 10,
+    maxVideoSizeMb: 100,
+  );
+
+  /// Evidence (dispute/refund): 1 required video + up to 5 photos.
+  /// Counts stay with the dialog; MB caps are canonical here.
+  static const forEvidence = MediaUploadConfig(
+    maxImages: 5,
+    maxVideos: 1,
+    maxTotal: 6,
     maxImageSizeMb: 10,
     maxVideoSizeMb: 100,
   );

@@ -130,7 +130,7 @@ class PaymentResultNotifier extends _$PaymentResultNotifier {
     stopChecking();
 
     // Small delay to ensure cleanup
-    await Future.delayed(const Duration(milliseconds: 100));
+    await Future.delayed(core.AppMotion.quick);
 
     // Start fresh
     await startChecking(orderId);
@@ -235,9 +235,9 @@ class PaymentResultNotifier extends _$PaymentResultNotifier {
 
         if (paymentResult.isSuccess && paymentResult.data != null) {
           payment = paymentResult.data!;
-        } else if (paymentResult.isFailure) {
+        } else if (paymentResult.isError) {
           _logger?.warning(
-            'Failed to fetch payment for payment result recovery: ${paymentResult.failure}',
+            'Failed to fetch payment for payment result recovery: ${paymentResult.error}',
           );
         }
       }

@@ -52,15 +52,7 @@ class _FlutterImageCropperState extends State<FlutterImageCropper> {
 
   void _setSystemUIMode() {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-    SystemChrome.setSystemUIOverlayStyle(
-      const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.light,
-        statusBarBrightness: Brightness.dark,
-        systemNavigationBarColor: Colors.transparent,
-        systemNavigationBarIconBrightness: Brightness.light,
-      ),
-    );
+    SystemChrome.setSystemUIOverlayStyle(AppTheme.immersiveOverlayStyle);
   }
 
   void _restoreSystemUIMode() {
@@ -146,8 +138,8 @@ class _FlutterImageCropperState extends State<FlutterImageCropper> {
                       context,
                     ).colorScheme.scrim.withValues(alpha: 0.87),
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 8,
+                      horizontal: AppMetrics.p8,
+                      vertical: AppMetrics.p8,
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -163,14 +155,14 @@ class _FlutterImageCropperState extends State<FlutterImageCropper> {
                           widget.title,
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.onPrimary,
-                            fontSize: 18,
+                            fontSize: AppType.s18,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                         IconButton(
                           icon: Icon(
                             Icons.check,
-                            color: AppColors.statusSuccess,
+                            color: context.statusColors.success,
                           ),
                           onPressed: _crop,
                         ),
@@ -185,20 +177,20 @@ class _FlutterImageCropperState extends State<FlutterImageCropper> {
                   left: 0,
                   right: 0,
                   child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 20),
-                    padding: const EdgeInsets.all(12),
+                    margin: const EdgeInsets.symmetric(horizontal: AppMetrics.p20),
+                    padding: const EdgeInsets.all(AppMetrics.p12),
                     decoration: BoxDecoration(
                       color: Theme.of(
                         context,
                       ).colorScheme.scrim.withValues(alpha: 0.87),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(AppShape.r8),
                     ),
                     child: Text(
                       'Pinch to zoom • Drag to move',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.onPrimary,
-                        fontSize: 13,
+                        fontSize: AppType.s13,
                       ),
                     ),
                   ),

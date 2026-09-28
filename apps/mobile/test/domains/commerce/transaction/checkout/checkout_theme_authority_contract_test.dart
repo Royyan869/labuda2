@@ -6,10 +6,6 @@
 // colours follow the scheme in both. A widget that had a local colour authority
 // (a hardcoded `AppColors.neutral*` constant, or a checkout-local
 // `brightness == dark` branch) cannot satisfy both halves of this test.
-//
-// The negative guard at the bottom is what keeps the residue from coming back:
-// no checkout-owned presentation file may reintroduce a palette neutral, a raw
-// Material colour, or a local theme branch.
 import 'dart:async';
 import 'dart:io';
 
@@ -30,6 +26,8 @@ import 'package:labuda/domains/user/profile/domain/entities/address_entity.dart'
 import 'package:labuda/domains/user/profile/presentation/providers/notifiers/address_notifier.dart';
 import 'package:labuda/domains/user/profile/presentation/providers/state/address_state.dart';
 import 'package:labuda/shared/models/wilayah_models.dart';
+
+import '../../../../support/theme_authority_gate.dart';
 
 class _NoopCheckoutRepository implements CheckoutRepository {
   @override
@@ -360,23 +358,12 @@ void main() {
     ];
 
     test('no checkout-owned UI file binds a palette neutral or a raw theme colour', () {
-      // Palette neutrals and brand primary/secondary are all expressed by the
-      // ColorScheme; binding them directly is the competing authority this
-      // scope removed.
-      final forbidden = RegExp(
-        r'AppColors\.(neutral\w*|darkGray\w*|light|dark|primaryRed|primaryBlue)\b'
-        r'|Colors\.(green|orange|red|grey|gray|blue)\b',
+      // The rule is NOT restated here: one shared gate owns the pattern and
+      // the scan, this test only narrows the scope to checkout.
+      final violations = themeAuthorityViolations(
+        paths: checkoutUiFiles,
+        skipAuthority: false,
       );
-
-      final violations = <String>[];
-      for (final path in checkoutUiFiles) {
-        final lines = File(path).readAsLinesSync();
-        for (var i = 0; i < lines.length; i++) {
-          if (forbidden.hasMatch(lines[i])) {
-            violations.add('$path:${i + 1}: ${lines[i].trim()}');
-          }
-        }
-      }
       expect(
         violations,
         isEmpty,
@@ -384,13 +371,5 @@ void main() {
       );
     });
 
-    test('status/brand colours that have NO scheme role are still the palette authority', () {
-      // These are business semantics (warning / success / Labuda Coins), not
-      // theme roles: they must come from the core palette, never from ad-hoc
-      // Material colours.
-      final screenSource = File(checkoutUiFiles.first).readAsStringSync();
-      expect(screenSource.contains('Colors.amber'), isFalse);
-      expect(screenSource.contains('Colors.yellow'), isFalse);
-    });
   });
 }

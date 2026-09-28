@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:dio/dio.dart';
 import 'package:labuda/core/api/exceptions/api_exception.dart';
 import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
@@ -42,53 +40,14 @@ class ErrorInterceptor extends Interceptor {
   }
 
   /// Convert DioException to typed ApiException
+  ///
+  /// Transport classification (`DioExceptionType` → canonical error code)
+  /// lives in ONE place: [ApiExceptionFactory.fromTransport]. It returns null
+  /// for `badResponse`, the only type that carries an HTTP envelope — that
+  /// branch is parsed here because it needs the raw [Response].
   ApiException _convertToApiException(DioException err) {
-    switch (err.type) {
-      case DioExceptionType.connectionTimeout:
-      case DioExceptionType.sendTimeout:
-      case DioExceptionType.receiveTimeout:
-      case DioExceptionType.transformTimeout:
-        return const TimeoutException(
-          message: 'Connection timed out. Please try again.',
-        );
-
-      case DioExceptionType.cancel:
-        return const CancelledException();
-
-      case DioExceptionType.connectionError:
-        // A connectionError means the socket/handshake to the configured
-        // backend host failed (refused, unreachable, wrong IP, backend down)
-        // -- this is distinct from the device having no network at all, and
-        // reporting it as "no internet" misleads a user whose WiFi/data is
-        // fine but whose backend is unreachable. Keep the word "network" in
-        // the message so AuthController._isBackendUnavailableError (substring
-        // match) still classifies this as AuthState.backendUnavailable.
-        return const NetworkException(
-          message:
-              'Cannot reach Labuda server. Check that the backend is running and the device is on the same network.',
-          code: 'BACKEND_UNREACHABLE',
-        );
-
-      case DioExceptionType.badCertificate:
-        return const NetworkException(
-          message: 'SSL certificate error. Please try again later.',
-          code: 'SSL_ERROR',
-        );
-
-      case DioExceptionType.badResponse:
-        return _parseErrorResponse(err.response);
-
-      case DioExceptionType.unknown:
-        if (err.error is SocketException) {
-          return const NetworkException(
-            message: 'Network error. Please check your connection.',
-          );
-        }
-        return UnknownApiException(
-          message: err.message ?? 'An unexpected error occurred',
-          details: err.error,
-        );
-    }
+    return ApiExceptionFactory.fromTransport(err) ??
+        _parseErrorResponse(err.response);
   }
 
   /// Parse error from API response

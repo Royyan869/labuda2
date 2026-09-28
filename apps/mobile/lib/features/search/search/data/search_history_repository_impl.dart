@@ -1,3 +1,5 @@
+import 'package:labuda/core/api/structured_api_exception.dart';
+import 'package:labuda/core/common/result.dart';
 import 'package:labuda/features/search/search/data/mappers/search_mapper.dart';
 import 'package:labuda/features/search/search/data/remote/search_api_service.dart';
 import 'package:labuda/features/search/search/domain/entities/search_history.dart';
@@ -10,7 +12,7 @@ class SearchHistoryRepositoryImpl implements SearchHistoryRepository {
   SearchHistoryRepositoryImpl(this._apiService);
 
   @override
-  Future<ApiResult<void>> saveSearchHistory(SearchHistory history) async {
+  Future<Result<void>> saveSearchHistory(SearchHistory history) async {
     try {
       await _apiService.saveSearchHistory(
         query: history.query,
@@ -18,14 +20,14 @@ class SearchHistoryRepositoryImpl implements SearchHistoryRepository {
         resultsCount: history.resultCount,
       );
 
-      return (data: null, error: null);
+      return Result.success(null);
     } catch (e) {
-      return (data: null, error: 'Failed to save history: ${e.toString()}');
+      return _failure(e);
     }
   }
 
   @override
-  Future<ApiResult<List<SearchHistory>>> getSearchHistory(
+  Future<Result<List<SearchHistory>>> getSearchHistory(
     String userId, {
     int limit = 10,
   }) async {
@@ -34,32 +36,45 @@ class SearchHistoryRepositoryImpl implements SearchHistoryRepository {
 
       final history = dtos.map((dto) => dto.toDomain(userId)).toList();
 
-      return (data: history, error: null);
+      return Result.success(history);
     } catch (e) {
-      return (data: null, error: 'Failed to fetch history: ${e.toString()}');
+      return _failure(e);
     }
   }
 
   @override
-  Future<ApiResult<void>> clearSearchHistory(String userId) async {
+  Future<Result<void>> clearSearchHistory(String userId) async {
     try {
       await _apiService.clearSearchHistory();
-      return (data: null, error: null);
+      return Result.success(null);
     } catch (e) {
-      return (data: null, error: 'Failed to clear history: ${e.toString()}');
+      return _failure(e);
     }
   }
 
   @override
-  Future<ApiResult<void>> deleteSearchHistoryItem(
+  Future<Result<void>> deleteSearchHistoryItem(
     String userId,
     String historyId,
   ) async {
     try {
       await _apiService.deleteSearchHistoryItem(historyId);
-      return (data: null, error: null);
+      return Result.success(null);
     } catch (e) {
-      return (data: null, error: 'Failed to delete item: ${e.toString()}');
+      return _failure(e);
     }
+  }
+
+  /// Convert a thrown failure into a `Result` failure, keeping the canonical
+  /// API error code when the API layer preserved one.
+  Result<T> _failure<T>(Object error) {
+    if (error is StructuredApiException) {
+      return Result.error(
+        error.message,
+        code: error.code,
+        details: error.details,
+      );
+    }
+    return Result.error(error.toString());
   }
 }

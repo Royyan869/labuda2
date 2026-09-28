@@ -99,7 +99,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen>
     return Scaffold(
       appBar: AppBar(
         title: const Text('Search Results'),
-        elevation: 0,
+        elevation: AppElevation.none,
         bottom: TabBar(
           controller: _tabController,
           onTap: _onTabSelected,
@@ -113,7 +113,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen>
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppMetrics.p16),
             child: GlobalSearchBar(
               initialQuery: _currentQuery,
               onSearch: _onSearch,
@@ -164,7 +164,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen>
     final scheme = Theme.of(context).colorScheme;
 
     return ListView.separated(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: AppMetrics.p8),
       itemCount: results.length,
       separatorBuilder: (_, _) => Divider(
         height: 1,
@@ -185,7 +185,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen>
 
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(AppMetrics.p32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -194,7 +194,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen>
             Text(
               error,
               style: TextStyle(
-                fontSize: 16,
+                fontSize: AppType.s16,
                 color: scheme.onSurface,
               ),
               textAlign: TextAlign.center,
@@ -215,7 +215,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen>
 
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(AppMetrics.p32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -228,7 +228,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen>
             Text(
               'No results found',
               style: TextStyle(
-                fontSize: 18,
+                fontSize: AppType.s18,
                 fontWeight: FontWeight.w600,
                 color: scheme.onSurface,
               ),

@@ -23,7 +23,7 @@ class NotificationEmptyStateWidget extends StatelessWidget {
 
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(AppMetrics.p32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -66,7 +66,7 @@ class NotificationEmptyStateWidget extends StatelessWidget {
             Text(
               title,
               style: TextStyle(
-                fontSize: 20,
+                fontSize: AppType.s20,
                 fontWeight: FontWeight.w600,
                 color: scheme.onSurface,
                 letterSpacing: -0.5,
@@ -79,7 +79,7 @@ class NotificationEmptyStateWidget extends StatelessWidget {
               description,
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 15,
+                fontSize: AppType.s15,
                 color: scheme.onSurfaceVariant,
                 height: 1.5,
               ),
@@ -96,7 +96,7 @@ class NotificationEmptyStateWidget extends StatelessWidget {
                   _InfoChip(
                     icon: Icons.shopping_bag_outlined,
                     label: 'Pesanan',
-                    color: AppColors.statusSuccess,
+                    color: context.statusColors.success,
                   ),
                   _InfoChip(
                     icon: Icons.chat_bubble_outline,
@@ -106,7 +106,7 @@ class NotificationEmptyStateWidget extends StatelessWidget {
                   _InfoChip(
                     icon: Icons.gavel_outlined,
                     label: 'Lelang',
-                    color: AppColors.statusWarning,
+                    color: context.statusColors.warning,
                   ),
                 ],
               ),
@@ -154,7 +154,7 @@ class _InfoChip extends StatelessWidget {
   final String label;
   final Color color;
 
-  _InfoChip({
+  const _InfoChip({
     required this.icon,
     required this.label,
     required this.color,
@@ -163,10 +163,10 @@ class _InfoChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p6),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppShape.r16),
         border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
       ),
       child: Row(
@@ -177,7 +177,7 @@ class _InfoChip extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              fontSize: 13,
+              fontSize: AppType.s13,
               fontWeight: FontWeight.w500,
               color: color,
             ),

@@ -18,7 +18,7 @@ class OrderNotifier extends _$OrderNotifier {
   Future<void> getOrderById(String orderId) async {
     state = const OrderLoading();
     final result = await _orderRepository.getOrderById(orderId);
-    result.fold((o) => state = OrderLoaded(o), (e) => state = OrderError(e));
+    result.fold((e) => state = OrderError(e), (o) => state = OrderLoaded(o));
   }
 
   Future<void> getBuyerOrders({
@@ -37,8 +37,8 @@ class OrderNotifier extends _$OrderNotifier {
       ),
     );
     result.fold(
-      (o) => state = OrderListLoaded(o, hasMore: o.length >= limit),
       (e) => state = OrderError(e),
+      (o) => state = OrderListLoaded(o, hasMore: o.length >= limit),
     );
   }
 
@@ -58,8 +58,8 @@ class OrderNotifier extends _$OrderNotifier {
       ),
     );
     result.fold(
-      (o) => state = OrderListLoaded(o, hasMore: o.length >= limit),
       (e) => state = OrderError(e),
+      (o) => state = OrderListLoaded(o, hasMore: o.length >= limit),
     );
   }
 
@@ -79,8 +79,8 @@ class OrderNotifier extends _$OrderNotifier {
       ),
     );
     result.fold(
-      (o) => state = OrderSuccess('Shipped', order: o),
       (e) => state = OrderError(e),
+      (o) => state = OrderSuccess('Shipped', order: o),
     );
   }
 
@@ -88,8 +88,8 @@ class OrderNotifier extends _$OrderNotifier {
     state = const OrderLoading();
     final result = await _orderRepository.markAsDelivered(orderId);
     result.fold(
-      (o) => state = OrderSuccess('Delivered', order: o),
       (e) => state = OrderError(e),
+      (o) => state = OrderSuccess('Delivered', order: o),
     );
   }
 
@@ -100,8 +100,8 @@ class OrderNotifier extends _$OrderNotifier {
       CancelOrderParams(reason: reason),
     );
     result.fold(
-      (o) => state = OrderSuccess('Cancelled', order: o),
       (e) => state = OrderError(e),
+      (o) => state = OrderSuccess('Cancelled', order: o),
     );
   }
 
@@ -110,8 +110,8 @@ class OrderNotifier extends _$OrderNotifier {
     state = const OrderLoading();
     final result = await _orderRepository.extendOrderConfirmation(orderId);
     result.fold(
-      (_) => state = const OrderSuccess('Confirmation extended'),
       (e) => state = OrderError(e),
+      (_) => state = const OrderSuccess('Confirmation extended'),
     );
   }
 }

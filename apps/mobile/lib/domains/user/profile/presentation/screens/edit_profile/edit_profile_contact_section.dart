@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/shared/shared.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Contact & Social Media Fields for Edit Profile
 class EditProfileContactSection extends StatelessWidget {
@@ -39,7 +40,7 @@ class EditProfileContactSection extends StatelessWidget {
         Text(
           'Privacy Settings',
           style: TextStyle(
-            fontSize: 13,
+            fontSize: AppType.s13,
             fontWeight: FontWeight.w600,
             color: scheme.onSurfaceVariant,
           ),
@@ -68,7 +69,7 @@ class EditProfileContactSection extends StatelessWidget {
         Text(
           'Social Media',
           style: TextStyle(
-            fontSize: 13,
+            fontSize: AppType.s13,
             fontWeight: FontWeight.w600,
             color: scheme.onSurfaceVariant,
           ),
@@ -131,7 +132,7 @@ class EditProfileContactSection extends StatelessWidget {
       subtitle: Text(
         subtitle,
         style: TextStyle(
-          fontSize: 12,
+          fontSize: AppType.s12,
           color: scheme.onSurfaceVariant,
         ),
       ),

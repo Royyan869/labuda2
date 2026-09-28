@@ -75,7 +75,7 @@ class CanonicalPromotionAnalyticsScreen extends ConsumerWidget {
   Widget _buildErrorState(BuildContext context, WidgetRef ref, String message) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppMetrics.p24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -88,7 +88,7 @@ class CanonicalPromotionAnalyticsScreen extends ConsumerWidget {
             Text(
               'Failed to Load Analytics',
               style: TextStyle(
-                fontSize: 20,
+                fontSize: AppType.s20,
                 fontWeight: FontWeight.bold,
                 color: Theme.of(context).colorScheme.onSurface,
               ),
@@ -98,7 +98,7 @@ class CanonicalPromotionAnalyticsScreen extends ConsumerWidget {
               message,
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: AppType.s14,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
@@ -117,7 +117,7 @@ class CanonicalPromotionAnalyticsScreen extends ConsumerWidget {
 
   Widget _buildAnalyticsContent(BuildContext context, CanonicalPromotionAnalyticsDto analytics) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -125,7 +125,7 @@ class CanonicalPromotionAnalyticsScreen extends ConsumerWidget {
           Text(
             'Delivery Metrics',
             style: TextStyle(
-              fontSize: 20,
+              fontSize: AppType.s20,
               fontWeight: FontWeight.bold,
               color: Theme.of(context).colorScheme.onSurface,
             ),
@@ -134,7 +134,7 @@ class CanonicalPromotionAnalyticsScreen extends ConsumerWidget {
           Text(
             'Truthful canonical measurement from delivery events',
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppType.s14,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
@@ -146,7 +146,7 @@ class CanonicalPromotionAnalyticsScreen extends ConsumerWidget {
             value: analytics.includedCount,
             description: 'Card placed in feed responses',
             icon: Icons.visibility_outlined,
-            color: AppColors.statusInfo,
+            color: context.statusColors.info,
           ),
           const SizedBox(height: 16),
           _MetricsCard(
@@ -154,7 +154,7 @@ class CanonicalPromotionAnalyticsScreen extends ConsumerWidget {
             value: analytics.impressionCount,
             description: 'Client acknowledged card exposure',
             icon: Icons.check_circle_outline,
-            color: AppColors.successGreen,
+            color: context.statusColors.success,
           ),
           const SizedBox(height: 16),
           _MetricsCard(
@@ -168,10 +168,10 @@ class CanonicalPromotionAnalyticsScreen extends ConsumerWidget {
 
           // Info Section
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppMetrics.p16),
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.surfaceContainer,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppShape.r12),
               border: Border.all(
                 color: Theme.of(context).colorScheme.outlineVariant,
               ),
@@ -182,7 +182,7 @@ class CanonicalPromotionAnalyticsScreen extends ConsumerWidget {
                 Text(
                   'About These Metrics',
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: AppType.s16,
                     fontWeight: FontWeight.w600,
                     color: Theme.of(context).colorScheme.onSurface,
                   ),
@@ -192,7 +192,7 @@ class CanonicalPromotionAnalyticsScreen extends ConsumerWidget {
                   'These metrics are projected directly from canonical delivery events. '
                   'They represent truthful measurements of your promotion\'s delivery performance.',
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: AppType.s13,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
@@ -224,10 +224,10 @@ class _MetricsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
         boxShadow: [
           BoxShadow(
@@ -242,7 +242,7 @@ class _MetricsCard extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(AppMetrics.p12),
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.1),
               shape: BoxShape.circle,
@@ -257,7 +257,7 @@ class _MetricsCard extends StatelessWidget {
                 Text(
                   title,
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: AppType.s14,
                     fontWeight: FontWeight.w600,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
@@ -266,7 +266,7 @@ class _MetricsCard extends StatelessWidget {
                 Text(
                   value.toString(),
                   style: TextStyle(
-                    fontSize: 28,
+                    fontSize: AppType.s28,
                     fontWeight: FontWeight.bold,
                     color: Theme.of(context).colorScheme.onSurface,
                   ),
@@ -275,7 +275,7 @@ class _MetricsCard extends StatelessWidget {
                 Text(
                   description,
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: AppType.s12,
                     color: Theme.of(context).colorScheme.outline,
                   ),
                 ),

@@ -24,7 +24,7 @@ class AuctionBidSection extends StatelessWidget {
     // CANONICAL SECTION FRAME — the same 16-margin card language the ForSale
     // detail uses, so both detail surfaces read as one design.
     return CommerceDetailSectionCard(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      margin: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p0, AppMetrics.p16, AppMetrics.p16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -34,16 +34,16 @@ class AuctionBidSection extends StatelessWidget {
               Text(
                 'Bid Saat Ini',
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: AppType.s14,
                   color: colorScheme.onSurfaceVariant,
                 ),
               ),
               Text(
                 'Rp ${formatGroupedAmount(currentBid.round())}',
-                style: const TextStyle(
-                  fontSize: 24,
+                style: TextStyle(
+                  fontSize: AppType.s24,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.statusSuccess,
+                  color: context.statusColors.success,
                 ),
               ),
             ],
@@ -55,14 +55,14 @@ class AuctionBidSection extends StatelessWidget {
               Text(
                 'Bid Berikutnya',
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: AppType.s12,
                   color: colorScheme.onSurfaceVariant,
                 ),
               ),
               Text(
                 'Rp ${formatGroupedAmount(nextBid.round())}',
                 style: const TextStyle(
-                  fontSize: 14,
+                  fontSize: AppType.s14,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -76,14 +76,14 @@ class AuctionBidSection extends StatelessWidget {
                 Text(
                   'Buy Now',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: AppType.s12,
                     color: colorScheme.onSurfaceVariant,
                   ),
                 ),
                 Text(
                   'Rp ${formatGroupedAmount(auction.buyNowPrice!.round())}',
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: AppType.s14,
                     fontWeight: FontWeight.w500,
                     color: colorScheme.secondary,
                   ),

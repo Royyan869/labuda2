@@ -150,19 +150,19 @@ class OrderActionHandler {
             children: [
               Icon(
                 Icons.check_circle_outline,
-                color: core.AppColors.statusSuccess,
+                color: context.statusColors.success,
                 size: 48,
               ),
               const SizedBox(height: 16),
               const Text(
                 'Anda yakin ingin menerima pesanan ini?',
-                style: TextStyle(fontSize: 16),
+                style: TextStyle(fontSize: core.AppType.s16),
               ),
               const SizedBox(height: 8),
               Text(
                 'Dengan menerima pesanan, Anda berkewajiban untuk memproses dan mengirim produk sesuai dengan pesanan.',
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: core.AppType.s13,
                   color: colorScheme.onSurfaceVariant,
                 ),
               ),
@@ -179,7 +179,7 @@ class OrderActionHandler {
                 onAcceptOrder(order.id, order.sellerId);
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: core.AppColors.statusSuccess,
+                backgroundColor: context.statusColors.success,
                 foregroundColor: Theme.of(dialogContext).colorScheme.onPrimary,
               ),
               child: const Text('Ya, Terima Pesanan'),
@@ -210,19 +210,19 @@ class OrderActionHandler {
             children: [
               Icon(
                 Icons.warning_amber_outlined,
-                color: core.AppColors.statusWarning,
+                color: context.statusColors.warning,
                 size: 48,
               ),
               const SizedBox(height: 16),
               const Text(
                 'Anda yakin barang sudah diterima dengan baik?',
-                style: TextStyle(fontSize: 16),
+                style: TextStyle(fontSize: core.AppType.s16),
               ),
               const SizedBox(height: 8),
               Text(
                 'Dengan menerima barang, pesanan akan selesai dan pembayaran akan diteruskan ke penjual. Tindakan ini tidak dapat dibatalkan.',
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: core.AppType.s13,
                   color: colorScheme.onSurfaceVariant,
                 ),
               ),
@@ -239,7 +239,7 @@ class OrderActionHandler {
                 onConfirmDelivery(order.id, order.buyerId);
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: core.AppColors.statusWarning,
+                backgroundColor: context.statusColors.warning,
                 foregroundColor: Theme.of(dialogContext).colorScheme.onPrimary,
               ),
               child: const Text('Ya, Terima Barang'),
@@ -351,14 +351,14 @@ class OrderActionHandler {
                 // Read-only shipping method from checkout
                 const Text(
                   'Metode Pengiriman',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: core.AppType.s12),
                 ),
                 const SizedBox(height: 4),
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(core.AppMetrics.p12),
                   decoration: BoxDecoration(
                     color: colorScheme.surfaceContainerHigh,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(core.AppShape.r8),
                     border: Border.all(color: colorScheme.outlineVariant),
                   ),
                   child: Row(
@@ -368,7 +368,7 @@ class OrderActionHandler {
                       Expanded(
                         child: Text(
                           _formatShippingMethod(),
-                          style: const TextStyle(fontSize: 13),
+                          style: const TextStyle(fontSize: core.AppType.s13),
                         ),
                       ),
                     ],
@@ -379,7 +379,7 @@ class OrderActionHandler {
                 // Reference type selector
                 const Text(
                   'Jenis Referensi',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: core.AppType.s12),
                 ),
                 const SizedBox(height: 8),
                 SegmentedButton<String>(
@@ -416,7 +416,7 @@ class OrderActionHandler {
                       : 'Referensi Pengiriman',
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 12,
+                    fontSize: core.AppType.s12,
                   ),
                 ),
                 const SizedBox(height: 8),

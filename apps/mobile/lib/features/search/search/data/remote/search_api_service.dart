@@ -1,4 +1,6 @@
+import 'package:dio/dio.dart';
 import 'package:labuda/core/api/api_client.dart';
+import 'package:labuda/core/api/structured_api_exception.dart';
 import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
 import 'package:labuda/features/search/search/data/dto/search_dto.dart';
 
@@ -24,6 +26,30 @@ class SearchApiService {
   SearchApiService(this._apiClient, {ILoggerService? logger})
     : _logger = logger;
 
+  /// Run [request] and preserve the canonical API failure identity across the
+  /// throw boundary.
+  ///
+  /// A failed request is classified exactly once — by
+  /// [ApiClient.extractException], which delegates transport failures to
+  /// `ApiExceptionFactory.fromTransport` — and rethrown as a
+  /// [StructuredApiException] carrying that code, so the repository can answer
+  /// `Result.error(..., code:)` instead of collapsing the failure into
+  /// `error.toString()` and forcing callers onto message-text matching.
+  Future<T> _guard<T>(Future<T> Function() request) async {
+    try {
+      return await request();
+    } on DioException catch (e) {
+      final exception = _apiClient.extractException(e);
+      throw StructuredApiException(
+        message: exception.message,
+        code: exception.code,
+        details: exception.details is Map<String, dynamic>
+            ? exception.details as Map<String, dynamic>
+            : null,
+      );
+    }
+  }
+
   // =====================
   // Content Search
   // =====================
@@ -44,14 +70,16 @@ class SearchApiService {
       'offset': offset.toString(),
     };
 
-    final response = await _apiClient.get(
-      '/search/content',
-      queryParameters: queryParams,
-    );
+    return _guard(() async {
+      final response = await _apiClient.get(
+        '/search/content',
+        queryParameters: queryParams,
+      );
 
-    return ContentSearchResponseDto.fromJson(
-      response.data['data'] as Map<String, dynamic>,
-    );
+      return ContentSearchResponseDto.fromJson(
+        response.data['data'] as Map<String, dynamic>,
+      );
+    });
   }
 
   // =====================
@@ -85,14 +113,16 @@ class SearchApiService {
       if (sortDir != 'desc') 'sort_dir': sortDir,
     };
 
-    final response = await _apiClient.get(
-      '/search/auctions',
-      queryParameters: queryParams,
-    );
+    return _guard(() async {
+      final response = await _apiClient.get(
+        '/search/auctions',
+        queryParameters: queryParams,
+      );
 
-    return AuctionSearchResponseDto.fromJson(
-      response.data['data'] as Map<String, dynamic>,
-    );
+      return AuctionSearchResponseDto.fromJson(
+        response.data['data'] as Map<String, dynamic>,
+      );
+    });
   }
 
   // =====================
@@ -127,14 +157,16 @@ class SearchApiService {
       if (sortDir != 'desc') 'sort_dir': sortDir,
     };
 
-    final response = await _apiClient.get(
-      '/search/for-sale',
-      queryParameters: queryParams,
-    );
+    return _guard(() async {
+      final response = await _apiClient.get(
+        '/search/for-sale',
+        queryParameters: queryParams,
+      );
 
-    return ForSaleSearchResponseDto.fromJson(
-      response.data['data'] as Map<String, dynamic>,
-    );
+      return ForSaleSearchResponseDto.fromJson(
+        response.data['data'] as Map<String, dynamic>,
+      );
+    });
   }
 
   // =====================
@@ -151,18 +183,20 @@ class SearchApiService {
   }) async {
     _logger?.info('Searching users: query=$query');
 
-    final response = await _apiClient.get(
-      '/search/users',
-      queryParameters: {
-        'q': query,
-        'limit': limit.toString(),
-        'offset': offset.toString(),
-      },
-    );
+    return _guard(() async {
+      final response = await _apiClient.get(
+        '/search/users',
+        queryParameters: {
+          'q': query,
+          'limit': limit.toString(),
+          'offset': offset.toString(),
+        },
+      );
 
-    return UserSearchResponseDto.fromJson(
-      response.data['data'] as Map<String, dynamic>,
-    );
+      return UserSearchResponseDto.fromJson(
+        response.data['data'] as Map<String, dynamic>,
+      );
+    });
   }
 
   // =====================
@@ -175,21 +209,24 @@ class SearchApiService {
   Future<List<SearchHistoryDto>> getSearchHistory({int limit = 20}) async {
     _logger?.info('Getting search history');
 
-    final response = await _apiClient.get(
-      '/search/history',
-      queryParameters: {'limit': limit.toString()},
-    );
+    return _guard(() async {
+      final response = await _apiClient.get(
+        '/search/history',
+        queryParameters: {'limit': limit.toString()},
+      );
 
-    final payload = response.data['data'] as Map<String, dynamic>? ?? {};
-    final history =
-        (payload['history'] as List?)
-            ?.map(
-              (json) => SearchHistoryDto.fromJson(json as Map<String, dynamic>),
-            )
-            .toList() ??
-        [];
+      final payload = response.data['data'] as Map<String, dynamic>? ?? {};
+      final history =
+          (payload['history'] as List?)
+              ?.map(
+                (json) =>
+                    SearchHistoryDto.fromJson(json as Map<String, dynamic>),
+              )
+              .toList() ??
+          [];
 
-    return history;
+      return history;
+    });
   }
 
   /// Clear search history for current user
@@ -198,7 +235,7 @@ class SearchApiService {
   Future<void> clearSearchHistory() async {
     _logger?.info('Clearing search history');
 
-    await _apiClient.delete('/search/history');
+    await _guard(() => _apiClient.delete('/search/history'));
   }
 
   /// Save search to history
@@ -219,10 +256,7 @@ class SearchApiService {
       data['results_count'] = resultsCount;
     }
 
-    await _apiClient.post(
-      '/search/history',
-      data: data,
-    );
+    await _guard(() => _apiClient.post('/search/history', data: data));
   }
 
   /// Delete specific search history item
@@ -231,6 +265,6 @@ class SearchApiService {
   Future<void> deleteSearchHistoryItem(String historyId) async {
     _logger?.info('Deleting search history item: $historyId');
 
-    await _apiClient.delete('/search/history/$historyId');
+    await _guard(() => _apiClient.delete('/search/history/$historyId'));
   }
 }

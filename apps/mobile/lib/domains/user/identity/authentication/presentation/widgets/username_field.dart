@@ -87,16 +87,16 @@ class _UsernameFieldState extends State<UsernameField> {
   }
 
   Color _getBorderColor(BuildContext context) {
-    if (_formatValid == false) return AppColors.error;
+    if (_formatValid == false) return context.statusColors.error;
     return Theme.of(context).colorScheme.outlineVariant;
   }
 
   Widget? get _getSuffixIcon {
     if (_formatValid == true) {
-      return const Icon(Icons.check_circle, color: AppColors.success, size: 20);
+      return Icon(Icons.check_circle, color: context.statusColors.success, size: 20);
     }
     if (_formatValid == false) {
-      return const Icon(Icons.error, color: AppColors.error, size: 20);
+      return Icon(Icons.error, color: context.statusColors.error, size: 20);
     }
     return null;
   }
@@ -110,7 +110,7 @@ class _UsernameFieldState extends State<UsernameField> {
   }
 
   Color _getHelperTextColor(BuildContext context) {
-    if (_formatValid == false) return AppColors.error;
+    if (_formatValid == false) return context.statusColors.error;
     return Theme.of(context).colorScheme.onSurfaceVariant;
   }
 
@@ -132,23 +132,23 @@ class _UsernameFieldState extends State<UsernameField> {
             ),
             suffixIcon: _getSuffixIcon,
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppShape.r12),
               borderSide: BorderSide(color: _getBorderColor(context)),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppShape.r12),
               borderSide: BorderSide(color: _getBorderColor(context)),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppShape.r12),
               borderSide: BorderSide(color: _getBorderColor(context), width: 2),
             ),
             errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppShape.r12),
               borderSide: BorderSide(color: scheme.error),
             ),
             focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppShape.r12),
               borderSide: BorderSide(color: scheme.error, width: 2),
             ),
             filled: true,
@@ -171,11 +171,11 @@ class _UsernameFieldState extends State<UsernameField> {
           height: _getHelperText != null ? 20 : 0,
           child: _getHelperText != null
               ? Padding(
-                  padding: const EdgeInsets.only(left: 12, top: 4),
+                  padding: const EdgeInsets.only(left: AppMetrics.p12, top: AppMetrics.p4),
                   child: Text(
                     _getHelperText!,
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: AppType.s12,
                       color: _getHelperTextColor(context),
                       fontWeight: FontWeight.normal,
                     ),

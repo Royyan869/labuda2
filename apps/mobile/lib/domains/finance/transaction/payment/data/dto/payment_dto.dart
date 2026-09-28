@@ -17,88 +17,6 @@ import 'package:labuda/core/common/types/payment_types.dart';
 import '../../domain/entities/payment.dart';
 import '../../domain/entities/payment_intent.dart';
 
-/// Decision Contract DTO from backend
-///
-/// Backend is the SINGLE SOURCE OF TRUTH for all business decisions.
-/// Frontend MUST NOT derive state or allowed actions from other fields.
-///
-/// TRACK 8: Added for Payment decision parsing (consistent with Order)
-class DecisionContractResponseDto {
-  final String state;
-  final List<String> allowedActions;
-  final DisplayHintsDto? display;
-
-  const DecisionContractResponseDto({
-    required this.state,
-    this.allowedActions = const [],
-    this.display,
-  });
-
-  factory DecisionContractResponseDto.fromJson(Map<String, dynamic> json) {
-    return DecisionContractResponseDto(
-      state: json['state'] as String? ?? '',
-      allowedActions:
-          (json['allowed_actions'] as List<dynamic>?)
-              ?.map((e) => e.toString())
-              .toList() ??
-          [],
-      display: json['display'] != null
-          ? DisplayHintsDto.fromJson(json['display'] as Map<String, dynamic>)
-          : null,
-    );
-  }
-
-  Map<String, dynamic> toJson() => {
-    'state': state,
-    'allowed_actions': allowedActions,
-    if (display != null) 'display': display!.toJson(),
-  };
-}
-
-/// Display Hints DTO from backend (NON-AUTHORITATIVE)
-///
-/// These are UI hints ONLY. Frontend MUST NOT derive state or
-/// allowed_actions from these hints.
-///
-/// TRACK 8: Added for Payment decision parsing (consistent with Order)
-class DisplayHintsDto {
-  final String? badge;
-  final String? badgeVariant;
-  final String? primaryAction;
-  final String? warning;
-  final String? info;
-  final int? timeRemainingSeconds;
-
-  const DisplayHintsDto({
-    this.badge,
-    this.badgeVariant,
-    this.primaryAction,
-    this.warning,
-    this.info,
-    this.timeRemainingSeconds,
-  });
-
-  factory DisplayHintsDto.fromJson(Map<String, dynamic> json) {
-    return DisplayHintsDto(
-      badge: json['badge'] as String?,
-      badgeVariant: json['badge_variant'] as String?,
-      primaryAction: json['primary_action'] as String?,
-      warning: json['warning'] as String?,
-      info: json['info'] as String?,
-      timeRemainingSeconds: json['time_remaining_seconds'] as int?,
-    );
-  }
-
-  Map<String, dynamic> toJson() => {
-    'badge': badge,
-    'badge_variant': badgeVariant,
-    'primary_action': primaryAction,
-    'warning': warning,
-    'info': info,
-    'time_remaining_seconds': timeRemainingSeconds,
-  };
-}
-
 /// Payment DTO from `GET /api/v1/payments/:id`.
 ///
 /// Emitted keys (canonical, verbatim):
@@ -134,16 +52,6 @@ class PaymentDto extends Equatable {
   /// When the payment was last updated (from backend)
   final DateTime? updatedAt;
 
-  /// Decision contract from backend - SINGLE SOURCE OF TRUTH for business decisions
-  ///
-  /// TRACK 8: Backend sends decision object for state-based UI rendering.
-  /// Frontend MUST NOT derive state or allowed actions from other fields.
-  ///
-  /// NOTE: `GET /payments/:id` does not currently emit `decision`. This field
-  /// is a nullable passthrough only; it is never an authority and its absence
-  /// must never fail parsing.
-  final DecisionContractResponseDto? decision;
-
   const PaymentDto({
     required this.id,
     required this.paymentNumber,
@@ -163,19 +71,10 @@ class PaymentDto extends Equatable {
     this.paymentUrl,
     this.priceSnapshotId,
     this.updatedAt,
-    this.decision,
   });
 
   /// Parse from JSON
   factory PaymentDto.fromJson(Map<String, dynamic> json) {
-    // Parse decision object if present
-    DecisionContractResponseDto? decision;
-    if (json['decision'] != null) {
-      decision = DecisionContractResponseDto.fromJson(
-        json['decision'] as Map<String, dynamic>,
-      );
-    }
-
     return PaymentDto(
       id: json['id'] as String,
       paymentNumber: json['payment_number'] as String? ?? '',
@@ -201,18 +100,11 @@ class PaymentDto extends Equatable {
       updatedAt: json['updated_at'] != null
           ? DateTime.parse(json['updated_at'] as String)
           : null,
-      decision: decision,
     );
   }
 
   /// Convert to entity
   Payment toEntity() {
-    // Convert DecisionContractResponseDto to DecisionContract using fromJson
-    // This leverages the existing domain entity factory method
-    final domainDecision = decision != null
-        ? DecisionContract.fromJson(decision!.toJson())
-        : null;
-
     return Payment(
       id: id,
       paymentNumber: paymentNumber,
@@ -232,7 +124,6 @@ class PaymentDto extends Equatable {
       paymentUrl: paymentUrl,
       priceSnapshotId: priceSnapshotId,
       updatedAt: updatedAt,
-      decision: domainDecision,
     );
   }
 

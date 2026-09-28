@@ -322,20 +322,20 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
         decoration: BoxDecoration(
           color: scheme.onSurfaceVariant,
           borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(20),
-            topRight: Radius.circular(20),
+            topLeft: Radius.circular(AppShape.r20),
+            topRight: Radius.circular(AppShape.r20),
           ),
         ),
         child: Column(
           children: [
             // Header
             Container(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(AppMetrics.p20),
               decoration: BoxDecoration(
                 color: scheme.onSurfaceVariant,
                 borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(20),
-                  topRight: Radius.circular(20),
+                  topLeft: Radius.circular(AppShape.r20),
+                  topRight: Radius.circular(AppShape.r20),
                 ),
               ),
               child: Row(
@@ -353,7 +353,7 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
                           ? 'Edit Address'
                           : 'Add New Address',
                       style: TextStyle(
-                        fontSize: 18,
+                        fontSize: AppType.s18,
                         fontWeight: FontWeight.bold,
                         color: scheme.onSurfaceVariant,
                       ),
@@ -375,9 +375,9 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
                 child: ListView(
                   controller: scrollController,
                   padding: EdgeInsets.fromLTRB(
-                    20,
-                    20,
-                    20,
+                    AppMetrics.p20,
+                    AppMetrics.p20,
+                    AppMetrics.p20,
                     20 + MediaQuery.of(context).viewInsets.bottom,
                   ),
                   children: [
@@ -406,7 +406,7 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
                           hintText: 'Select address purpose',
                           prefixIcon: Icon(_getPurposeIcon(_selectedPurpose)),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(AppShape.r12),
                           ),
                         ),
                         validator: (value) {
@@ -583,7 +583,7 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
             SafeArea(
               top: false,
               child: Container(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(AppMetrics.p20),
                 decoration: BoxDecoration(
                   color: scheme.onSurfaceVariant,
                 ),
@@ -594,9 +594,9 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: scheme.primary,
                       foregroundColor: scheme.onPrimary,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(AppShape.r12),
                       ),
                     ),
                     child: _isLoading
@@ -615,7 +615,7 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
                                 ? 'Update Address'
                                 : 'Save Address',
                             style: const TextStyle(
-                              fontSize: 16,
+                              fontSize: AppType.s16,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -644,10 +644,10 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
     final isShipping = purpose == AddressPurpose.shipping;
 
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      padding: const EdgeInsets.symmetric(vertical: AppMetrics.p12, horizontal: AppMetrics.p16),
       decoration: BoxDecoration(
         color: scheme.onSurfaceVariant,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(
           color: scheme.onSurfaceVariant,
         ),
@@ -671,7 +671,7 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
                       ? 'Recipient Address (Buyer)'
                       : 'Sender Address (Seller)',
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: AppType.s14,
                     fontWeight: FontWeight.w600,
                     color: scheme.onSurfaceVariant,
                   ),
@@ -682,7 +682,7 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
                       ? 'Shipping destination address'
                       : 'Shipping origin address',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: AppType.s12,
                     color: scheme.onSurfaceVariant,
                   ),
                 ),
@@ -705,7 +705,7 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
             labelText: 'Address Label (Optional)',
             hintText: 'Select label',
             prefixIcon: const Icon(Icons.label_outline),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppShape.r12)),
           ),
           items: _nicknameOptions.map((option) {
             return DropdownMenuItem<String>(value: option, child: Text(option));
@@ -736,10 +736,10 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
   /// Build locked name field for seller - prominent display (not faded like hint)
   Widget _buildLockedNameField(ColorScheme scheme) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+      padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14, horizontal: AppMetrics.p16),
       decoration: BoxDecoration(
         color: scheme.onSurfaceVariant.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(
           color: scheme.onSurfaceVariant.withValues(alpha: 0.2),
         ),
@@ -747,10 +747,10 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(AppMetrics.p8),
             decoration: BoxDecoration(
               color: scheme.onSurfaceVariant.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(AppShape.r8),
             ),
             child: Icon(
               Icons.storefront,
@@ -766,7 +766,7 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
                 Text(
                   'Sender Name',
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: AppType.s11,
                     fontWeight: FontWeight.w500,
                     color: scheme.onSurfaceVariant,
                   ),
@@ -777,7 +777,7 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
                       ? _recipientNameController.text
                       : 'Store Name',
                   style: TextStyle(
-                    fontSize: 15,
+                    fontSize: AppType.s15,
                     fontWeight: FontWeight.w600,
                     color: scheme.onSurfaceVariant,
                   ),
@@ -787,10 +787,10 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
           ),
           const SizedBox(width: 8),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
             decoration: BoxDecoration(
               color: scheme.onSurfaceVariant,
-              borderRadius: BorderRadius.circular(6),
+              borderRadius: BorderRadius.circular(AppShape.r6),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -804,7 +804,7 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
                 Text(
                   'From Profile',
                   style: TextStyle(
-                    fontSize: 10,
+                    fontSize: AppType.s10,
                     fontWeight: FontWeight.w500,
                     color: scheme.onSurfaceVariant,
                   ),
@@ -824,15 +824,15 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
       children: [
         InkWell(
           onTap: _showLocationPicker,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppShape.r12),
           child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            padding: const EdgeInsets.symmetric(vertical: AppMetrics.p12, horizontal: AppMetrics.p16),
             decoration: BoxDecoration(
               color: scheme.onSurfaceVariant,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppShape.r12),
               border: Border.all(
                 color: hasCoordinates
-                    ? AppColors.success
+                    ? context.statusColors.success
                     : (scheme.onSurfaceVariant),
                 width: hasCoordinates ? 2 : 1,
               ),
@@ -843,7 +843,7 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
                   hasCoordinates ? Icons.check_circle : Icons.map_outlined,
                   size: 20,
                   color: hasCoordinates
-                      ? AppColors.success
+                      ? context.statusColors.success
                       : (scheme.onSurfaceVariant),
                 ),
                 const SizedBox(width: 12),
@@ -856,10 +856,10 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
                             ? 'Pinpoint Location Saved'
                             : 'Select Location on Map',
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: AppType.s14,
                           fontWeight: FontWeight.w500,
                           color: hasCoordinates
-                              ? AppColors.success
+                              ? context.statusColors.success
                               : (scheme.onSurfaceVariant),
                         ),
                       ),
@@ -867,7 +867,7 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
                         Text(
                           '${_latitude!.toStringAsFixed(6)}, ${_longitude!.toStringAsFixed(6)}',
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: AppType.s11,
                             fontFamily: 'monospace',
                             color: scheme.onSurfaceVariant,
                           ),
@@ -888,7 +888,7 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
         Text(
           'Pinpoint location to facilitate delivery',
           style: TextStyle(
-            fontSize: 11,
+            fontSize: AppType.s11,
             color: scheme.onSurfaceVariant,
           ),
         ),

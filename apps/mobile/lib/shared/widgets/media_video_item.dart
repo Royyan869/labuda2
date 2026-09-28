@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 class MediaVideoItem extends StatefulWidget {
   final File video;
@@ -62,13 +63,13 @@ class _MediaVideoItemState extends State<MediaVideoItem> {
     return Container(
       width: widget.width,
       height: widget.height,
-      margin: const EdgeInsets.only(right: 8),
+      margin: const EdgeInsets.only(right: AppMetrics.p8),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         color: scheme.surfaceContainerHighest,
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         child: Stack(
           children: [
             // Video thumbnail or placeholder
@@ -94,7 +95,7 @@ class _MediaVideoItemState extends State<MediaVideoItem> {
       return Container(
         decoration: BoxDecoration(
           color: scheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppShape.r12),
         ),
         child: Icon(
           Icons.error_outline,
@@ -108,7 +109,7 @@ class _MediaVideoItemState extends State<MediaVideoItem> {
       return Container(
         decoration: BoxDecoration(
           color: scheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppShape.r12),
         ),
         child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
       );
@@ -125,10 +126,10 @@ class _MediaVideoItemState extends State<MediaVideoItem> {
       bottom: 8,
       left: 8,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p6, vertical: AppMetrics.p3),
         decoration: BoxDecoration(
           color: scheme.scrim.withValues(alpha: 0.7),
-          borderRadius: BorderRadius.circular(4),
+          borderRadius: BorderRadius.circular(AppShape.r4),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -141,7 +142,7 @@ class _MediaVideoItemState extends State<MediaVideoItem> {
                   : '--:--',
               style: TextStyle(
                 color: scheme.onPrimary,
-                fontSize: 10,
+                fontSize: AppType.s10,
                 fontWeight: FontWeight.w500,
               ),
             ),

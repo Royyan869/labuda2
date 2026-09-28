@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:labuda/shared/widgets/app_snackbar.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// KTP Camera Screen - Capture KTP with landscape orientation and frame overlay
 ///
@@ -177,10 +178,10 @@ class _KtpCameraScreenState extends State<KtpCameraScreen>
             if (_errorMessage != null)
               Center(
                 child: Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.all(AppMetrics.p16),
                   child: Text(
                     _errorMessage!,
-                    style: TextStyle(color: scheme.onPrimary, fontSize: 16),
+                    style: TextStyle(color: scheme.onPrimary, fontSize: AppType.s16),
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -199,11 +200,11 @@ class _KtpCameraScreenState extends State<KtpCameraScreen>
                   aspectRatio: 1.585, // KTP ratio 85.6mm x 53.98mm
                   child: Container(
                     margin: const EdgeInsets.symmetric(
-                      horizontal: 20,
+                      horizontal: AppMetrics.p20,
                     ), // Lebih lebar (dari 40 ke 20)
                     decoration: BoxDecoration(
                       border: Border.all(color: scheme.onPrimary, width: 2),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(AppShape.r12),
                     ),
                     child: Stack(
                       children: [
@@ -262,7 +263,7 @@ class _KtpCameraScreenState extends State<KtpCameraScreen>
               left: 0,
               right: 0,
               child: Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(AppMetrics.p16),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
@@ -302,7 +303,7 @@ class _KtpCameraScreenState extends State<KtpCameraScreen>
               left: 0,
               right: 0,
               child: Container(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(AppMetrics.p24),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.bottomCenter,
@@ -321,7 +322,7 @@ class _KtpCameraScreenState extends State<KtpCameraScreen>
                       'Posisikan KTP di dalam frame',
                       style: TextStyle(
                         color: scheme.onPrimary,
-                        fontSize: 16,
+                        fontSize: AppType.s16,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -330,7 +331,7 @@ class _KtpCameraScreenState extends State<KtpCameraScreen>
                       'Pastikan semua bagian KTP terlihat jelas',
                       style: TextStyle(
                         color: scheme.onPrimary.withValues(alpha: 0.7),
-                        fontSize: 14,
+                        fontSize: AppType.s14,
                       ),
                     ),
                     const SizedBox(height: 24),

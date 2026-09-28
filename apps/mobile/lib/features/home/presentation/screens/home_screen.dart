@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/domains/social/content/domain/entities/content.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/features/home/home.dart';
 
@@ -62,7 +65,37 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (state.hasReachedMax) return;
     if (state.errorMessage != null) return;
     if (metrics.pixels < metrics.maxScrollExtent - _loadMoreThreshold) return;
-    ref.read(feedProvider.notifier).loadMore();
+    final before = state.items.length;
+    ref.read(feedProvider.notifier).loadMore().then((_) {
+      if (!mounted) return;
+      _precacheNewItems(before);
+    });
+  }
+
+  /// Decode the next page's first images while the user is still 400px away,
+  /// so below-fold cards paint from cache. Bounded: images only ([MediaType]
+  /// is the authority, never the URL suffix), first media per item, max 6
+  /// per page. Failures are silent by design — the card loads normally.
+  void _precacheNewItems(int before) {
+    final items = ref.read(feedProvider).items;
+    var queued = 0;
+    for (var i = before; i < items.length && queued < 6; i++) {
+      final media = items[i].media;
+      if (media.isEmpty) continue;
+      final first = media.first;
+      if (first.type != MediaType.image) continue;
+      final url = first.originalUrl.trim();
+      if (url.isEmpty) continue;
+      queued++;
+      try {
+        unawaited(
+          precacheImage(NetworkImage(url), context).then(
+            (_) {},
+            onError: (_) {},
+          ),
+        );
+      } catch (_) {}
+    }
   }
 
   @override
@@ -91,7 +124,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       onRefresh: () async {
         resetPromotionExposureAttempts();
         ref.invalidate(feedProvider);
-        await Future.delayed(const Duration(milliseconds: 100));
+        await Future.delayed(AppMotion.quick);
       },
       child: NotificationListener<ScrollNotification>(
         onNotification: (notification) {
@@ -123,7 +156,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             if (feedState.isLoadingMore)
               const SliverToBoxAdapter(
                 child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 16),
+                  padding: EdgeInsets.symmetric(vertical: AppMetrics.p16),
                   child: Center(child: CircularProgressIndicator()),
                 ),
               ),
@@ -141,7 +174,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
+        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -165,7 +198,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             Text(
               '🎯 Kamu ingin apa hari ini?',
               style: TextStyle(
-                fontSize: 20,
+                fontSize: AppType.s20,
                 fontWeight: FontWeight.w700,
                 color: scheme.onSurface,
               ),
@@ -206,15 +239,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         icon: Icon(icon, size: 22),
         label: Text(
           label,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          style: const TextStyle(fontSize: AppType.s16, fontWeight: FontWeight.w600),
         ),
         onPressed: onTap,
         style: FilledButton.styleFrom(
           backgroundColor: scheme.primary,
           foregroundColor: scheme.onPrimary,
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+          padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16, horizontal: AppMetrics.p24),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(AppShape.r14),
           ),
         ),
       ),
@@ -236,7 +269,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         label: Text(
           label,
           style: TextStyle(
-            fontSize: 15,
+            fontSize: AppType.s15,
             fontWeight: FontWeight.w500,
             color: scheme.onSurface,
           ),
@@ -247,9 +280,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           side: BorderSide(
             color: scheme.outlineVariant,
           ),
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
+          padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14, horizontal: AppMetrics.p24),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(AppShape.r14),
           ),
         ),
       ),
@@ -279,13 +312,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           const SizedBox(height: 16),
           const Text(
             'Feed belum bisa dimuat',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+            style: TextStyle(fontSize: AppType.s18, fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 8),
           Text(
             error,
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppType.s14,
               color: scheme.onSurfaceVariant,
             ),
             textAlign: TextAlign.center,

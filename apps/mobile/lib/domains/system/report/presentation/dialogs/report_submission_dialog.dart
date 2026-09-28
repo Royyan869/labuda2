@@ -65,15 +65,15 @@ class _ReportSubmissionDialogState
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(AppShape.r20)),
       ),
       child: SafeArea(
         child: Padding(
           padding: EdgeInsets.only(
-            left: 20,
-            right: 20,
-            top: 20,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+            left: AppMetrics.p20,
+            right: AppMetrics.p20,
+            top: AppMetrics.p20,
+            bottom: MediaQuery.of(context).viewInsets.bottom + AppMetrics.p20,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -121,9 +121,9 @@ class _ReportSubmissionDialogState
                   style: FilledButton.styleFrom(
                     backgroundColor: Theme.of(context).colorScheme.primary,
                     foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(AppShape.r12),
                     ),
                   ),
                   child: _isSubmitting
@@ -138,7 +138,7 @@ class _ReportSubmissionDialogState
                       : const Text(
                           'Submit Report',
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: AppType.s16,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -158,7 +158,7 @@ class _ReportSubmissionDialogState
         Text(
           'Report Content',
           style: TextStyle(
-            fontSize: 20,
+            fontSize: AppType.s20,
             fontWeight: FontWeight.w600,
             color: Theme.of(context).colorScheme.onSurface,
           ),
@@ -176,10 +176,10 @@ class _ReportSubmissionDialogState
 
   Widget _buildComingSoonWarning(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppMetrics.p12),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppShape.r8),
         border: Border.all(color: Theme.of(context).colorScheme.secondary),
       ),
       child: Row(
@@ -192,7 +192,7 @@ class _ReportSubmissionDialogState
                   ? 'This report will be reviewed and may result in content removal.'
                   : 'This report will be reviewed by our team. Enforcement requires manual review.',
               style: TextStyle(
-                fontSize: 13,
+                fontSize: AppType.s13,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
@@ -204,10 +204,10 @@ class _ReportSubmissionDialogState
 
   Widget _buildTargetInfo(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppMetrics.p12),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppShape.r8),
       ),
       child: Row(
         children: [
@@ -220,7 +220,7 @@ class _ReportSubmissionDialogState
                 Text(
                   'Reporting ${widget.targetType.displayName}',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: AppType.s12,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
@@ -229,7 +229,7 @@ class _ReportSubmissionDialogState
                   Text(
                     widget.targetTitle!,
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: AppType.s14,
                       fontWeight: FontWeight.w500,
                       color: Theme.of(context).colorScheme.onSurface,
                     ),

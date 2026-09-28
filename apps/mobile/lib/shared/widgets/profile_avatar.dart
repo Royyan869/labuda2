@@ -79,6 +79,7 @@ class ProfileAvatar extends StatelessWidget {
         isCircle: true,
         width: size,
         height: size,
+        cacheWidth: (size * 2).round(),
         backgroundColor: Theme.of(
           context,
         ).colorScheme.surfaceContainerHighest,

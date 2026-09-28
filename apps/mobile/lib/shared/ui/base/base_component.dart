@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Base class untuk semua reusable components
 /// Enforce consistent API dan behavior across components
@@ -103,7 +104,7 @@ class ComponentWrapper extends StatelessWidget {
             errorMessage!,
             style: TextStyle(
               color: Theme.of(context).colorScheme.error,
-              fontSize: 12,
+              fontSize: AppType.s12,
             ),
           ),
         ],

@@ -91,7 +91,7 @@ class OnlineBadge extends ConsumerWidget {
             width: 12,
             height: 12,
             decoration: BoxDecoration(
-              color: AppColors.success,
+              color: context.statusColors.success,
               shape: BoxShape.circle,
               border: Border.all(
                 color: Theme.of(context).colorScheme.surface,

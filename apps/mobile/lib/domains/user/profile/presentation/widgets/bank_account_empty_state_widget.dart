@@ -14,16 +14,16 @@ class BankAccountEmptyStateWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.all(AppMetrics.p32),
       decoration: BoxDecoration(
         color: scheme.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppShape.r16),
         border: Border.all(color: scheme.outlineVariant),
       ),
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(AppMetrics.p20),
             decoration: BoxDecoration(
               color: scheme.surfaceContainerHighest,
               shape: BoxShape.circle,
@@ -39,7 +39,7 @@ class BankAccountEmptyStateWidget extends StatelessWidget {
             'No Bank Account Yet',
             style: TextStyle(
               color: scheme.onSurface,
-              fontSize: 20,
+              fontSize: AppType.s20,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -49,7 +49,7 @@ class BankAccountEmptyStateWidget extends StatelessWidget {
             textAlign: TextAlign.center,
             style: TextStyle(
               color: scheme.onSurfaceVariant,
-              fontSize: 14,
+              fontSize: AppType.s14,
             ),
           ),
           const SizedBox(height: 24),
@@ -62,24 +62,24 @@ class BankAccountEmptyStateWidget extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(AppMetrics.p12),
             decoration: BoxDecoration(
-              color: AppColors.statusInfo.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
+              color: context.statusColors.info.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(AppShape.r8),
               border: Border.all(
-                color: AppColors.statusInfo.withValues(alpha: 0.3),
+                color: context.statusColors.info.withValues(alpha: 0.3),
               ),
             ),
             child: Row(
               children: [
-                const Icon(Icons.info_outline, color: AppColors.statusInfo, size: 16),
+                Icon(Icons.info_outline, color: context.statusColors.info, size: 16),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'Your bank account information is encrypted and secure.',
                     style: TextStyle(
                       color: scheme.onSurface,
-                      fontSize: 12,
+                      fontSize: AppType.s12,
                     ),
                   ),
                 ),

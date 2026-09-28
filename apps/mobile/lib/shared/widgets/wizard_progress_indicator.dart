@@ -37,7 +37,7 @@ class WizardProgressIndicator extends StatelessWidget {
     final stepSize = screenWidth < 360 ? 28.0 : 30.0;
 
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 8),
+      padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: AppMetrics.p8),
       child: LayoutBuilder(
         builder: (context, constraints) {
           final availableWidth = constraints.maxWidth;
@@ -116,14 +116,14 @@ class WizardProgressIndicator extends StatelessWidget {
             color: isActive
                 ? scheme.primary
                 : isCompleted
-                ? AppColors.successGreen
+                ? context.statusColors.success
                 : Colors.transparent,
             shape: BoxShape.circle,
             border: Border.all(
               color: isActive
                   ? scheme.primary
                   : isCompleted
-                  ? AppColors.successGreen
+                  ? context.statusColors.success
                   : scheme.outline,
               width: 1.5,
             ),
@@ -176,11 +176,11 @@ class WizardProgressIndicator extends StatelessWidget {
       width: width,
       height: 1.5,
       margin: EdgeInsets.only(
-        bottom: verticalOffset + 3,
+        bottom: verticalOffset + AppMetrics.p3,
       ), // +3 for label spacing
       decoration: BoxDecoration(
         color: isCompleted
-            ? AppColors.successGreen
+            ? context.statusColors.success
             : scheme.outlineVariant,
       ),
     );

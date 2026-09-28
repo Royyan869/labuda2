@@ -5,6 +5,7 @@ import 'package:labuda/core/common/types/preparation_time.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/domain/entities/for_sale.dart';
 import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_detail_primitives.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 class CommerceCommonProductDetailsData {
   final String? variety;
@@ -210,10 +211,10 @@ class _PreparationInfoBanner extends StatelessWidget {
               : Icons.schedule_outlined);
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppMetrics.p12),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(AppShape.r10),
         border: Border.all(color: theme.colorScheme.outlineVariant),
       ),
       child: Column(

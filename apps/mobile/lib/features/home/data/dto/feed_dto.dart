@@ -203,8 +203,9 @@ class FeedItemDto {
         origAuthorLc == null &&
         likeCount == null &&
         commentCount == null &&
-        visibility == base.visibility)
+        visibility == base.visibility) {
       return base;
+    }
     return FeedItemDto(
       id: base.id,
       authorId: base.authorId,

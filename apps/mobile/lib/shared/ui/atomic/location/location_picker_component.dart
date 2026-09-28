@@ -1,4 +1,4 @@
-import 'package:labuda/core/src/theme/app_colors.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:labuda/shared/ui/base/base_component.dart';
 
@@ -62,7 +62,7 @@ class LocationPickerComponent extends BaseComponent
         border: const OutlineInputBorder(),
         prefixIcon: const Icon(Icons.location_on_outlined),
         suffixIcon: isRequired
-            ? const Icon(Icons.star, size: 12, color: AppColors.error)
+            ? Icon(Icons.star, size: 12, color: context.statusColors.error)
             : null,
       ),
     );
@@ -82,18 +82,18 @@ class LocationPickerComponent extends BaseComponent
   Widget _buildCurrentLocation(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppMetrics.p12),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppShape.r8),
         border: Border.all(color: scheme.outlineVariant),
       ),
       child: Row(
         children: [
-          const Icon(Icons.location_on, color: AppColors.primary),
+          Icon(Icons.location_on, color: scheme.primary),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(initialLocation!, style: const TextStyle(fontSize: 14)),
+            child: Text(initialLocation!, style: const TextStyle(fontSize: AppType.s14)),
           ),
           IconButton(
             onPressed: () => _clearLocation(),

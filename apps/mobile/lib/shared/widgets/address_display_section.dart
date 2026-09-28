@@ -40,10 +40,10 @@ class AddressDisplaySection extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         color: scheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -98,17 +98,17 @@ class AddressDisplaySection extends StatelessWidget {
                 const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 2,
+                    horizontal: AppMetrics.p6,
+                    vertical: AppMetrics.p2,
                   ),
                   decoration: BoxDecoration(
                     color: scheme.primary,
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(AppShape.r4),
                   ),
                   child: Text(
                     'Primary',
                     style: TextStyle(
-                      fontSize: 10,
+                      fontSize: AppType.s10,
                       fontWeight: FontWeight.w600,
                       color: scheme.onPrimary,
                     ),
@@ -255,14 +255,14 @@ class AddressDisplaySection extends StatelessWidget {
                 Icon(
                   Icons.location_on,
                   size: 14,
-                  color: AppColors.statusSuccess,
+                  color: context.statusColors.success,
                 ),
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
                     'Pinpoint location available',
                     style: AppTypography.caption.copyWith(
-                      color: AppColors.statusSuccess,
+                      color: context.statusColors.success,
                     ),
                   ),
                 ),

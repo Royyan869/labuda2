@@ -103,22 +103,22 @@ class _ShareToChatDialogState extends ConsumerState<ShareToChatDialog> {
           ),
           decoration: BoxDecoration(
             color: backgroundColor,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(AppShape.r20)),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                margin: const EdgeInsets.only(top: 12),
+                margin: const EdgeInsets.only(top: AppMetrics.p12),
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
                   color: scheme.outlineVariant,
-                  borderRadius: BorderRadius.circular(2),
+                  borderRadius: BorderRadius.circular(AppShape.r2),
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+                padding: const EdgeInsets.fromLTRB(AppMetrics.p20, AppMetrics.p16, AppMetrics.p20, AppMetrics.p12),
                 child: Row(
                   children: [
                     Expanded(
@@ -144,7 +144,7 @@ class _ShareToChatDialogState extends ConsumerState<ShareToChatDialog> {
               Divider(height: 1, color: dividerColor),
               Flexible(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+                  padding: const EdgeInsets.fromLTRB(AppMetrics.p20, AppMetrics.p16, AppMetrics.p20, AppMetrics.p16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -178,7 +178,7 @@ class _ShareToChatDialogState extends ConsumerState<ShareToChatDialog> {
               ),
               Divider(height: 1, color: dividerColor),
               Padding(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(AppMetrics.p20),
                 child: Row(
                   children: [
                     Expanded(
@@ -187,10 +187,10 @@ class _ShareToChatDialogState extends ConsumerState<ShareToChatDialog> {
                             ? null
                             : () => Navigator.pop(context),
                         style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
                           side: BorderSide(color: borderColor),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(AppShape.r12),
                           ),
                         ),
                         child: Text(
@@ -208,9 +208,9 @@ class _ShareToChatDialogState extends ConsumerState<ShareToChatDialog> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: scheme.primary,
                           foregroundColor: scheme.onPrimary,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(AppShape.r12),
                           ),
                         ),
                         child: _isSending
@@ -256,15 +256,15 @@ class _ShareToChatDialogState extends ConsumerState<ShareToChatDialog> {
         filled: true,
         fillColor: scheme.surfaceContainerHigh,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppShape.r12),
           borderSide: BorderSide(color: borderColor),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppShape.r12),
           borderSide: BorderSide(color: borderColor),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppShape.r12),
           borderSide: BorderSide(color: scheme.primary, width: 2),
         ),
       ),
@@ -307,15 +307,15 @@ class _ShareToChatDialogState extends ConsumerState<ShareToChatDialog> {
           color: scheme.onSurfaceVariant,
         ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppShape.r12),
           borderSide: BorderSide(color: borderColor),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppShape.r12),
           borderSide: BorderSide(color: borderColor),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppShape.r12),
           borderSide: BorderSide(color: scheme.primary, width: 2),
         ),
       ),
@@ -499,7 +499,7 @@ class _ShareRecipientRow extends StatelessWidget {
       color: Colors.transparent,
       child: ListTile(
         onTap: onTap,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        contentPadding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p4),
         leading: ProfileAvatar(
           userId: user.userId,
           size: 40,

@@ -20,10 +20,10 @@ class _ShippingSetupPickerSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: Column(
@@ -31,7 +31,7 @@ class _ShippingSetupPickerSection extends StatelessWidget {
         children: [
           const Text(
             'Opsi Pengiriman',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: AppType.s18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
           if (!hasAddress)

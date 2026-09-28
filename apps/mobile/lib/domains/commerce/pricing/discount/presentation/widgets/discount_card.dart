@@ -27,12 +27,12 @@ class DiscountCard extends StatelessWidget {
     final isActive = discount.isActive;
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: AppMetrics.p12),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppMetrics.p16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -43,7 +43,7 @@ class DiscountCard extends StatelessWidget {
                     child: Text(
                       discount.code,
                       style: const TextStyle(
-                        fontSize: 18,
+                        fontSize: AppType.s18,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -60,7 +60,7 @@ class DiscountCard extends StatelessWidget {
                 discount.description,
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  fontSize: 14,
+                  fontSize: AppType.s14,
                 ),
               ),
               const SizedBox(height: 12),
@@ -68,10 +68,10 @@ class DiscountCard extends StatelessWidget {
               // Discount value
               Text(
                 _getDiscountValueText(),
-                style: const TextStyle(
-                  fontSize: 16,
+                style: TextStyle(
+                  fontSize: AppType.s16,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.primaryGreen,
+                  color: context.statusColors.success,
                 ),
               ),
               const SizedBox(height: 8),
@@ -80,7 +80,7 @@ class DiscountCard extends StatelessWidget {
               Text(
                 'Expires: ${_formatDate(discount.validUntil)}',
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: AppType.s12,
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
@@ -91,7 +91,7 @@ class DiscountCard extends StatelessWidget {
                 Text(
                   'Used: ${discount.currentUsageCount}/${discount.totalUsageLimit}',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: AppType.s12,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
@@ -115,25 +115,25 @@ class DiscountCard extends StatelessWidget {
       color = Theme.of(context).colorScheme.onSurfaceVariant;
       text = 'Expired';
     } else if (!isActive) {
-      color = AppColors.warning;
+      color = context.statusColors.warning;
       text = 'Inactive';
     } else {
-      color = AppColors.primaryGreen;
+      color = context.statusColors.success;
       text = 'Active';
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p4),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(color: color),
       ),
       child: Text(
         text,
         style: TextStyle(
           color: color,
-          fontSize: 12,
+          fontSize: AppType.s12,
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -199,13 +199,13 @@ class DiscountCard extends StatelessWidget {
             value: 'delete',
             child: Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.delete_outline,
                   size: 20,
-                  color: AppColors.error,
+                  color: context.statusColors.error,
                 ),
                 const SizedBox(width: 12),
-                const Text('Hapus', style: TextStyle(color: AppColors.error)),
+                Text('Hapus', style: TextStyle(color: context.statusColors.error)),
               ],
             ),
           )

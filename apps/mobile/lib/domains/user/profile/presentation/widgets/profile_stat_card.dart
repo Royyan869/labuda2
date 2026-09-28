@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Stat card widget for performance metrics
 /// Displays icon, value, and label in a compact card
@@ -19,10 +20,10 @@ class ProfileStatCard extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppMetrics.p12),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppShape.r8),
         border: Border.all(
           color: scheme.outlineVariant,
         ),
@@ -35,7 +36,7 @@ class ProfileStatCard extends StatelessWidget {
           Text(
             value,
             style: TextStyle(
-              fontSize: 18,
+              fontSize: AppType.s18,
               fontWeight: FontWeight.bold,
               color: scheme.onSurface,
             ),
@@ -44,7 +45,7 @@ class ProfileStatCard extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              fontSize: 11,
+              fontSize: AppType.s11,
               color: scheme.onSurfaceVariant,
             ),
             maxLines: 2,

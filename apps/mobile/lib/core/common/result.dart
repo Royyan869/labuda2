@@ -39,9 +39,6 @@ class Result<T> {
   /// Returns true if the result is an error
   bool get isError => !_isSuccess;
 
-  /// Alias for isError for backward compatibility
-  bool get isFailure => !_isSuccess;
-
   /// Returns the data if successful, null otherwise
   T? get data => _data;
 

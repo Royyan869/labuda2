@@ -5,6 +5,7 @@ import 'package:labuda/shared/shared.dart';
 import 'package:labuda/domains/user/profile/domain/entities/address_entity.dart';
 import 'package:labuda/domains/user/profile/data/profile_providers.dart'
     show addressRepositoryProvider;
+import 'package:labuda/core/src/theme/app_theme.dart';
 import 'add_edit_address_dialog/address_dialog_header.dart';
 import 'add_edit_address_dialog/address_dialog_actions.dart';
 import 'add_edit_address_dialog/address_form_fields.dart';
@@ -95,12 +96,12 @@ class _AddEditAddressDialogState extends ConsumerState<AddEditAddressDialog> {
 
     return Dialog(
       backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.all(24),
+      insetPadding: const EdgeInsets.all(AppMetrics.p24),
       child: Container(
         constraints: const BoxConstraints(maxWidth: 600, maxHeight: 700),
         decoration: BoxDecoration(
           color: scheme.surfaceContainerHigh,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(AppShape.r20),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -114,7 +115,7 @@ class _AddEditAddressDialogState extends ConsumerState<AddEditAddressDialog> {
             // Form
             Flexible(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(AppMetrics.p24),
                 child: Form(
                   key: _formKey,
                   child: AddressFormFields(

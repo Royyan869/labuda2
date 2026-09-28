@@ -50,7 +50,7 @@ class _ReportDescriptionFieldState extends State<ReportDescriptionField> {
             Text(
               'Additional details (optional)',
               style: TextStyle(
-                fontSize: 14,
+                fontSize: AppType.s14,
                 fontWeight: FontWeight.w500,
                 color: Theme.of(context).colorScheme.onSurface,
               ),
@@ -58,9 +58,9 @@ class _ReportDescriptionFieldState extends State<ReportDescriptionField> {
             Text(
               '$currentLength/$_maxLength',
               style: TextStyle(
-                fontSize: 12,
+                fontSize: AppType.s12,
                 color: currentLength > _maxLength * 0.9
-                    ? AppColors.warning
+                    ? context.statusColors.warning
                     : Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
@@ -81,31 +81,31 @@ class _ReportDescriptionFieldState extends State<ReportDescriptionField> {
             filled: true,
             fillColor: Theme.of(context).colorScheme.surfaceContainer,
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppShape.r12),
               borderSide: BorderSide(
                 color: Theme.of(context).colorScheme.outlineVariant,
               ),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppShape.r12),
               borderSide: BorderSide(
                 color: Theme.of(context).colorScheme.outlineVariant,
               ),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppShape.r12),
               borderSide: BorderSide(
                 color: Theme.of(context).colorScheme.secondary,
                 width: 2,
               ),
             ),
             disabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppShape.r12),
               borderSide: BorderSide(
                 color: Theme.of(context).colorScheme.outlineVariant,
               ),
             ),
-            contentPadding: const EdgeInsets.all(16),
+            contentPadding: const EdgeInsets.all(AppMetrics.p16),
           ),
           style: TextStyle(
             color: Theme.of(context).colorScheme.onSurface,
@@ -114,7 +114,7 @@ class _ReportDescriptionFieldState extends State<ReportDescriptionField> {
         const SizedBox(height: 8),
         Text(
           'Please don\'t include personal information like phone numbers or addresses.',
-          style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
+          style: TextStyle(fontSize: AppType.s12, color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
       ],
     );

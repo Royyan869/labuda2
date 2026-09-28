@@ -59,7 +59,7 @@ func TestNormalizeSelection_VideoOnly_Success(t *testing.T) {
 	}
 }
 
-func TestNormalizeSelection_MixedInterleaved_CanonicalOrdering(t *testing.T) {
+func TestNormalizeSelection_MixedInterleaved_PreservesOwnerOrdering(t *testing.T) {
 	items, err := NormalizeSelection([]MediaRequest{
 		{Type: "video", URL: "https://cdn.example.com/video-b.mp4", Duration: intPtr(11)},
 		{Type: "image", URL: "https://cdn.example.com/image-a.jpg"},
@@ -77,10 +77,10 @@ func TestNormalizeSelection_MixedInterleaved_CanonicalOrdering(t *testing.T) {
 		kind    mediaentity.MediaType
 		duration *int
 	}{
-		{"https://cdn.example.com/image-a.jpg", mediaentity.MediaTypeImage, nil},
-		{"https://cdn.example.com/image-b.jpg", mediaentity.MediaTypeImage, nil},
 		{"https://cdn.example.com/video-b.mp4", mediaentity.MediaTypeVideo, intPtr(11)},
+		{"https://cdn.example.com/image-a.jpg", mediaentity.MediaTypeImage, nil},
 		{"https://cdn.example.com/video-a.mp4", mediaentity.MediaTypeVideo, intPtr(10)},
+		{"https://cdn.example.com/image-b.jpg", mediaentity.MediaTypeImage, nil},
 	}
 	for i, w := range want {
 		if items[i].URL != w.url {

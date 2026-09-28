@@ -6,6 +6,7 @@ library;
 
 import 'package:dio/dio.dart';
 import 'package:labuda/core/api/api_client.dart';
+import 'package:labuda/core/common/result.dart';
 import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
 import '../dto/support_ticket_dto.dart';
 import '../dto/support_message_dto.dart';
@@ -36,7 +37,7 @@ class SupportApiDatasource {
   // ============================================================
 
   /// Execute request and return Result with data or error
-  Future<ApiResult<T>> _executeRequest<T>({
+  Future<Result<T>> _executeRequest<T>({
     required Future<Response<dynamic>> Function() request,
     required T Function(dynamic data) parser,
   }) async {
@@ -48,29 +49,34 @@ class SupportApiDatasource {
         // Handle standard API response with success field
         if (data['success'] == false && data['error'] != null) {
           final error = data['error'] as Map<String, dynamic>?;
-          return ApiResult.error(
+          return Result.error(
             error?['message']?.toString() ?? 'Request failed',
             code: error?['code']?.toString(),
+            statusCode: response.statusCode,
           );
         }
 
         // Parse the data field if available, otherwise use entire response
         final parsedData = data['data'] ?? data;
-        return ApiResult.success(parser(parsedData));
+        return Result.success(parser(parsedData));
       }
 
       // Direct data (not wrapped in standard format)
-      return ApiResult.success(parser(data));
+      return Result.success(parser(data));
     } on DioException catch (e) {
       final exception = _apiClient.extractException(e);
       _logger?.error(
         'API request failed: ${exception.message}',
         extra: {'code': exception.code, 'statusCode': exception.statusCode},
       );
-      return ApiResult.error(exception.message, code: exception.code);
+      return Result.error(
+        exception.message,
+        code: exception.code,
+        statusCode: exception.statusCode,
+      );
     } catch (e, stackTrace) {
       _logger?.error('Unexpected error: $e', stackTrace: stackTrace);
-      return ApiResult.error(e.toString());
+      return Result.error(e.toString());
     }
   }
 
@@ -89,22 +95,26 @@ class SupportApiDatasource {
   }
 
   /// Execute void request (no return data)
-  Future<ApiResult<void>> _executeVoidRequest({
+  Future<Result<void>> _executeVoidRequest({
     required Future<Response<dynamic>> Function() request,
   }) async {
     try {
       await request();
-      return ApiResult.success(null);
+      return Result.success(null);
     } on DioException catch (e) {
       final exception = _apiClient.extractException(e);
       _logger?.error(
         'API request failed: ${exception.message}',
         extra: {'code': exception.code, 'statusCode': exception.statusCode},
       );
-      return ApiResult.error(exception.message, code: exception.code);
+      return Result.error(
+        exception.message,
+        code: exception.code,
+        statusCode: exception.statusCode,
+      );
     } catch (e, stackTrace) {
       _logger?.error('Unexpected error: $e', stackTrace: stackTrace);
-      return ApiResult.error(e.toString());
+      return Result.error(e.toString());
     }
   }
 
@@ -120,7 +130,7 @@ class SupportApiDatasource {
   /// canonical wire value, and the linked order/reference is sent as
   /// `linked_order_id`. Ownership/identity is derived by the backend from the
   /// authenticated session — the client never sends a user id as authority.
-  Future<ApiResult<SupportTicketDto>> createTicket({
+  Future<Result<SupportTicketDto>> createTicket({
     required String category,
     required String priority,
     String? subject,
@@ -150,7 +160,7 @@ class SupportApiDatasource {
   /// Get ticket by ID via Go API
   ///
   /// GET /api/v1/support/tickets/{ticketId}
-  Future<ApiResult<SupportTicketDto?>> getTicket(String ticketId) async {
+  Future<Result<SupportTicketDto?>> getTicket(String ticketId) async {
     return _executeRequest<SupportTicketDto?>(
       request: () => _apiClient.get('$_basePath/tickets/$ticketId'),
       parser: (data) {
@@ -167,9 +177,7 @@ class SupportApiDatasource {
   ///
   /// The Support API is the sole identity authority for the ticket list — the
   /// chat room list must NOT be used to discover Support tickets.
-  Future<ApiResult<List<SupportTicketDto>>> getMyTickets({
-    int limit = 50,
-  }) async {
+  Future<Result<List<SupportTicketDto>>> getMyTickets({int limit = 50}) async {
     return _executeRequest<List<SupportTicketDto>>(
       request: () => _apiClient.get(
         '$_basePath/tickets',
@@ -199,7 +207,7 @@ class SupportApiDatasource {
   /// Reopen ticket via Go API (User-only)
   ///
   /// PUT /api/v1/support/tickets/{ticketId}/reopen
-  Future<ApiResult<void>> reopenTicket({
+  Future<Result<void>> reopenTicket({
     required String ticketId,
     required String userId,
   }) async {
@@ -226,7 +234,7 @@ class SupportApiDatasource {
   /// Get ticket events via Go API (Read-only for users)
   ///
   /// GET /api/v1/support/tickets/{ticketId}/events
-  Future<ApiResult<List<SupportEventDto>>> getEvents(
+  Future<Result<List<SupportEventDto>>> getEvents(
     String ticketId, {
     int limit = 100,
   }) async {
@@ -247,7 +255,7 @@ class SupportApiDatasource {
   /// Get ticket messages via Go API (Read-only for users)
   ///
   /// GET /api/v1/support/tickets/{ticketId}/messages
-  Future<ApiResult<List<SupportMessageDto>>> getMessages(
+  Future<Result<List<SupportMessageDto>>> getMessages(
     String ticketId, {
     int limit = 100,
   }) async {
@@ -272,7 +280,7 @@ class SupportApiDatasource {
   /// The request body carries ONLY the message text. The backend derives the
   /// sender from the authenticated session, so the client never supplies a
   /// sender identity (and one would be ignored server-side anyway).
-  Future<ApiResult<void>> sendMessage({
+  Future<Result<void>> sendMessage({
     required String ticketId,
     required String message,
   }) async {
@@ -282,36 +290,5 @@ class SupportApiDatasource {
         data: {'message': message},
       ),
     );
-  }
-}
-
-// ============================================================
-// API RESULT TYPE
-// ============================================================
-
-/// Result type for API operations
-class ApiResult<T> {
-  final T? data;
-  final String? error;
-  final String? code;
-
-  const ApiResult._({this.data, this.error, this.code});
-
-  factory ApiResult.success(T data) => ApiResult._(data: data);
-
-  factory ApiResult.error(String error, {String? code}) =>
-      ApiResult._(error: error, code: code);
-
-  bool get isSuccess => error == null;
-  bool get isError => error != null;
-
-  R fold<R>({
-    required R Function(T data) onSuccess,
-    required R Function(String error, String? code) onError,
-  }) {
-    if (isSuccess) {
-      return onSuccess(data as T);
-    }
-    return onError(error!, code);
   }
 }

@@ -101,16 +101,16 @@ class _SupportTicketsListScreenState
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(
+                Icon(
                   Icons.error_outline,
                   size: 48,
-                  color: AppColors.error,
+                  color: context.statusColors.error,
                 ),
                 const SizedBox(height: 16),
                 Text(
                   result?.failure?.message ?? 'Failed to load tickets',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(color: AppColors.error),
+                  style: TextStyle(color: context.statusColors.error),
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton(
@@ -137,7 +137,7 @@ class _SupportTicketsListScreenState
                 Text(
                   'No support tickets yet',
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: AppType.s18,
                     fontWeight: FontWeight.bold,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
@@ -147,7 +147,7 @@ class _SupportTicketsListScreenState
                   'Create a ticket to get help from our support team',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: AppType.s14,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
@@ -171,7 +171,7 @@ class _SupportTicketsListScreenState
         return RefreshIndicator(
           onRefresh: () async => _reload(),
           child: ListView.builder(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppMetrics.p16),
             itemCount: tickets.length,
             itemBuilder: (context, index) {
               final ticket = tickets[index];
@@ -226,13 +226,13 @@ class _SupportTicketListItem extends StatelessWidget {
         : ticket.description;
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.only(bottom: AppMetrics.p12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppShape.r12)),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppMetrics.p16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -254,7 +254,7 @@ class _SupportTicketListItem extends StatelessWidget {
                   Text(
                     SupportUtils.formatTimeAgo(lastActivity),
                     style: TextStyle(
-                      fontSize: 11,
+                      fontSize: AppType.s11,
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
@@ -269,7 +269,7 @@ class _SupportTicketListItem extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: AppType.s14,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
@@ -282,9 +282,9 @@ class _SupportTicketListItem extends StatelessWidget {
                 icon: const Icon(Icons.mail_outline, size: 16),
                 label: const Text('View Ticket'),
                 style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  padding: const EdgeInsets.symmetric(vertical: AppMetrics.p8),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(AppShape.r8),
                   ),
                 ),
               ),
@@ -301,21 +301,21 @@ class _SupportTicketListItem extends StatelessWidget {
     required int colorValue,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
       decoration: BoxDecoration(
         color: Color(colorValue).withAlpha(40),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(AppShape.r6),
         border: Border.all(color: Color(colorValue).withAlpha(128)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(icon, style: const TextStyle(fontSize: 11)),
+          Text(icon, style: const TextStyle(fontSize: AppType.s11)),
           const SizedBox(width: 4),
           Text(
             label,
             style: TextStyle(
-              fontSize: 10,
+              fontSize: AppType.s10,
               fontWeight: FontWeight.bold,
               color: Color(colorValue),
             ),

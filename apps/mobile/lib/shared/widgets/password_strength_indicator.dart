@@ -55,7 +55,7 @@ class PasswordStrengthIndicator extends StatelessWidget {
             Text(
               level.label,
               style: TextStyle(
-                fontSize: 12,
+                fontSize: AppType.s12,
                 fontWeight: FontWeight.w500,
                 color: color,
               ),
@@ -72,9 +72,9 @@ class PasswordStrengthIndicator extends StatelessWidget {
       case PasswordStrengthLevel.weak:
         return scheme.error;
       case PasswordStrengthLevel.medium:
-        return AppColors.warning;
+        return context.statusColors.warning;
       case PasswordStrengthLevel.strong:
-        return AppColors.success;
+        return context.statusColors.success;
     }
   }
 }

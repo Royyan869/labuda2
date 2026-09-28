@@ -57,7 +57,7 @@ class DiscountManagementInfoTooltip extends StatelessWidget {
               _buildFeatureSection(
                 context: context,
                 icon: Icons.delete_outline,
-                iconColor: AppColors.error,
+                iconColor: context.statusColors.error,
                 title: 'Hapus',
                 description: 'Permanently delete discount from system.',
                 rules: [
@@ -68,18 +68,18 @@ class DiscountManagementInfoTooltip extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(AppMetrics.p12),
                 decoration: BoxDecoration(
-                  color: AppColors.warning.withValues(alpha: 0.1),
-                  border: Border.all(color: AppColors.warning),
-                  borderRadius: BorderRadius.circular(8),
+                  color: context.statusColors.warning.withValues(alpha: 0.1),
+                  border: Border.all(color: context.statusColors.warning),
+                  borderRadius: BorderRadius.circular(AppShape.r8),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Icon(
                       Icons.lightbulb_outline,
-                      color: AppColors.warning,
+                      color: context.statusColors.warning,
                       size: 20,
                     ),
                     const SizedBox(width: 8),
@@ -87,8 +87,8 @@ class DiscountManagementInfoTooltip extends StatelessWidget {
                       child: Text(
                         'Tip: Use "Deactivate" to stop discount temporarily, and "Delete" to clean up incorrectly input or testing discounts.',
                         style: TextStyle(
-                          fontSize: 12,
-                          color: AppColors.warning,
+                          fontSize: AppType.s12,
+                          color: context.statusColors.warning,
                         ),
                       ),
                     ),
@@ -129,7 +129,7 @@ class DiscountManagementInfoTooltip extends StatelessWidget {
                 title,
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
-                  fontSize: 16,
+                  fontSize: AppType.s16,
                 ),
                 softWrap: true,
               ),
@@ -140,7 +140,7 @@ class DiscountManagementInfoTooltip extends StatelessWidget {
         Text(
           description,
           style: TextStyle(
-            fontSize: 14,
+            fontSize: AppType.s14,
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
           softWrap: true,
@@ -148,11 +148,11 @@ class DiscountManagementInfoTooltip extends StatelessWidget {
         const SizedBox(height: 8),
         ...rules.map(
           (rule) => Padding(
-            padding: const EdgeInsets.only(left: 8, top: 4),
+            padding: const EdgeInsets.only(left: AppMetrics.p8, top: AppMetrics.p4),
             child: Text(
               rule,
               style: TextStyle(
-                fontSize: 13,
+                fontSize: AppType.s13,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               softWrap: true,

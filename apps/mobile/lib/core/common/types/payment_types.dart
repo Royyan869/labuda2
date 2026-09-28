@@ -54,41 +54,19 @@ enum PaymentStatus {
   /// Payment refunded
   refunded;
 
-  /// Parse PaymentStatus from string value.
+  /// Parse a wire value into a [PaymentStatus].
   ///
-  /// Includes legacy support for removed/mapped values:
-  /// - 'completed' → paid (legacy mapping)
-  /// - 'settlement' → paid (backend Midtrans status)
-  /// - 'capture' → paid (backend Midtrans status)
+  /// The vocabulary IS the enum names: the backend owns payment state and
+  /// never puts gateway vocabulary on this wire (`midtrans_status` is a
+  /// forbidden response key). Anything else is a contract violation, and it is
+  /// rejected loudly instead of coerced — a settled payment that silently reads
+  /// as `pending` is a money-safety lie.
   static PaymentStatus fromString(String value) {
-    // First try direct match
+    final normalized = value.trim().toLowerCase();
     for (final status in PaymentStatus.values) {
-      if (status.name == value) {
-        return status;
-      }
+      if (status.name == normalized) return status;
     }
-
-    // Legacy fallback for removed/mapped statuses
-    switch (value.toLowerCase()) {
-      case 'completed':
-      case 'settlement':
-      case 'capture':
-        return PaymentStatus.paid;
-      case 'processing':
-      case 'process':
-      case 'challenge':
-        return PaymentStatus.processing;
-      case 'deny':
-      case 'cancel':
-      case 'cancelled':
-      case 'failed':
-        return PaymentStatus.failed;
-      case 'expire':
-      case 'expired':
-        return PaymentStatus.expired;
-      default:
-        return PaymentStatus.pending;
-    }
+    throw FormatException('Unknown payment status from wire: "$value"');
   }
 }
 
@@ -145,21 +123,8 @@ extension PaymentStatusExtension on PaymentStatus {
         this == PaymentStatus.refunded;
   }
 
-  /// Check if payment is successful
-  bool get isSuccessful {
-    return this == PaymentStatus.paid;
-  }
-
   /// Check if payment is still ongoing
   bool get isOngoing {
     return this == PaymentStatus.pending || this == PaymentStatus.processing;
   }
-
-  /// PHASE 1F: Alias for isSuccessful for backward compatibility
-  /// Some code uses isSuccess, some uses isSuccessful
-  bool get isSuccess => isSuccessful;
-
-  /// PHASE 1F: Alias for isTerminal for backward compatibility
-  /// Some code uses isFinal, some uses isTerminal
-  bool get isFinal => isTerminal;
 }

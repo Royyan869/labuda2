@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/shared/shared.dart';
+import 'package:labuda/core/core.dart';
 
 /// Custom AppBar yang konsisten dan tidak berubah warna saat scroll
 ///
@@ -35,14 +36,14 @@ class AppBarCustom extends StatelessWidget implements PreferredSizeWidget {
       title: Text(
         title,
         style: TextStyle(
-          fontSize: 18,
+          fontSize: AppType.s18,
           fontWeight: FontWeight.w600,
           color: scheme.onSurface,
         ),
       ),
       backgroundColor: scheme.surface,
       foregroundColor: scheme.onSurface,
-      elevation: 0,
+      elevation: AppElevation.none,
       centerTitle: centerTitle,
       surfaceTintColor: Colors.transparent, // CRITICAL: Prevent Material 3 tint
       scrolledUnderElevation: 0, // CRITICAL: Prevent scroll color change

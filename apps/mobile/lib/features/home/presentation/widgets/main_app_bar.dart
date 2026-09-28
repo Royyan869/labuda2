@@ -51,7 +51,7 @@ class MainAppBar extends ConsumerWidget implements PreferredSizeWidget {
     return AppBar(
       backgroundColor: scheme.surface,
       foregroundColor: scheme.onSurface,
-      elevation: 0,
+      elevation: AppElevation.none,
       surfaceTintColor: Colors.transparent,
       scrolledUnderElevation: 0,
       leading: IconButton(
@@ -128,10 +128,10 @@ class MainAppBar extends ConsumerWidget implements PreferredSizeWidget {
       onTap: () => _handleSearchTap(context, navigationHandler),
       child: Container(
         height: 40,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
+        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12),
         decoration: BoxDecoration(
           color: scheme.surfaceContainerHigh,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(AppShape.r20),
         ),
         child: Row(
           children: [
@@ -145,7 +145,7 @@ class MainAppBar extends ConsumerWidget implements PreferredSizeWidget {
               child: Text(
                 'Search...',
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: AppType.s14,
                   color: scheme.onSurfaceVariant,
                 ),
               ),

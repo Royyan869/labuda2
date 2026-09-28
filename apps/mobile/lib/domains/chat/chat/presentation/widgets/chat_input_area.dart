@@ -102,7 +102,7 @@ class _ChatInputAreaState extends ConsumerState<ChatInputArea> {
     final negotiationState = ref.watch(negotiationNotifierProvider);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p8),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         boxShadow: [
@@ -182,17 +182,17 @@ class _ChatInputAreaState extends ConsumerState<ChatInputArea> {
     } else if (status == NegotiationStatus.accepted) {
       statusLabel = 'Harga Disetujui!';
       nextStepHint = '• Segera checkout untuk mengunci barang';
-      statusColor = AppColors.successGreen;
+      statusColor = context.statusColors.success;
     } else {
       return const SizedBox.shrink();
     }
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      margin: const EdgeInsets.only(bottom: AppMetrics.p8),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p10),
       decoration: BoxDecoration(
         color: statusColor.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(AppShape.r10),
         border: Border.all(
           color: statusColor.withValues(alpha: 0.4),
           width: 1.2,
@@ -231,7 +231,7 @@ class _ChatInputAreaState extends ConsumerState<ChatInputArea> {
                     Text(
                       statusLabel,
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: AppType.s12,
                         fontWeight: FontWeight.w700,
                         color: statusColor,
                       ),
@@ -242,7 +242,7 @@ class _ChatInputAreaState extends ConsumerState<ChatInputArea> {
                 Text(
                   nextStepHint,
                   style: TextStyle(
-                    fontSize: 10,
+                    fontSize: AppType.s10,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                     height: 1.3,
                   ),
@@ -262,11 +262,11 @@ class _ChatInputAreaState extends ConsumerState<ChatInputArea> {
 
   Widget _buildReplyPreview(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(8),
+      margin: const EdgeInsets.only(bottom: AppMetrics.p8),
+      padding: const EdgeInsets.all(AppMetrics.p8),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppShape.r8),
       ),
       child: Row(
         children: [
@@ -275,7 +275,7 @@ class _ChatInputAreaState extends ConsumerState<ChatInputArea> {
             height: 40,
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.primary,
-              borderRadius: BorderRadius.circular(2),
+              borderRadius: BorderRadius.circular(AppShape.r2),
             ),
           ),
           const SizedBox(width: 8),
@@ -285,11 +285,11 @@ class _ChatInputAreaState extends ConsumerState<ChatInputArea> {
               children: [
                 Text(
                   'Replying to...',
-                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: AppType.s11, fontWeight: FontWeight.bold),
                 ),
                 Text(
                   'Message content preview...',
-                  style: TextStyle(fontSize: 12),
+                  style: TextStyle(fontSize: AppType.s12),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -326,7 +326,7 @@ class _ChatInputAreaState extends ConsumerState<ChatInputArea> {
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(AppShape.r24),
       ),
       child: TextField(
         controller: widget.messageController,
@@ -336,7 +336,7 @@ class _ChatInputAreaState extends ConsumerState<ChatInputArea> {
         decoration: const InputDecoration(
           hintText: 'Type a message...',
           border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          contentPadding: EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p8),
         ),
         textCapitalization: TextCapitalization.sentences,
         onSubmitted: canSend ? (_) => _handleSendMessage() : null,

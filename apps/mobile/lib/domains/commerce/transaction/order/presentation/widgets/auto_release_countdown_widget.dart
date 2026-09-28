@@ -99,24 +99,24 @@ class _AutoReleaseCountdownWidgetState
     final hasExpired = _remaining == Duration.zero;
 
     return Container(
-      padding: const EdgeInsets.all(12),
-      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(core.AppMetrics.p12),
+      margin: const EdgeInsets.only(bottom: core.AppMetrics.p12),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: hasExpired
               ? [
-                  _withOpacity(core.AppColors.successGreen, 0.15),
-                  _withOpacity(core.AppColors.successGreen, 0.05),
+                  _withOpacity(context.statusColors.success, 0.15),
+                  _withOpacity(context.statusColors.success, 0.05),
                 ]
               : [
                   _withOpacity(colorScheme.secondary, 0.1),
                   _withOpacity(colorScheme.secondary, 0.05),
                 ],
         ),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(core.AppShape.r12),
         border: Border.all(
           color: hasExpired
-              ? _withOpacity(core.AppColors.successGreen, 0.3)
+              ? _withOpacity(context.statusColors.success, 0.3)
               : _withOpacity(colorScheme.secondary, 0.3),
           width: 1,
         ),
@@ -132,14 +132,14 @@ class _AutoReleaseCountdownWidgetState
                 height: 32,
                 decoration: BoxDecoration(
                   color: hasExpired
-                      ? _withOpacity(core.AppColors.successGreen, 0.15)
+                      ? _withOpacity(context.statusColors.success, 0.15)
                       : _withOpacity(colorScheme.secondary, 0.15),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   hasExpired ? Icons.check_circle_outline : Icons.schedule,
                   color: hasExpired
-                      ? core.AppColors.successGreen
+                      ? context.statusColors.success
                       : colorScheme.secondary,
                   size: 18,
                 ),
@@ -153,7 +153,7 @@ class _AutoReleaseCountdownWidgetState
                       hasExpired
                           ? 'Waktu Pemeriksaan Barang Berakhir'
                           : 'Waktu Pemeriksaan Barang',                        style: TextStyle(
-                          fontSize: 13,
+                          fontSize: core.AppType.s13,
                           fontWeight: FontWeight.w600,
                           color: colorScheme.onSurface,
                         ),
@@ -164,7 +164,7 @@ class _AutoReleaseCountdownWidgetState
                             ? 'Selama masa ini Anda masih bisa menghubungi penjual atau mengajukan bantuan'
                             : 'Proses penjualan akan selesai setelah masa ini berakhir',
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: core.AppType.s11,
                           color: colorScheme.onSurfaceVariant,
                         ),
                       ),
@@ -195,7 +195,7 @@ class _AutoReleaseCountdownWidgetState
                     ? 'Masa pemeriksaan telah berakhir'
                     : 'Berakhir: ${AppFormatters.formatDate(widget.autoReleaseAt!)}',
                 style: TextStyle(
-                  fontSize: 10,
+                  fontSize: core.AppType.s10,
                   color: colorScheme.onSurfaceVariant,
                 ),
               ),
@@ -221,9 +221,9 @@ class _CountdownDisplay extends StatelessWidget {
     // Color coding based on urgency
     Color getColor() {
       if (days <= 0) {
-        return core.AppColors.statusError; // Red - urgent
+        return context.statusColors.error; // Red - urgent
       } else if (days <= 1) {
-        return core.AppColors.statusWarning; // Orange - soon
+        return context.statusColors.warning; // Orange - soon
       } else {
         return colorScheme.secondary; // Blue - normal
       }
@@ -235,10 +235,10 @@ class _CountdownDisplay extends StatelessWidget {
     final daysText = days > 0 ? '$days hari lagi' : 'Hari terakhir';
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: core.AppMetrics.p16, vertical: core.AppMetrics.p12),
       decoration: BoxDecoration(
         color: _withOpacity(color, 0.1),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(core.AppShape.r8),
         border: Border.all(color: _withOpacity(color, 0.3), width: 1),
       ),
       child: Row(
@@ -249,7 +249,7 @@ class _CountdownDisplay extends StatelessWidget {
           Text(
             daysText,
             style: TextStyle(
-              fontSize: 16,
+              fontSize: core.AppType.s16,
               fontWeight: FontWeight.bold,
               color: color,
             ),

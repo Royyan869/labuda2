@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 import '../../domain/entities/account_status.dart';
 import '../providers/auth_controller.dart';
@@ -33,7 +34,7 @@ class AccountRestrictedScreen extends ConsumerWidget {
     return Scaffold(
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32),
+          padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p32),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -74,10 +75,10 @@ class AccountRestrictedScreen extends ConsumerWidget {
 
               // Support info
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(AppMetrics.p16),
                 decoration: BoxDecoration(
                   color: theme.colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(AppShape.r12),
                 ),
                 child: Row(
                   children: [
@@ -106,7 +107,7 @@ class AccountRestrictedScreen extends ConsumerWidget {
                   icon: const Icon(Icons.logout),
                   label: const Text('Keluar'),
                   style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
                   ),
                 ),
               ),

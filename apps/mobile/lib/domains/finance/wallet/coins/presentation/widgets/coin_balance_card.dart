@@ -43,7 +43,7 @@ class _CoinBalanceCardState extends State<CoinBalanceCard> {
               Text(
                 'LABUDA Coins adalah poin loyalitas yang memberikan Anda potongan harga saat checkout.',
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: AppType.s14,
                   height: 1.5,
                   fontWeight: FontWeight.w600,
                 ),
@@ -55,7 +55,7 @@ class _CoinBalanceCardState extends State<CoinBalanceCard> {
                 '• Bonus pendaftaran pengguna baru\n'
                 '• Promo dan kampanye khusus\n'
                 '• Reward referral dan ulasan',
-                style: TextStyle(fontSize: 13, height: 1.6),
+                style: TextStyle(fontSize: AppType.s13, height: 1.6),
               ),
               SizedBox(height: 12),
               Text(
@@ -67,7 +67,7 @@ class _CoinBalanceCardState extends State<CoinBalanceCard> {
                 '• Maksimal 1.000.000 coins\n'
                 '• Coins tidak pernah kadaluarsa',
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: AppType.s12,
                   height: 1.5,
                   fontStyle: FontStyle.italic,
                   color: AppColors.coinPrimary,
@@ -93,11 +93,11 @@ class _CoinBalanceCardState extends State<CoinBalanceCard> {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p12, AppMetrics.p16, AppMetrics.p12),
+      padding: const EdgeInsets.all(AppMetrics.p20),
       decoration: BoxDecoration(
         gradient: AppColors.coinGradient,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppShape.r16),
         boxShadow: [
           BoxShadow(
             color: AppColors.coinPrimary.withValues(alpha: 0.4),
@@ -120,7 +120,7 @@ class _CoinBalanceCardState extends State<CoinBalanceCard> {
                   Text(
                     'Coins',
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: AppType.s13,
                       color: colorScheme.onPrimary,
                       fontWeight: FontWeight.w500,
                     ),
@@ -156,7 +156,7 @@ class _CoinBalanceCardState extends State<CoinBalanceCard> {
                           ? '${formatGroupedAmount(widget.balance.balance)} Coins'
                           : '******** Coins',
                       style: TextStyle(
-                        fontSize: 28,
+                        fontSize: AppType.s28,
                         fontWeight: FontWeight.bold,
                         color: colorScheme.onPrimary,
                       ),
@@ -167,7 +167,7 @@ class _CoinBalanceCardState extends State<CoinBalanceCard> {
                           ? '~Potongan Rp ${formatGroupedAmount(widget.balance.balance * 10)}'
                           : '~Potongan Rp ********',
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: AppType.s13,
                         color: colorScheme.onPrimary.withValues(alpha: 0.9),
                       ),
                     ),
@@ -192,12 +192,12 @@ class _CoinBalanceCardState extends State<CoinBalanceCard> {
           if (isNearMaxBalance || isAtMaxBalance) ...[
             const SizedBox(height: 12),
             Container(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(AppMetrics.p10),
               decoration: BoxDecoration(
                 color: isAtMaxBalance
-                    ? AppColors.statusError.withValues(alpha: 0.3)
-                    : AppColors.statusWarning.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(8),
+                    ? context.statusColors.error.withValues(alpha: 0.3)
+                    : context.statusColors.warning.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(AppShape.r8),
               ),
               child: Row(
                 children: [
@@ -213,7 +213,7 @@ class _CoinBalanceCardState extends State<CoinBalanceCard> {
                           ? 'Maksimal coins tercapai (1.000.000)'
                           : 'Mendekati batas maksimal coins',
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: AppType.s11,
                         color: colorScheme.onPrimary,
                         fontWeight: FontWeight.w500,
                       ),
@@ -234,7 +234,7 @@ class _CoinBalanceCardState extends State<CoinBalanceCard> {
                 icon: const Icon(Icons.history, size: 16),
                 label: const Text(
                   'Lihat Riwayat',
-                  style: TextStyle(fontSize: 13),
+                  style: TextStyle(fontSize: AppType.s13),
                 ),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: colorScheme.onPrimary,
@@ -242,9 +242,9 @@ class _CoinBalanceCardState extends State<CoinBalanceCard> {
                     color: colorScheme.onPrimary,
                     width: 1.5,
                   ),
-                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  padding: const EdgeInsets.symmetric(vertical: AppMetrics.p10),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(AppShape.r8),
                   ),
                 ),
               ),

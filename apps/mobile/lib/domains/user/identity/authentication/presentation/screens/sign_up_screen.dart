@@ -72,7 +72,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
 
     // Setup animations
     _animationController = AnimationController(
-      duration: const Duration(milliseconds: 1200),
+      duration: AppMotion.ambient,
       vsync: this,
     );
 
@@ -299,7 +299,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
             listenable: _controller,
             builder: (context, child) {
               return SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(AppMetrics.p24),
                 child: Form(
                   key: _formKey,
                   child: Column(
@@ -360,12 +360,12 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
         // complete-profile screen (one language, one authority).
         if (_backendUsernameError != null)
           Padding(
-            padding: const EdgeInsets.only(top: 8),
+            padding: const EdgeInsets.only(top: AppMetrics.p8),
             child: Text(
               _backendUsernameError!,
-              style: const TextStyle(
-                color: AppColors.error,
-                fontSize: 12,
+              style: TextStyle(
+                color: context.statusColors.error,
+                fontSize: AppType.s12,
               ),
             ),
           ),
@@ -381,10 +381,10 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
         ),
         if (_backendEmailError != null)
           Padding(
-            padding: const EdgeInsets.only(top: 8),
+            padding: const EdgeInsets.only(top: AppMetrics.p8),
             child: Text(
               _backendEmailError!,
-              style: const TextStyle(color: AppColors.error, fontSize: 12),
+              style: TextStyle(color: context.statusColors.error, fontSize: AppType.s12),
             ),
           ),
 
@@ -485,17 +485,17 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
                   },
                   activeColor: scheme.primary,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(AppShape.r4),
                   ),
                 ),
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.only(top: 12),
+                    padding: const EdgeInsets.only(top: AppMetrics.p12),
                     child: Text.rich(
                       TextSpan(
                         text: 'I agree with ',
                         style: TextStyle(
-                          fontSize: 13,
+                          fontSize: AppType.s13,
                           color: scheme.onSurface,
                         ),
                         children: [
@@ -516,10 +516,10 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
             ),
             if (formFieldState.hasError)
               Padding(
-                padding: const EdgeInsets.only(left: 12, top: 8),
+                padding: const EdgeInsets.only(left: AppMetrics.p12, top: AppMetrics.p8),
                 child: Text(
                   formFieldState.errorText!,
-                  style: TextStyle(color: AppColors.error, fontSize: 12),
+                  style: TextStyle(color: context.statusColors.error, fontSize: AppType.s12),
                 ),
               ),
           ],

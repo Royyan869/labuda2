@@ -6,6 +6,8 @@ library;
 
 import 'dart:async';
 
+import 'package:labuda/core/api/api_error_codes.dart';
+import 'package:labuda/core/common/result.dart';
 import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
 import 'package:labuda/domains/system/support/data/datasources/support_api_datasource.dart';
 import 'package:labuda/domains/system/support/domain/domain.dart';
@@ -14,7 +16,7 @@ import 'package:labuda/domains/system/support/domain/domain.dart';
 ///
 /// This class:
 /// - Uses SupportApiDatasource for Go API operations
-/// - Converts ApiResult to SupportResult
+/// - Converts `Result<T>` to SupportResult
 /// - Returns `SupportResult<T>` for all operations
 /// - Knows nothing about Firebase/Firestore
 class SupportRepositoryApi implements SupportRepository {
@@ -57,13 +59,11 @@ class SupportRepositoryApi implements SupportRepository {
         linkedOrderId: linkedOrderId,
       );
 
-      return result.fold(
-        onError: (error, code) {
-          _logger?.error('Failed to create support ticket: $error');
-          return SupportResult.failure(_mapApiErrorToFailure(error, code));
-        },
-        onSuccess: (dto) => SupportResult.success(dto.id),
-      );
+      if (result.isError) {
+        _logger?.error('Failed to create support ticket: ${result.error}');
+        return SupportResult.failure(_mapApiErrorToFailure(result));
+      }
+      return SupportResult.success(result.data!.id);
     } catch (e, stackTrace) {
       _logger?.error('Error creating support ticket', stackTrace: stackTrace);
       return SupportResult.failure(
@@ -81,24 +81,16 @@ class SupportRepositoryApi implements SupportRepository {
     try {
       final result = await _datasource.getTicket(ticketId);
 
-      return result.fold(
-        onError: (error, code) {
-          if (code == '404') {
-            return SupportResult.failure(
-              SupportFailureNotFound(message: error, originalError: code),
-            );
-          }
-          return SupportResult.failure(_mapApiErrorToFailure(error, code));
-        },
-        onSuccess: (dto) {
-          if (dto == null) {
-            return SupportResult.failure(
-              const SupportFailureNotFound(message: 'Support ticket not found'),
-            );
-          }
-          return SupportResult.success(dto.toEntity());
-        },
-      );
+      if (result.isError) {
+        return SupportResult.failure(_mapApiErrorToFailure(result));
+      }
+      final dto = result.data;
+      if (dto == null) {
+        return SupportResult.failure(
+          const SupportFailureNotFound(message: 'Support ticket not found'),
+        );
+      }
+      return SupportResult.success(dto.toEntity());
     } catch (e, stackTrace) {
       _logger?.error('Error getting ticket', stackTrace: stackTrace);
       return SupportResult.failure(
@@ -108,15 +100,17 @@ class SupportRepositoryApi implements SupportRepository {
   }
 
   @override
-  Future<SupportResult<List<SupportTicket>>> getMyTickets({int limit = 50}) async {
+  Future<SupportResult<List<SupportTicket>>> getMyTickets({
+    int limit = 50,
+  }) async {
     try {
       final result = await _datasource.getMyTickets(limit: limit);
 
-      return result.fold(
-        onError: (error, code) =>
-            SupportResult.failure(_mapApiErrorToFailure(error, code)),
-        onSuccess: (dtos) =>
-            SupportResult.success(dtos.map((dto) => dto.toEntity()).toList()),
+      if (result.isError) {
+        return SupportResult.failure(_mapApiErrorToFailure(result));
+      }
+      return SupportResult.success(
+        result.data!.map((dto) => dto.toEntity()).toList(),
       );
     } catch (e, stackTrace) {
       _logger?.error('Error listing my tickets', stackTrace: stackTrace);
@@ -148,11 +142,10 @@ class SupportRepositoryApi implements SupportRepository {
         userId: request.userId,
       );
 
-      return result.fold(
-        onError: (error, code) =>
-            SupportResult.failure(_mapApiErrorToFailure(error, code)),
-        onSuccess: (_) => SupportResult.success(null),
-      );
+      if (result.isError) {
+        return SupportResult.failure(_mapApiErrorToFailure(result));
+      }
+      return SupportResult.success(null);
     } catch (e, stackTrace) {
       _logger?.error('Error reopening ticket', stackTrace: stackTrace);
       return SupportResult.failure(
@@ -184,11 +177,11 @@ class SupportRepositoryApi implements SupportRepository {
     try {
       final result = await _datasource.getMessages(ticketId, limit: limit);
 
-      return result.fold(
-        onError: (error, code) =>
-            SupportResult.failure(_mapApiErrorToFailure(error, code)),
-        onSuccess: (dtos) =>
-            SupportResult.success(dtos.map((dto) => dto.toEntity()).toList()),
+      if (result.isError) {
+        return SupportResult.failure(_mapApiErrorToFailure(result));
+      }
+      return SupportResult.success(
+        result.data!.map((dto) => dto.toEntity()).toList(),
       );
     } catch (e, stackTrace) {
       _logger?.error('Error getting ticket messages', stackTrace: stackTrace);
@@ -216,11 +209,10 @@ class SupportRepositoryApi implements SupportRepository {
         message: trimmed,
       );
 
-      return result.fold(
-        onError: (error, code) =>
-            SupportResult.failure(_mapApiErrorToFailure(error, code)),
-        onSuccess: (_) => SupportResult.success(null),
-      );
+      if (result.isError) {
+        return SupportResult.failure(_mapApiErrorToFailure(result));
+      }
+      return SupportResult.success(null);
     } catch (e, stackTrace) {
       _logger?.error('Error sending ticket message', stackTrace: stackTrace);
       return SupportResult.failure(
@@ -237,11 +229,11 @@ class SupportRepositoryApi implements SupportRepository {
     try {
       final result = await _datasource.getEvents(ticketId, limit: limit);
 
-      return result.fold(
-        onError: (error, code) =>
-            SupportResult.failure(_mapApiErrorToFailure(error, code)),
-        onSuccess: (dtos) =>
-            SupportResult.success(dtos.map((dto) => dto.toEntity()).toList()),
+      if (result.isError) {
+        return SupportResult.failure(_mapApiErrorToFailure(result));
+      }
+      return SupportResult.success(
+        result.data!.map((dto) => dto.toEntity()).toList(),
       );
     } catch (e, stackTrace) {
       _logger?.error('Error getting ticket events', stackTrace: stackTrace);
@@ -255,30 +247,40 @@ class SupportRepositoryApi implements SupportRepository {
   // HELPER METHODS
   // ============================================================
 
-  /// Map API error code to SupportFailure
-  SupportFailure _mapApiErrorToFailure(String error, String? code) {
-    switch (code) {
-      case '403':
-      case '401':
-        return SupportFailurePermission(message: error);
-      case '404':
-        return SupportFailureNotFound(message: error);
-      case '409':
-        return SupportFailureAlreadyAssigned(message: error);
-      case '400':
-        return SupportFailureValidation(message: error);
+  /// Classify a failed `Result` into a [SupportFailure].
+  ///
+  /// The classification branches on the two machine-readable channels the API
+  /// layer preserved — `Result.statusCode` (HTTP envelope) and
+  /// `Result.errorCode` (backend/transport code) — never on the human message.
+  /// Message-text matching (`'already assigned'`, `'network'`, …) silently
+  /// mislabels every failure whose wording drifts, and it can never see a
+  /// transport failure at all: those carry a transport code from
+  /// `api_error_codes.dart`, never a connectivity word in the message.
+  SupportFailure _mapApiErrorToFailure(Result<Object?> result) {
+    final error = result.error ?? 'Request failed';
+    final code = result.errorCode;
+
+    // Transport failures are decided by the canonical transport predicate,
+    // NOT by whether the message happens to contain a connectivity word.
+    if (isTransportFailureCode(code)) {
+      return SupportFailureNetwork(message: error, originalError: code);
+    }
+
+    switch (result.statusCode) {
+      case 401:
+      case 403:
+        return SupportFailurePermission(message: error, originalError: code);
+      case 404:
+        return SupportFailureNotFound(message: error, originalError: code);
+      case 409:
+        return SupportFailureAlreadyAssigned(
+          message: error,
+          originalError: code,
+        );
+      case 400:
+      case 422:
+        return SupportFailureValidation(message: error, originalError: code);
       default:
-        if (error.contains('already assigned')) {
-          return SupportFailureAlreadyAssigned(message: error);
-        }
-        if (error.contains('already resolved')) {
-          return SupportFailureAlreadyResolved(message: error);
-        }
-        if (error.contains('network') ||
-            error.contains('connection') ||
-            error.contains('timeout')) {
-          return SupportFailureNetwork(message: error);
-        }
         return SupportFailureUnknown(message: error, originalError: code);
     }
   }

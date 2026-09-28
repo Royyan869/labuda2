@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Build tab label with count indicator
 Widget buildLinkPickerTabLabel(BuildContext context, String label, int count) {
@@ -10,15 +11,15 @@ Widget buildLinkPickerTabLabel(BuildContext context, String label, int count) {
       if (count > 0) ...[
         const SizedBox(width: 6),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p6, vertical: AppMetrics.p2),
           decoration: BoxDecoration(
             color: scheme.primary,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(AppShape.r10),
           ),
           child: Text(
             count.toString(),
             style: TextStyle(
-              fontSize: 10,
+              fontSize: AppType.s10,
               fontWeight: FontWeight.bold,
               color: scheme.onPrimary,
             ),

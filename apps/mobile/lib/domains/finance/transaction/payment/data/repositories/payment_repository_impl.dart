@@ -5,11 +5,11 @@
 /// PHASE 1F: Payment domain closure - using unified PaymentStatus from core
 library;
 
+import 'package:labuda/core/common/result.dart';
 import 'package:labuda/core/core.dart' as core show ILoggerService;
 
 import '../../domain/entities/payment.dart';
 import '../../domain/entities/payment_intent.dart';
-import '../../domain/failures/payment_failure.dart';
 import '../../domain/repositories/payment_repository.dart';
 import '../mappers/payment_mapper.dart';
 import '../remote/payment_remote_datasource.dart';
@@ -26,14 +26,14 @@ class PaymentRepositoryImpl implements PaymentRepository {
        _logger = logger;
 
   @override
-  Future<RepositoryResult<PaymentIntent>> createPayment(
+  Future<Result<PaymentIntent>> createPayment(
     CreatePaymentRequest request,
   ) async {
     try {
       // Validate request
       final validationError = request.validate();
       if (validationError != null) {
-        return RepositoryResult.failure(ValidationFailure(validationError));
+        return Result.error(validationError);
       }
 
       final dto = PaymentMapper.toCreatePaymentDto(request);
@@ -41,56 +41,52 @@ class PaymentRepositoryImpl implements PaymentRepository {
 
       if (result.isSuccess && result.data != null) {
         final intent = PaymentMapper.toPaymentIntentEntity(result.data!);
-        return RepositoryResult.success(intent);
+        return Result.success(intent);
       }
 
-      return RepositoryResult.failure(_mapApiError(result.error));
+      return _forwardFailure<PaymentIntent>(result);
     } catch (e, stackTrace) {
       _logger.error(
         'Error creating payment',
         extra: {'error': e.toString()},
         stackTrace: stackTrace,
       );
-      return RepositoryResult.failure(UnknownFailure(e.toString()));
+      return Result.error(e.toString());
     }
   }
 
   @override
-  Future<RepositoryResult<Payment>> getPayment(String paymentId) async {
+  Future<Result<Payment>> getPayment(String paymentId) async {
     try {
       if (paymentId.isEmpty) {
-        return RepositoryResult.failure(
-          ValidationFailure('Payment ID is required'),
-        );
+        return Result.error('Payment ID is required');
       }
 
       final result = await _datasource.getPayment(paymentId);
 
       if (result.isSuccess && result.data != null) {
         final payment = PaymentMapper.toPaymentEntity(result.data!);
-        return RepositoryResult.success(payment);
+        return Result.success(payment);
       }
 
-      return RepositoryResult.failure(_mapApiError(result.error));
+      return _forwardFailure<Payment>(result);
     } catch (e, stackTrace) {
       _logger.error(
         'Error getting payment',
         extra: {'error': e.toString()},
         stackTrace: stackTrace,
       );
-      return RepositoryResult.failure(UnknownFailure(e.toString()));
+      return Result.error(e.toString());
     }
   }
 
   @override
-  Future<RepositoryResult<List<PaymentMethodOption>>> getPaymentMethodOptions(
+  Future<Result<List<PaymentMethodOption>>> getPaymentMethodOptions(
     String orderId,
   ) async {
     try {
       if (orderId.isEmpty) {
-        return RepositoryResult.failure(
-          ValidationFailure('Order ID is required'),
-        );
+        return Result.error('Order ID is required');
       }
 
       final result = await _datasource.getPaymentMethods(orderId);
@@ -106,45 +102,32 @@ class PaymentRepositoryImpl implements PaymentRepository {
               ),
             )
             .toList();
-        return RepositoryResult.success(options);
+        return Result.success(options);
       }
 
-      return RepositoryResult.failure(_mapApiError(result.error));
+      return _forwardFailure<List<PaymentMethodOption>>(result);
     } catch (e, stackTrace) {
       _logger.error(
         'Error getting payment method options',
         extra: {'error': e.toString()},
         stackTrace: stackTrace,
       );
-      return RepositoryResult.failure(UnknownFailure(e.toString()));
+      return Result.error(e.toString());
     }
   }
 
-  /// Map API error to PaymentFailure
-  PaymentFailure _mapApiError(dynamic error) {
-    if (error == null) {
-      return const UnknownFailure('Unknown error');
-    }
-
-    final errorStr = error.toString();
-
-    // Check for common error patterns
-    if (errorStr.contains('network') || errorStr.contains('connection')) {
-      return NetworkFailure(errorStr);
-    }
-
-    if (errorStr.contains('not found')) {
-      return PaymentNotFoundFailure('payment');
-    }
-
-    if (errorStr.contains('expired')) {
-      return PaymentExpiredFailure(DateTime.now());
-    }
-
-    if (errorStr.contains('invalid') || errorStr.contains('validation')) {
-      return ValidationFailure(errorStr);
-    }
-
-    return UnknownFailure(errorStr);
-  }
+  /// Forward the API layer's failure verbatim.
+  ///
+  /// The backend `code` is the authority for *what kind* of failure this is.
+  /// The previous error mapper re-derived a kind by grepping the error text for
+  /// 'network' / 'not found' / 'expired' / 'invalid', then fabricated a typed
+  /// payload for it — a second classification that could only fire by accident
+  /// and discarded the real code. Transport and parse failures carry no code,
+  /// and their message is then the only truth there is.
+  Result<T> _forwardFailure<T>(Result<Object?> source) => Result.error(
+        source.error ?? 'Unknown error',
+        code: source.errorCode,
+        statusCode: source.statusCode,
+        details: source.errorDetails,
+      );
 }

@@ -14,13 +14,8 @@ class AppConstants {
   static const String roleSupportAdmin = 'support_admin';
   static const String roleSuperAdmin = 'super_admin';
 
-  // Media Limits
-  static const int maxPhotosPerPost = 10;
-  static const int maxVideosPerPost = 1;
-  static const int maxVideoSizeMb = 100;
   static const int maxCommerceVideoDurationMs = 60000;
   static const int maxContentVideoDurationMs = 60000;
-  static const int maxPhotoSizeMb = 10;
 
   // Text Limits
   static const int maxTitleLength = 100;

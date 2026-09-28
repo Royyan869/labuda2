@@ -1,4 +1,3 @@
-import 'package:labuda/core/src/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:labuda/core/core.dart';
 
@@ -77,7 +76,7 @@ class AppSnackBar {
     // Clear existing snackbar
     ScaffoldMessenger.of(context).clearSnackBars();
 
-    final config = _getTypeConfig(
+    final config = _getTypeConfig(context, 
       type,
       Theme.of(context).colorScheme,
     );
@@ -104,7 +103,7 @@ class AppSnackBar {
                 style: TextStyle(
                   color: scheme.onPrimary,
                   fontWeight: FontWeight.w500,
-                  fontSize: 14,
+                  fontSize: AppType.s14,
                 ),
               ),
             ),
@@ -112,10 +111,10 @@ class AppSnackBar {
         ),
         backgroundColor: config.color,
         behavior: SnackBarBehavior.floating,
-        margin: EdgeInsets.only(bottom: bottomMargin, left: 16, right: 16),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: EdgeInsets.only(bottom: bottomMargin, left: AppMetrics.p16, right: AppMetrics.p16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppShape.r12)),
         duration: duration,
-        elevation: 6,
+        elevation: AppElevation.snackBar,
         action: duration.inSeconds > 3
             ? SnackBarAction(
                 label: 'Close',
@@ -130,19 +129,19 @@ class AppSnackBar {
   }
 
   /// Get configuration berdasarkan type
-  static _SnackBarConfig _getTypeConfig(
+  static _SnackBarConfig _getTypeConfig(BuildContext context,
     AppSnackBarType type,
     ColorScheme scheme,
   ) {
     switch (type) {
       case AppSnackBarType.success:
         return _SnackBarConfig(
-          color: AppColors.statusSuccess,
+          color: context.statusColors.success,
           icon: Icons.check_circle_outline,
         );
       case AppSnackBarType.error:
         return _SnackBarConfig(
-          color: AppColors.statusError,
+          color: context.statusColors.error,
           icon: Icons.error_outline,
         );
       case AppSnackBarType.info:
@@ -154,7 +153,7 @@ class AppSnackBar {
         );
       case AppSnackBarType.warning:
         return _SnackBarConfig(
-          color: AppColors.statusWarning,
+          color: context.statusColors.warning,
           icon: Icons.warning_amber_outlined,
         );
     }

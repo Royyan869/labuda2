@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/domains/social/follow/domain/entities/follow_entity.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 class UserSearchBar extends StatelessWidget {
   final String query;
@@ -29,10 +30,10 @@ class UserSearchBar extends StatelessWidget {
       children: [
         // Search field
         Container(
-          margin: const EdgeInsets.all(16),
+          margin: const EdgeInsets.all(AppMetrics.p16),
           decoration: BoxDecoration(
             color: colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(28),
+            borderRadius: BorderRadius.circular(AppShape.r28),
             border: Border.all(
               color: colorScheme.outline.withValues(alpha: 0.3),
             ),
@@ -51,14 +52,14 @@ class UserSearchBar extends StatelessWidget {
                       color: colorScheme.onSurfaceVariant,
                     ),
                     border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                    contentPadding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
                   ),
                   style: theme.textTheme.bodyMedium,
                 ),
               ),
               if (isSearching)
                 Padding(
-                  padding: const EdgeInsets.only(right: 16),
+                  padding: const EdgeInsets.only(right: AppMetrics.p16),
                   child: SizedBox(
                     width: 16,
                     height: 16,
@@ -84,7 +85,7 @@ class UserSearchBar extends StatelessWidget {
         // Filter chips
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16),
           child: Row(
             children: [
               // All users
@@ -99,7 +100,7 @@ class UserSearchBar extends StatelessWidget {
               // User types
               ...UserType.values.map(
                 (type) => Padding(
-                  padding: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.only(right: AppMetrics.p8),
                   child: _buildFilterChip(
                     context,
                     label: _getUserTypeLabel(type),

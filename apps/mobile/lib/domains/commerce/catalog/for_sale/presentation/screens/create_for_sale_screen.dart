@@ -294,14 +294,14 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
         ),
         backgroundColor: scheme.surface,
         foregroundColor: scheme.onSurface,
-        elevation: 0,
+        elevation: AppElevation.none,
         surfaceTintColor: Colors.transparent,
         scrolledUnderElevation: 0,
       ),
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppMetrics.p16),
           children: [
             // Basic Info Section
             const _SectionTitle('Informasi Dasar'),
@@ -318,9 +318,13 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
             MediaGridUploader(
               mediaUrls: _mediaUrls,
               onMediaAdded: (url) => setState(() => _mediaUrls.add(url)),
-              onMediaRemoved: (index) =>
-                  setState(() => _mediaUrls.removeAt(index)),
-            ),
+               onMediaRemoved: (index) =>
+                   setState(() => _mediaUrls.removeAt(index)),
+               onMediaReordered: (oldIndex, newIndex) => setState(() {
+                 final item = _mediaUrls.removeAt(oldIndex);
+                 _mediaUrls.insert(newIndex, item);
+               }),
+             ),
 
             const SizedBox(height: 24),
 
@@ -368,11 +372,11 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
             const _SectionTitle('Kesiapan Pengiriman'),
             const SizedBox(height: 8),
             Padding(
-              padding: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.only(bottom: AppMetrics.p12),
               child: Text(
                 'Informasikan kepada pembeli berapa lama waktu yang Anda butuhkan untuk menyiapkan ikan sebelum dikirim.',
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: AppType.s13,
                   color: scheme.onSurfaceVariant,
                 ),
               ),
@@ -403,10 +407,10 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
             // Error message
             if (_errorMessage != null)
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(AppMetrics.p12),
                 decoration: BoxDecoration(
                   color: scheme.error.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(AppShape.r8),
                   border: Border.all(
                     color: scheme.error.withValues(alpha: 0.3),
                   ),
@@ -415,7 +419,7 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
                   _errorMessage!,
                   style: TextStyle(
                     color: scheme.onSurface,
-                    fontSize: 14,
+                    fontSize: AppType.s14,
                   ),
                 ),
               ),
@@ -446,7 +450,7 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
                   : Text(
                       'Publikasikan ForSale',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: AppType.s16,
                         fontWeight: FontWeight.w600,
                         color: scheme.onPrimary,
                       ),
@@ -488,7 +492,7 @@ class _SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       title,
-      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+      style: const TextStyle(fontSize: AppType.s18, fontWeight: FontWeight.bold),
     );
   }
 }
@@ -870,10 +874,10 @@ class _PreparationTimeSelector extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppMetrics.p12),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(color: scheme.outlineVariant),
       ),
       child: Column(
@@ -881,7 +885,7 @@ class _PreparationTimeSelector extends StatelessWidget {
         children: [
           const Text(
             'Waktu Persiapan *',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+            style: TextStyle(fontSize: AppType.s14, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 12),
           Wrap(
@@ -891,17 +895,17 @@ class _PreparationTimeSelector extends StatelessWidget {
               final isSelected = selected == time;
               return InkWell(
                 onTap: () => onChanged(time),
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(AppShape.r20),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
+                    horizontal: AppMetrics.p16,
+                    vertical: AppMetrics.p10,
                   ),
                   decoration: BoxDecoration(
                     color: isSelected
                         ? scheme.primary
                         : scheme.surface,
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(AppShape.r20),
                     border: Border.all(
                       color: isSelected
                           ? scheme.primary
@@ -930,7 +934,7 @@ class _PreparationTimeSelector extends StatelessWidget {
                           color: isSelected
                               ? scheme.onPrimary
                               : scheme.onSurface,
-                          fontSize: 13,
+                          fontSize: AppType.s13,
                           fontWeight: isSelected
                               ? FontWeight.w600
                               : FontWeight.normal,
@@ -946,7 +950,7 @@ class _PreparationTimeSelector extends StatelessWidget {
           Text(
             selected.description,
             style: TextStyle(
-              fontSize: 12,
+              fontSize: AppType.s12,
               color: scheme.onSurfaceVariant,
             ),
           ),

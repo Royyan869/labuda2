@@ -7,8 +7,9 @@ import 'package:labuda/domains/system/notification/presentation/widgets/in_app_n
 
 // Flutter
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 export 'package:labuda/domains/system/notification/presentation/widgets/in_app_notification_banner.dart'
-    show BannerAction;
+    show BannerAction, BannerTone;
 
 /// In-App Banner Service
 ///
@@ -152,7 +153,7 @@ class InAppBannerService {
     if (_bannerQueue.isNotEmpty) {
       final next = _bannerQueue.removeFirst();
       // Small delay before showing next banner
-      Future.delayed(const Duration(milliseconds: 300), () {
+      Future.delayed(AppMotion.settled, () {
         _showBannerInternal(
           context: next.context,
           overlay: next.overlay,

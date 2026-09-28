@@ -33,7 +33,7 @@ class SuggestedMessagesWidgetRefactored extends StatelessWidget {
           text: template,
           category: 'Greeting',
           icon: Icons.waving_hand,
-          color: AppColors.statusSuccess,
+          color: context.statusColors.success,
         ),
       ),
 
@@ -43,7 +43,7 @@ class SuggestedMessagesWidgetRefactored extends StatelessWidget {
           text: text,
           category: 'Acknowledgment',
           icon: Icons.check_circle_outline,
-          color: AppColors.statusInfo,
+          color: context.statusColors.info,
         ),
       ),
 
@@ -61,7 +61,7 @@ class SuggestedMessagesWidgetRefactored extends StatelessWidget {
           text: text,
           category: 'Follow Up',
           icon: Icons.help_outline,
-          color: AppColors.statusWarning,
+          color: context.statusColors.warning,
         ),
       ),
 
@@ -70,14 +70,14 @@ class SuggestedMessagesWidgetRefactored extends StatelessWidget {
           text: text,
           category: 'Closing',
           icon: Icons.thumb_up,
-          color: AppColors.primaryGreen,
+          color: context.statusColors.success,
         ),
       ),
     ];
 
     return Container(
       height: 120,
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: AppMetrics.p8),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainer,
         border: Border(
@@ -92,7 +92,7 @@ class SuggestedMessagesWidgetRefactored extends StatelessWidget {
         children: [
           // Header
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16),
             child: Row(
               children: [
                 Icon(
@@ -104,7 +104,7 @@ class SuggestedMessagesWidgetRefactored extends StatelessWidget {
                 Text(
                   'Suggested Messages',
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: AppType.s11,
                     fontWeight: FontWeight.w600,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
@@ -118,7 +118,7 @@ class SuggestedMessagesWidgetRefactored extends StatelessWidget {
           Expanded(
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16),
               itemCount: messages.length,
               separatorBuilder: (context, index) => const SizedBox(width: 8),
               itemBuilder: (context, index) {
@@ -138,12 +138,12 @@ class SuggestedMessagesWidgetRefactored extends StatelessWidget {
   ) {
     return InkWell(
       onTap: () => onMessageSelected(message.text),
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(AppShape.r20),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p14, vertical: AppMetrics.p12),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(AppShape.r20),
           border: Border.all(
             color: message.color.withValues(alpha: 0.3),
             width: 1.5,
@@ -159,7 +159,7 @@ class SuggestedMessagesWidgetRefactored extends StatelessWidget {
               child: Text(
                 message.text,
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: AppType.s14,
                   color: Theme.of(context).colorScheme.onSurface,
                 ),
                 maxLines: 2,

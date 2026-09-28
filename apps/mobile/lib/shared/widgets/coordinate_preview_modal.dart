@@ -3,6 +3,7 @@ import 'package:labuda/core/src/config/google_config.dart';
 import 'package:labuda/shared/entities/post_location.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Modal untuk preview koordinat dengan opsi Edit dan Lihat Maps
 ///
@@ -100,7 +101,7 @@ class CoordinatePreviewModal extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: scheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(AppShape.r20)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -108,19 +109,19 @@ class CoordinatePreviewModal extends StatelessWidget {
           // Drag handle
           Center(
             child: Container(
-              margin: const EdgeInsets.only(top: 12, bottom: 8),
+              margin: const EdgeInsets.only(top: AppMetrics.p12, bottom: AppMetrics.p8),
               width: 40,
               height: 4,
               decoration: BoxDecoration(
                 color: scheme.onSurfaceVariant,
-                borderRadius: BorderRadius.circular(2),
+                borderRadius: BorderRadius.circular(AppShape.r2),
               ),
             ),
           ),
 
           // Header
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p8),
             child: Row(
               children: [
                 Icon(Icons.location_on, color: scheme.primary, size: 24),
@@ -129,7 +130,7 @@ class CoordinatePreviewModal extends StatelessWidget {
                   child: Text(
                     'Pinpoint Location',
                     style: TextStyle(
-                      fontSize: 18,
+                      fontSize: AppType.s18,
                       fontWeight: FontWeight.bold,
                       color: scheme.onSurfaceVariant,
                     ),
@@ -152,9 +153,9 @@ class CoordinatePreviewModal extends StatelessWidget {
           Container(
             height: 180,
             width: double.infinity,
-            margin: const EdgeInsets.symmetric(horizontal: 16),
+            margin: const EdgeInsets.symmetric(horizontal: AppMetrics.p16),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppShape.r12),
               color: scheme.surfaceContainerHighest,
             ),
             clipBehavior: Clip.antiAlias,
@@ -170,12 +171,12 @@ class CoordinatePreviewModal extends StatelessWidget {
 
           // Coordinates Display
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppMetrics.p16),
             child: Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(AppMetrics.p12),
               decoration: BoxDecoration(
                 color: scheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(AppShape.r8),
                 border: Border.all(
                   color: scheme.onSurfaceVariant,
                 ),
@@ -191,7 +192,7 @@ class CoordinatePreviewModal extends StatelessWidget {
                         Text(
                           'Coordinates',
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: AppType.s12,
                             color: scheme.onSurfaceVariant,
                           ),
                         ),
@@ -199,7 +200,7 @@ class CoordinatePreviewModal extends StatelessWidget {
                         Text(
                           '${latitude.toStringAsFixed(6)}, ${longitude.toStringAsFixed(6)}',
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: AppType.s14,
                             fontFamily: 'monospace',
                             fontWeight: FontWeight.w500,
                             color: scheme.onSurfaceVariant,
@@ -216,11 +217,11 @@ class CoordinatePreviewModal extends StatelessWidget {
           // Address if available
           if (address != null && address!.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16),
               child: Text(
                 address!,
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: AppType.s13,
                   color: scheme.onSurfaceVariant,
                 ),
                 textAlign: TextAlign.center,
@@ -231,7 +232,7 @@ class CoordinatePreviewModal extends StatelessWidget {
 
           // Action Buttons
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppMetrics.p16),
             child: Row(
               children: [
                 // Edit Button (only if callback provided)
@@ -244,9 +245,9 @@ class CoordinatePreviewModal extends StatelessWidget {
                       style: OutlinedButton.styleFrom(
                         foregroundColor: scheme.primary,
                         side: BorderSide(color: scheme.primary),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        padding: const EdgeInsets.symmetric(vertical: AppMetrics.p12),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(AppShape.r8),
                         ),
                       ),
                     ),
@@ -263,9 +264,9 @@ class CoordinatePreviewModal extends StatelessWidget {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: scheme.primary,
                       foregroundColor: scheme.onPrimary,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      padding: const EdgeInsets.symmetric(vertical: AppMetrics.p12),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(AppShape.r8),
                       ),
                     ),
                   ),
@@ -295,7 +296,7 @@ class CoordinatePreviewModal extends StatelessWidget {
           Text(
             'Preview not available',
             style: TextStyle(
-              fontSize: 12,
+              fontSize: AppType.s12,
               color: scheme.onSurfaceVariant,
             ),
           ),

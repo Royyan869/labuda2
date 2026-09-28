@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 // Internal
-import 'package:labuda/core/src/theme/app_colors.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 import 'package:labuda/domains/chat/chat/presentation/providers/chat_providers.dart';
 import 'package:labuda/domains/user/identity/authentication/authentication.dart';
 
@@ -50,16 +50,16 @@ class ChatBadgeWidget extends ConsumerWidget {
           top: -6,
           child: Container(
             padding: EdgeInsets.symmetric(
-              horizontal: unreadCount > 99
-                  ? 3
-                  : unreadCount > 9
-                  ? 4
-                  : 4,
-              vertical: 2,
+              horizontal: unreadCount > AppMetrics.p99
+                  ? AppMetrics.p3
+                  : unreadCount > AppMetrics.p9
+                  ? AppMetrics.p4
+                  : AppMetrics.p4,
+              vertical: AppMetrics.p2,
             ),
             decoration: BoxDecoration(
-              color: AppColors.statusError,
-              borderRadius: BorderRadius.circular(10),
+              color: context.statusColors.error,
+              borderRadius: BorderRadius.circular(AppShape.r10),
               boxShadow: [
                 BoxShadow(
                   color: colorScheme.shadow.withValues(alpha: 0.2),
@@ -73,7 +73,7 @@ class ChatBadgeWidget extends ConsumerWidget {
               unreadCount > 99 ? '99+' : unreadCount.toString(),
               style: TextStyle(
                 color: colorScheme.onError,
-                fontSize: 9,
+                fontSize: AppType.s9,
                 fontWeight: FontWeight.w600,
                 height: 1.1,
               ),

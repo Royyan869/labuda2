@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Reusable drawer item component
 ///
@@ -41,23 +42,23 @@ class MainDrawerItem extends StatelessWidget {
           color: isDestructive
               ? scheme.error
               : scheme.onSurface,
-          fontSize: 16,
+          fontSize: AppType.s16,
           fontWeight: FontWeight.w500,
         ),
       ),
       trailing: badge != null && badge! > 0
           ? Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
               decoration: BoxDecoration(
                 color: scheme.error,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(AppShape.r12),
               ),
               constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
               child: Text(
                 badge! > 99 ? '99+' : badge.toString(),
                 style: TextStyle(
                   color: scheme.onError,
-                  fontSize: 12,
+                  fontSize: AppType.s12,
                   fontWeight: FontWeight.bold,
                 ),
                 textAlign: TextAlign.center,

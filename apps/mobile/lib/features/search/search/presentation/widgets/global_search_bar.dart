@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/features/search/search/domain/entities/search_result.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Global search bar widget for unified search
 class GlobalSearchBar extends ConsumerStatefulWidget {
@@ -107,12 +108,12 @@ class _GlobalSearchBarState extends ConsumerState<GlobalSearchBar> {
         filled: true,
         fillColor: scheme.surfaceContainerHigh,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppShape.r12),
           borderSide: BorderSide.none,
         ),
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 12,
+          horizontal: AppMetrics.p16,
+          vertical: AppMetrics.p12,
         ),
       ),
     );
@@ -162,7 +163,7 @@ class _GlobalSearchBarState extends ConsumerState<GlobalSearchBar> {
         fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
       ),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(AppShape.r20),
         side: BorderSide(
           color: isSelected ? scheme.primary : Colors.transparent,
         ),

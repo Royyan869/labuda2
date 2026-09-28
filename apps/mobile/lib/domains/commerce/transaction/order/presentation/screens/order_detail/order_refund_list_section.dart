@@ -50,13 +50,13 @@ class OrderRefundListSection extends ConsumerWidget {
         isSeller && latestRefund.status == RefundStatus.pendingSellerReview;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: core.AppMetrics.p16),
+      padding: const EdgeInsets.all(core.AppMetrics.p16),
       decoration: BoxDecoration(
         color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(core.AppShape.r12),
         border: Border.all(
-          color: _getStatusColor(
+          color: _getStatusColor(context, 
             latestRefund.status,
             colorScheme,
           ).withValues(alpha: 0.3),
@@ -71,7 +71,7 @@ class OrderRefundListSection extends ConsumerWidget {
               Icon(
                 Icons.currency_exchange,
                 size: 20,
-                color: _getStatusColor(latestRefund.status, colorScheme),
+                color: _getStatusColor(context, latestRefund.status, colorScheme),
               ),
               const SizedBox(width: 8),
               Text(
@@ -169,20 +169,20 @@ class OrderRefundListSection extends ConsumerWidget {
     );
   }
 
-  Color _getStatusColor(RefundStatus status, ColorScheme colorScheme) {
+  Color _getStatusColor(BuildContext context, RefundStatus status, ColorScheme colorScheme) {
     switch (status) {
       case RefundStatus.pendingSellerReview:
-        return core.AppColors.statusWarning;
+        return context.statusColors.warning;
       case RefundStatus.sellerApproved:
       case RefundStatus.adminApproved:
-        return core.AppColors.statusSuccess;
+        return context.statusColors.success;
       case RefundStatus.escalatedToAdmin:
         return colorScheme.secondary;
       case RefundStatus.sellerRejected:
       case RefundStatus.rejected:
-        return core.AppColors.statusError;
+        return context.statusColors.error;
       case RefundStatus.refunded:
-        return core.AppColors.primaryGreen;
+        return context.statusColors.success;
     }
   }
 }
@@ -207,8 +207,8 @@ class _BuyerEscalationButton extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           backgroundColor: colorScheme.secondary,
           foregroundColor: colorScheme.onSecondary,
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p12),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(core.AppShape.r8)),
         ),
         icon: const Icon(Icons.gavel_rounded, size: 18),
         label: const Text('Ajukan ke Admin (Eskalasi)'),
@@ -237,11 +237,11 @@ class _SellerDecisionButtons extends StatelessWidget {
           child: OutlinedButton.icon(
             onPressed: onReject,
             style: OutlinedButton.styleFrom(
-              foregroundColor: core.AppColors.statusError,
-              side: const BorderSide(color: core.AppColors.statusError),
-              padding: const EdgeInsets.symmetric(vertical: 12),
+              foregroundColor: context.statusColors.error,
+              side: BorderSide(color: context.statusColors.error),
+              padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p12),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(core.AppShape.r8),
               ),
             ),
             icon: const Icon(Icons.cancel_outlined, size: 18),
@@ -253,11 +253,11 @@ class _SellerDecisionButtons extends StatelessWidget {
           child: ElevatedButton.icon(
             onPressed: onApprove,
             style: ElevatedButton.styleFrom(
-              backgroundColor: core.AppColors.statusSuccess,
+              backgroundColor: context.statusColors.success,
               foregroundColor: Theme.of(context).colorScheme.onPrimary,
-              padding: const EdgeInsets.symmetric(vertical: 12),
+              padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p12),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(core.AppShape.r8),
               ),
             ),
             icon: const Icon(Icons.check_circle_outline, size: 18),
@@ -280,22 +280,22 @@ class _StatusBadge extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: core.AppMetrics.p8, vertical: core.AppMetrics.p4),
       decoration: BoxDecoration(
-        color: _getBadgeColor(colorScheme).withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
+        color: _getBadgeColor(context, colorScheme).withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(core.AppShape.r8),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(status.emoji, style: const TextStyle(fontSize: 12)),
+          Text(status.emoji, style: const TextStyle(fontSize: core.AppType.s12)),
           const SizedBox(width: 4),
           Text(
             status.displayName,
             style: theme.textTheme.bodySmall?.copyWith(
-              color: _getBadgeColor(colorScheme),
+              color: _getBadgeColor(context, colorScheme),
               fontWeight: FontWeight.w600,
-              fontSize: 11,
+              fontSize: core.AppType.s11,
             ),
           ),
         ],
@@ -303,20 +303,20 @@ class _StatusBadge extends StatelessWidget {
     );
   }
 
-  Color _getBadgeColor(ColorScheme colorScheme) {
+  Color _getBadgeColor(BuildContext context, ColorScheme colorScheme) {
     switch (status) {
       case RefundStatus.pendingSellerReview:
-        return core.AppColors.statusWarning;
+        return context.statusColors.warning;
       case RefundStatus.sellerApproved:
       case RefundStatus.adminApproved:
-        return core.AppColors.statusSuccess;
+        return context.statusColors.success;
       case RefundStatus.escalatedToAdmin:
         return colorScheme.secondary;
       case RefundStatus.sellerRejected:
       case RefundStatus.rejected:
-        return core.AppColors.statusError;
+        return context.statusColors.error;
       case RefundStatus.refunded:
-        return core.AppColors.primaryGreen;
+        return context.statusColors.success;
     }
   }
 }
@@ -385,22 +385,22 @@ class _StatusMessageBanner extends StatelessWidget {
 
     switch (refund.status) {
       case RefundStatus.pendingSellerReview:
-        bgColor = core.AppColors.statusWarning.withValues(alpha: 0.1);
-        textColor = core.AppColors.statusWarning;
+        bgColor = context.statusColors.warning.withValues(alpha: 0.1);
+        textColor = context.statusColors.warning;
         icon = Icons.hourglass_empty;
         message = 'Menunggu respon penjual';
         break;
 
       case RefundStatus.sellerApproved:
-        bgColor = core.AppColors.statusSuccess.withValues(alpha: 0.1);
-        textColor = core.AppColors.statusSuccess;
+        bgColor = context.statusColors.success.withValues(alpha: 0.1);
+        textColor = context.statusColors.success;
         icon = Icons.check_circle_outline;
         message = 'Disetujui oleh penjual';
         break;
 
       case RefundStatus.sellerRejected:
-        bgColor = core.AppColors.statusError.withValues(alpha: 0.1);
-        textColor = core.AppColors.statusError;
+        bgColor = context.statusColors.error.withValues(alpha: 0.1);
+        textColor = context.statusColors.error;
         icon = Icons.cancel_outlined;
         message = 'Ditolak penjual';
         break;
@@ -413,32 +413,32 @@ class _StatusMessageBanner extends StatelessWidget {
         break;
 
       case RefundStatus.adminApproved:
-        bgColor = core.AppColors.statusSuccess.withValues(alpha: 0.1);
-        textColor = core.AppColors.statusSuccess;
+        bgColor = context.statusColors.success.withValues(alpha: 0.1);
+        textColor = context.statusColors.success;
         icon = Icons.verified;
         message = 'Disetujui oleh admin';
         break;
 
       case RefundStatus.rejected:
-        bgColor = core.AppColors.statusError.withValues(alpha: 0.1);
-        textColor = core.AppColors.statusError;
+        bgColor = context.statusColors.error.withValues(alpha: 0.1);
+        textColor = context.statusColors.error;
         icon = Icons.cancel_outlined;
         message = 'Permintaan ditolak penjual';
         break;
 
       case RefundStatus.refunded:
-        bgColor = core.AppColors.primaryGreen.withValues(alpha: 0.1);
-        textColor = core.AppColors.primaryGreen;
+        bgColor = context.statusColors.success.withValues(alpha: 0.1);
+        textColor = context.statusColors.success;
         icon = Icons.currency_exchange;
         message = 'Pengembalian diproses';
         break;
     }
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(core.AppMetrics.p12),
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(core.AppShape.r8),
       ),
       child: Row(
         children: [

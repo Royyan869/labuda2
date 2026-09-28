@@ -30,15 +30,15 @@ class AddressMapPickerField extends StatelessWidget {
       children: [
         InkWell(
           onTap: () => _showLocationPicker(context),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppShape.r12),
           child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            padding: const EdgeInsets.symmetric(vertical: AppMetrics.p12, horizontal: AppMetrics.p16),
             decoration: BoxDecoration(
               color: scheme.onSurfaceVariant,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppShape.r12),
               border: Border.all(
                 color: hasCoordinates
-                    ? AppColors.success
+                    ? context.statusColors.success
                     : scheme.onSurfaceVariant,
                 width: hasCoordinates ? 2 : 1,
               ),
@@ -49,7 +49,7 @@ class AddressMapPickerField extends StatelessWidget {
                   hasCoordinates ? Icons.check_circle : Icons.map_outlined,
                   size: 20,
                   color: hasCoordinates
-                      ? AppColors.success
+                      ? context.statusColors.success
                       : scheme.onSurfaceVariant,
                 ),
                 const SizedBox(width: 12),
@@ -62,10 +62,10 @@ class AddressMapPickerField extends StatelessWidget {
                             ? 'Pinpoint Location Saved'
                             : 'Select Location on Map',
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: AppType.s14,
                           fontWeight: FontWeight.w500,
                           color: hasCoordinates
-                              ? AppColors.success
+                              ? context.statusColors.success
                               : scheme.onSurfaceVariant,
                         ),
                       ),
@@ -73,7 +73,7 @@ class AddressMapPickerField extends StatelessWidget {
                         Text(
                           '${latitude!.toStringAsFixed(6)}, ${longitude!.toStringAsFixed(6)}',
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: AppType.s11,
                             fontFamily: 'monospace',
                             color: scheme.onSurfaceVariant,
                           ),
@@ -94,7 +94,7 @@ class AddressMapPickerField extends StatelessWidget {
         Text(
           'Pinpoint location to facilitate delivery',
           style: TextStyle(
-            fontSize: 11,
+            fontSize: AppType.s11,
             color: scheme.onSurfaceVariant,
           ),
         ),

@@ -56,7 +56,7 @@ class _ShareAsPostDialogState extends ConsumerState<ShareAsPostDialog> {
 
     return Dialog(
       backgroundColor: backgroundColor,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppShape.r16)),
       child: Container(
         constraints: const BoxConstraints(maxWidth: 500),
         child: Column(
@@ -64,7 +64,7 @@ class _ShareAsPostDialogState extends ConsumerState<ShareAsPostDialog> {
           children: [
             // Header
             Padding(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(AppMetrics.p20),
               child: Row(
                 children: [
                   Expanded(
@@ -101,7 +101,7 @@ class _ShareAsPostDialogState extends ConsumerState<ShareAsPostDialog> {
 
                     // Caption input
                     Padding(
-                      padding: const EdgeInsets.all(20),
+                      padding: const EdgeInsets.all(AppMetrics.p20),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -130,21 +130,21 @@ class _ShareAsPostDialogState extends ConsumerState<ShareAsPostDialog> {
                                 color: scheme.onSurfaceVariant,
                               ),
                               border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(AppShape.r12),
                                 borderSide: BorderSide(color: borderColor),
                               ),
                               enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(AppShape.r12),
                                 borderSide: BorderSide(color: borderColor),
                               ),
                               focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(AppShape.r12),
                                 borderSide: BorderSide(
                                   color: scheme.primary,
                                   width: 2,
                                 ),
                               ),
-                              contentPadding: const EdgeInsets.all(16),
+                              contentPadding: const EdgeInsets.all(AppMetrics.p16),
                             ),
                           ),
                         ],
@@ -159,7 +159,7 @@ class _ShareAsPostDialogState extends ConsumerState<ShareAsPostDialog> {
 
             // Action buttons
             Padding(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(AppMetrics.p20),
               child: Row(
                 children: [
                   Expanded(
@@ -168,10 +168,10 @@ class _ShareAsPostDialogState extends ConsumerState<ShareAsPostDialog> {
                           ? null
                           : () => Navigator.pop(context),
                       style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
                         side: BorderSide(color: borderColor),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(AppShape.r12),
                         ),
                       ),
                       child: Text(
@@ -187,9 +187,9 @@ class _ShareAsPostDialogState extends ConsumerState<ShareAsPostDialog> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: scheme.primary,
                         foregroundColor: scheme.onPrimary,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(AppShape.r12),
                         ),
                       ),
                       child: _isLoading

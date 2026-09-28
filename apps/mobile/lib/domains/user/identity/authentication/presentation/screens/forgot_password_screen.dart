@@ -44,7 +44,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen>
 
     // Setup animations
     _animationController = AnimationController(
-      duration: const Duration(milliseconds: 1200),
+      duration: AppMotion.ambient,
       vsync: this,
     );
 
@@ -131,7 +131,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen>
             listenable: _controller,
             builder: (context, child) {
               return SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(AppMetrics.p24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -204,7 +204,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen>
   Widget _buildSuccessView() {
     return Column(
       children: [
-        Icon(Icons.mark_email_read, size: 80, color: AppColors.success),
+        Icon(Icons.mark_email_read, size: 80, color: context.statusColors.success),
         const SizedBox(height: 32),
         AuthButton.secondary(text: 'Resend Email', onPressed: _handleResend),
       ],

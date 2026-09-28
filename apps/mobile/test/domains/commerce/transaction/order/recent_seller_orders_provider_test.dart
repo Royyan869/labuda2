@@ -1,14 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:labuda/core/common/result.dart';
 import 'package:labuda/domains/commerce/transaction/order/order.dart';
 
 class _FakeOrderRepository implements OrderRepository {
-  final RepositoryResult<List<Order>> result;
+  final Result<List<Order>> result;
 
   _FakeOrderRepository(this.result);
 
   @override
-  Future<RepositoryResult<List<Order>>> getSellerOrders(
+  Future<Result<List<Order>>> getSellerOrders(
     GetOrdersParams params,
   ) async {
     return result;
@@ -24,7 +25,7 @@ void main() {
       final container = ProviderContainer(
         overrides: [
           orderRepositoryProvider.overrideWithValue(
-            _FakeOrderRepository(RepositoryResult.success(<Order>[])),
+            _FakeOrderRepository(Result.success(<Order>[])),
           ),
         ],
       );
@@ -45,7 +46,7 @@ void main() {
       final container = ProviderContainer(
         overrides: [
           orderRepositoryProvider.overrideWithValue(
-            _FakeOrderRepository(RepositoryResult.error('backend failed')),
+            _FakeOrderRepository(Result.error('backend failed')),
           ),
         ],
       );

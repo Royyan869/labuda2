@@ -3,6 +3,7 @@ import 'package:labuda/domains/user/profile/profile.dart' show ProfileAboutData;
 import 'package:labuda/domains/user/profile/presentation/widgets/profile_info_row.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Farm Info section - displays farm details for sellers
 class AboutSectionFarm extends StatelessWidget {
@@ -39,7 +40,7 @@ class AboutSectionFarm extends StatelessWidget {
           Text(
             'Description',
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppType.s14,
               fontWeight: FontWeight.w600,
               color: scheme.onSurfaceVariant,
             ),
@@ -48,7 +49,7 @@ class AboutSectionFarm extends StatelessWidget {
           Text(
             data.bio,
             style: TextStyle(
-              fontSize: 13,
+              fontSize: AppType.s13,
               height: 1.5,
               color: scheme.onSurfaceVariant,
             ),
@@ -69,7 +70,7 @@ class AboutSectionFarm extends StatelessWidget {
                   child: Text(
                     farmInfo.farmWebsite!,
 style: TextStyle(
-                       fontSize: 14,
+                       fontSize: AppType.s14,
                        color: scheme.primary,
                       decoration: TextDecoration.underline,
                     ),

@@ -87,14 +87,16 @@ class _OTPInputFieldState extends ConsumerState<OTPInputField> {
                 return Container(
                   width: boxWidth,
                   height: boxHeight,
-                  margin: EdgeInsets.only(right: index < 5 ? spacing : 0),
+                  margin: index < 5
+                      ? EdgeInsets.only(right: spacing)
+                      : EdgeInsets.zero,
                   child: TextFormField(
                     controller: _otpControllers[index],
                     focusNode: _otpFocusNodes[index],
                     keyboardType: TextInputType.number,
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: AppType.s14,
                       fontWeight: FontWeight.bold,
                        color: scheme.onSurface,
                     ),
@@ -107,28 +109,28 @@ class _OTPInputFieldState extends ConsumerState<OTPInputField> {
                       filled: true,
                        fillColor: scheme.surfaceContainerHigh,
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(6),
+                        borderRadius: BorderRadius.circular(AppShape.r6),
                         borderSide: BorderSide(
                            color: scheme.outlineVariant,
                         ),
                       ),
                       enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(6),
+                        borderRadius: BorderRadius.circular(AppShape.r6),
                         borderSide: BorderSide(
                            color: scheme.outlineVariant,
                         ),
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(6),
+                        borderRadius: BorderRadius.circular(AppShape.r6),
                          borderSide: BorderSide(
                            color: scheme.primary,
                            width: 1.5,
                          ),
                       ),
                       errorBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(6),
-                        borderSide: const BorderSide(
-                          color: AppColors.statusError,
+                        borderRadius: BorderRadius.circular(AppShape.r6),
+                        borderSide: BorderSide(
+                          color: context.statusColors.error,
                         ),
                       ),
                     ),
@@ -161,7 +163,7 @@ class _OTPInputFieldState extends ConsumerState<OTPInputField> {
             Text(
               'Tidak terima?',
               style: TextStyle(
-                fontSize: 11,
+                fontSize: AppType.s11,
                  color: scheme.onSurfaceVariant,
               ),
             ),
@@ -169,7 +171,7 @@ class _OTPInputFieldState extends ConsumerState<OTPInputField> {
               Text(
                 'Tunggu ${state.resendCountdown}d',
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: AppType.s11,
                    color: scheme.onSurfaceVariant,
                 ),
               )
@@ -187,7 +189,7 @@ class _OTPInputFieldState extends ConsumerState<OTPInputField> {
                 child: Text(
                   state.isResending ? 'Sending...' : 'Resend',
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: AppType.s11,
                     color: scheme.primary,
                     fontWeight: FontWeight.w600,
                   ),

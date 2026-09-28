@@ -342,7 +342,7 @@ class HelpCenterScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBarCustom(title: _Strings.helpSupport),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppMetrics.p16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -383,7 +383,7 @@ class HelpCenterScreen extends StatelessWidget {
         Text(
           _Strings.howCanWeHelp,
           style: TextStyle(
-            fontSize: 28,
+            fontSize: AppType.s28,
             fontWeight: FontWeight.bold,
             color: Theme.of(context).colorScheme.onSurface,
           ),
@@ -392,7 +392,7 @@ class HelpCenterScreen extends StatelessWidget {
         Text(
           _Strings.helpCenterDescription,
           style: TextStyle(
-            fontSize: 14,
+            fontSize: AppType.s14,
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
@@ -404,7 +404,7 @@ class HelpCenterScreen extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
       ),
       child: TextField(
         decoration: InputDecoration(
@@ -412,8 +412,8 @@ class HelpCenterScreen extends StatelessWidget {
           prefixIcon: const Icon(Icons.search),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 12,
+            horizontal: AppMetrics.p16,
+            vertical: AppMetrics.p12,
           ),
         ),
       ),
@@ -422,11 +422,11 @@ class HelpCenterScreen extends StatelessWidget {
 
   Widget _buildSectionTitle(BuildContext context, String title) {
     return Padding(
-      padding: const EdgeInsets.only(left: 4),
+      padding: const EdgeInsets.only(left: AppMetrics.p4),
       child: Text(
         title,
         style: TextStyle(
-          fontSize: 16,
+          fontSize: AppType.s16,
           fontWeight: FontWeight.w600,
           color: Theme.of(context).colorScheme.onSurface,
         ),
@@ -450,7 +450,7 @@ class HelpCenterScreen extends StatelessWidget {
           child: _QuickHelpCard(
             icon: Icons.payment_outlined,
             title: _Strings.payments,
-            color: AppColors.warning,
+            color: context.statusColors.warning,
             onTap: () => _navigateToCategory(context, HelpCategory.payment),
           ),
         ),
@@ -471,14 +471,14 @@ class HelpCenterScreen extends StatelessWidget {
         icon: Icons.account_balance_wallet_outlined,
         title: _Strings.payments,
         subtitle: _Strings.paymentHelpSubtitle,
-        color: AppColors.warning,
+        color: context.statusColors.warning,
         category: HelpCategory.payment,
       ),
       _CategoryItem(
         icon: Icons.store_outlined,
         title: _Strings.selling,
         subtitle: _Strings.sellingHelpSubtitle,
-        color: AppColors.successGreen,
+        color: context.statusColors.success,
         category: HelpCategory.selling,
       ),
       _CategoryItem(
@@ -492,7 +492,7 @@ class HelpCenterScreen extends StatelessWidget {
         icon: Icons.verified_user_outlined,
         title: _Strings.verification,
         subtitle: _Strings.verificationHelpSubtitle,
-        color: AppColors.primary,
+        color: Theme.of(context).colorScheme.primary,
         category: HelpCategory.verification,
       ),
       _CategoryItem(
@@ -543,7 +543,7 @@ class HelpCenterScreen extends StatelessWidget {
 
   Widget _buildStillNeedHelpSection(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(AppMetrics.p20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
@@ -551,7 +551,7 @@ class HelpCenterScreen extends StatelessWidget {
             Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
           ],
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppShape.r16),
         border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2)),
       ),
       child: Column(
@@ -565,7 +565,7 @@ class HelpCenterScreen extends StatelessWidget {
                 child: Text(
                   _Strings.stillNeedHelp,
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: AppType.s18,
                     fontWeight: FontWeight.bold,
                     color: Theme.of(context).colorScheme.onSurface,
                   ),
@@ -577,7 +577,7 @@ class HelpCenterScreen extends StatelessWidget {
           Text(
             _Strings.contactSupportDescription,
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppType.s14,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
@@ -589,9 +589,9 @@ class HelpCenterScreen extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Theme.of(context).colorScheme.primary,
                 foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                padding: const EdgeInsets.symmetric(vertical: 14),
+                padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(AppShape.r10),
                 ),
               ),
               child: Text(_Strings.contactSupport),
@@ -685,7 +685,7 @@ class HelpCategoryScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBarCustom(title: _getCategoryTitle()),
       body: ListView.separated(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppMetrics.p16),
         itemCount: articles.length,
         separatorBuilder: (_, _) => const SizedBox(height: 8),
         itemBuilder: (context, index) {
@@ -873,21 +873,21 @@ class HelpArticleScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBarCustom(title: _Strings.helpArticle),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(AppMetrics.p20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Category Badge
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p6),
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(AppShape.r16),
               ),
               child: Text(
                 article.category,
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: AppType.s12,
                   fontWeight: FontWeight.w600,
                   color: Theme.of(context).colorScheme.secondary,
                 ),
@@ -898,7 +898,7 @@ class HelpArticleScreen extends StatelessWidget {
             Text(
               article.title,
               style: TextStyle(
-                fontSize: 24,
+                fontSize: AppType.s24,
                 fontWeight: FontWeight.bold,
                 color: Theme.of(context).colorScheme.onSurface,
               ),
@@ -908,7 +908,7 @@ class HelpArticleScreen extends StatelessWidget {
             Text(
               article.content,
               style: TextStyle(
-                fontSize: 16,
+                fontSize: AppType.s16,
                 height: 1.6,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
@@ -924,10 +924,10 @@ class HelpArticleScreen extends StatelessWidget {
 
   Widget _buildHelpfulSection(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -935,7 +935,7 @@ class HelpArticleScreen extends StatelessWidget {
           Text(
             _Strings.wasThisHelpful,
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppType.s14,
               fontWeight: FontWeight.w600,
               color: Theme.of(context).colorScheme.onSurface,
             ),
@@ -1008,12 +1008,12 @@ class _QuickHelpCard extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(AppShape.r12),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppMetrics.p16),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppShape.r12),
           border: Border.all(
             color: Theme.of(context).colorScheme.outlineVariant,
           ),
@@ -1021,10 +1021,10 @@ class _QuickHelpCard extends StatelessWidget {
         child: Column(
           children: [
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(AppMetrics.p12),
               decoration: BoxDecoration(
                 color: color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(AppShape.r10),
               ),
               child: Icon(icon, color: color, size: 24),
             ),
@@ -1032,7 +1032,7 @@ class _QuickHelpCard extends StatelessWidget {
             Text(
               title,
               style: TextStyle(
-                fontSize: 12,
+                fontSize: AppType.s12,
                 fontWeight: FontWeight.w500,
                 color: Theme.of(context).colorScheme.onSurface,
               ),
@@ -1064,12 +1064,12 @@ class _CategoryCard extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(AppShape.r12),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppMetrics.p16),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppShape.r12),
           border: Border.all(
             color: Theme.of(context).colorScheme.outlineVariant,
           ),
@@ -1082,7 +1082,7 @@ class _CategoryCard extends StatelessWidget {
             Text(
               title,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: AppType.s14,
                 fontWeight: FontWeight.w600,
                 color: Theme.of(context).colorScheme.onSurface,
               ),
@@ -1092,7 +1092,7 @@ class _CategoryCard extends StatelessWidget {
               child: Text(
                 subtitle,
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: AppType.s11,
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
                 maxLines: 2,
@@ -1122,12 +1122,12 @@ class _ArticleTile extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(AppShape.r10),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppMetrics.p16),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(AppShape.r10),
           border: Border.all(
             color: Theme.of(context).colorScheme.outlineVariant,
           ),
@@ -1141,7 +1141,7 @@ class _ArticleTile extends StatelessWidget {
                   Text(
                     title,
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: AppType.s14,
                       fontWeight: FontWeight.w500,
                       color: Theme.of(context).colorScheme.onSurface,
                     ),
@@ -1150,7 +1150,7 @@ class _ArticleTile extends StatelessWidget {
                   Text(
                     category,
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: AppType.s12,
                       color: Theme.of(context).colorScheme.secondary,
                     ),
                   ),

@@ -25,7 +25,7 @@ class ProfileStats extends ConsumerWidget {
     final followStatsAsync = ref.watch(followStatsStreamProvider(userId));
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p12),
       decoration: BoxDecoration(
         color: scheme.surface,
         border: Border(
@@ -205,7 +205,7 @@ class _StatItem extends StatelessWidget {
           Text(
             value,
             style: TextStyle(
-              fontSize: 18,
+              fontSize: AppType.s18,
               fontWeight: FontWeight.bold,
               color: scheme.onSurface,
             ),
@@ -214,7 +214,7 @@ class _StatItem extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              fontSize: 11,
+              fontSize: AppType.s11,
               color: scheme.onSurfaceVariant,
             ),
           ),
@@ -266,7 +266,7 @@ class _RatingStatItem extends StatelessWidget {
           Text(
             rating == null ? '-' : rating!.toStringAsFixed(1),
             style: TextStyle(
-              fontSize: 18,
+              fontSize: AppType.s18,
               fontWeight: FontWeight.bold,
               color: scheme.onSurface,
             ),
@@ -275,7 +275,7 @@ class _RatingStatItem extends StatelessWidget {
           Text(
             reviewCount > 0 ? 'Rating ($reviewCount)' : 'Rating',
             style: TextStyle(
-              fontSize: 11,
+              fontSize: AppType.s11,
               color: scheme.onSurfaceVariant,
             ),
           ),

@@ -65,13 +65,13 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
         title: const Text('For Sale Saya'),
         backgroundColor: scheme.surface,
         foregroundColor: scheme.onSurface,
-        elevation: 0,
+        elevation: AppElevation.none,
         surfaceTintColor: Colors.transparent,
         scrolledUnderElevation: 0,
         actions: [
           // Status filter dropdown
           Padding(
-            padding: const EdgeInsets.only(right: 16),
+            padding: const EdgeInsets.only(right: AppMetrics.p16),
             child: DropdownButtonHideUnderline(
               child: DropdownButton<ForSaleStatus>(
                 value: _statusFilter,
@@ -114,7 +114,7 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
               ref.invalidate(sellerForSalesProvider(params));
             },
             child: ListView.builder(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(AppMetrics.p16),
               itemCount: filteredForSales.length,
               itemBuilder: (context, index) {
                 final forSale = filteredForSales[index];
@@ -144,7 +144,7 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
               Text(
                 'Error loading For Sale',
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: AppType.s16,
                   color: scheme.onSurfaceVariant,
                 ),
               ),
@@ -152,7 +152,7 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
               Text(
                 error.toString(),
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: AppType.s12,
                   color: scheme.onSurfaceVariant,
                 ),
                 textAlign: TextAlign.center,
@@ -194,7 +194,7 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
             const SizedBox(height: 16),
             const Text(
               'Login Diperlukan',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: AppType.s20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             const Text('Silakan login untuk mengelola For Sale Anda'),
@@ -218,13 +218,13 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
           const SizedBox(height: 16),
           const Text(
             'Belum Ada For Sale',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: AppType.s20, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           Text(
             'Mulai buat For Sale untuk menjual produk Anda',
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppType.s14,
               color: scheme.onSurfaceVariant,
             ),
           ),
@@ -444,22 +444,22 @@ class _SellerForSaleManagementCard extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: AppMetrics.p12),
       decoration: BoxDecoration(
         color: scheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(color: scheme.outlineVariant),
       ),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(AppMetrics.p12),
           child: Row(
             children: [
               // Thumbnail
               ClipRRect(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(AppShape.r8),
                 child: forSale.media.isNotEmptyUrls
                  ? AppImage(
                      imageUrl: forSale.media.firstUrl,
@@ -484,7 +484,7 @@ class _SellerForSaleManagementCard extends StatelessWidget {
                             forSale.title,
                             style: const TextStyle(
                               fontWeight: FontWeight.w600,
-                              fontSize: 15,
+                              fontSize: AppType.s15,
                             ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
@@ -500,7 +500,7 @@ class _SellerForSaleManagementCard extends StatelessWidget {
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.primary,
                         fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                        fontSize: AppType.s16,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -508,7 +508,7 @@ class _SellerForSaleManagementCard extends StatelessWidget {
                     Text(
                       'Dibuat ${_formatDate(forSale.createdAt)}',
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: AppType.s12,
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
@@ -570,14 +570,14 @@ class _SellerForSaleManagementCard extends StatelessWidget {
                       ),
                   ),
                   if (forSale.status != ForSaleStatus.active)
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'activate',
                       child: Row(
                         children: [
                           Icon(
                             Icons.check_circle,
                             size: 18,
-                            color: AppColors.statusSuccess,
+                            color: context.statusColors.success,
                           ),
                           SizedBox(width: 12),
                           Text('Aktifkan'),
@@ -641,7 +641,7 @@ class _SellerForSaleManagementCard extends StatelessWidget {
       height: 80,
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppShape.r8),
       ),
       child: Icon(
         Icons.image_not_supported,
@@ -695,7 +695,7 @@ class _StatusBadge extends StatelessWidget {
         label = 'Draft';
         break;
       case ForSaleStatus.active:
-        color = AppColors.statusSuccess;
+        color = context.statusColors.success;
         label = 'Aktif';
         break;
       case ForSaleStatus.withdrawn:
@@ -709,15 +709,15 @@ class _StatusBadge extends StatelessWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(AppShape.r6),
       ),
       child: Text(
         label,
         style: TextStyle(
-          fontSize: 11,
+          fontSize: AppType.s11,
           fontWeight: FontWeight.w600,
           color: color,
         ),

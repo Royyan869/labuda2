@@ -1,3 +1,5 @@
+import 'package:labuda/core/common/result.dart';
+
 import '../domain/domain.dart';
 import 'mappers/refund_mapper.dart';
 import 'models/api/order_api_response_dtos.dart';
@@ -10,7 +12,7 @@ class RefundRepositoryImpl implements RefundRepository {
   RefundRepositoryImpl({required this.remoteDatasource});
 
   @override
-  Future<RepositoryResult<RefundRequest>> createRefund(
+  Future<Result<RefundRequest>> createRefund(
     CreateRefundParams params,
   ) async {
     try {
@@ -22,42 +24,42 @@ class RefundRepositoryImpl implements RefundRepository {
       );
       final result = await remoteDatasource.requestRefund(params.orderId, dto);
       final refund = RefundMapper.toRefundRequest(result);
-      return RepositoryResult.success(refund);
+      return Result.success(refund);
     } catch (e) {
-      return RepositoryResult.failure(e.toString());
+      return Result.error(e.toString());
     }
   }
 
   @override
-  Future<RepositoryResult<RefundRequest>> getRefund(String refundId) async {
+  Future<Result<RefundRequest>> getRefund(String refundId) async {
     try {
       final dto = await remoteDatasource.getRefund(refundId);
       final refund = RefundMapper.toRefundRequest(dto);
-      return RepositoryResult.success(refund);
+      return Result.success(refund);
     } catch (e) {
-      return RepositoryResult.failure(e.toString());
+      return Result.error(e.toString());
     }
   }
 
   @override
-  Future<RepositoryResult<RefundRequest?>> getRefundByOrderId(
+  Future<Result<RefundRequest?>> getRefundByOrderId(
     String orderId,
   ) async {
     try {
       final dto = await remoteDatasource.getRefundByOrderId(orderId);
       if (dto == null) {
         // No refund found for this order - return null (not a failure)
-        return RepositoryResult.success(null);
+        return Result.success(null);
       }
       final refund = RefundMapper.toRefundRequest(dto);
-      return RepositoryResult.success(refund);
+      return Result.success(refund);
     } catch (e) {
-      return RepositoryResult.failure(e.toString());
+      return Result.error(e.toString());
     }
   }
 
   @override
-  Future<RepositoryResult<List<RefundRequest>>> listBuyerRefunds(
+  Future<Result<List<RefundRequest>>> listBuyerRefunds(
     ListRefundsParams params,
   ) async {
     try {
@@ -68,14 +70,14 @@ class RefundRepositoryImpl implements RefundRepository {
       );
       final dto = await remoteDatasource.listMyRefunds(params: filterParams);
       final refunds = RefundMapper.toRefundList(dto.data);
-      return RepositoryResult.success(refunds);
+      return Result.success(refunds);
     } catch (e) {
-      return RepositoryResult.failure(e.toString());
+      return Result.error(e.toString());
     }
   }
 
   @override
-  Future<RepositoryResult<List<RefundRequest>>> listSellerRefunds(
+  Future<Result<List<RefundRequest>>> listSellerRefunds(
     ListRefundsParams params,
   ) async {
     try {
@@ -88,9 +90,9 @@ class RefundRepositoryImpl implements RefundRepository {
         params: filterParams,
       );
       final refunds = RefundMapper.toRefundList(dto.data);
-      return RepositoryResult.success(refunds);
+      return Result.success(refunds);
     } catch (e) {
-      return RepositoryResult.failure(e.toString());
+      return Result.error(e.toString());
     }
   }
 
@@ -101,58 +103,59 @@ class RefundRepositoryImpl implements RefundRepository {
       (_) => orderId,
     ).asyncMap((id) async {
       final result = await getRefundByOrderId(id);
-      return result.fold((refund) => refund, (error) => null);
+      // Result.fold takes onError first.
+      return result.fold((error) => null, (refund) => refund);
     });
   }
 
   // Refund decision actions (H2-D1)
 
   @override
-  Future<RepositoryResult<RefundRequest>> approveRefund(
+  Future<Result<RefundRequest>> approveRefund(
     String refundId, {
     String? notes,
   }) async {
     try {
       final dto = await remoteDatasource.approveRefund(refundId, notes: notes);
       final refund = RefundMapper.toRefundRequest(dto);
-      return RepositoryResult.success(refund);
+      return Result.success(refund);
     } catch (e) {
-      return RepositoryResult.failure(e.toString());
+      return Result.error(e.toString());
     }
   }
 
   @override
-  Future<RepositoryResult<RefundRequest>> rejectRefund(
+  Future<Result<RefundRequest>> rejectRefund(
     String refundId, {
     String? notes,
   }) async {
     try {
       final dto = await remoteDatasource.rejectRefund(refundId, notes: notes);
       final refund = RefundMapper.toRefundRequest(dto);
-      return RepositoryResult.success(refund);
+      return Result.success(refund);
     } catch (e) {
-      return RepositoryResult.failure(e.toString());
+      return Result.error(e.toString());
     }
   }
 
   @override
-  Future<RepositoryResult<Map<String, dynamic>>> escalateRefund(
+  Future<Result<Map<String, dynamic>>> escalateRefund(
     String refundId,
   ) async {
     try {
       final result = await remoteDatasource.escalateRefund(refundId);
-      return RepositoryResult.success(result);
+      return Result.success(result);
     } catch (e) {
-      return RepositoryResult.failure(e.toString());
+      return Result.error(e.toString());
     }
   }
 
   @override
-  Future<RepositoryResult<RefundHistoryPageResult>> listOrderRefundHistory(
+  Future<Result<RefundHistoryPageResult>> listOrderRefundHistory(
     ListOrderRefundHistoryParams params,
   ) async {
     // Fallback aman sementara untuk menambal kontrak yang putus
-    return RepositoryResult.success(
+    return Result.success(
       const RefundHistoryPageResult(
         refunds: [],
         nextCursor: null,

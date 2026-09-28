@@ -132,7 +132,7 @@ class _SellerDiscountListScreenState
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       itemCount: discounts.length,
       itemBuilder: (context, index) {
         final discount = discounts[index];
@@ -259,7 +259,7 @@ class _SellerDiscountListScreenState
           if (discount.currentUsageCount == 0)
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.error,
+                backgroundColor: context.statusColors.error,
                 foregroundColor: Theme.of(context).colorScheme.onError,
               ),
               onPressed: () => Navigator.pop(context, true),

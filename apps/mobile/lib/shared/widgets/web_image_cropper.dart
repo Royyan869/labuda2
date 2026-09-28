@@ -3,11 +3,12 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:labuda/shared/shared.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Web-specific Image Cropper Widget
 ///
-/// Menggunakan Flutter Canvas untuk cropping karena image_cropper
-/// tidak support blob URL dengan baik di web
+/// Canvas cropping is the single web crop engine (crop_your_image covers
+/// mobile). No platform crop plugin is used on either platform.
 class WebImageCropper extends StatefulWidget {
   final XFile imageFile;
   final Function(Uint8List croppedBytes) onCropped;
@@ -187,7 +188,7 @@ class _WebImageCropperState extends State<WebImageCropper> {
               height: 600,
               decoration: BoxDecoration(
                 color: scheme.surface,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(AppShape.r16),
                 boxShadow: [
                   BoxShadow(
                     color: scheme.shadow.withValues(alpha: 0.2),
@@ -200,11 +201,11 @@ class _WebImageCropperState extends State<WebImageCropper> {
                 children: [
                   // Header
                   Container(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(AppMetrics.p16),
                     decoration: BoxDecoration(
                       color: scheme.surfaceContainerHighest,
                       borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(16),
+                        top: Radius.circular(AppShape.r16),
                       ),
                     ),
                     child: Row(
@@ -212,7 +213,7 @@ class _WebImageCropperState extends State<WebImageCropper> {
                         Text(
                           widget.title,
                           style: TextStyle(
-                            fontSize: 18,
+                            fontSize: AppType.s18,
                             fontWeight: FontWeight.w600,
                             color: scheme.onSurface,
                           ),
@@ -238,18 +239,18 @@ class _WebImageCropperState extends State<WebImageCropper> {
                             ),
                           )
                         : Container(
-                            padding: const EdgeInsets.all(16),
+                            padding: const EdgeInsets.all(AppMetrics.p16),
                             child: _buildCropArea(),
                           ),
                   ),
 
                   // Controls
                   Container(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(AppMetrics.p16),
                     decoration: BoxDecoration(
                       color: scheme.surfaceContainerHighest,
                       borderRadius: const BorderRadius.vertical(
-                        bottom: Radius.circular(16),
+                        bottom: Radius.circular(AppShape.r16),
                       ),
                     ),
                     child: Column(
@@ -326,7 +327,7 @@ class _WebImageCropperState extends State<WebImageCropper> {
     // Border radius: circular for avatar (half of size), rectangular for cover
     final borderRadius = widget.withCircleUi
         ? BorderRadius.circular(_cropWidth / 2)
-        : BorderRadius.circular(8);
+        : BorderRadius.circular(AppShape.r8);
 
     return Center(
       child: Container(

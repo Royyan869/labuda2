@@ -8,7 +8,7 @@
 library;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/domains/commerce/transaction/order/domain/repositories/repository_result.dart';
+import 'package:labuda/core/common/result.dart';
 import 'package:labuda/domains/user/preference/seller/domain/entities/withdrawal.dart';
 import 'package:labuda/domains/user/preference/seller/domain/repositories/seller_repository.dart';
 
@@ -23,14 +23,14 @@ class _CapturingRepo implements SellerRepository {
   int callCount = 0;
 
   @override
-  Future<RepositoryResult<List<Withdrawal>>> getWithdrawHistory({
+  Future<Result<List<Withdrawal>>> getWithdrawHistory({
     int limit = 100,
     int offset = 0,
   }) async {
     capturedLimit = limit;
     capturedOffset = offset;
     callCount++;
-    return RepositoryResult.success(const []);
+    return Result.success(const []);
   }
 
   @override

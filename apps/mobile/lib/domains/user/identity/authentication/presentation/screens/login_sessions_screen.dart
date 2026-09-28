@@ -196,7 +196,7 @@ class _LoginSessionsScreenState extends ConsumerState<LoginSessionsScreen> {
     final scheme = Theme.of(context).colorScheme;
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppMetrics.p24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -225,7 +225,7 @@ class _LoginSessionsScreenState extends ConsumerState<LoginSessionsScreen> {
     final scheme = Theme.of(context).colorScheme;
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppMetrics.p24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -239,7 +239,7 @@ class _LoginSessionsScreenState extends ConsumerState<LoginSessionsScreen> {
               l10n.noActiveSessions,
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 16,
+                fontSize: AppType.s16,
                 color: scheme.onSurface,
               ),
             ),
@@ -255,14 +255,14 @@ class _LoginSessionsScreenState extends ConsumerState<LoginSessionsScreen> {
   ) {
     final scheme = Theme.of(context).colorScheme;
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       children: [
         // Info header
         Text(
           l10n.manageActiveSessions,
           style: TextStyle(
             color: scheme.onSurfaceVariant,
-            fontSize: 13,
+            fontSize: AppType.s13,
           ),
         ),
         const SizedBox(height: 12),
@@ -286,7 +286,7 @@ class _LoginSessionsScreenState extends ConsumerState<LoginSessionsScreen> {
           style: OutlinedButton.styleFrom(
             foregroundColor: scheme.error,
             side: BorderSide(color: scheme.error.withValues(alpha: 0.5)),
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            padding: const EdgeInsets.symmetric(vertical: AppMetrics.p12, horizontal: AppMetrics.p16),
           ),
         ),
       ],
@@ -322,11 +322,11 @@ class _SessionCard extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final entity = _entity;
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: AppMetrics.p12),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(
           color: scheme.outlineVariant,
         ),
@@ -356,13 +356,13 @@ class _SessionCard extends StatelessWidget {
                 style: TextButton.styleFrom(
                   foregroundColor: scheme.error,
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
+                    horizontal: AppMetrics.p8,
+                    vertical: AppMetrics.p4,
                   ),
                 ),
                 child: Text(
                   l10n.revokeSession,
-                  style: const TextStyle(fontSize: 12),
+                  style: const TextStyle(fontSize: AppType.s12),
                 ),
               ),
             ],
@@ -372,7 +372,7 @@ class _SessionCard extends StatelessWidget {
             Text(
               'v${entity.appVersion}',
               style: TextStyle(
-                fontSize: 12,
+                fontSize: AppType.s12,
                 color: scheme.onSurfaceVariant,
               ),
             ),
@@ -403,7 +403,7 @@ class _SessionCard extends StatelessWidget {
         const SizedBox(width: 4),
         Text(
           '$label: $formatted',
-          style: TextStyle(fontSize: 12, color: textColor),
+          style: TextStyle(fontSize: AppType.s12, color: textColor),
         ),
       ],
     );

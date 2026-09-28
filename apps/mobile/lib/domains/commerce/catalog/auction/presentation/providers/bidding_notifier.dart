@@ -29,10 +29,10 @@ class BiddingNotifier extends Notifier<BiddingState> {
 
     final result = await _biddingRepository.getMyBidding();
 
-    result.fold((data) => state = BiddingData(data), (error) {
+    result.fold((error) {
       _logger.error('Failed to load bidding: $error');
       state = BiddingError(error);
-    });
+    }, (data) => state = BiddingData(data));
   }
 
   /// Refresh bidding data

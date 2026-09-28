@@ -454,13 +454,13 @@ extension AccuracyLevelExtension on AccuracyLevel {
   Color resolve(BuildContext context) {
     switch (this) {
       case AccuracyLevel.excellent:
-        return AppColors.statusSuccess;
+        return context.statusColors.success;
       case AccuracyLevel.good:
-        return AppColors.primaryGreen;
+        return context.statusColors.success;
       case AccuracyLevel.fair:
-        return AppColors.statusWarning;
+        return context.statusColors.warning;
       case AccuracyLevel.poor:
-        return AppColors.statusError;
+        return context.statusColors.error;
       case AccuracyLevel.unknown:
         return Theme.of(context).colorScheme.onSurfaceVariant;
     }

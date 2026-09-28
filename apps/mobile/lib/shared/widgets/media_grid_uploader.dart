@@ -2,15 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:labuda/core/media/media_upload_config.dart';
 import 'package:labuda/core/media/media_upload_orchestrator.dart';
 import 'package:labuda/shared/widgets/app_image.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Shared commerce media grid — foto+video, dipakai for_sale, auction, komentar, chat.
 ///
-/// Immediate upload: pick → S3 → List<String> URLs → parent setState.
+/// Immediate upload: pick → S3 → `List<String>` URLs → parent setState.
 /// Foto tampil AppImage, video tampil icon overlay (storageKey mp4).
 class MediaGridUploader extends StatelessWidget {
   final List<String> mediaUrls;
   final void Function(String url) onMediaAdded;
   final void Function(int index) onMediaRemoved;
+  final void Function(int oldIndex, int newIndex)? onMediaReordered;
   final MediaUploadConfig config;
   final String emptyHint;
 
@@ -19,6 +21,7 @@ class MediaGridUploader extends StatelessWidget {
     required this.mediaUrls,
     required this.onMediaAdded,
     required this.onMediaRemoved,
+    this.onMediaReordered,
     this.config = MediaUploadConfig.forCommerce,
     this.emptyHint = 'Tap untuk upload foto/video',
   });
@@ -29,14 +32,11 @@ class MediaGridUploader extends StatelessWidget {
       config: config,
       currentCount: mediaUrls.length,
       onUploaded: (urls) async {
-        for (final u in urls) onMediaAdded(u);
+        for (final u in urls) {
+          onMediaAdded(u);
+        }
       },
     );
-  }
-
-  bool _isVideoUrl(String url) {
-    final l = url.toLowerCase();
-    return l.endsWith('.mp4') || l.endsWith('.mov') || l.endsWith('.webm') || l.contains('/videos/');
   }
 
   @override
@@ -49,7 +49,7 @@ class MediaGridUploader extends StatelessWidget {
           height: 150,
           decoration: BoxDecoration(
             color: scheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppShape.r12),
             border: Border.all(color: scheme.outlineVariant),
           ),
           child: Center(
@@ -69,7 +69,7 @@ class MediaGridUploader extends StatelessWidget {
                 Text(
                   '(Minimal 1 media)',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: AppType.s12,
                     color: scheme.onSurfaceVariant,
                   ),
                 ),
@@ -79,24 +79,29 @@ class MediaGridUploader extends StatelessWidget {
         ),
       );
     }
-    return GridView.builder(
+    return ReorderableListView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
-      ),
-      itemCount: mediaUrls.length + 1,
+      buildDefaultDragHandles: true,
+      itemCount: mediaUrls.length,
+      onReorder: (oldIndex, newIndex) {
+        if (onMediaReordered == null) return;
+        var target = newIndex;
+        if (oldIndex < target) target--;
+        onMediaReordered!(oldIndex, target);
+      },
       itemBuilder: (context, index) {
         if (index < mediaUrls.length) {
           final url = mediaUrls[index];
-          final isVideo = _isVideoUrl(url);
-          return Stack(
-            fit: StackFit.expand,
-            children: [
+          final isVideo = MediaUploadOrchestrator.isVideoUrl(url);
+           return SizedBox(
+             key: ValueKey('media-$url-$index'),
+             height: 112,
+             child: Stack(
+             fit: StackFit.expand,
+             children: [
               ClipRRect(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(AppShape.r8),
                 child: isVideo
                     ? Container(
                         color: scheme.scrim,
@@ -114,7 +119,7 @@ class MediaGridUploader extends StatelessWidget {
                 child: GestureDetector(
                   onTap: () => onMediaRemoved(index),
                   child: Container(
-                    padding: const EdgeInsets.all(4),
+                    padding: const EdgeInsets.all(AppMetrics.p4),
                     decoration: BoxDecoration(
                       color: scheme.scrim.withValues(alpha: 0.54),
                       shape: BoxShape.circle,
@@ -135,22 +140,13 @@ class MediaGridUploader extends StatelessWidget {
                     color: scheme.onPrimary.withValues(alpha: 0.7),
                   ),
                 ),
-            ],
-          );
-        }
-        return GestureDetector(
-          onTap: () => _openPicker(context),
-          child: Container(
-            decoration: BoxDecoration(
-              color: scheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: scheme.outlineVariant),
-            ),
-            child: Icon(Icons.add, size: 32, color: scheme.onSurfaceVariant),
-          ),
-        );
-      },
-    );
+             ],
+           ),
+           );
+         }
+          return const SizedBox.shrink(key: ValueKey('media-add-disabled'));
+        },
+      );
   }
 }
 
@@ -175,7 +171,9 @@ class CompactMediaStrip extends StatelessWidget {
       config: config,
       currentCount: mediaUrls.length,
       onUploaded: (urls) async {
-        for (final u in urls) onMediaAdded(u);
+        for (final u in urls) {
+          onMediaAdded(u);
+        }
       },
     );
   }
@@ -192,14 +190,14 @@ class CompactMediaStrip extends StatelessWidget {
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: mediaUrls.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              separatorBuilder: (_, _) => const SizedBox(width: 8),
               itemBuilder: (ctx, i) {
                 final url = mediaUrls[i];
-                final isVideo = url.toLowerCase().contains('/videos/') || url.endsWith('.mp4');
+                final isVideo = MediaUploadOrchestrator.isVideoUrl(url);
                 return Stack(
                   children: [
                     ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(AppShape.r8),
                       child: isVideo
                           ? Container(
                               width: 72,
@@ -217,7 +215,7 @@ class CompactMediaStrip extends StatelessWidget {
                       child: GestureDetector(
                         onTap: () => onMediaRemoved(i),
                         child: Container(
-                          padding: const EdgeInsets.all(2),
+                          padding: const EdgeInsets.all(AppMetrics.p2),
                           decoration: BoxDecoration(
                             color: scheme.scrim.withValues(alpha: 0.54),
                             shape: BoxShape.circle,

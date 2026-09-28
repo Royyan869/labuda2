@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Reusable Button dengan styling konsisten
 ///
@@ -90,7 +91,7 @@ class AppButton extends StatelessWidget {
               Text(
                 text,
                 style: const TextStyle(
-                  fontSize: 16,
+                  fontSize: AppType.s16,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -124,7 +125,7 @@ class AppButton extends StatelessWidget {
             disabledBackgroundColor: scheme.surfaceContainerHighest,
             disabledForegroundColor: scheme.onSurfaceVariant,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppShape.r12),
             ),
             elevation: isActive ? 4 : 0,
             shadowColor: isActive
@@ -146,7 +147,7 @@ class AppButton extends StatelessWidget {
               width: 1.5,
             ),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppShape.r12),
             ),
           ),
           child: child,

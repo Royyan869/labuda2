@@ -275,7 +275,7 @@ class _EditForSaleScreenState extends ConsumerState<EditForSaleScreen> {
         ),
         body: Center(
           child: Padding(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(AppMetrics.p24),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -287,7 +287,7 @@ class _EditForSaleScreenState extends ConsumerState<EditForSaleScreen> {
                 const SizedBox(height: 16),
                 Text(
                   _errorMessage!,
-                  style: const TextStyle(fontSize: 16),
+                  style: const TextStyle(fontSize: AppType.s16),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 24),
@@ -312,7 +312,7 @@ class _EditForSaleScreenState extends ConsumerState<EditForSaleScreen> {
         ),
         backgroundColor: scheme.surface,
         foregroundColor: scheme.onSurface,
-        elevation: 0,
+        elevation: AppElevation.none,
         surfaceTintColor: Colors.transparent,
         scrolledUnderElevation: 0,
         actions: [
@@ -332,7 +332,7 @@ class _EditForSaleScreenState extends ConsumerState<EditForSaleScreen> {
                 : Text(
                     'Simpan',
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: AppType.s16,
                       fontWeight: FontWeight.w600,
                       color: scheme.primary,
                     ),
@@ -343,7 +343,7 @@ class _EditForSaleScreenState extends ConsumerState<EditForSaleScreen> {
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppMetrics.p16),
           children: [
             const _SectionTitle('Informasi Dasar'),
             const SizedBox(height: 12),
@@ -358,9 +358,13 @@ class _EditForSaleScreenState extends ConsumerState<EditForSaleScreen> {
             MediaGridUploader(
               mediaUrls: _mediaUrls,
               onMediaAdded: (url) => setState(() => _mediaUrls.add(url)),
-              onMediaRemoved: (index) =>
-                  setState(() => _mediaUrls.removeAt(index)),
-            ),
+               onMediaRemoved: (index) =>
+                   setState(() => _mediaUrls.removeAt(index)),
+               onMediaReordered: (oldIndex, newIndex) => setState(() {
+                 final item = _mediaUrls.removeAt(oldIndex);
+                 _mediaUrls.insert(newIndex, item);
+               }),
+             ),
 
             const SizedBox(height: 24),
 
@@ -414,10 +418,10 @@ class _EditForSaleScreenState extends ConsumerState<EditForSaleScreen> {
 
             if (_errorMessage != null && !_errorMessage!.contains('izin'))
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(AppMetrics.p12),
                 decoration: BoxDecoration(
                   color: scheme.error.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(AppShape.r8),
                   border: Border.all(
                     color: scheme.error.withValues(alpha: 0.3),
                   ),
@@ -426,7 +430,7 @@ class _EditForSaleScreenState extends ConsumerState<EditForSaleScreen> {
                   _errorMessage!,
                   style: TextStyle(
                     color: scheme.onSurface,
-                    fontSize: 14,
+                    fontSize: AppType.s14,
                   ),
                 ),
               ),
@@ -452,7 +456,7 @@ class _SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       title,
-      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+      style: const TextStyle(fontSize: AppType.s18, fontWeight: FontWeight.bold),
     );
   }
 }

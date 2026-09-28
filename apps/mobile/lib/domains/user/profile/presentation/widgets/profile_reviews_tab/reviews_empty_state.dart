@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Empty state widget for reviews
 class ReviewsEmptyState extends StatelessWidget {
@@ -21,7 +22,7 @@ class ReviewsEmptyState extends StatelessWidget {
           Text(
             'No Reviews Yet',
             style: TextStyle(
-              fontSize: 18,
+              fontSize: AppType.s18,
               fontWeight: FontWeight.w600,
               color: scheme.onSurface,
             ),
@@ -30,7 +31,7 @@ class ReviewsEmptyState extends StatelessWidget {
           Text(
             'Be the first to review this seller',
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppType.s14,
               color: scheme.onSurfaceVariant,
             ),
           ),

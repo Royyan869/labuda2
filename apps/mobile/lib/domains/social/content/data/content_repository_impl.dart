@@ -3,6 +3,7 @@
 
 import 'package:dio/dio.dart';
 import 'package:labuda/core/api/api.dart';
+import 'package:labuda/core/common/result.dart';
 import 'package:labuda/domains/social/content/data/mappers/content_mapper.dart';
 import 'package:labuda/domains/social/content/data/remote/content_api_datasource.dart';
 import 'package:labuda/domains/social/content/domain/entities/content.dart';
@@ -37,7 +38,7 @@ class ContentRepositoryImpl implements ContentRepository {
   // ==========================================================================
 
   @override
-  Future<ContentRepositoryResult<Content>> createContent({
+  Future<Result<Content>> createContent({
     required String authorId,
     String? authorUsername,
     String? authorAvatarUrl,
@@ -71,31 +72,31 @@ class ContentRepositoryImpl implements ContentRepository {
       final response = await _datasource.createContent(dto);
       final result = ContentMapper.toEntity(response);
 
-      return ContentRepositoryResult.success(result);
+      return Result.success(result);
     } on DioException catch (e) {
-      return ContentRepositoryResult.error(_mapDioError(e));
+      return Result.error(_mapDioError(e));
     } catch (e) {
-      return ContentRepositoryResult.error('Failed to create content: $e');
+      return Result.error('Failed to create content: $e');
     }
   }
 
   @override
-  Future<ContentRepositoryResult<Content>> getContentById(
+  Future<Result<Content>> getContentById(
     String contentId,
   ) async {
     try {
       final response = await _datasource.getContentById(contentId);
       final entity = ContentMapper.toEntity(response);
-      return ContentRepositoryResult.success(entity);
+      return Result.success(entity);
     } on DioException catch (e) {
-      return ContentRepositoryResult.error(_mapDioError(e));
+      return Result.error(_mapDioError(e));
     } catch (e) {
-      return ContentRepositoryResult.error('Failed to get content: $e');
+      return Result.error('Failed to get content: $e');
     }
   }
 
   @override
-  Future<ContentRepositoryResult<List<Content>>> getContentsByAuthor(
+  Future<Result<List<Content>>> getContentsByAuthor(
     String authorId, {
     int? limit,
   }) async {
@@ -104,18 +105,18 @@ class ContentRepositoryImpl implements ContentRepository {
         authorId,
         limit: limit ?? 20,
       );
-      return ContentRepositoryResult.success(
+      return Result.success(
         ContentMapper.toEntityList(page.data),
       );
     } on DioException catch (e) {
-      return ContentRepositoryResult.error(_mapDioError(e));
+      return Result.error(_mapDioError(e));
     } catch (e) {
-      return ContentRepositoryResult.error('Failed to get author contents: $e');
+      return Result.error('Failed to get author contents: $e');
     }
   }
 
   @override
-  Future<ContentRepositoryResult<ContentAuthorPage>> getContentsByAuthorPaged(
+  Future<Result<ContentAuthorPage>> getContentsByAuthorPaged(
     String authorId, {
     int limit = 20,
     String? cursor,
@@ -126,7 +127,7 @@ class ContentRepositoryImpl implements ContentRepository {
         limit: limit,
         cursor: cursor,
       );
-      return ContentRepositoryResult.success(
+      return Result.success(
         ContentAuthorPage(
           items: ContentMapper.toEntityList(page.data),
           nextCursor: page.nextCursor,
@@ -134,14 +135,14 @@ class ContentRepositoryImpl implements ContentRepository {
         ),
       );
     } on DioException catch (e) {
-      return ContentRepositoryResult.error(_mapDioError(e));
+      return Result.error(_mapDioError(e));
     } catch (e) {
-      return ContentRepositoryResult.error('Failed to get author contents: $e');
+      return Result.error('Failed to get author contents: $e');
     }
   }
 
   @override
-  Future<ContentRepositoryResult<List<Content>>> getContents({
+  Future<Result<List<Content>>> getContents({
     int? limit,
     int? offset,
     String? location,
@@ -155,16 +156,16 @@ class ContentRepositoryImpl implements ContentRepository {
         offset: offset,
       );
       final entities = ContentMapper.toEntityList(response);
-      return ContentRepositoryResult.success(entities);
+      return Result.success(entities);
     } on DioException catch (e) {
-      return ContentRepositoryResult.error(_mapDioError(e));
+      return Result.error(_mapDioError(e));
     } catch (e) {
-      return ContentRepositoryResult.error('Failed to get contents: $e');
+      return Result.error('Failed to get contents: $e');
     }
   }
 
   @override
-  Future<ContentRepositoryResult<Content>> updateContent(
+  Future<Result<Content>> updateContent(
     String contentId,
     Content content,
   ) async {
@@ -172,23 +173,23 @@ class ContentRepositoryImpl implements ContentRepository {
       final dto = ContentMapper.toUpdateDto(content);
       final response = await _datasource.updateContent(contentId, dto);
       final entity = ContentMapper.toEntity(response);
-      return ContentRepositoryResult.success(entity);
+      return Result.success(entity);
     } on DioException catch (e) {
-      return ContentRepositoryResult.error(_mapDioError(e));
+      return Result.error(_mapDioError(e));
     } catch (e) {
-      return ContentRepositoryResult.error('Failed to update content: $e');
+      return Result.error('Failed to update content: $e');
     }
   }
 
   @override
-  Future<ContentRepositoryResult<void>> deleteContent(String contentId) async {
+  Future<Result<void>> deleteContent(String contentId) async {
     try {
       await _datasource.deleteContent(contentId);
-      return ContentRepositoryResult.success(null);
+      return Result.success(null);
     } on DioException catch (e) {
-      return ContentRepositoryResult.error(_mapDioError(e));
+      return Result.error(_mapDioError(e));
     } catch (e) {
-      return ContentRepositoryResult.error('Failed to delete content: $e');
+      return Result.error('Failed to delete content: $e');
     }
   }
 
@@ -197,7 +198,7 @@ class ContentRepositoryImpl implements ContentRepository {
   // ==========================================================================
 
   @override
-  Future<ContentRepositoryResult<ContentSearchResult>> searchContents({
+  Future<Result<ContentSearchResult>> searchContents({
     required String query,
     int? limit,
     int? offset,
@@ -211,33 +212,33 @@ class ContentRepositoryImpl implements ContentRepository {
         offset: offset,
       );
       final result = ContentMapper.toSearchResult(response);
-      return ContentRepositoryResult.success(result);
+      return Result.success(result);
     } on DioException catch (e) {
-      return ContentRepositoryResult.error(_mapDioError(e));
+      return Result.error(_mapDioError(e));
     } catch (e) {
-      return ContentRepositoryResult.error('Failed to search contents: $e');
+      return Result.error('Failed to search contents: $e');
     }
   }
 
   @override
-  Future<ContentRepositoryResult<List<Content>>> getTrendingContents({
+  Future<Result<List<Content>>> getTrendingContents({
     int? limit,
   }) async {
     try {
       final response = await _datasource.getTrendingContents(limit: limit);
       final entities = ContentMapper.toEntityList(response);
-      return ContentRepositoryResult.success(entities);
+      return Result.success(entities);
     } on DioException catch (e) {
-      return ContentRepositoryResult.error(_mapDioError(e));
+      return Result.error(_mapDioError(e));
     } catch (e) {
-      return ContentRepositoryResult.error(
+      return Result.error(
         'Failed to get trending contents: $e',
       );
     }
   }
 
   @override
-  Future<ContentRepositoryResult<List<Content>>> getContentsByLocation({
+  Future<Result<List<Content>>> getContentsByLocation({
     required String location,
     int? limit,
   }) async {
@@ -248,11 +249,11 @@ class ContentRepositoryImpl implements ContentRepository {
         status: 'active',
       );
       final entities = ContentMapper.toEntityList(response);
-      return ContentRepositoryResult.success(entities);
+      return Result.success(entities);
     } on DioException catch (e) {
-      return ContentRepositoryResult.error(_mapDioError(e));
+      return Result.error(_mapDioError(e));
     } catch (e) {
-      return ContentRepositoryResult.error(
+      return Result.error(
         'Failed to get contents by location: $e',
       );
     }

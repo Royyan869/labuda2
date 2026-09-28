@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Dialog showing address information and rules
 class AddressInfoDialog extends StatelessWidget {
@@ -19,7 +20,7 @@ class AddressInfoDialog extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return AlertDialog(
       backgroundColor: scheme.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppShape.r16)),
       title: Row(
         children: [
           Icon(Icons.info_outline, color: scheme.primary, size: 24),
@@ -27,7 +28,7 @@ class AddressInfoDialog extends StatelessWidget {
           Text(
             'Address Information',
             style: TextStyle(
-              fontSize: 18,
+              fontSize: AppType.s18,
               fontWeight: FontWeight.bold,
               color: scheme.onSurface,
             ),
@@ -87,7 +88,7 @@ _buildInfoRow(
               Text(
                 title,
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: AppType.s14,
                   fontWeight: FontWeight.w600,
                   color: scheme.onSurfaceVariant,
                 ),
@@ -95,7 +96,7 @@ _buildInfoRow(
               Text(
                 desc,
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: AppType.s12,
                   color: scheme.onSurfaceVariant,
                 ),
               ),
@@ -108,10 +109,10 @@ _buildInfoRow(
 
   Widget _buildRulesBox(ColorScheme scheme) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppMetrics.p12),
       decoration: BoxDecoration(
         color: scheme.primary.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppShape.r8),
       ),
       child: Row(
         children: [
@@ -121,7 +122,7 @@ _buildInfoRow(
             child: Text(
               'Min. 1 address per category\nMax. 10 addresses per category',
               style: TextStyle(
-                fontSize: 13,
+                fontSize: AppType.s13,
                 color: scheme.onSurfaceVariant,
               ),
             ),

@@ -31,10 +31,10 @@ class PersonalInformationSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(AppMetrics.p20),
       decoration: BoxDecoration(
         color: scheme.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppShape.r16),
         border: Border.all(color: scheme.outlineVariant),
       ),
       child: Column(
@@ -52,7 +52,7 @@ class PersonalInformationSection extends StatelessWidget {
                 AppLocalizations.of(context)!.contactIdentityInformation,
                 style: TextStyle(
                   color: scheme.onSurface,
-                  fontSize: 16,
+                  fontSize: AppType.s16,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -77,7 +77,7 @@ class PersonalInformationSection extends StatelessWidget {
                 'Contact Information',
                 style: TextStyle(
                   color: scheme.onSurface,
-                  fontSize: 16,
+                  fontSize: AppType.s16,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -101,11 +101,11 @@ class PersonalInformationSection extends StatelessWidget {
     return Column(
       children: [
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppMetrics.p16),
           decoration: BoxDecoration(
             color: scheme.surfaceContainerHighest,
             border: Border.all(color: scheme.outlineVariant),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(AppShape.r8),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -121,25 +121,25 @@ class PersonalInformationSection extends StatelessWidget {
                   Text(
                     'Phone Number',
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: AppType.s12,
                       color: scheme.onSurfaceVariant,
                     ),
                   ),
                   const Spacer(),
                   Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
+                      horizontal: AppMetrics.p8,
+                      vertical: AppMetrics.p4,
                     ),
                     decoration: BoxDecoration(
                       color: phoneVerified
-                          ? AppColors.successGreen.withValues(alpha: 0.1)
-                          : AppColors.warning.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(6),
+                          ? context.statusColors.success.withValues(alpha: 0.1)
+                          : context.statusColors.warning.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(AppShape.r6),
                       border: Border.all(
                         color: phoneVerified
-                            ? AppColors.successGreen.withValues(alpha: 0.3)
-                            : AppColors.warning.withValues(alpha: 0.3),
+                            ? context.statusColors.success.withValues(alpha: 0.3)
+                            : context.statusColors.warning.withValues(alpha: 0.3),
                       ),
                     ),
                     child: Row(
@@ -148,8 +148,8 @@ class PersonalInformationSection extends StatelessWidget {
                         Icon(
                           phoneVerified ? Icons.verified : Icons.warning,
                           color: phoneVerified
-                              ? AppColors.successGreen
-                              : AppColors.warning,
+                              ? context.statusColors.success
+                              : context.statusColors.warning,
                           size: 12,
                         ),
                         const SizedBox(width: 4),
@@ -157,9 +157,9 @@ class PersonalInformationSection extends StatelessWidget {
                           phoneVerified ? 'Verified' : 'Unverified',
                           style: TextStyle(
                             color: phoneVerified
-                                ? AppColors.successGreen
-                                : AppColors.warning,
-                            fontSize: 10,
+                                ? context.statusColors.success
+                                : context.statusColors.warning,
+                            fontSize: AppType.s10,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -173,7 +173,7 @@ class PersonalInformationSection extends StatelessWidget {
                 controller: phoneController,
                 keyboardType: TextInputType.phone,
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: AppType.s14,
                   fontWeight: FontWeight.w500,
                   color: scheme.onSurface,
                 ),
@@ -183,8 +183,8 @@ class PersonalInformationSection extends StatelessWidget {
                     color: scheme.onSurfaceVariant.withValues(alpha: 0.6),
                   ),
                   contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
+                    horizontal: AppMetrics.p12,
+                    vertical: AppMetrics.p10,
                   ),
                   // Border shapes come from AppTheme.inputDecorationTheme.
                 ),
@@ -194,7 +194,7 @@ class PersonalInformationSection extends StatelessWidget {
                 Text(
                   'Verified on ${phoneVerifiedAt!.day}/${phoneVerifiedAt!.month}/${phoneVerifiedAt!.year}',
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: AppType.s11,
                     color: scheme.onSurfaceVariant,
                   ),
                 ),
@@ -205,23 +205,23 @@ class PersonalInformationSection extends StatelessWidget {
         if (!phoneVerified) ...[
           const SizedBox(height: 12),
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(AppMetrics.p12),
             decoration: BoxDecoration(
-              color: AppColors.warning.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(8),
+              color: context.statusColors.warning.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(AppShape.r8),
               border: Border.all(
-                color: AppColors.warning.withValues(alpha: 0.2),
+                color: context.statusColors.warning.withValues(alpha: 0.2),
               ),
             ),
             child: Row(
               children: [
-                Icon(Icons.info_outline, color: AppColors.warning, size: 16),
+                Icon(Icons.info_outline, color: context.statusColors.warning, size: 16),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'Please verify your phone number',
                     style: TextStyle(
-                      fontSize: 11,
+                      fontSize: AppType.s11,
                       color: scheme.onSurfaceVariant,
                     ),
                   ),
@@ -239,13 +239,13 @@ class PersonalInformationSection extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onSelectDateOfBirth,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(AppShape.r8),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppMetrics.p16),
         decoration: BoxDecoration(
           color: scheme.surface,
           border: Border.all(color: scheme.outlineVariant),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppShape.r8),
         ),
         child: Row(
           children: [
@@ -262,7 +262,7 @@ class PersonalInformationSection extends StatelessWidget {
                   Text(
                     'Date of Birth (Optional)',
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: AppType.s12,
                       color: scheme.onSurfaceVariant,
                     ),
                   ),
@@ -272,7 +272,7 @@ class PersonalInformationSection extends StatelessWidget {
                         ? 'Select your date of birth'
                         : '${dateOfBirth!.day}/${dateOfBirth!.month}/${dateOfBirth!.year}',
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: AppType.s14,
                       fontWeight: dateOfBirth == null
                           ? FontWeight.normal
                           : FontWeight.w500,
@@ -300,11 +300,11 @@ class PersonalInformationSection extends StatelessWidget {
     return Column(
       children: [
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppMetrics.p16),
           decoration: BoxDecoration(
             color: scheme.surfaceContainerHighest,
             border: Border.all(color: scheme.outlineVariant),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(AppShape.r8),
           ),
           child: Row(
             children: [
@@ -321,7 +321,7 @@ class PersonalInformationSection extends StatelessWidget {
                     Text(
                       'Login Email',
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: AppType.s12,
                         color: scheme.onSurfaceVariant,
                       ),
                     ),
@@ -329,7 +329,7 @@ class PersonalInformationSection extends StatelessWidget {
                     Text(
                       email,
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: AppType.s14,
                         fontWeight: FontWeight.w500,
                         color: scheme.onSurface,
                       ),
@@ -338,7 +338,7 @@ class PersonalInformationSection extends StatelessWidget {
                     Text(
                       'Used for login and cannot be changed',
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: AppType.s11,
                         color: scheme.onSurfaceVariant,
                       ),
                     ),
@@ -346,16 +346,16 @@ class PersonalInformationSection extends StatelessWidget {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
                 decoration: BoxDecoration(
                   color: emailVerified
-                      ? AppColors.successGreen.withValues(alpha: 0.1)
-                      : AppColors.warning.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(6),
+                      ? context.statusColors.success.withValues(alpha: 0.1)
+                      : context.statusColors.warning.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(AppShape.r6),
                   border: Border.all(
                     color: emailVerified
-                        ? AppColors.successGreen.withValues(alpha: 0.3)
-                        : AppColors.warning.withValues(alpha: 0.3),
+                        ? context.statusColors.success.withValues(alpha: 0.3)
+                        : context.statusColors.warning.withValues(alpha: 0.3),
                   ),
                 ),
                 child: Row(
@@ -364,8 +364,8 @@ class PersonalInformationSection extends StatelessWidget {
                     Icon(
                       emailVerified ? Icons.verified : Icons.warning,
                       color: emailVerified
-                          ? AppColors.successGreen
-                          : AppColors.warning,
+                          ? context.statusColors.success
+                          : context.statusColors.warning,
                       size: 12,
                     ),
                     const SizedBox(width: 4),
@@ -373,9 +373,9 @@ class PersonalInformationSection extends StatelessWidget {
                       emailVerified ? 'Verified' : 'Unverified',
                       style: TextStyle(
                         color: emailVerified
-                            ? AppColors.successGreen
-                            : AppColors.warning,
-                        fontSize: 10,
+                            ? context.statusColors.success
+                            : context.statusColors.warning,
+                        fontSize: AppType.s10,
                         fontWeight: FontWeight.w600,
                       ),
                     ),

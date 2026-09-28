@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/domains/user/profile/profile.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Action buttons for verification dialog
 class VerificationActionButtons extends StatelessWidget {
@@ -25,12 +26,12 @@ class VerificationActionButtons extends StatelessWidget {
                 ? null
                 : () => Navigator.of(context).pop(false),
             style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p12),
                side: BorderSide(color: scheme.outlineVariant),
             ),
             child: const Text(
               'Cancel',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+              style: TextStyle(fontSize: AppType.s14, fontWeight: FontWeight.w600),
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -46,7 +47,7 @@ class VerificationActionButtons extends StatelessWidget {
             style: ElevatedButton.styleFrom(
                backgroundColor: scheme.primary,
                foregroundColor: scheme.onPrimary,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p12),
               disabledBackgroundColor: scheme.primary.withValues(alpha: 0.5),
             ),
             child: state.isLoading || state.isVerifying
@@ -61,7 +62,7 @@ class VerificationActionButtons extends StatelessWidget {
                 : Text(
                     state.codeSent ? 'Verify' : 'Send OTP',
                     style: const TextStyle(
-                      fontSize: 14,
+                      fontSize: AppType.s14,
                       fontWeight: FontWeight.w600,
                     ),
                     overflow: TextOverflow.ellipsis,

@@ -5,6 +5,7 @@ import 'package:labuda/domains/social/share/domain/entities/share_target.dart';
 import 'package:labuda/domains/social/share/domain/entities/share_destination.dart';
 import 'package:labuda/domains/social/share/presentation/providers/share_notifier.dart';
 import 'package:labuda/domains/social/share/presentation/providers/share_state.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 import 'share_preview_card.dart';
 import 'share_button_grid.dart';
 import 'share_as_post_dialog.dart';
@@ -48,7 +49,7 @@ class ShareBottomSheet extends ConsumerWidget {
       ),
       decoration: BoxDecoration(
         color: backgroundColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(AppShape.r20)),
       ),
       child: SafeArea(
         child: Column(
@@ -56,12 +57,12 @@ class ShareBottomSheet extends ConsumerWidget {
           children: [
             // Drag handle
             Container(
-              margin: const EdgeInsets.only(top: 12),
+              margin: const EdgeInsets.only(top: AppMetrics.p12),
               width: 40,
               height: 4,
               decoration: BoxDecoration(
                 color: scheme.outlineVariant,
-                borderRadius: BorderRadius.circular(2),
+                borderRadius: BorderRadius.circular(AppShape.r2),
               ),
             ),
 
@@ -78,7 +79,7 @@ class ShareBottomSheet extends ConsumerWidget {
 
                     // All share options in grid
                     Padding(
-                      padding: const EdgeInsets.only(bottom: 24),
+                      padding: const EdgeInsets.only(bottom: AppMetrics.p24),
                       child: ShareButtonGrid(
                         destinations: _getShareDestinations(),
                         onTap: (destination) =>

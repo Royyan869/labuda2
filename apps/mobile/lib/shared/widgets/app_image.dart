@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_blurhash/flutter_blurhash.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:labuda/core/services/blurhash_cache_service.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Image quality options for loading different image sizes
 enum MediaQuality { thumbnail, medium, high, webp }
@@ -26,6 +27,10 @@ class AppImage extends StatelessWidget {
   final Color? backgroundColor;
   final VoidCallback? onTap;
   final MediaQuality? quality;
+  /// Downsample target in physical pixels. Set where the display size is
+  /// known (feed card, search row, avatar) so a 10MB source is never decoded
+  /// at full resolution for a 48px thumbnail. Null = decode as-is.
+  final int? cacheWidth;
 
   const AppImage({
     super.key,
@@ -41,6 +46,7 @@ class AppImage extends StatelessWidget {
     this.backgroundColor,
     this.onTap,
     this.quality,
+    this.cacheWidth,
   });
 
   @override
@@ -88,6 +94,7 @@ class AppImage extends StatelessWidget {
       width: width,
       height: height,
       fit: fit,
+      memCacheWidth: cacheWidth,
       placeholder: (context, url) => _buildBlurhashPlaceholder(context),
       errorWidget: (context, url, error) {
         return _buildErrorState(context, error);
@@ -104,8 +111,8 @@ class AppImage extends StatelessWidget {
         );
       },
       // Basic Settings (cache optimization disabled temporarily)
-      fadeInDuration: const Duration(milliseconds: 200),
-      fadeOutDuration: const Duration(milliseconds: 100),
+      fadeInDuration: AppMotion.fast,
+      fadeOutDuration: AppMotion.quick,
     );
   }
 
@@ -115,6 +122,7 @@ class AppImage extends StatelessWidget {
       width: width,
       height: height,
       fit: fit,
+      memCacheWidth: cacheWidth,
       placeholder: (context, url) => _buildBlurhashPlaceholder(context),
       errorWidget: (context, url, error) {
         return _buildErrorState(context, error);
@@ -131,8 +139,8 @@ class AppImage extends StatelessWidget {
         );
       },
       // Basic Settings (cache optimization disabled temporarily)
-      fadeInDuration: const Duration(milliseconds: 200),
-      fadeOutDuration: const Duration(milliseconds: 100),
+      fadeInDuration: AppMotion.fast,
+      fadeOutDuration: AppMotion.quick,
     );
   }
 
@@ -190,7 +198,7 @@ class AppImage extends StatelessWidget {
         hash: hash,
         image: imageUrl!,
         imageFit: fit,
-        duration: const Duration(milliseconds: 300),
+        duration: AppMotion.settled,
         curve: Curves.easeInOut,
       ),
     );
@@ -237,7 +245,7 @@ class AppImage extends StatelessWidget {
             Text(
               'Image Error',
               style: TextStyle(
-                fontSize: 10,
+                fontSize: AppType.s10,
                 color: scheme.onSurfaceVariant,
               ),
               textAlign: TextAlign.center,
@@ -283,7 +291,7 @@ class AppImage extends StatelessWidget {
       width: width,
       height: height,
       fit: BoxFit.cover,
-      borderRadius: borderRadius ?? BorderRadius.circular(8),
+      borderRadius: borderRadius ?? BorderRadius.circular(AppShape.r8),
       onTap: onTap,
       quality: quality,
     );
@@ -302,7 +310,7 @@ class AppImage extends StatelessWidget {
       width: size,
       height: size,
       fit: BoxFit.cover,
-      borderRadius: borderRadius ?? BorderRadius.circular(8),
+      borderRadius: borderRadius ?? BorderRadius.circular(AppShape.r8),
       onTap: onTap,
       quality: MediaQuality.thumbnail, // Force thumbnail quality
     );

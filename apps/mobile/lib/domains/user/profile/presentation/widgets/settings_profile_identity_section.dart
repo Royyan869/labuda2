@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/generated/app_localizations.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Profile & Identity Section
 /// Handles: Profile, Personal Info, Address
@@ -53,7 +54,7 @@ class SettingsProfileIdentitySection extends StatelessWidget {
     ColorScheme scheme,
   ) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p16, AppMetrics.p16, AppMetrics.p8),
       child: Row(
         children: [
           Icon(
@@ -65,7 +66,7 @@ class SettingsProfileIdentitySection extends StatelessWidget {
           Text(
             title,
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppType.s14,
               fontWeight: FontWeight.w600,
               color: scheme.onSurfaceVariant,
             ),

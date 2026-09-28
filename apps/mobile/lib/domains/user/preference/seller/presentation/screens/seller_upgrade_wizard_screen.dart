@@ -375,10 +375,10 @@ class _SellerUpgradeWizardScreenState
   }) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(
           color: Theme.of(context).colorScheme.outlineVariant,
         ),
@@ -399,7 +399,7 @@ class _SellerUpgradeWizardScreenState
                 Text(
                   title,
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: AppType.s13,
                     fontWeight: FontWeight.w600,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
@@ -408,7 +408,7 @@ class _SellerUpgradeWizardScreenState
                 Text(
                   value,
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: AppType.s14,
                     color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
@@ -417,7 +417,7 @@ class _SellerUpgradeWizardScreenState
                   Text(
                     note,
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: AppType.s12,
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
@@ -442,7 +442,7 @@ class _SellerUpgradeWizardScreenState
               child: Text(
                 'Sender Address *',
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: AppType.s14,
                   fontWeight: FontWeight.w600,
                   color: Theme.of(context).colorScheme.onSurface,
                 ),
@@ -467,10 +467,10 @@ class _SellerUpgradeWizardScreenState
         if (address != null)
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppMetrics.p16),
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.surface,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppShape.r12),
               border: Border.all(
                 color: Theme.of(context).colorScheme.outlineVariant,
               ),
@@ -491,7 +491,7 @@ class _SellerUpgradeWizardScreenState
                       child: Text(
                         address.displayLabel,
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: AppType.s14,
                           fontWeight: FontWeight.w600,
                           color: Theme.of(context).colorScheme.onSurface,
                         ),
@@ -503,7 +503,7 @@ class _SellerUpgradeWizardScreenState
                 Text(
                   'Recipient: ${address.recipientName}',
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: AppType.s13,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
@@ -511,7 +511,7 @@ class _SellerUpgradeWizardScreenState
                 Text(
                   'Phone: ${address.phone}',
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: AppType.s13,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
@@ -519,7 +519,7 @@ class _SellerUpgradeWizardScreenState
                 Text(
                   address.fullAddress,
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: AppType.s13,
                     height: 1.5,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
@@ -529,8 +529,8 @@ class _SellerUpgradeWizardScreenState
                   Text(
                     'This sender address is not marked primary yet.',
                     style: TextStyle(
-                      fontSize: 12,
-                      color: AppColors.warningYellow,
+                      fontSize: AppType.s12,
+                      color: context.statusColors.warning,
                     ),
                   ),
                 ],
@@ -540,10 +540,10 @@ class _SellerUpgradeWizardScreenState
         else
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppMetrics.p16),
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.surfaceContainerLow,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppShape.r12),
               border: Border.all(
                 color: Theme.of(context).colorScheme.outlineVariant,
               ),
@@ -554,7 +554,7 @@ class _SellerUpgradeWizardScreenState
                 Text(
                   'No sender address selected yet.',
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: AppType.s13,
                     fontWeight: FontWeight.w600,
                     color: Theme.of(context).colorScheme.onSurface,
                   ),
@@ -563,7 +563,7 @@ class _SellerUpgradeWizardScreenState
                 Text(
                   'Use the structured address form to add province, city/regency, district, village/subdistrict, street address, and postal code.',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: AppType.s12,
                     height: 1.4,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
@@ -575,7 +575,7 @@ class _SellerUpgradeWizardScreenState
           const SizedBox(height: 8),
           Text(
             _senderAddressError!,
-            style: const TextStyle(fontSize: 12, color: AppColors.error),
+            style: TextStyle(fontSize: AppType.s12, color: context.statusColors.error),
           ),
         ],
       ],
@@ -679,6 +679,7 @@ class _SellerUpgradeWizardScreenState
             farmName: _farmNameController.text.trim(),
             farmPhotoUrl: _farmPhotoDisplayUrl,
             selectedStorePhotoPath: _selectedStorePhotoPath,
+            isStorePhotoUploading: _isStorePhotoUploading,
             packageFee: packageConfig.yearlyFee,
             packageDurationDays: packageConfig.durationDays,
             agreeToTerms: _agreeToTerms,
@@ -771,6 +772,7 @@ class _SellerUpgradeWizardScreenState
                           onStorePhotoUpload: _handleStorePhotoUpload,
                           farmPhotoUrl: _farmPhotoDisplayUrl,
                           selectedStorePhotoPath: _selectedStorePhotoPath,
+                          isStorePhotoUploading: _isStorePhotoUploading,
                         ),
                         previewStepWidget,
                         paymentStepWidget,
@@ -852,14 +854,14 @@ class _SellerUpgradeWizardScreenState
   }) {
     return Center(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppMetrics.p24),
         child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(24),
-          margin: const EdgeInsets.symmetric(horizontal: 8),
+          padding: const EdgeInsets.all(AppMetrics.p24),
+          margin: const EdgeInsets.symmetric(horizontal: AppMetrics.p8),
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surface,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(AppShape.r16),
             border: Border.all(
               color: Theme.of(context).colorScheme.outlineVariant,
             ),
@@ -877,7 +879,7 @@ class _SellerUpgradeWizardScreenState
                 title,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 20,
+                  fontSize: AppType.s20,
                   fontWeight: FontWeight.bold,
                   color: Theme.of(context).colorScheme.onSurface,
                 ),
@@ -887,7 +889,7 @@ class _SellerUpgradeWizardScreenState
                 message,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: AppType.s14,
                   height: 1.5,
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
@@ -916,8 +918,8 @@ class _SellerUpgradeWizardScreenState
 
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p16, AppMetrics.p16, AppMetrics.p12),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
@@ -925,7 +927,7 @@ class _SellerUpgradeWizardScreenState
             Theme.of(context).colorScheme.secondary.withValues(alpha: 0.06),
           ],
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppShape.r16),
         border: Border.all(
           color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.35),
         ),
@@ -936,7 +938,7 @@ class _SellerUpgradeWizardScreenState
           Text(
             headline,
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppType.s14,
               fontWeight: FontWeight.w700,
               color: Theme.of(context).colorScheme.onSurface,
             ),
@@ -945,7 +947,7 @@ class _SellerUpgradeWizardScreenState
           Text(
             message,
             style: TextStyle(
-              fontSize: 13,
+              fontSize: AppType.s13,
               height: 1.4,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
@@ -954,7 +956,7 @@ class _SellerUpgradeWizardScreenState
           Text(
             'Seller identity: ${sellerState.displayLabel}',
             style: TextStyle(
-              fontSize: 12,
+              fontSize: AppType.s12,
               fontWeight: FontWeight.w600,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
@@ -972,12 +974,12 @@ class _SellerUpgradeWizardScreenState
     return Form(
       key: _accountFormKey,
       child: ListView(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppMetrics.p24),
         children: [
           Text(
             'Lengkapi Akun Seller Baru',
             style: TextStyle(
-              fontSize: 20,
+              fontSize: AppType.s20,
               fontWeight: FontWeight.bold,
               color: Theme.of(context).colorScheme.onSurface,
             ),
@@ -986,7 +988,7 @@ class _SellerUpgradeWizardScreenState
           Text(
             'Email status tetap read-only. Isi data akun sebelum lanjut ke info toko dan pembayaran pertama.',
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppType.s14,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
@@ -1036,15 +1038,15 @@ class _SellerUpgradeWizardScreenState
           _buildSenderAddressSection(),
           const SizedBox(height: 16),
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppMetrics.p16),
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppShape.r12),
             ),
             child: Text(
               'Username is read only when already saved. Phone and sender address remain required for seller onboarding.',
               style: TextStyle(
-                fontSize: 13,
+                fontSize: AppType.s13,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
@@ -1058,14 +1060,14 @@ class _SellerUpgradeWizardScreenState
     SellerUpgradeConfigEntity upgradeConfig,
   ) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             'Paket & Syarat Seller',
             style: TextStyle(
-              fontSize: 24,
+              fontSize: AppType.s24,
               fontWeight: FontWeight.bold,
               color: Theme.of(context).colorScheme.onSurface,
             ),
@@ -1074,7 +1076,7 @@ class _SellerUpgradeWizardScreenState
           Text(
             'Lihat fee seller dari backend sebelum mengisi data akun. Pembayaran diperlukan agar seller aktif.',
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppType.s14,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
@@ -1084,18 +1086,18 @@ class _SellerUpgradeWizardScreenState
             const SizedBox(height: 16),
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(AppMetrics.p16),
               decoration: BoxDecoration(
-                color: AppColors.error.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(12),
+                color: context.statusColors.error.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(AppShape.r12),
                 border: Border.all(
-                  color: AppColors.error.withValues(alpha: 0.2),
+                  color: context.statusColors.error.withValues(alpha: 0.2),
                 ),
               ),
               child: Text(
                 'Seller registration is currently disabled by backend config.',
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: AppType.s13,
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
@@ -1104,18 +1106,18 @@ class _SellerUpgradeWizardScreenState
           const SizedBox(height: 24),
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppMetrics.p16),
             decoration: BoxDecoration(
-              color: AppColors.statusInfo.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(12),
+              color: context.statusColors.info.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(AppShape.r12),
               border: Border.all(
-                color: AppColors.statusInfo.withValues(alpha: 0.2),
+                color: context.statusColors.info.withValues(alpha: 0.2),
               ),
             ),
             child: Text(
               'KYC dan review bank dipakai untuk payout/withdrawal, bukan untuk registrasi seller awal.',
               style: TextStyle(
-                fontSize: 13,
+                fontSize: AppType.s13,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
@@ -1131,14 +1133,14 @@ class _SellerUpgradeWizardScreenState
     SellerUpgradeConfigEntity upgradeConfig,
   ) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             'Pembayaran',
             style: TextStyle(
-              fontSize: 24,
+              fontSize: AppType.s24,
               fontWeight: FontWeight.bold,
               color: Theme.of(context).colorScheme.onSurface,
             ),
@@ -1147,7 +1149,7 @@ class _SellerUpgradeWizardScreenState
           Text(
             'Onboarding hanya dipanggil setelah prerequisites valid. Subscription akan dimulai setelah onboarding sukses.',
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppType.s14,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
@@ -1155,15 +1157,15 @@ class _SellerUpgradeWizardScreenState
           _buildPaymentSection(upgradeConfig),
           const SizedBox(height: 24),
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppMetrics.p16),
             decoration: BoxDecoration(
-              color: AppColors.warningYellow.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
+              color: context.statusColors.warning.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(AppShape.r12),
             ),
             child: Text(
               'KYC dan review bank dipakai nanti untuk payout/withdrawal, terpisah dari registrasi seller.',
               style: TextStyle(
-                fontSize: 13,
+                fontSize: AppType.s13,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
@@ -1185,9 +1187,9 @@ class _SellerUpgradeWizardScreenState
     return _buildPackageStateCard(
       title: 'Paket & Syarat Seller',
       message: 'Gagal memuat konfigurasi seller dari backend.\n$error',
-      leading: const Icon(
+      leading: Icon(
         Icons.error_outline,
-        color: AppColors.error,
+        color: context.statusColors.error,
         size: 28,
       ),
       actionLabel: 'Coba lagi',
@@ -1216,13 +1218,13 @@ class _SellerUpgradeWizardScreenState
     VoidCallback? onAction,
   }) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(AppMetrics.p20),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(AppShape.r16),
           border: Border.all(
             color: Theme.of(context).colorScheme.outlineVariant,
           ),
@@ -1233,7 +1235,7 @@ class _SellerUpgradeWizardScreenState
             Text(
               title,
               style: TextStyle(
-                fontSize: 22,
+                fontSize: AppType.s22,
                 fontWeight: FontWeight.bold,
                 color: Theme.of(context).colorScheme.onSurface,
               ),
@@ -1243,7 +1245,7 @@ class _SellerUpgradeWizardScreenState
             Text(
               message,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: AppType.s14,
                 height: 1.5,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
@@ -1271,10 +1273,10 @@ class _SellerUpgradeWizardScreenState
   }) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(
           color: Theme.of(context).colorScheme.outlineVariant,
         ),
@@ -1285,7 +1287,7 @@ class _SellerUpgradeWizardScreenState
           Text(
             title,
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppType.s14,
               fontWeight: FontWeight.w700,
               color: Theme.of(context).colorScheme.onSurface,
             ),
@@ -1293,11 +1295,11 @@ class _SellerUpgradeWizardScreenState
           const SizedBox(height: 8),
           ...items.map(
             (item) => Padding(
-              padding: const EdgeInsets.only(bottom: 6),
+              padding: const EdgeInsets.only(bottom: AppMetrics.p6),
               child: Text(
                 '• $item',
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: AppType.s13,
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
@@ -1313,7 +1315,7 @@ class _SellerUpgradeWizardScreenState
   ) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(AppMetrics.p24),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -1323,7 +1325,7 @@ class _SellerUpgradeWizardScreenState
             Theme.of(context).colorScheme.secondary.withValues(alpha: 0.06),
           ],
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppShape.r16),
         border: Border.all(
           color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.5),
           width: 2,
@@ -1333,16 +1335,16 @@ class _SellerUpgradeWizardScreenState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p6),
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.secondary,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(AppShape.r20),
             ),
             child: Text(
               'AKTIVASI SELLER',
               style: TextStyle(
                 color: Theme.of(context).colorScheme.onSecondary,
-                fontSize: 12,
+                fontSize: AppType.s12,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -1351,7 +1353,7 @@ class _SellerUpgradeWizardScreenState
           Text(
             'Aktivasi Seller',
             style: TextStyle(
-              fontSize: 22,
+              fontSize: AppType.s22,
               fontWeight: FontWeight.bold,
               color: Theme.of(context).colorScheme.onSurface,
             ),
@@ -1363,18 +1365,18 @@ class _SellerUpgradeWizardScreenState
               Text(
                 AppFormatters.formatCurrency(upgradeConfig.yearlyFee),
                 style: TextStyle(
-                  fontSize: 32,
+                  fontSize: AppType.s32,
                   fontWeight: FontWeight.bold,
                   color: Theme.of(context).colorScheme.secondary,
                 ),
               ),
               const SizedBox(width: 8),
               Padding(
-                padding: const EdgeInsets.only(bottom: 6),
+                padding: const EdgeInsets.only(bottom: AppMetrics.p6),
                 child: Text(
                   '/${upgradeConfig.durationDays} hari',
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: AppType.s14,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
@@ -1385,7 +1387,7 @@ class _SellerUpgradeWizardScreenState
           Text(
             'Seller access stays active for ${upgradeConfig.durationDays} days after payment is confirmed.',
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppType.s14,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
@@ -1393,7 +1395,7 @@ class _SellerUpgradeWizardScreenState
           Text(
             'Fee sourced from backend config. KYC and bank review happen later for payout access.',
             style: TextStyle(
-              fontSize: 12,
+              fontSize: AppType.s12,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
@@ -1419,7 +1421,7 @@ class _SellerUpgradeWizardScreenState
         Text(
           'What You Get',
           style: TextStyle(
-            fontSize: 16,
+            fontSize: AppType.s16,
             fontWeight: FontWeight.bold,
             color: Theme.of(context).colorScheme.onSurface,
           ),
@@ -1427,19 +1429,19 @@ class _SellerUpgradeWizardScreenState
         const SizedBox(height: 16),
         ...features.map(
           (feature) => Padding(
-            padding: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.only(bottom: AppMetrics.p12),
             child: Row(
               children: [
                 Container(
                   width: 24,
                   height: 24,
                   decoration: BoxDecoration(
-                    color: AppColors.successGreen.withValues(alpha: 0.1),
+                    color: context.statusColors.success.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.check,
-                    color: AppColors.successGreen,
+                    color: context.statusColors.success,
                     size: 16,
                   ),
                 ),
@@ -1454,7 +1456,7 @@ class _SellerUpgradeWizardScreenState
                   child: Text(
                     feature.$1,
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: AppType.s14,
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
@@ -1482,10 +1484,10 @@ class _SellerUpgradeWizardScreenState
     final feeAmount = (selectedMethod?.serviceFeeAmount ?? 0).toDouble();
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(
           color: Theme.of(context).colorScheme.outlineVariant,
         ),
@@ -1496,7 +1498,7 @@ class _SellerUpgradeWizardScreenState
           Text(
             'Seller Payment Summary',
             style: TextStyle(
-              fontSize: 16,
+              fontSize: AppType.s16,
               fontWeight: FontWeight.bold,
               color: Theme.of(context).colorScheme.onSurface,
             ),
@@ -1519,10 +1521,10 @@ class _SellerUpgradeWizardScreenState
           ),
           const SizedBox(height: 12),
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(AppMetrics.p12),
             decoration: BoxDecoration(
-              color: AppColors.statusInfo.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
+              color: context.statusColors.info.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(AppShape.r8),
             ),
             child: Row(
               children: [
@@ -1536,7 +1538,7 @@ class _SellerUpgradeWizardScreenState
                   child: Text(
                     'You will be redirected to the payment provider in a browser.',
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: AppType.s12,
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
@@ -1570,7 +1572,7 @@ class _SellerUpgradeWizardScreenState
         Text(
           'Payment method',
           style: TextStyle(
-            fontSize: 13,
+            fontSize: AppType.s13,
             fontWeight: FontWeight.w600,
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
@@ -1582,11 +1584,11 @@ class _SellerUpgradeWizardScreenState
               : methods.isEmpty
               ? () => unawaited(_ensureSubscriptionPaymentMethodsLoaded())
               : () => unawaited(_selectSubscriptionPaymentMethod()),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppShape.r8),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p12),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(AppShape.r8),
               border: Border.all(
                 color: Theme.of(context).colorScheme.outlineVariant,
               ),
@@ -1597,9 +1599,9 @@ class _SellerUpgradeWizardScreenState
                   child: Text(
                     label,
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: AppType.s14,
                       color: methods.isEmpty && !isLoading
-                          ? AppColors.statusError
+                          ? context.statusColors.error
                           : (Theme.of(context).colorScheme.onSurface),
                     ),
                   ),
@@ -1632,7 +1634,7 @@ class _SellerUpgradeWizardScreenState
           child: Text(
             label,
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppType.s14,
               fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
@@ -1729,7 +1731,7 @@ class _SellerUpgradeWizardScreenState
     setState(() => _currentStep = step);
     await _pageController.animateToPage(
       _currentStep,
-      duration: const Duration(milliseconds: 300),
+      duration: AppMotion.settled,
       curve: Curves.easeInOut,
     );
 
@@ -1812,7 +1814,8 @@ class _SellerUpgradeWizardScreenState
     AvatarEditorWidget.showEditModal(
       context: context,
       userId: userId,
-      showAdvancedCropper: true,
+      cropTitle: 'Crop Store Photo',
+      modalTitle: 'Upload Store Logo',
       onAvatarUpdated: (localPath) async {
         if (localPath == null) {
           if (!_isCurrentPrincipalRequest(requestEpoch, userId)) return;

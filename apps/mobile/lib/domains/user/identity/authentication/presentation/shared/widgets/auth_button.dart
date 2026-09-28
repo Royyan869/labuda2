@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:labuda/core/core.dart';
 
 /// Authentication button with loading state
 ///
@@ -103,7 +104,7 @@ class AuthButton extends StatelessWidget {
               Text(
                 text,
                 style: const TextStyle(
-                  fontSize: 16,
+                  fontSize: AppType.s16,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -134,9 +135,9 @@ class AuthButton extends StatelessWidget {
             foregroundColor: isActive
                 ? scheme.onPrimary
                 : scheme.onSurfaceVariant,
-            elevation: 0,
+            elevation: AppElevation.none,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppShape.r12),
             ),
           ),
           child: child,
@@ -154,7 +155,7 @@ class AuthButton extends StatelessWidget {
               width: 1.5,
             ),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppShape.r12),
             ),
           ),
           child: child,

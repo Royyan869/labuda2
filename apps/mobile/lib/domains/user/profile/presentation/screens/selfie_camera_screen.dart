@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:labuda/shared/widgets/app_snackbar.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Selfie Camera Screen - Capture selfie with KTP in portrait orientation
 ///
@@ -155,10 +156,10 @@ class _SelfieCameraScreenState extends State<SelfieCameraScreen>
             if (_errorMessage != null)
               Center(
                 child: Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.all(AppMetrics.p16),
                   child: Text(
                     _errorMessage!,
-                    style: TextStyle(color: scheme.onPrimary, fontSize: 16),
+                    style: TextStyle(color: scheme.onPrimary, fontSize: AppType.s16),
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -179,8 +180,8 @@ class _SelfieCameraScreenState extends State<SelfieCameraScreen>
                     constraints: const BoxConstraints(maxWidth: 320),
                     child: Container(
                       margin: const EdgeInsets.symmetric(
-                        horizontal: 32,
-                        vertical: 60,
+                        horizontal: AppMetrics.p32,
+                        vertical: AppMetrics.p60,
                       ),
                       child: Stack(
                         children: [
@@ -189,7 +190,7 @@ class _SelfieCameraScreenState extends State<SelfieCameraScreen>
                             child: AspectRatio(
                               aspectRatio: 1,
                               child: Container(
-                                margin: const EdgeInsets.all(40),
+                                margin: const EdgeInsets.all(AppMetrics.p40),
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                   border: Border.all(
@@ -238,9 +239,7 @@ class _SelfieCameraScreenState extends State<SelfieCameraScreen>
                                                       width: 3,
                                                     ),
                                             ),
-                                            borderRadius: BorderRadius.circular(
-                                              10,
-                                            ),
+                                            borderRadius: BorderRadius.circular(AppShape.r10),
                                           ),
                                         ),
                                       );
@@ -257,12 +256,12 @@ class _SelfieCameraScreenState extends State<SelfieCameraScreen>
                             right: 20,
                             child: Container(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 8,
+                                horizontal: AppMetrics.p12,
+                                vertical: AppMetrics.p8,
                               ),
                               decoration: BoxDecoration(
                                 color: scheme.scrim.withValues(alpha: 0.8),
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(AppShape.r8),
                                 border: Border.all(
                                   color: scheme.primary,
                                   width: 2,
@@ -281,7 +280,7 @@ class _SelfieCameraScreenState extends State<SelfieCameraScreen>
                                     'Pegang KTP',
                                     style: TextStyle(
                                       color: scheme.onPrimary,
-                                      fontSize: 12,
+                                      fontSize: AppType.s12,
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
@@ -302,7 +301,7 @@ class _SelfieCameraScreenState extends State<SelfieCameraScreen>
               left: 0,
               right: 0,
               child: Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(AppMetrics.p16),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
@@ -335,7 +334,7 @@ class _SelfieCameraScreenState extends State<SelfieCameraScreen>
               left: 0,
               right: 0,
               child: Container(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(AppMetrics.p24),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.bottomCenter,
@@ -354,7 +353,7 @@ class _SelfieCameraScreenState extends State<SelfieCameraScreen>
                       'Posisikan wajah di dalam lingkaran',
                       style: TextStyle(
                         color: scheme.onPrimary,
-                        fontSize: 16,
+                        fontSize: AppType.s16,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -363,7 +362,7 @@ class _SelfieCameraScreenState extends State<SelfieCameraScreen>
                       'Pegang KTP di samping wajah Anda',
                       style: TextStyle(
                         color: scheme.onPrimary.withValues(alpha: 0.7),
-                        fontSize: 14,
+                        fontSize: AppType.s14,
                       ),
                     ),
                     const SizedBox(height: 24),

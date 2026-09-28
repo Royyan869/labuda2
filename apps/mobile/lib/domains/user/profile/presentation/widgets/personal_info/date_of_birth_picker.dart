@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Date of birth picker widget
 class DateOfBirthPicker extends StatelessWidget {
@@ -17,15 +18,15 @@ class DateOfBirthPicker extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(AppShape.r8),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppMetrics.p16),
         decoration: BoxDecoration(
           color: scheme.surface,
           border: Border.all(
             color: scheme.onSurfaceVariant,
           ),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppShape.r8),
         ),
         child: Row(
           children: [
@@ -42,7 +43,7 @@ class DateOfBirthPicker extends StatelessWidget {
                   Text(
                     'Date of Birth (Optional)',
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: AppType.s12,
                       color: scheme.onSurfaceVariant,
                     ),
                   ),
@@ -52,7 +53,7 @@ class DateOfBirthPicker extends StatelessWidget {
                         ? 'Select your date of birth'
                         : '${dateOfBirth!.day}/${dateOfBirth!.month}/${dateOfBirth!.year}',
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: AppType.s14,
                       fontWeight: dateOfBirth == null
                           ? FontWeight.normal
                           : FontWeight.w500,

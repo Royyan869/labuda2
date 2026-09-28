@@ -11,10 +11,10 @@ class OrderItemsCard extends StatelessWidget {
     final colorScheme = theme.colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(core.AppMetrics.p16),
       decoration: BoxDecoration(
         color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(core.AppShape.r12),
         border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: Column(
@@ -66,12 +66,12 @@ class _OrderItemTile extends StatelessWidget {
     final colorScheme = theme.colorScheme;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: core.AppMetrics.p12),
       child: Row(
         children: [
           // Item image
           ClipRRect(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(core.AppShape.r8),
             child: AppImage(
               imageUrl: item.forSaleImage,
               width: 60,
@@ -83,7 +83,7 @@ class _OrderItemTile extends StatelessWidget {
                 height: 60,
                 decoration: BoxDecoration(
                   color: colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(core.AppShape.r8),
                 ),
                 child: Icon(
                   Icons.image_not_supported,
@@ -160,10 +160,10 @@ class _VariantChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: core.AppMetrics.p8, vertical: core.AppMetrics.p2),
       decoration: BoxDecoration(
         color: colorScheme.onSurfaceVariant.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(core.AppShape.r4),
         border: Border.all(
           color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
         ),
@@ -171,7 +171,7 @@ class _VariantChip extends StatelessWidget {
       child: Text(
         label,
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-          fontSize: 10,
+          fontSize: core.AppType.s10,
           color: colorScheme.onSurfaceVariant,
         ),
       ),

@@ -77,7 +77,7 @@ class ProfileInfo extends StatelessWidget {
           child: Text(
             name,
             style: TextStyle(
-              fontSize: 18,
+              fontSize: AppType.s18,
               fontWeight: FontWeight.bold,
               color: scheme.onSurface,
             ),
@@ -87,7 +87,7 @@ class ProfileInfo extends StatelessWidget {
         ),
         if (isVerified) ...[
           const SizedBox(width: 4),
-          Icon(Icons.verified, size: 18, color: AppColors.statusInfo),
+          Icon(Icons.verified, size: 18, color: context.statusColors.info),
         ],
       ],
     );
@@ -96,10 +96,10 @@ class ProfileInfo extends StatelessWidget {
   Widget _buildFarmNameBadge(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(
           color: scheme.outlineVariant,
         ),
@@ -117,7 +117,7 @@ class ProfileInfo extends StatelessWidget {
             child: Text(
               farmName!,
               style: TextStyle(
-                fontSize: 12,
+                fontSize: AppType.s12,
                 fontWeight: FontWeight.w500,
                 color: scheme.onSurface,
               ),
@@ -135,7 +135,7 @@ class ProfileInfo extends StatelessWidget {
     return Text(
       username.startsWith('@') ? username : '@$username',
       style: TextStyle(
-        fontSize: 14,
+        fontSize: AppType.s14,
         color: scheme.onSurfaceVariant,
       ),
     );
@@ -156,7 +156,7 @@ class ProfileInfo extends StatelessWidget {
           child: Text(
             location!,
             style: TextStyle(
-              fontSize: 13,
+              fontSize: AppType.s13,
               color: scheme.onSurfaceVariant,
             ),
             maxLines: 1,
@@ -172,7 +172,7 @@ class ProfileInfo extends StatelessWidget {
     return Text(
       bio!,
       style: TextStyle(
-        fontSize: 14,
+        fontSize: AppType.s14,
         color: scheme.onSurface.withValues(alpha: 0.9),
         height: 1.4,
       ),
@@ -208,7 +208,7 @@ class ProfileInfoCompact extends StatelessWidget {
           Text(
             name,
             style: TextStyle(
-              fontSize: 16,
+              fontSize: AppType.s16,
               fontWeight: FontWeight.w600,
               color: scheme.onSurface,
             ),
@@ -218,7 +218,7 @@ class ProfileInfoCompact extends StatelessWidget {
           Text(
             username.startsWith('@') ? username : '@$username',
             style: TextStyle(
-              fontSize: 12,
+              fontSize: AppType.s12,
               color: scheme.onSurfaceVariant,
             ),
           ),

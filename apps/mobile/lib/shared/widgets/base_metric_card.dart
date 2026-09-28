@@ -43,10 +43,10 @@ class BaseMetricCard extends StatelessWidget {
 
     return Container(
       width: width,
-      padding: padding ?? const EdgeInsets.all(16),
+      padding: padding ?? const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         color: backgroundColor ?? scheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(color: scheme.outlineVariant, width: 1),
         boxShadow: [
           BoxShadow(
@@ -74,14 +74,14 @@ class BaseMetricCard extends StatelessWidget {
                 const SizedBox(width: 4),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 2,
+                    horizontal: AppMetrics.p6,
+                    vertical: AppMetrics.p2,
                   ),
                   decoration: BoxDecoration(
                     color: isPositiveTrend
-                        ? AppColors.statusSuccess.withValues(alpha: 0.1)
-                        : AppColors.statusError.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(999),
+                        ? context.statusColors.success.withValues(alpha: 0.1)
+                        : context.statusColors.error.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(AppShape.pill),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -92,16 +92,16 @@ class BaseMetricCard extends StatelessWidget {
                             : Icons.arrow_downward,
                         size: 10,
                         color: isPositiveTrend
-                            ? AppColors.statusSuccess
-                            : AppColors.statusError,
+                            ? context.statusColors.success
+                            : context.statusColors.error,
                       ),
                       const SizedBox(width: 2),
                       Text(
                         trendValue!,
                         style: AppTypography.labelSmall.copyWith(
                           color: isPositiveTrend
-                              ? AppColors.statusSuccess
-                              : AppColors.statusError,
+                              ? context.statusColors.success
+                              : context.statusColors.error,
                         ),
                       ),
                     ],
@@ -175,7 +175,7 @@ class BaseMetricCard extends StatelessWidget {
       iconColor: iconColor,
       onTap: onTap,
       width: width,
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppMetrics.p12),
     );
   }
 
@@ -195,7 +195,7 @@ class BaseMetricCard extends StatelessWidget {
       icon: icon,
       iconColor: iconColor,
       width: width,
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(AppMetrics.p10),
     );
   }
 }

@@ -1,4 +1,4 @@
-import 'package:labuda/core/src/theme/app_colors.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:labuda/shared/ui/base/base_component.dart';
@@ -70,7 +70,7 @@ class PriceInputComponent extends BaseComponent
         border: const OutlineInputBorder(),
         prefixText: '$currency ',
         suffixIcon: isRequired
-            ? const Icon(Icons.star, size: 12, color: AppColors.error)
+            ? Icon(Icons.star, size: 12, color: context.statusColors.error)
             : null,
       ),
     );

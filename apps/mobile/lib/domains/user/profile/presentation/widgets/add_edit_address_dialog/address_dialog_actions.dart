@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/shared/shared.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Action buttons for add/edit address dialog
 class AddressDialogActions extends StatelessWidget {
@@ -21,12 +22,12 @@ class AddressDialogActions extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(AppMetrics.p24),
       decoration: BoxDecoration(
         color: scheme.onSurfaceVariant,
         borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(20),
-          bottomRight: Radius.circular(20),
+          bottomLeft: Radius.circular(AppShape.r20),
+          bottomRight: Radius.circular(AppShape.r20),
         ),
       ),
       child: Row(

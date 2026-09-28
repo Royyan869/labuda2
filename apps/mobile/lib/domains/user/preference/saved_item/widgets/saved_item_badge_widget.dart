@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/src/theme/app_colors.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 import 'package:labuda/domains/user/preference/saved_item/data/repositories/saved_item_repository.dart';
 import 'package:labuda/domains/user/preference/saved_item/data/services/saved_item_service.dart';
 
@@ -43,16 +43,16 @@ class _SavedItemBadgeWidgetState extends State<SavedItemBadgeWidget> {
               top: -6,
               child: Container(
                 padding: EdgeInsets.symmetric(
-                  horizontal: count > 99
-                      ? 3
-                      : count > 9
-                      ? 4
-                      : 4,
-                  vertical: 2,
+                  horizontal: count > AppMetrics.p99
+                      ? AppMetrics.p3
+                      : count > AppMetrics.p9
+                      ? AppMetrics.p4
+                      : AppMetrics.p4,
+                  vertical: AppMetrics.p2,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.statusError,
-                  borderRadius: BorderRadius.circular(10),
+                  color: context.statusColors.error,
+                  borderRadius: BorderRadius.circular(AppShape.r10),
                   boxShadow: [
                     BoxShadow(
                       color: colorScheme.shadow.withValues(alpha: 0.2),
@@ -66,7 +66,7 @@ class _SavedItemBadgeWidgetState extends State<SavedItemBadgeWidget> {
                   count > 99 ? '99+' : count.toString(),
                   style: TextStyle(
                     color: colorScheme.onError,
-                    fontSize: 9,
+                    fontSize: AppType.s9,
                     fontWeight: FontWeight.w600,
                     height: 1.1,
                   ),

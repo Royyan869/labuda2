@@ -62,7 +62,7 @@ class _FollowListScreenState extends ConsumerState<FollowListScreen> {
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(60),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p0, AppMetrics.p16, AppMetrics.p8),
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
@@ -80,12 +80,12 @@ class _FollowListScreenState extends ConsumerState<FollowListScreen> {
                 filled: true,
                 fillColor: scheme.surfaceContainerHigh,
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(AppShape.r12),
                   borderSide: BorderSide.none,
                 ),
                 contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
+                  horizontal: AppMetrics.p16,
+                  vertical: AppMetrics.p12,
                 ),
               ),
               onChanged: (value) {
@@ -123,7 +123,7 @@ class _FollowListScreenState extends ConsumerState<FollowListScreen> {
               }
             },
             child: ListView.separated(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p8),
               itemCount: filteredUsers.length,
               separatorBuilder: (_, index) => const SizedBox(height: 8),
               itemBuilder: (_, index) {

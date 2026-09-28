@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:labuda/core/api/api_error_codes.dart';
 import 'package:labuda/core/api/config/api_config.dart';
 import 'package:labuda/core/api/exceptions/api_exception.dart';
 import 'package:labuda/core/api/interceptors/auth_interceptor.dart';
@@ -189,17 +190,26 @@ class ApiClient {
   ///   return Result.success(User.fromJson(response.data));
   /// } on DioException catch (e) {
   ///   final apiException = apiClient.extractException(e);
-  ///   return Result.error(apiException.message);
+  ///   return Result.error(
+  ///     apiException.message,
+  ///     code: apiException.code,   // ← callers branch on THIS, not on text
+  ///     statusCode: apiException.statusCode,
+  ///   );
   /// }
   /// ```
   ApiException extractException(DioException e) {
     if (e.error is ApiException) {
       return e.error as ApiException;
     }
-    return UnknownApiException(
-      message: e.message ?? 'Unknown error occurred',
-      details: e.error,
-    );
+    // No interceptor-wrapped ApiException: classify straight from the Dio
+    // failure type, so even an un-intercepted transport failure reaches
+    // `Result.errorCode` with its canonical code instead of a bare message.
+    return ApiExceptionFactory.fromTransport(e) ??
+        UnknownApiException(
+          message: e.message ?? 'Unknown error occurred',
+          code: unknownError,
+          details: e.error,
+        );
   }
 
   /// Check if exception is a specific type

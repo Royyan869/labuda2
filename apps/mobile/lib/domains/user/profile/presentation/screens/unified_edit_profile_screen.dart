@@ -175,7 +175,7 @@ class _UnifiedEditProfileScreenState
     if (targetContext == null) return;
     Scrollable.ensureVisible(
       targetContext,
-      duration: const Duration(milliseconds: 300),
+      duration: AppMotion.settled,
       curve: Curves.easeInOut,
     );
   }
@@ -323,7 +323,7 @@ class _UnifiedEditProfileScreenState
           Form(
             key: _formKey,
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(AppMetrics.p16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -467,7 +467,7 @@ color: scheme.scrim.withValues(alpha: 0.7),
         Text(
           title,
           style: TextStyle(
-            fontSize: 16,
+            fontSize: AppType.s16,
             fontWeight: FontWeight.bold,
             color: scheme.onSurface,
           ),
@@ -479,7 +479,7 @@ color: scheme.scrim.withValues(alpha: 0.7),
   Widget _buildActionBar() {
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppMetrics.p16),
         child: Row(
           children: [
             Expanded(
@@ -510,7 +510,6 @@ color: scheme.scrim.withValues(alpha: 0.7),
     AvatarEditorWidget.showEditModal(
       context: context,
       userId: _actualUserId,
-      showAdvancedCropper: false,
       onAvatarUpdated: (path) => setState(() {
         _selectedAvatarPath = path;
         _isAvatarMarkedForRemoval = path == null;
@@ -527,7 +526,8 @@ color: scheme.scrim.withValues(alpha: 0.7),
     AvatarEditorWidget.showEditModal(
       context: context,
       userId: _actualUserId,
-      showAdvancedCropper: true,
+      cropTitle: 'Crop Store Photo',
+      modalTitle: 'Change Store Photo',
       onAvatarUpdated: (path) => setState(() {
         _selectedStorePhotoPath = path;
         _isStorePhotoMarkedForRemoval = path == null;

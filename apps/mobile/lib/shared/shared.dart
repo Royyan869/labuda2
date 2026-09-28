@@ -105,8 +105,8 @@ export 'widgets/popup_more_options_button.dart'; // ⭐ Popup 3 dots menu
 export 'src/widgets/expandable_text_widget.dart'; // ⭐ Expandable text widget like Facebook
 export 'src/widgets/expandable_mention_text_widget.dart'; // ⭐ Expandable text with clickable mentions
 // export 'ui/src/widgets/action_button_widget.dart'; // ✅ Removed - using PostCardActions in respective modules
-export 'ui/src/widgets/text_input_widget.dart'; // ⭐ Reusable text input widget for chat and comments
-export 'ui/src/widgets/text_input_actions.dart'; // ⭐ Quick action buttons for text input
+
+
 export 'ui/src/helpers/media_picker_helper.dart'; // ⭐ Media picker helper for gallery selection
 export 'ui/src/screens/custom_camera_screen.dart'; // ⭐ Custom camera screen
 export 'src/widgets/upload_progress_widget.dart'; // ⭐ Upload progress component

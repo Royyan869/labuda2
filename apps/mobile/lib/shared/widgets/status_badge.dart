@@ -116,60 +116,60 @@ class StatusBadge extends StatelessWidget {
   BorderRadius _getBorderRadiusForVariant(StatusBadgeVariant variant) {
     switch (variant) {
       case StatusBadgeVariant.pill:
-        return BorderRadius.circular(999);
+        return BorderRadius.circular(AppShape.pill);
       case StatusBadgeVariant.outlined:
-        return BorderRadius.circular(16);
+        return BorderRadius.circular(AppShape.r16);
       case StatusBadgeVariant.dot:
-        return BorderRadius.circular(999);
+        return BorderRadius.circular(AppShape.pill);
       default:
-        return BorderRadius.circular(8);
+        return BorderRadius.circular(AppShape.r8);
     }
   }
 
   EdgeInsets _getPaddingForVariant(StatusBadgeVariant variant) {
     switch (variant) {
       case StatusBadgeVariant.pill:
-        return const EdgeInsets.symmetric(horizontal: 12, vertical: 6);
+        return const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p6);
       case StatusBadgeVariant.outlined:
-        return const EdgeInsets.symmetric(horizontal: 12, vertical: 6);
+        return const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p6);
       default:
-        return const EdgeInsets.symmetric(horizontal: 10, vertical: 4);
+        return const EdgeInsets.symmetric(horizontal: AppMetrics.p10, vertical: AppMetrics.p4);
     }
   }
 
   // Named constructors for common statuses
-  factory StatusBadge.success(String label) {
+  factory StatusBadge.success(BuildContext context, String label) {
     return StatusBadge(
       label: label,
-      backgroundColor: AppColors.statusSuccess.withValues(alpha: 0.1),
-      textColor: AppColors.statusSuccess,
+      backgroundColor: context.statusColors.success.withValues(alpha: 0.1),
+      textColor: context.statusColors.success,
       variant: StatusBadgeVariant.pill,
     );
   }
 
-  factory StatusBadge.error(String label) {
+  factory StatusBadge.error(BuildContext context, String label) {
     return StatusBadge(
       label: label,
-      backgroundColor: AppColors.statusError.withValues(alpha: 0.1),
-      textColor: AppColors.statusError,
+      backgroundColor: context.statusColors.error.withValues(alpha: 0.1),
+      textColor: context.statusColors.error,
       variant: StatusBadgeVariant.pill,
     );
   }
 
-  factory StatusBadge.warning(String label) {
+  factory StatusBadge.warning(BuildContext context, String label) {
     return StatusBadge(
       label: label,
-      backgroundColor: AppColors.statusWarning.withValues(alpha: 0.1),
-      textColor: AppColors.statusWarning,
+      backgroundColor: context.statusColors.warning.withValues(alpha: 0.1),
+      textColor: context.statusColors.warning,
       variant: StatusBadgeVariant.pill,
     );
   }
 
-  factory StatusBadge.info(String label) {
+  factory StatusBadge.info(BuildContext context, String label) {
     return StatusBadge(
       label: label,
-      backgroundColor: AppColors.statusInfo.withValues(alpha: 0.1),
-      textColor: AppColors.statusInfo,
+      backgroundColor: context.statusColors.info.withValues(alpha: 0.1),
+      textColor: context.statusColors.info,
       variant: StatusBadgeVariant.pill,
     );
   }

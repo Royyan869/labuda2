@@ -41,7 +41,7 @@ class RepostAttributionBar extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
 
     Widget attributionWidget = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p8),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHigh,
         border: Border(
@@ -72,7 +72,7 @@ class RepostAttributionBar extends StatelessWidget {
     if (onTap != null) {
       return InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(AppShape.r4),
         child: attributionWidget,
       );
     }
@@ -114,7 +114,7 @@ class RepostIndicator extends StatelessWidget {
     if (onTap != null) {
       return InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(AppShape.r4),
         child: child,
       );
     }

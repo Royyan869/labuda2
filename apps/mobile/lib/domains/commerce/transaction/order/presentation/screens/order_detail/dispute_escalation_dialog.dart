@@ -7,6 +7,7 @@ import 'package:labuda/core/core.dart' as core;
 import 'package:labuda/domains/commerce/transaction/order/data/order_providers.dart';
 import 'package:labuda/domains/commerce/transaction/order/domain/entities/refund_request.dart';
 import 'package:labuda/shared/widgets/app_snackbar.dart';
+import 'package:labuda/domains/commerce/transaction/order/presentation/widgets/evidence_media_gallery.dart';
 
 /// Dialog for escalating a rejected refund to a dispute
 class DisputeEscalationDialog extends ConsumerStatefulWidget {
@@ -97,7 +98,7 @@ class _DisputeEscalationDialogState
           const Expanded(
             child: Text(
               'Ajukan Sengketa ke Admin',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+              style: TextStyle(fontSize: core.AppType.s18, fontWeight: FontWeight.w600),
             ),
           ),
         ],
@@ -111,10 +112,10 @@ class _DisputeEscalationDialogState
             children: [
               // Info message
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(core.AppMetrics.p12),
                 decoration: BoxDecoration(
                   color: colorScheme.secondary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(core.AppShape.r8),
                   border: Border.all(
                     color: colorScheme.secondary.withValues(alpha: 0.3),
                   ),
@@ -132,7 +133,7 @@ class _DisputeEscalationDialogState
                       child: Text(
                         'Penjual telah menolak refund Anda. Admin akan meninjau kasus ini secara adil.',
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: core.AppType.s12,
                           color: colorScheme.onSurface,
                         ),
                       ),
@@ -155,28 +156,25 @@ class _DisputeEscalationDialogState
                     widget.refund.sellerNotes ??
                     'Tidak ada catatan dari penjual',
               ),
-              if (hasOriginalEvidence) ...[
-                const SizedBox(height: 8),
-                _InfoRow(
-                  label: 'Bukti Awal',
-                  value: '${widget.refund.evidenceUrls!.length} file terlampir',
-                ),
-              ],
+               if (hasOriginalEvidence) ...[
+                 const SizedBox(height: 8),
+                 EvidenceMediaGallery(urls: widget.refund.evidenceUrls!),
+               ],
               const SizedBox(height: 16),
 
               // Warning about escrow freeze
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(core.AppMetrics.p12),
                 decoration: BoxDecoration(
-                  color: core.AppColors.statusWarning.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  color: context.statusColors.warning.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(core.AppShape.r8),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Icon(
                       Icons.lock_clock,
-                      color: core.AppColors.statusWarning,
+                      color: context.statusColors.warning,
                       size: 16,
                     ),
                     const SizedBox(width: 8),
@@ -184,8 +182,8 @@ class _DisputeEscalationDialogState
                       child: Text(
                         'Dana akan dibekukan (escrow freeze) selama proses peninjauan admin.',
                         style: TextStyle(
-                          fontSize: 11,
-                          color: core.AppColors.statusWarning,
+                          fontSize: core.AppType.s11,
+                          color: context.statusColors.warning,
                         ),
                       ),
                     ),
@@ -245,7 +243,7 @@ class _InfoRow extends StatelessWidget {
             label,
             style: theme.textTheme.bodySmall?.copyWith(
               color: colorScheme.onSurfaceVariant,
-              fontSize: 12,
+              fontSize: core.AppType.s12,
             ),
           ),
         ),
@@ -254,7 +252,7 @@ class _InfoRow extends StatelessWidget {
             '${emoji ?? ''} $value'.trim(),
             style: theme.textTheme.bodySmall?.copyWith(
               color: colorScheme.onSurface,
-              fontSize: 12,
+              fontSize: core.AppType.s12,
             ),
           ),
         ),

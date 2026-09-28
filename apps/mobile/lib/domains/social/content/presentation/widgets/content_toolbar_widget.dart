@@ -30,13 +30,13 @@ class ContentToolbarWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: 60,
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           _ToolbarIcon(
             icon: Icons.photo_library,
-            color: AppColors.primaryGreen,
+            color: context.statusColors.success,
             label: 'Gallery',
             onTap: onGalleryTap,
           ),
@@ -88,9 +88,9 @@ class _ToolbarIcon extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(AppShape.r8),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p4, vertical: AppMetrics.p4),
         child: Stack(
           clipBehavior: Clip.none,
           children: [
@@ -102,7 +102,7 @@ class _ToolbarIcon extends StatelessWidget {
                 Text(
                   label,
                   style: TextStyle(
-                    fontSize: 10,
+                    fontSize: AppType.s10,
                     color: scheme.onSurfaceVariant,
                     fontWeight: FontWeight.w500,
                   ),
@@ -114,7 +114,7 @@ class _ToolbarIcon extends StatelessWidget {
                 right: -4,
                 top: -2,
                 child: Container(
-                  padding: const EdgeInsets.all(3),
+                  padding: const EdgeInsets.all(AppMetrics.p3),
                   decoration: BoxDecoration(
                     color: scheme.primary,
                     shape: BoxShape.circle,
@@ -127,7 +127,7 @@ class _ToolbarIcon extends StatelessWidget {
                     badge!,
                     style: TextStyle(
                       color: scheme.onPrimary,
-                      fontSize: 8,
+                      fontSize: AppType.s8,
                       fontWeight: FontWeight.bold,
                     ),
                     textAlign: TextAlign.center,

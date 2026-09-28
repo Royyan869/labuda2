@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Custom Places Autocomplete Service
 ///
@@ -89,7 +90,7 @@ class PlacesAutocompleteService {
   void searchWithDebounce(
     String query,
     Function(List<PlacePrediction>) onResults, {
-    Duration delay = const Duration(milliseconds: 500),
+    Duration delay = AppMotion.slow,
   }) {
     _debounce?.cancel();
     _debounce = Timer(delay, () async {

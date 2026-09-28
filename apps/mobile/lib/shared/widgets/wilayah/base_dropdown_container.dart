@@ -4,6 +4,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Base container untuk dropdown dengan styling konsisten
 class BaseDropdownContainer extends StatelessWidget {
@@ -22,7 +23,7 @@ class BaseDropdownContainer extends StatelessWidget {
           Text(
             labelText!,
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppType.s14,
               fontWeight: FontWeight.w500,
               color: scheme.onSurface,
             ),
@@ -31,7 +32,7 @@ class BaseDropdownContainer extends StatelessWidget {
         ],
         Container(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppShape.r12),
             border: Border.all(color: scheme.outlineVariant),
             color: scheme.surface,
           ),

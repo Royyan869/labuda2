@@ -90,7 +90,7 @@ class FCMActionMapper {
           BannerAction(
             label: 'Lihat Lelang',
             icon: Icons.gavel,
-            color: AppColors.statusWarning,
+            tone: BannerTone.warning,
             onTap: () => _navigate(type, data),
           ),
         ];
@@ -101,7 +101,7 @@ class FCMActionMapper {
           BannerAction(
             label: 'Bayar Sekarang',
             icon: Icons.payment,
-            color: AppColors.statusSuccess,
+            tone: BannerTone.success,
             onTap: () => _navigate(type, data),
           ),
         ];
@@ -138,7 +138,7 @@ class FCMActionMapper {
           BannerAction(
             label: 'Konfirmasi Terima',
             icon: Icons.check_circle,
-            color: AppColors.statusSuccess,
+            tone: BannerTone.success,
             onTap: () => _navigate(type, data),
           ),
         ];

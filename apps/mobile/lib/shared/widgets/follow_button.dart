@@ -81,10 +81,10 @@ class _FollowButtonState extends ConsumerState<FollowButton> {
     return Opacity(
       opacity: disabled ? 0.4 : 1.0,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p8),
         decoration: BoxDecoration(
           color: bg,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppShape.r8),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -94,7 +94,7 @@ class _FollowButtonState extends ConsumerState<FollowButton> {
             Text(
               'Follow',
               style: TextStyle(
-                fontSize: 13,
+                fontSize: AppType.s13,
                 color: fg,
                 fontWeight: FontWeight.w500,
               ),
@@ -119,14 +119,14 @@ class _FollowButtonState extends ConsumerState<FollowButton> {
       opacity: _isLoading ? 0.6 : 1.0,
       child: Material(
         color: bg,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppShape.r8),
         child: InkWell(
           onTap: _isLoading
               ? null
               : () => _toggleFollow(currentUserId, currentUserName, isFollowing),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppShape.r8),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p8),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -149,7 +149,7 @@ class _FollowButtonState extends ConsumerState<FollowButton> {
                 Text(
                   isFollowing ? 'Following' : 'Follow',
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: AppType.s13,
                     color: fg,
                     fontWeight: FontWeight.w500,
                   ),

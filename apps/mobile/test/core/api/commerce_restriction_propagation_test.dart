@@ -2,7 +2,7 @@
 ///
 /// Verifies that the backend `COMMERCE_RESTRICTED` error code survives
 /// the entire Flutter error stack:
-///   HTTP 403 → ErrorInterceptor → ForbiddenException → Result/RepositoryResult
+///   HTTP 403 → ErrorInterceptor → ForbiddenException → Result
 ///   → UI layer (state.errorCode) → CommerceRestrictionPresenter
 ///
 /// These tests prove that the mobile app can distinguish
@@ -14,7 +14,6 @@ import 'package:labuda/core/api/api_error_codes.dart' as codes;
 import 'package:labuda/core/api/commerce_restriction_presenter.dart';
 import 'package:labuda/core/common/result.dart';
 import 'package:labuda/domains/commerce/transaction/checkout/data/repositories/checkout_repository_impl.dart';
-import 'package:labuda/domains/commerce/transaction/order/domain/repositories/repository_result.dart';
 
 void main() {
   group('API Error Codes — single authority', () {
@@ -62,25 +61,6 @@ void main() {
 
     test('Result.success has null errorCode', () {
       final result = Result.success('data');
-      expect(result.errorCode, isNull);
-    });
-  });
-
-  group('RepositoryResult<T> — errorCode preservation', () {
-    test('RepositoryResult.error preserves code and details', () {
-      final result = RepositoryResult.error(
-        'Restricted',
-        code: codes.commerceRestricted,
-        details: {'permanent_ban': true},
-      );
-
-      expect(result.isError, isTrue);
-      expect(result.errorCode, equals(codes.commerceRestricted));
-      expect(result.errorDetails, equals({'permanent_ban': true}));
-    });
-
-    test('RepositoryResult.success has null errorCode', () {
-      final result = RepositoryResult.success('data');
       expect(result.errorCode, isNull);
     });
   });

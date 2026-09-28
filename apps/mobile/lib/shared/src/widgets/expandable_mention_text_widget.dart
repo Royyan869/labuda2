@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/shared/widgets/mentions/mention_rich_text.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Expandable Text Widget dengan Mention Support (Facebook-style)
 ///
@@ -88,7 +89,7 @@ class _ExpandableMentionTextWidgetState
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         AnimatedSize(
-          duration: const Duration(milliseconds: 200),
+          duration: AppMotion.fast,
           curve: Curves.easeInOut,
           child: MentionRichText(
             text: widget.text,

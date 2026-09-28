@@ -45,7 +45,7 @@ class _CoinBalanceScreenState extends ConsumerState<CoinBalanceScreen> {
     );
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Coins'), elevation: 0),
+      appBar: AppBar(title: const Text('Coins'), elevation: AppElevation.none),
       body: balanceAsync.when(
         data: (balance) {
           if (balance == null) {
@@ -72,14 +72,14 @@ class _CoinBalanceScreenState extends ConsumerState<CoinBalanceScreen> {
                 // Section Header
                 const SliverToBoxAdapter(
                   child: Padding(
-                    padding: EdgeInsets.fromLTRB(16, 24, 16, 12),
+                    padding: EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p24, AppMetrics.p16, AppMetrics.p12),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
                           'Transaksi Terbaru',
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: AppType.s16,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -101,12 +101,12 @@ class _CoinBalanceScreenState extends ConsumerState<CoinBalanceScreen> {
                     }
 
                     return SliverPadding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16),
                       sliver: SliverList(
                         delegate: SliverChildBuilderDelegate((context, index) {
                           if (index == transactions.length) {
                             return Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
                               child: Center(
                                 child: TextButton(
                                   onPressed: () => _navigateToHistory(),
@@ -118,7 +118,7 @@ class _CoinBalanceScreenState extends ConsumerState<CoinBalanceScreen> {
 
                           final transaction = transactions[index];
                           return Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
+                            padding: const EdgeInsets.only(bottom: AppMetrics.p12),
                             child: _buildTransactionItem(transaction),
                           );
                         }, childCount: transactions.length + 1),
@@ -128,7 +128,7 @@ class _CoinBalanceScreenState extends ConsumerState<CoinBalanceScreen> {
                   loading: () => const SliverToBoxAdapter(
                     child: Center(
                       child: Padding(
-                        padding: EdgeInsets.all(32),
+                        padding: EdgeInsets.all(AppMetrics.p32),
                         child: CircularProgressIndicator(),
                       ),
                     ),
@@ -151,32 +151,32 @@ class _CoinBalanceScreenState extends ConsumerState<CoinBalanceScreen> {
 
   Widget _buildTransactionItem(CoinTransaction transaction) {
     return Card(
-      elevation: 0,
+      elevation: AppElevation.none,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        contentPadding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p8),
         leading: _getTransactionIcon(transaction),
         title: Text(
           transaction.description,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+          style: const TextStyle(fontSize: AppType.s14, fontWeight: FontWeight.w500),
         ),
         subtitle: Text(
           _formatDate(transaction.createdAt),
-          style: const TextStyle(fontSize: 12),
+          style: const TextStyle(fontSize: AppType.s12),
         ),
         trailing: Text(
           '${transaction.amount > 0 ? '+' : ''}${transaction.amount}',
           style: TextStyle(
-            fontSize: 15,
+            fontSize: AppType.s15,
             fontWeight: FontWeight.bold,
             color: transaction.amount > 0
-                ? AppColors.statusSuccess
-                : AppColors.statusError,
+                ? context.statusColors.success
+                : context.statusColors.error,
           ),
         ),
       ),
@@ -225,12 +225,12 @@ class _CoinBalanceScreenState extends ConsumerState<CoinBalanceScreen> {
           SizedBox(height: 16),
           Text(
             'Belum ada Coins',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: AppType.s18, fontWeight: FontWeight.bold),
           ),
           SizedBox(height: 8),
           Text(
             'Dapatkan Coins dari berbagai aktivitas di Labuda',
-            style: TextStyle(fontSize: 14),
+            style: TextStyle(fontSize: AppType.s14),
           ),
         ],
       ),
@@ -245,25 +245,25 @@ class _CoinBalanceScreenState extends ConsumerState<CoinBalanceScreen> {
 
     return Center(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(AppMetrics.p32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               Icons.error_outline,
               size: 64,
-              color: AppColors.statusError,
+              color: context.statusColors.error,
             ),
             const SizedBox(height: 16),
             const Text(
               'Terjadi Kesalahan',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: AppType.s18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
               displayMessage,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 14),
+              style: const TextStyle(fontSize: AppType.s14),
             ),
             const SizedBox(height: 16),
             ElevatedButton(

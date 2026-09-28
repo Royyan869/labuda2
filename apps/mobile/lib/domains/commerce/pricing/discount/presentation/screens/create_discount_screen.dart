@@ -193,9 +193,9 @@ class _CreateDiscountScreenState extends ConsumerState<CreateDiscountScreen> {
               Navigator.of(context).pop();
               Navigator.of(context).pop();
             },
-            child: const Text(
+            child: Text(
               'Discard',
-              style: TextStyle(color: core.AppColors.error),
+              style: TextStyle(color: context.statusColors.error),
             ),
           ),
         ],
@@ -219,7 +219,7 @@ class _CreateDiscountScreenState extends ConsumerState<CreateDiscountScreen> {
         backgroundColor: Theme.of(context).colorScheme.surface,
         appBar: AppBar(
           title: Text(_isEditMode ? 'Edit Discount' : 'Create New Discount'),
-          elevation: 0,
+          elevation: core.AppElevation.none,
           surfaceTintColor: Colors.transparent,
           scrolledUnderElevation: 0,
           leading: IconButton(
@@ -236,7 +236,7 @@ class _CreateDiscountScreenState extends ConsumerState<CreateDiscountScreen> {
         body: Form(
           key: _formKey,
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(core.AppMetrics.p12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -334,7 +334,7 @@ class _CreateDiscountScreenState extends ConsumerState<CreateDiscountScreen> {
           ),
         ),
         bottomNavigationBar: Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(core.AppMetrics.p12),
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surface,
             boxShadow: [

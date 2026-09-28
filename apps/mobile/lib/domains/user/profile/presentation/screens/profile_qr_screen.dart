@@ -54,7 +54,7 @@ class _ProfileQrScreenState extends ConsumerState<ProfileQrScreen> {
       appBar: const AppBarCustom(title: 'My QR Code'),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppMetrics.p16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -73,10 +73,10 @@ class _ProfileQrScreenState extends ConsumerState<ProfileQrScreen> {
   Widget _buildQRCodeCard(BuildContext context, String displayName) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(AppMetrics.p24),
       decoration: BoxDecoration(
         color: scheme.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppShape.r16),
         boxShadow: [
           BoxShadow(
             color: scheme.scrim.withValues(alpha: 0.1),
@@ -95,7 +95,7 @@ class _ProfileQrScreenState extends ConsumerState<ProfileQrScreen> {
             key: _qrKey,
             child: Container(
               color: scheme.onPrimary,
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(AppMetrics.p16),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -118,7 +118,7 @@ class _ProfileQrScreenState extends ConsumerState<ProfileQrScreen> {
                   Text(
                     displayName,
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: AppType.s16,
                       fontWeight: FontWeight.bold,
                       color: scheme.scrim,
                     ),
@@ -128,7 +128,7 @@ class _ProfileQrScreenState extends ConsumerState<ProfileQrScreen> {
                   Text(
                     'Scan to visit my profile',
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: AppType.s12,
                       color: scheme.scrim.withValues(alpha: 0.6),
                     ),
                   ),
@@ -159,7 +159,7 @@ class _ProfileQrScreenState extends ConsumerState<ProfileQrScreen> {
           style: ElevatedButton.styleFrom(
             backgroundColor: scheme.secondary,
             foregroundColor: scheme.onSecondary,
-            padding: const EdgeInsets.symmetric(vertical: 16),
+            padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
           ),
         ),
         const SizedBox(height: 12),
@@ -168,7 +168,7 @@ class _ProfileQrScreenState extends ConsumerState<ProfileQrScreen> {
           icon: const Icon(Icons.share),
           label: const Text('Share'),
           style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 16),
+            padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
           ),
         ),
       ],
@@ -178,10 +178,10 @@ class _ProfileQrScreenState extends ConsumerState<ProfileQrScreen> {
   Widget _buildUseCaseInfo(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         color: scheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -191,13 +191,13 @@ class _ProfileQrScreenState extends ConsumerState<ProfileQrScreen> {
               Icon(
                 Icons.lightbulb_outline,
                 size: 18,
-                color: AppColors.statusWarning,
+                color: context.statusColors.warning,
               ),
               const SizedBox(width: 8),
               Text(
                 'Tips',
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: AppType.s14,
                   fontWeight: FontWeight.bold,
                   color: scheme.onSurface,
                 ),
@@ -216,15 +216,15 @@ class _ProfileQrScreenState extends ConsumerState<ProfileQrScreen> {
   Widget _buildTipItem(BuildContext context, String text) {
     final scheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.only(top: 6),
+      padding: const EdgeInsets.only(top: AppMetrics.p6),
       child: Row(
         children: [
-          Icon(Icons.check, size: 14, color: AppColors.primaryGreen),
+          Icon(Icons.check, size: 14, color: context.statusColors.success),
           const SizedBox(width: 8),
           Text(
             text,
             style: TextStyle(
-              fontSize: 13,
+              fontSize: AppType.s13,
               color: scheme.onSurfaceVariant,
             ),
           ),

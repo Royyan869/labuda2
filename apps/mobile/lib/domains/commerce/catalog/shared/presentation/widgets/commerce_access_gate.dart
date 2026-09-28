@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/shared/shared.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Canonical commerce ACCESS GATE — ONE AUTHORITY for every for_sale/auction
 /// surface that must block a session which cannot proceed (not signed in,
@@ -40,7 +41,7 @@ class CommerceAccessGate extends StatelessWidget {
       appBar: AppBarCustom(title: screenTitle),
       body: Center(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(AppMetrics.p24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -53,7 +54,7 @@ class CommerceAccessGate extends StatelessWidget {
               Text(
                 headline,
                 style: const TextStyle(
-                  fontSize: 20,
+                  fontSize: AppType.s20,
                   fontWeight: FontWeight.w700,
                 ),
                 textAlign: TextAlign.center,
@@ -61,7 +62,7 @@ class CommerceAccessGate extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 message,
-                style: TextStyle(fontSize: 14, color: scheme.onSurfaceVariant),
+                style: TextStyle(fontSize: AppType.s14, color: scheme.onSurfaceVariant),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 20),
@@ -71,8 +72,8 @@ class CommerceAccessGate extends StatelessWidget {
                   backgroundColor: scheme.primary,
                   foregroundColor: scheme.onPrimary,
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 14,
+                    horizontal: AppMetrics.p24,
+                    vertical: AppMetrics.p14,
                   ),
                 ),
                 child: Text(buttonLabel),

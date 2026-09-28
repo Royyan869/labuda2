@@ -3,6 +3,7 @@
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'content_state.dart';
+import 'package:labuda/core/common/result.dart';
 import 'package:labuda/domains/social/content/data/content_providers.dart';
 import 'package:labuda/domains/social/content/domain/entities/content.dart';
 import 'package:labuda/domains/social/content/domain/repositories/content_repository.dart';
@@ -157,7 +158,7 @@ class ContentActions extends _$ContentActions {
   }
 
   /// Create new content
-  Future<ContentRepositoryResult<Content>> createContent({
+  Future<Result<Content>> createContent({
     required String authorId,
     String? authorUsername,
     String? authorAvatarUrl,
@@ -192,7 +193,7 @@ class ContentActions extends _$ContentActions {
   }
 
   /// Update content
-  Future<ContentRepositoryResult<Content>> updateContent(
+  Future<Result<Content>> updateContent(
     String contentId,
     Content content,
   ) async {
@@ -210,7 +211,7 @@ class ContentActions extends _$ContentActions {
   }
 
   /// Delete content
-  Future<ContentRepositoryResult<void>> deleteContent(String contentId) async {
+  Future<Result<void>> deleteContent(String contentId) async {
     final repo = ref.read(contentRepositoryProvider);
     return await repo.deleteContent(contentId);
   }

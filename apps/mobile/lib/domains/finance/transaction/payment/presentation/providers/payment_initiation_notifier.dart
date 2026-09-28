@@ -17,7 +17,6 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:labuda/core/core.dart' as core;
 import '../../domain/entities/payment.dart';
 import '../../domain/entities/payment_intent.dart';
-import '../../domain/failures/payment_failure.dart' as payment_failures;
 import 'payment_initiation_state.dart';
 import 'payment_providers.dart' show paymentRepositoryProvider;
 
@@ -146,22 +145,22 @@ class PaymentInitiationNotifier extends _$PaymentInitiationNotifier {
       final result = await repo.createPayment(createRequest);
 
       return result.fold(
+        (error) {
+          _logger?.error('Payment initiation failed: $error');
+
+          state = state.copyWith(
+            error: _getUserFriendlyErrorMessage(result.errorCode, error),
+            isInitiating: false,
+          );
+
+          return null;
+        },
         (intent) {
           _logger?.info('Payment initiated successfully: ${intent.paymentId}');
 
           // SUCCESS: Store intent
           state = PaymentInitiationState.success(intent: intent);
           return intent;
-        },
-        (failure) {
-          _logger?.error('Payment initiation failed: ${failure.message}');
-
-          state = state.copyWith(
-            error: _getUserFriendlyErrorMessage(failure),
-            isInitiating: false,
-          );
-
-          return null;
         },
       );
     } catch (e, stackTrace) {
@@ -191,26 +190,31 @@ class PaymentInitiationNotifier extends _$PaymentInitiationNotifier {
     state = state.copyWith(error: '');
   }
 
-  /// Convert payment failure to user-friendly message
-  String _getUserFriendlyErrorMessage(payment_failures.PaymentFailure failure) {
-    // Map payment failures to user-friendly Indonesian messages
-    if (failure is payment_failures.NetworkFailure) {
-      return 'Koneksi internet bermasalah. Silakan cek koneksi Anda.';
+  /// Turn a payment failure into user-facing copy.
+  ///
+  /// The `code` is the authority for what went wrong — the backend's own code
+  /// for a rejected request, and the API layer's transport code when the
+  /// request never reached the backend. Each known code gets action-specific
+  /// Indonesian copy. Only a code the app does not know (a local precondition
+  /// like an empty payment ID) falls back to the authority's message.
+  ///
+  /// The previous version branched on client-invented failure *types*
+  /// (`is NetworkFailure`, `is PaymentExpiredFailure`, …) that the repository
+  /// derived by grepping the error text for 'network' / 'expired', so those
+  /// branches could only fire by accident.
+  String _getUserFriendlyErrorMessage(String? code, String message) {
+    if (code == core.invalidPaymentStatus) {
+      return 'Pembayaran tidak bisa diproses pada status saat ini. '
+          'Silakan muat ulang status pembayaran.';
     }
-    if (failure is payment_failures.PaymentNotFoundFailure) {
-      return 'Pembayaran tidak ditemukan.';
+    if (code == core.referenceRequired) {
+      return 'Referensi pembayaran wajib diisi. Silakan muat ulang pesanan.';
     }
-    if (failure is payment_failures.PaymentExpiredFailure) {
-      return 'Pembayaran telah kadaluarsa.';
+    if (core.isTransportFailureCode(code)) {
+      return 'Koneksi bermasalah. Periksa koneksi internet Anda lalu coba lagi.';
     }
-    if (failure is payment_failures.ValidationFailure) {
-      return failure.message.isNotEmpty
-          ? failure.message
-          : 'Data pembayaran tidak valid.';
-    }
-    // Default for UnknownFailure and others
-    return failure.message.isNotEmpty
-        ? failure.message
+    return message.isNotEmpty
+        ? message
         : 'Terjadi kesalahan. Silakan coba lagi.';
   }
 

@@ -40,7 +40,7 @@ class _DiscountSection extends ConsumerWidget {
         // Header
         const Text(
           'Kode Promo',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          style: TextStyle(fontSize: AppType.s16, fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 12),
 
@@ -64,20 +64,20 @@ class _DiscountSection extends ConsumerWidget {
         if (appliedDiscount != null) ...[
           const SizedBox(height: 12),
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(AppMetrics.p12),
             decoration: BoxDecoration(
-              color: AppColors.successGreen.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
+              color: context.statusColors.success.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(AppShape.r8),
               border: Border.all(
-                color: AppColors.successGreen.withValues(alpha: 0.3),
+                color: context.statusColors.success.withValues(alpha: 0.3),
                 width: 1,
               ),
             ),
             child: Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.check_circle,
-                  color: AppColors.successGreen,
+                  color: context.statusColors.success,
                   size: 20,
                 ),
                 const SizedBox(width: 10),
@@ -87,17 +87,17 @@ class _DiscountSection extends ConsumerWidget {
                     children: [
                       Text(
                         'Kode "${appliedDiscount!.code}" berhasil diterapkan',
-                        style: const TextStyle(
-                          fontSize: 13,
+                        style: TextStyle(
+                          fontSize: AppType.s13,
                           fontWeight: FontWeight.w600,
-                          color: AppColors.successGreen,
+                          color: context.statusColors.success,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         _getDiscountDescription(appliedDiscount!),
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: AppType.s12,
                           color: colorScheme.onSurfaceVariant,
                         ),
                       ),

@@ -137,20 +137,20 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(32),
+              padding: const EdgeInsets.all(AppMetrics.p32),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(24),
+                    padding: const EdgeInsets.all(AppMetrics.p24),
                     decoration: BoxDecoration(
-                      color: AppColors.statusWarning.withValues(alpha: 0.1),
+                      color: context.statusColors.warning.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.mark_email_unread_outlined,
                       size: 64,
-                      color: AppColors.statusWarning,
+                      color: context.statusColors.warning,
                     ),
                   ),
                   const SizedBox(height: 32),
@@ -179,10 +179,10 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                   const SizedBox(height: 24),
                   if (email != null && email.isNotEmpty)
                     Container(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(AppMetrics.p16),
                       decoration: BoxDecoration(
                         color: scheme.surfaceContainerLow,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(AppShape.r12),
                         border: Border.all(
                           color: scheme.outlineVariant,
                         ),
@@ -199,7 +199,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                             child: Text(
                               email,
                               style: TextStyle(
-                                fontSize: 14,
+                                fontSize: AppType.s14,
                                 fontWeight: FontWeight.w600,
                                 color: scheme.onSurface,
                               ),
@@ -218,9 +218,9 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                         foregroundColor: scheme.onPrimary,
                         disabledBackgroundColor:
                             scheme.surfaceContainerHighest,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(AppShape.r12),
                         ),
                       ),
                       child: _isChecking
@@ -244,9 +244,9 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                               ? null
                               : _resendVerificationEmail,
                       style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(AppShape.r12),
                         ),
                         side: BorderSide(
                           color: scheme.outlineVariant,
@@ -268,12 +268,12 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                     child: TextButton(
                       onPressed: _isChecking ? null : _signOut,
                       style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
                       ),
                       child: Text(
                         'Ganti Akun',
                         style: TextStyle(
-                          fontSize: 16,
+                          fontSize: AppType.s16,
                           color: scheme.onSurfaceVariant,
                         ),
                       ),

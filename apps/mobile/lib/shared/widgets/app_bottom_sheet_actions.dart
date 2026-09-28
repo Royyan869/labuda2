@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 import 'app_bottom_sheet_base.dart';
 
 /// Bottom Sheet Action Styles
@@ -43,18 +44,18 @@ class AppBottomSheetActions {
       context: context,
       title: title,
       isDismissible: isDismissible,
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p0, AppMetrics.p16, AppMetrics.p16),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           // Subtitle
           if (subtitle != null) ...[
             Padding(
-              padding: const EdgeInsets.only(bottom: 20),
+              padding: const EdgeInsets.only(bottom: AppMetrics.p20),
               child: Text(
                 subtitle,
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: AppType.s14,
 color: scheme.onSurfaceVariant,
                   height: 1.4,
                 ),
@@ -106,10 +107,10 @@ color: scheme.onSurfaceVariant,
       color: Colors.transparent,
       child: InkWell(
         onTap: action.onPressed,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p16),
           child: Row(
             children: [
               // Icon
@@ -120,7 +121,7 @@ color: scheme.onSurfaceVariant,
                   decoration: BoxDecoration(
                     color: (action.iconColor ?? scheme.primary)
                         .withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(AppShape.r10),
                   ),
                   child: Icon(
                     action.icon,
@@ -139,7 +140,7 @@ color: scheme.onSurfaceVariant,
                     Text(
                       action.title,
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: AppType.s16,
                         fontWeight: FontWeight.w500,
                         color: _getTextColor(action.style, scheme),
                       ),
@@ -149,7 +150,7 @@ color: scheme.onSurfaceVariant,
                       Text(
                         action.subtitle!,
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: AppType.s14,
 color: scheme.onSurfaceVariant,
                         ),
                       ),
@@ -162,18 +163,18 @@ color: scheme.onSurfaceVariant,
               if (action.badge != null) ...[
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
+                    horizontal: AppMetrics.p8,
+                    vertical: AppMetrics.p4,
                   ),
                   decoration: BoxDecoration(
                     color: scheme.primary,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(AppShape.r8),
                   ),
                   child: Text(
                     action.badge!,
 style: TextStyle(
                        color: scheme.onPrimary,
-                       fontSize: 12,
+                       fontSize: AppType.s12,
                        fontWeight: FontWeight.w600,
                      ),
                   ),

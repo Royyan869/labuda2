@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/domains/user/profile/profile.dart' show ProfileAboutData;
 import 'package:labuda/domains/user/profile/presentation/widgets/social_media_chip.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Contact Information section - displays email, phone, and social media
 class AboutSectionContact extends StatelessWidget {
@@ -54,7 +55,7 @@ class AboutSectionContact extends StatelessWidget {
           Text(
             'Social Media',
             style: TextStyle(
-              fontSize: 13,
+              fontSize: AppType.s13,
               fontWeight: FontWeight.w600,
               color: scheme.onSurfaceVariant,
             ),
@@ -83,7 +84,7 @@ class AboutSectionContact extends StatelessWidget {
           child: Text(
             text,
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppType.s14,
               color: scheme.onSurfaceVariant,
             ),
           ),

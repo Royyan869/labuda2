@@ -1,4 +1,4 @@
-import 'package:labuda/core/src/theme/app_colors.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:labuda/shared/ui/base/base_component.dart';
 
@@ -57,7 +57,7 @@ class UserTaggingComponent extends BaseComponent
         border: const OutlineInputBorder(),
         prefixIcon: const Icon(Icons.alternate_email),
         suffixIcon: isRequired
-            ? const Icon(Icons.star, size: 12, color: AppColors.error)
+            ? Icon(Icons.star, size: 12, color: context.statusColors.error)
             : null,
       ),
     );

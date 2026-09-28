@@ -87,30 +87,30 @@ class _AuthPasswordFieldState extends State<AuthPasswordField> {
                   : 'Show password',
             ),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppShape.r12),
               borderSide: BorderSide(
                 color: scheme.outlineVariant,
               ),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppShape.r12),
               borderSide: BorderSide(
                 color: scheme.outlineVariant,
               ),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppShape.r12),
               borderSide: BorderSide(
                 color: scheme.primary,
                 width: 2,
               ),
             ),
             errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppShape.r12),
               borderSide: BorderSide(color: scheme.error),
             ),
             focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppShape.r12),
               borderSide: BorderSide(color: scheme.error, width: 2),
             ),
             filled: true,
@@ -267,30 +267,30 @@ class _AuthConfirmPasswordFieldState extends State<AuthConfirmPasswordField> {
               tooltip: widget.isVisible ? 'Hide password' : 'Show password',
             ),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppShape.r12),
               borderSide: BorderSide(
                 color: scheme.outlineVariant,
               ),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppShape.r12),
               borderSide: BorderSide(
                 color: scheme.outlineVariant,
               ),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppShape.r12),
               borderSide: BorderSide(
                 color: scheme.primary,
                 width: 2,
               ),
             ),
             errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppShape.r12),
               borderSide: BorderSide(color: scheme.error),
             ),
             focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppShape.r12),
               borderSide: BorderSide(color: scheme.error, width: 2),
             ),
             filled: true,
@@ -309,13 +309,13 @@ class _AuthConfirmPasswordFieldState extends State<AuthConfirmPasswordField> {
   Widget _buildMatchIndicator(BuildContext context, bool isMatch) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppMetrics.p12),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppShape.r8),
         border: Border.all(
           color: isMatch
-              ? AppColors.success
+              ? context.statusColors.success
               : scheme.outlineVariant,
         ),
       ),
@@ -324,16 +324,16 @@ class _AuthConfirmPasswordFieldState extends State<AuthConfirmPasswordField> {
           Icon(
             isMatch ? Icons.check_circle : Icons.cancel,
             size: 20,
-            color: isMatch ? AppColors.success : scheme.error,
+            color: isMatch ? context.statusColors.success : scheme.error,
           ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               isMatch ? 'Passwords match' : 'Passwords do not match',
               style: TextStyle(
-                fontSize: 13,
+                fontSize: AppType.s13,
                 fontWeight: FontWeight.w500,
-                color: isMatch ? AppColors.success : scheme.error,
+                color: isMatch ? context.statusColors.success : scheme.error,
               ),
             ),
           ),

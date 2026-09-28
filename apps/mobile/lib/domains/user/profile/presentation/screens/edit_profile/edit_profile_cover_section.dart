@@ -36,7 +36,7 @@ class EditProfileCoverSection extends StatelessWidget {
         Text(
           'Cover Photo',
           style: TextStyle(
-            fontSize: 14,
+            fontSize: AppType.s14,
             fontWeight: FontWeight.w600,
             color: scheme.onSurfaceVariant,
           ),
@@ -48,7 +48,7 @@ class EditProfileCoverSection extends StatelessWidget {
             aspectRatio: 16 / 9,
             child: Container(
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(AppShape.r12),
                 color: scheme.surfaceContainerHighest,
                 image: _getCoverDecorationImage(),
               ),
@@ -57,7 +57,7 @@ class EditProfileCoverSection extends StatelessWidget {
                   // Gradient overlay
                   Container(
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(AppShape.r12),
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
@@ -71,7 +71,7 @@ class EditProfileCoverSection extends StatelessWidget {
                   // Camera icon
                   Center(
                     child: Container(
-                      padding: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.all(AppMetrics.p12),
                       decoration: BoxDecoration(
                         color: scheme.scrim.withValues(alpha: 0.5),
                         shape: BoxShape.circle,
@@ -91,12 +91,12 @@ class EditProfileCoverSection extends StatelessWidget {
         // Remove button
         if (_hasCover)
           Padding(
-            padding: const EdgeInsets.only(top: 8),
+            padding: const EdgeInsets.only(top: AppMetrics.p8),
             child: TextButton.icon(
               onPressed: onRemoveCover,
               icon: const Icon(Icons.delete_outline, size: 18),
               label: const Text('Remove Cover'),
-              style: TextButton.styleFrom(foregroundColor: AppColors.error),
+              style: TextButton.styleFrom(foregroundColor: context.statusColors.error),
             ),
           ),
       ],

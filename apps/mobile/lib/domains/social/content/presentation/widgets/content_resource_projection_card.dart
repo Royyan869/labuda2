@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_marketplace_primitives.dart';
 import 'package:labuda/shared/domain/entities/resource_projection.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Discovery-surface card for the canonical resource projection.
 ///
@@ -41,7 +42,9 @@ class ContentResourceProjectionCard extends StatelessWidget {
       ),
       badges: _buildBadges(context),
       metadata: _buildMetadata(context),
-      contentPadding: EdgeInsets.all(compact ? 10 : 12),
+      contentPadding: EdgeInsets.all(
+        compact ? AppMetrics.p10 : AppMetrics.p12,
+      ),
     );
   }
 
@@ -66,8 +69,8 @@ class ContentResourceProjectionCard extends StatelessWidget {
       aspectRatio: isProfile ? 1 : 4 / 3,
       showVideoBadge: false,
       borderRadius: const BorderRadius.only(
-        topLeft: Radius.circular(16),
-        topRight: Radius.circular(16),
+        topLeft: Radius.circular(AppShape.r16),
+        topRight: Radius.circular(AppShape.r16),
       ),
       fallback: _placeholderMedia(
         context,

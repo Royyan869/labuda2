@@ -1,20 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 import 'package:labuda/shared/widgets/app_image.dart';
 import 'package:flutter/services.dart';
 
 /// Banner Action Model
 ///
 /// Represents an action button in the notification banner
+/// Semantic tint of a banner action. Resolved from the theme where the
+/// button is rendered, so a service building actions never needs a
+/// BuildContext (and cannot pick a colour that ignores light/dark).
+enum BannerTone { accent, success, warning }
+
 class BannerAction {
   final String label;
   final VoidCallback onTap;
-  final Color? color;
+  final BannerTone tone;
   final IconData? icon;
 
   const BannerAction({
     required this.label,
     required this.onTap,
-    this.color,
+    this.tone = BannerTone.accent,
     this.icon,
   });
 }
@@ -65,7 +71,7 @@ class _InAppNotificationBannerState extends State<InAppNotificationBanner>
 
     // Animation controller for slide-in effect
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 400),
+      duration: AppMotion.relaxed,
       vsync: this,
     );
 
@@ -116,7 +122,7 @@ class _InAppNotificationBannerState extends State<InAppNotificationBanner>
           opacity: _fadeAnimation,
           child: SafeArea(
             child: Padding(
-              padding: const EdgeInsets.all(12.0),
+              padding: const EdgeInsets.all(AppMetrics.p12),
               child: GestureDetector(
                 onTap: widget.onTap != null
                     ? () {
@@ -132,14 +138,14 @@ class _InAppNotificationBannerState extends State<InAppNotificationBanner>
                   }
                 },
                 child: Material(
-                  elevation: 8,
+                  elevation: AppElevation.overlay,
                   shadowColor: colorScheme.shadow.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(AppShape.r12),
                   color: colorScheme.surface,
                   child: Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(AppMetrics.p12),
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(AppShape.r12),
                       border: Border.all(
                         color: colorScheme.outlineVariant,
                         width: 1,
@@ -175,7 +181,7 @@ class _InAppNotificationBannerState extends State<InAppNotificationBanner>
                               Text(
                                 widget.title,
                                 style: TextStyle(
-                                  fontSize: 14,
+                                  fontSize: AppType.s14,
                                   fontWeight: FontWeight.w600,
                                   color: colorScheme.onSurface,
                                 ),
@@ -188,7 +194,7 @@ class _InAppNotificationBannerState extends State<InAppNotificationBanner>
                               Text(
                                 widget.body,
                                 style: TextStyle(
-                                  fontSize: 13,
+                                  fontSize: AppType.s13,
                                   fontWeight: FontWeight.w400,
                                   color: colorScheme.onSurfaceVariant,
                                   height: 1.3,
@@ -204,7 +210,7 @@ class _InAppNotificationBannerState extends State<InAppNotificationBanner>
                                 Row(
                                   children: widget.actions!.map((action) {
                                     return Padding(
-                                      padding: const EdgeInsets.only(right: 8),
+                                      padding: const EdgeInsets.only(right: AppMetrics.p8),
                                       child: _buildActionButton(action),
                                     );
                                   }).toList(),
@@ -220,7 +226,7 @@ class _InAppNotificationBannerState extends State<InAppNotificationBanner>
                         GestureDetector(
                           onTap: _dismissWithAnimation,
                           child: Container(
-                            padding: const EdgeInsets.all(4),
+                            padding: const EdgeInsets.all(AppMetrics.p4),
                             decoration: BoxDecoration(
                               color: colorScheme.surfaceContainerHighest,
                               shape: BoxShape.circle,
@@ -264,8 +270,13 @@ class _InAppNotificationBannerState extends State<InAppNotificationBanner>
 
   /// Build action button
   Widget _buildActionButton(BannerAction action) {
-    final buttonColor =
-        action.color ?? Theme.of(context).colorScheme.primary;
+    // One authority: the tone resolves through the theme extension at
+    // render time (light/dark aware), never a colour carried in data.
+    final buttonColor = switch (action.tone) {
+      BannerTone.accent => Theme.of(context).colorScheme.primary,
+      BannerTone.success => context.statusColors.success,
+      BannerTone.warning => context.statusColors.warning,
+    };
 
     return GestureDetector(
       onTap: () {
@@ -275,10 +286,10 @@ class _InAppNotificationBannerState extends State<InAppNotificationBanner>
         action.onTap();
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p6),
         decoration: BoxDecoration(
           color: buttonColor.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(AppShape.r6),
           border: Border.all(
             color: buttonColor.withValues(alpha: 0.3),
             width: 1,
@@ -294,7 +305,7 @@ class _InAppNotificationBannerState extends State<InAppNotificationBanner>
             Text(
               action.label,
               style: TextStyle(
-                fontSize: 12,
+                fontSize: AppType.s12,
                 fontWeight: FontWeight.w600,
                 color: buttonColor,
               ),

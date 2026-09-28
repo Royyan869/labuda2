@@ -45,7 +45,7 @@ class CardHeader extends StatelessWidget {
         child: Padding(
           padding: EdgeInsets.symmetric(
             horizontal: horizontalPadding,
-            vertical: 12,
+            vertical: AppMetrics.p12,
           ),
           child: Row(
             children: [
@@ -67,7 +67,7 @@ class CardHeader extends StatelessWidget {
                           width: 12,
                           height: 12,
                           decoration: BoxDecoration(
-                            color: AppColors.statusSuccess,
+                            color: context.statusColors.success,
                             shape: BoxShape.circle,
                             border: Border.all(
                               color: scheme.surface,

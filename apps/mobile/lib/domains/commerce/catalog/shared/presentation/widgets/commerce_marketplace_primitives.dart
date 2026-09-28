@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_marketplace_metrics.dart';
 import 'package:labuda/domains/social/content/domain/entities/content.dart';
 import 'package:labuda/shared/widgets/app_image.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 class CommerceMarketplaceGrid extends StatelessWidget {
   final int itemCount;
@@ -112,7 +113,7 @@ class CommerceMarketplaceGrid extends StatelessWidget {
     final theme = Theme.of(context);
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppMetrics.p24),
         child: Text(
           'Belum ada item untuk ditampilkan',
           style: theme.textTheme.bodyMedium?.copyWith(
@@ -132,7 +133,7 @@ class CommerceMarketplaceGrid extends StatelessWidget {
     final theme = Theme.of(context);
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppMetrics.p24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -339,6 +340,7 @@ class CommerceMarketplaceCardMedia extends StatelessWidget {
               key: ValueKey('marketplace-media:$trimmed|${reloadToken ?? ''}'),
               imageUrl: trimmed,
               fit: fit,
+              cacheWidth: 600,
               backgroundColor: scheme.surfaceContainerHighest,
               errorWidget: fallback,
             ),
@@ -440,7 +442,7 @@ class CommerceMarketplaceCardBadge extends StatelessWidget {
     this.icon,
     this.backgroundColor,
     this.foregroundColor,
-    this.padding = const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    this.padding = const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
     this.compact = false,
   });
 
@@ -453,11 +455,11 @@ class CommerceMarketplaceCardBadge extends StatelessWidget {
 
     return Container(
       padding: compact
-          ? const EdgeInsets.symmetric(horizontal: 6, vertical: 3)
+          ? const EdgeInsets.symmetric(horizontal: AppMetrics.p6, vertical: AppMetrics.p3)
           : padding,
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(AppShape.pill),
         border: Border.all(color: scheme.outlineVariant),
       ),
       child: icon == null

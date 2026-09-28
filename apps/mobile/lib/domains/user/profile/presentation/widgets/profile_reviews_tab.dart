@@ -198,7 +198,7 @@ class _ProfileReviewsTabState extends ConsumerState<ProfileReviewsTab>
               SliverFillRemaining(
                 child: Center(
                   child: Padding(
-                    padding: const EdgeInsets.all(24),
+                    padding: const EdgeInsets.all(AppMetrics.p24),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -212,7 +212,7 @@ class _ProfileReviewsTabState extends ConsumerState<ProfileReviewsTab>
                           'No ratings with filter "$_selectedFilter"',
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: AppType.s16,
                             color: scheme.onSurfaceVariant,
                           ),
                         ),
@@ -233,7 +233,7 @@ class _ProfileReviewsTabState extends ConsumerState<ProfileReviewsTab>
             // Show ratings list
             else
               SliverPadding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(AppMetrics.p16),
                 sliver: SliverList(
                   delegate: SliverChildBuilderDelegate(
                     (context, index) =>
@@ -254,7 +254,7 @@ class _ProfileReviewsTabState extends ConsumerState<ProfileReviewsTab>
   Widget _buildFilterSection(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p8),
       color: scheme.surface,
       child: Wrap(
         spacing: 8,
@@ -332,12 +332,12 @@ class _ProfileReviewsTabState extends ConsumerState<ProfileReviewsTab>
     final scheme = Theme.of(context).colorScheme;
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.only(bottom: AppMetrics.p16),
+      elevation: AppElevation.card,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppShape.r12)),
       color: scheme.surface,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppMetrics.p16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -357,7 +357,7 @@ class _ProfileReviewsTabState extends ConsumerState<ProfileReviewsTab>
                       Text(
                         '@${author?.username ?? 'User'}',
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: AppType.s14,
                           fontWeight: FontWeight.w600,
                           color: scheme.onSurface,
                         ),
@@ -366,7 +366,7 @@ class _ProfileReviewsTabState extends ConsumerState<ProfileReviewsTab>
                         Text(
                           'Rated this seller',
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: AppType.s12,
                             color: scheme.onSurfaceVariant,
                           ),
                         ),
@@ -383,7 +383,7 @@ class _ProfileReviewsTabState extends ConsumerState<ProfileReviewsTab>
                     TimeAgoWidget.compact(
                       dateTime: rating.createdAt,
                       color: scheme.onSurfaceVariant,
-                      fontSize: 11,
+                      fontSize: AppType.s11,
                     ),
                   ],
                 ),
@@ -394,7 +394,7 @@ class _ProfileReviewsTabState extends ConsumerState<ProfileReviewsTab>
               Text(
                 rating.comment!,
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: AppType.s14,
                   height: 1.4,
                   color: scheme.onSurface,
                 ),
@@ -404,8 +404,8 @@ class _ProfileReviewsTabState extends ConsumerState<ProfileReviewsTab>
             Text(
               'Verified Purchase',
               style: TextStyle(
-                fontSize: 11,
-                color: AppColors.success,
+                fontSize: AppType.s11,
+                color: context.statusColors.success,
                 fontWeight: FontWeight.w500,
               ),
             ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Header for add/edit address dialog
 class AddressDialogHeader extends StatelessWidget {
@@ -16,21 +17,21 @@ class AddressDialogHeader extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(AppMetrics.p24),
       decoration: BoxDecoration(
         color: scheme.onSurfaceVariant,
         borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(20),
-          topRight: Radius.circular(20),
+          topLeft: Radius.circular(AppShape.r20),
+          topRight: Radius.circular(AppShape.r20),
         ),
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(AppMetrics.p8),
             decoration: BoxDecoration(
               color: scheme.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(AppShape.r8),
             ),
 child: Icon(
                Icons.location_on,
@@ -43,7 +44,7 @@ child: Icon(
             child: Text(
               isEdit ? 'Edit Address' : 'Add New Address',
               style: TextStyle(
-                fontSize: 18,
+                fontSize: AppType.s18,
                 fontWeight: FontWeight.bold,
                 color: scheme.onSurfaceVariant,
               ),

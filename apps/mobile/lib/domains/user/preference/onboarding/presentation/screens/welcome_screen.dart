@@ -32,12 +32,12 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
 
     // Setup animations
     _fadeController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
+      duration: AppMotion.longest,
       vsync: this,
     );
 
     _slideController = AnimationController(
-      duration: const Duration(milliseconds: 1200),
+      duration: AppMotion.ambient,
       vsync: this,
     );
 
@@ -52,7 +52,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
 
     // Start animations
     _fadeController.forward();
-    Future.delayed(const Duration(milliseconds: 300), () {
+    Future.delayed(AppMotion.settled, () {
       _slideController.forward();
     });
   }
@@ -103,12 +103,12 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
           ),
           child: SafeArea(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p24),
               child: Column(
                 children: [
                   // Top action buttons - home icon kiri, theme toggle kanan
                   Padding(
-                    padding: const EdgeInsets.only(top: 8.0),
+                    padding: const EdgeInsets.only(top: AppMetrics.p8),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [_buildHomeIcon(), _buildThemeToggle()],
@@ -218,7 +218,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
           width: 120,
           height: 120,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(AppShape.r24),
             boxShadow: [
               BoxShadow(
                 color: scheme.shadow.withValues(alpha: 0.25),
@@ -228,7 +228,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
             ],
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(AppShape.r24),
             child: Image.asset(
               'assets/images/app_logo.png',
               width: 120,
@@ -296,12 +296,12 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
                 width: 2,
               ),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(AppShape.r12),
               ),
             ),
             child: const Text(
               'Join Now',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              style: TextStyle(fontSize: AppType.s16, fontWeight: FontWeight.w600),
             ),
           ),
         ),
@@ -321,12 +321,12 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
                 width: 1.5,
               ),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(AppShape.r12),
               ),
             ),
             child: const Text(
               'Already have an account? Sign In',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+              style: TextStyle(fontSize: AppType.s16, fontWeight: FontWeight.w500),
             ),
           ),
         ),

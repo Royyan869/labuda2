@@ -30,8 +30,8 @@ class ShareOptionTile extends StatelessWidget {
         ListTile(
           onTap: onTap,
           contentPadding: const EdgeInsets.symmetric(
-            horizontal: 24,
-            vertical: 8,
+            horizontal: AppMetrics.p24,
+            vertical: AppMetrics.p8,
           ),
           leading: Container(
             width: 48,
@@ -40,7 +40,7 @@ class ShareOptionTile extends StatelessWidget {
               color: destinationColor != null
                   ? destinationColor.withValues(alpha: 0.1)
                   : iconBgColor,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppShape.r12),
             ),
             child: Icon(
               destination.iconData,

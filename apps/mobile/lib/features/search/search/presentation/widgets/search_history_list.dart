@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/features/search/search/domain/entities/search_history.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Widget to display search history
 class SearchHistoryList extends StatelessWidget {
@@ -28,14 +29,14 @@ class SearchHistoryList extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p8),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 'Recent Searches',
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: AppType.s16,
                   fontWeight: FontWeight.w600,
                   color: scheme.onSurface,
                 ),
@@ -44,7 +45,7 @@ class SearchHistoryList extends StatelessWidget {
                 onPressed: onClearAll,
                 child: Text(
                   'Clear All',
-                  style: TextStyle(color: scheme.primary, fontSize: 14),
+                  style: TextStyle(color: scheme.primary, fontSize: AppType.s14),
                 ),
               ),
             ],

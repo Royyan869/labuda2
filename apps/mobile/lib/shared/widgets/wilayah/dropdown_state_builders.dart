@@ -19,7 +19,7 @@ class DropdownStateBuilders {
     final scheme = Theme.of(context).colorScheme;
     return Container(
       height: 50,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16),
       child: Row(
         children: [
           if (prefixIcon != null) ...[
@@ -30,7 +30,7 @@ class DropdownStateBuilders {
             text,
             style: TextStyle(
               color: scheme.onSurfaceVariant,
-              fontSize: 16,
+              fontSize: AppType.s16,
             ),
           ),
         ],
@@ -47,7 +47,7 @@ class DropdownStateBuilders {
     final scheme = Theme.of(context).colorScheme;
     return Container(
       height: 50,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16),
       child: Row(
         children: [
           if (prefixIcon != null) ...[
@@ -58,7 +58,7 @@ class DropdownStateBuilders {
             text,
             style: TextStyle(
               color: scheme.onSurfaceVariant,
-              fontSize: 16,
+              fontSize: AppType.s16,
             ),
           ),
         ],
@@ -75,7 +75,7 @@ class DropdownStateBuilders {
     final scheme = Theme.of(context).colorScheme;
     return Container(
       height: 50,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16),
       child: Row(
         children: [
           if (prefixIcon != null) ...[
@@ -105,16 +105,16 @@ class DropdownStateBuilders {
   }) {
     return Container(
       height: 50,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16),
       child: Row(
         children: [
           if (prefixIcon != null) ...[
-            Icon(prefixIcon, color: AppColors.statusError),
+            Icon(prefixIcon, color: context.statusColors.error),
             const SizedBox(width: 12),
           ],
-          Icon(Icons.error_outline, color: AppColors.statusError, size: 20),
+          Icon(Icons.error_outline, color: context.statusColors.error, size: 20),
           const SizedBox(width: 8),
-          Text(text, style: TextStyle(color: AppColors.statusError)),
+          Text(text, style: TextStyle(color: context.statusColors.error)),
         ],
       ),
     );

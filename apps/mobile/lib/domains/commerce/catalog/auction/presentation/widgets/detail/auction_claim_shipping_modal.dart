@@ -290,7 +290,7 @@ class _AuctionClaimShippingModalState
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(AppShape.r20)),
       ),
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.85,
@@ -304,7 +304,7 @@ class _AuctionClaimShippingModalState
           // Content (scrollable)
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p8, AppMetrics.p16, AppMetrics.p16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -344,7 +344,7 @@ class _AuctionClaimShippingModalState
   Widget _buildHeader(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p16, AppMetrics.p16, AppMetrics.p8),
       decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(color: scheme.outlineVariant, width: 1),
@@ -358,7 +358,7 @@ class _AuctionClaimShippingModalState
             height: 4,
             decoration: BoxDecoration(
               color: scheme.outlineVariant,
-              borderRadius: BorderRadius.circular(2),
+              borderRadius: BorderRadius.circular(AppShape.r2),
             ),
           ),
           const SizedBox(height: 16),
@@ -399,11 +399,11 @@ class _AuctionClaimShippingModalState
   Widget _buildErrorBanner() {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.only(bottom: AppMetrics.p16),
+      padding: const EdgeInsets.all(AppMetrics.p12),
       decoration: BoxDecoration(
         color: scheme.error.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppShape.r8),
         border: Border.all(color: scheme.error.withValues(alpha: 0.3)),
       ),
       child: Row(
@@ -413,7 +413,7 @@ class _AuctionClaimShippingModalState
           Expanded(
             child: Text(
               _error!,
-              style: TextStyle(color: scheme.onSurface, fontSize: 12),
+              style: TextStyle(color: scheme.onSurface, fontSize: AppType.s12),
             ),
           ),
         ],
@@ -427,13 +427,13 @@ class _AuctionClaimShippingModalState
       children: [
         const Text(
           'Alamat Pengiriman',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          style: TextStyle(fontSize: AppType.s16, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
         if (_isLoadingAddresses)
           const Center(
             child: Padding(
-              padding: EdgeInsets.all(24),
+              padding: EdgeInsets.all(AppMetrics.p24),
               child: CircularProgressIndicator(),
             ),
           )
@@ -448,10 +448,10 @@ class _AuctionClaimShippingModalState
   Widget _buildEmptyAddressState() {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(AppMetrics.p24),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppShape.r8),
         border: Border.all(color: scheme.outlineVariant),
       ),
       child: Column(
@@ -465,7 +465,7 @@ class _AuctionClaimShippingModalState
           Text(
             'Belum ada alamat pengiriman',
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppType.s14,
               fontWeight: FontWeight.w600,
               color: scheme.onSurface,
             ),
@@ -474,7 +474,7 @@ class _AuctionClaimShippingModalState
           Text(
             'Tambahkan alamat untuk melanjutkan',
             style: TextStyle(
-              fontSize: 12,
+              fontSize: AppType.s12,
               color: scheme.onSurfaceVariant,
             ),
           ),
@@ -504,13 +504,13 @@ class _AuctionClaimShippingModalState
     return GestureDetector(
       onTap: () => _onAddressSelected(address),
       child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.all(12),
+        margin: const EdgeInsets.only(bottom: AppMetrics.p8),
+        padding: const EdgeInsets.all(AppMetrics.p12),
         decoration: BoxDecoration(
           color: isSelected
               ? scheme.primary.withValues(alpha: 0.08)
               : scheme.surface,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppShape.r8),
           border: Border.all(
             color: isSelected ? scheme.primary : scheme.outlineVariant,
             width: isSelected ? 2 : 1,
@@ -544,7 +544,7 @@ class _AuctionClaimShippingModalState
                     Text(
                       address.nickname!,
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: AppType.s12,
                         fontWeight: FontWeight.w600,
                         color: scheme.primary,
                       ),
@@ -552,7 +552,7 @@ class _AuctionClaimShippingModalState
                   Text(
                     address.recipientName,
                     style: const TextStyle(
-                      fontSize: 14,
+                      fontSize: AppType.s14,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -560,7 +560,7 @@ class _AuctionClaimShippingModalState
                   Text(
                     address.phone,
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: AppType.s12,
                       color: scheme.onSurfaceVariant,
                     ),
                   ),
@@ -568,7 +568,7 @@ class _AuctionClaimShippingModalState
                   Text(
                     address.fullAddress,
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: AppType.s12,
                       color: scheme.onSurfaceVariant,
                     ),
                     maxLines: 2,
@@ -580,17 +580,17 @@ class _AuctionClaimShippingModalState
             // Primary badge
             if (address.isPrimary)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p6, vertical: AppMetrics.p2),
                 decoration: BoxDecoration(
-                  color: AppColors.statusSuccess.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(4),
+                  color: context.statusColors.success.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(AppShape.r4),
                 ),
-                child: const Text(
+                child: Text(
                   'Utama',
                   style: TextStyle(
-                    fontSize: 10,
+                    fontSize: AppType.s10,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.statusSuccess,
+                    color: context.statusColors.success,
                   ),
                 ),
               ),
@@ -606,13 +606,13 @@ class _AuctionClaimShippingModalState
       children: [
         const Text(
           'Opsi Pengiriman',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          style: TextStyle(fontSize: AppType.s16, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
         if (_isLoadingDeliveryOptions)
           const Center(
             child: Padding(
-              padding: EdgeInsets.all(24),
+              padding: EdgeInsets.all(AppMetrics.p24),
               child: CircularProgressIndicator(),
             ),
           )
@@ -630,7 +630,7 @@ class _AuctionClaimShippingModalState
       children: [
         const Text(
           'Kode Promo',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          style: TextStyle(fontSize: AppType.s16, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
         TextField(
@@ -653,10 +653,10 @@ class _AuctionClaimShippingModalState
     if (coinBalance <= 0) return const SizedBox.shrink();
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p10),
       decoration: BoxDecoration(
         border: Border.all(color: scheme.outlineVariant),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppShape.r8),
       ),
       child: Row(
         children: [
@@ -667,14 +667,14 @@ class _AuctionClaimShippingModalState
                 const Text(
                   'Gunakan Coins',
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: AppType.s14,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 Text(
                   'Saldo: $coinBalance coins',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: AppType.s12,
                     color: scheme.onSurfaceVariant,
                   ),
                 ),
@@ -695,19 +695,19 @@ class _AuctionClaimShippingModalState
   Widget _buildNoDeliveryOptionsState() {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
-        color: AppColors.statusWarning.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(8),
+        color: context.statusColors.warning.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppShape.r8),
         border: Border.all(
-          color: AppColors.statusWarning.withValues(alpha: 0.3),
+          color: context.statusColors.warning.withValues(alpha: 0.3),
         ),
       ),
       child: Row(
         children: [
-          const Icon(
+          Icon(
             Icons.warning_amber_outlined,
-            color: AppColors.statusWarning,
+            color: context.statusColors.warning,
             size: 20,
           ),
           const SizedBox(width: 12),
@@ -718,7 +718,7 @@ class _AuctionClaimShippingModalState
                 Text(
                   'Tidak ada opsi pengiriman',
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: AppType.s13,
                     fontWeight: FontWeight.w600,
                     color: scheme.onSurface,
                   ),
@@ -727,7 +727,7 @@ class _AuctionClaimShippingModalState
                 Text(
                   'Penjual belum menyediakan opsi pengiriman ke lokasi Anda.',
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: AppType.s11,
                     color: scheme.onSurfaceVariant,
                   ),
                 ),
@@ -747,13 +747,13 @@ class _AuctionClaimShippingModalState
     return GestureDetector(
       onTap: () => _onDeliveryOptionSelected(option),
       child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.all(12),
+        margin: const EdgeInsets.only(bottom: AppMetrics.p8),
+        padding: const EdgeInsets.all(AppMetrics.p12),
         decoration: BoxDecoration(
           color: isSelected
               ? scheme.primary.withValues(alpha: 0.08)
               : scheme.surface,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppShape.r8),
           border: Border.all(
             color: isSelected ? scheme.primary : scheme.outlineVariant,
             width: isSelected ? 2 : 1,
@@ -786,7 +786,7 @@ class _AuctionClaimShippingModalState
                   Text(
                     option.displayName,
                     style: const TextStyle(
-                      fontSize: 14,
+                      fontSize: AppType.s14,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -797,7 +797,7 @@ class _AuctionClaimShippingModalState
             Text(
               AppFormatters.formatCurrency(option.rate),
               style: TextStyle(
-                fontSize: 14,
+                fontSize: AppType.s14,
                 fontWeight: FontWeight.bold,
                 color: scheme.primary,
               ),
@@ -816,7 +816,7 @@ class _AuctionClaimShippingModalState
     final scheme = Theme.of(context).colorScheme;
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+      padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p12, AppMetrics.p16, AppMetrics.p16),
       decoration: BoxDecoration(
         color: scheme.surface,
         border: Border(
@@ -841,10 +841,10 @@ class _AuctionClaimShippingModalState
                     ? null
                     : () => Navigator.of(context).pop(),
                 style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
                   side: BorderSide(color: scheme.outline),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(AppShape.r8),
                   ),
                 ),
                 child: const Text('Batal'),
@@ -861,9 +861,9 @@ class _AuctionClaimShippingModalState
                   foregroundColor: scheme.onPrimary,
                   disabledBackgroundColor: scheme.surfaceContainerHighest,
                   disabledForegroundColor: scheme.onSurfaceVariant,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(AppShape.r8),
                   ),
                 ),
                 child: _isClaiming

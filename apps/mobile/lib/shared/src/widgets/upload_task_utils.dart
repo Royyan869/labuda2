@@ -39,14 +39,14 @@ class UploadTaskUtils {
     // Determine color
     switch (status) {
       case UploadTaskStatus.completed:
-        iconColor = AppColors.statusSuccess;
+        iconColor = context.statusColors.success;
         break;
       case UploadTaskStatus.failed:
-        iconColor = AppColors.statusError;
+        iconColor = context.statusColors.error;
         break;
       case UploadTaskStatus.uploading:
       case UploadTaskStatus.processing:
-        iconColor = AppColors.statusInfo;
+        iconColor = context.statusColors.info;
         break;
       default:
         iconColor = scheme.onSurfaceVariant;

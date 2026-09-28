@@ -6,7 +6,7 @@ import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction_bid.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction_status.dart';
 
-import 'package:labuda/domains/commerce/transaction/order/domain/repositories/repository_result.dart';
+import 'package:labuda/core/common/result.dart';
 
 /// Auction Repository Interface
 ///
@@ -17,7 +17,7 @@ abstract class AuctionRepository {
 
   /// Create new auction. A Product is created inline by the backend from
   /// the item fields below — there is no productId/forSaleId parameter.
-  Future<RepositoryResult<Auction>> createAuction({
+  Future<Result<Auction>> createAuction({
     required String sellerId,
     String? sellerUsername,
     String? sellerFarmName,
@@ -42,15 +42,15 @@ abstract class AuctionRepository {
   });
 
   /// Get auction by ID
-  Future<RepositoryResult<Auction>> getAuctionById(String auctionId);
+  Future<Result<Auction>> getAuctionById(String auctionId);
 
   /// Get multiple auctions by IDs
-  Future<RepositoryResult<List<Auction>>> getAuctionsByIds(
+  Future<Result<List<Auction>>> getAuctionsByIds(
     List<String> auctionIds,
   );
 
   /// Get active auctions with filters
-  Future<RepositoryResult<List<Auction>>> getActiveAuctions({
+  Future<Result<List<Auction>>> getActiveAuctions({
     String? variety,
     double? minSize,
     double? maxSize,
@@ -60,7 +60,7 @@ abstract class AuctionRepository {
   });
 
   /// Get user's auctions (seller dashboard)
-  Future<RepositoryResult<List<Auction>>> getUserAuctions({
+  Future<Result<List<Auction>>> getUserAuctions({
     required String sellerId,
     AuctionStatus? status,
     int limit = 20,
@@ -68,13 +68,13 @@ abstract class AuctionRepository {
   });
 
   /// Update auction
-  Future<RepositoryResult<Auction>> updateAuction(
+  Future<Result<Auction>> updateAuction(
     String auctionId,
     Map<String, dynamic> updates,
   );
 
   /// Cancel auction (seller only)
-  Future<RepositoryResult<void>> cancelAuction({
+  Future<Result<void>> cancelAuction({
     required String auctionId,
     required String sellerId,
     required String reason,
@@ -86,14 +86,14 @@ abstract class AuctionRepository {
   // ========== Bidding Operations ==========
 
   /// Place bid on auction
-  Future<RepositoryResult<AuctionBid>> placeBid({
+  Future<Result<AuctionBid>> placeBid({
     required String auctionId,
     required String bidderId,
     required int amount,
   });
 
   /// Get auction bids
-  Future<RepositoryResult<List<AuctionBid>>> getAuctionBids({
+  Future<Result<List<AuctionBid>>> getAuctionBids({
     required String auctionId,
     int limit = 50,
   });
@@ -116,7 +116,7 @@ abstract class AuctionRepository {
   /// - Creates order atomically with order_id set on auction
   ///
   /// Returns order_id on success
-  Future<RepositoryResult<String>> claimAuction({
+  Future<Result<String>> claimAuction({
     required String auctionId,
     required String addressId,
     required String shippingSetupId,

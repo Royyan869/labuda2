@@ -7,87 +7,6 @@ library;
 import 'package:equatable/equatable.dart';
 import 'package:labuda/core/common/types/payment_types.dart';
 
-// ============================================================
-// P11 PHASE 2: DECISION CONTRACT (Backend is Authority)
-// ============================================================
-// All business decisions come from backend via decision contract.
-// Frontend MUST NOT compute payment state or allowed actions.
-
-/// Decision Contract from Backend
-class DecisionContract {
-  final String state;
-  final List<String> allowedActions;
-  final DisplayHints? display;
-
-  const DecisionContract({
-    required this.state,
-    this.allowedActions = const [],
-    this.display,
-  });
-
-  factory DecisionContract.fromJson(Map<String, dynamic>? json) {
-    if (json == null) {
-      return const DecisionContract(state: '', allowedActions: []);
-    }
-    return DecisionContract(
-      state: json['state'] as String? ?? '',
-      allowedActions:
-          (json['allowed_actions'] as List<dynamic>?)
-              ?.map((e) => e.toString())
-              .toList() ??
-          [],
-      display: json['display'] != null
-          ? DisplayHints.fromJson(json['display'] as Map<String, dynamic>)
-          : null,
-    );
-  }
-
-  Map<String, dynamic> toJson() => {
-    'state': state,
-    'allowed_actions': allowedActions,
-    if (display != null) 'display': display!.toJson(),
-  };
-}
-
-/// Display Hints from Backend (NON-AUTHORITATIVE)
-class DisplayHints {
-  final String? badge;
-  final String? badgeVariant;
-  final String? primaryAction;
-  final String? warning;
-  final String? info;
-  final int? timeRemainingSeconds;
-
-  const DisplayHints({
-    this.badge,
-    this.badgeVariant,
-    this.primaryAction,
-    this.warning,
-    this.info,
-    this.timeRemainingSeconds,
-  });
-
-  factory DisplayHints.fromJson(Map<String, dynamic> json) {
-    return DisplayHints(
-      badge: json['badge'] as String?,
-      badgeVariant: json['badge_variant'] as String?,
-      primaryAction: json['primary_action'] as String?,
-      warning: json['warning'] as String?,
-      info: json['info'] as String?,
-      timeRemainingSeconds: json['time_remaining_seconds'] as int?,
-    );
-  }
-
-  Map<String, dynamic> toJson() => {
-    'badge': badge,
-    'badge_variant': badgeVariant,
-    'primary_action': primaryAction,
-    'warning': warning,
-    'info': info,
-    'time_remaining_seconds': timeRemainingSeconds,
-  };
-}
-
 /// Main payment entity
 class Payment extends Equatable {
   /// Unique payment ID
@@ -140,9 +59,6 @@ class Payment extends Equatable {
   /// Payment URL for redirect (nullable)
   final String? paymentUrl;
 
-  // P11 Phase 2: Decision Contract from Backend
-  final DecisionContract? decision;
-
   /// Price snapshot ID from backend - SINGLE SOURCE OF TRUTH for pricing
   final String? priceSnapshotId;
 
@@ -166,26 +82,13 @@ class Payment extends Equatable {
     this.paidAt,
     this.expiredAt,
     this.paymentUrl,
-    this.decision,
     this.priceSnapshotId,
     this.updatedAt,
   });
 
-  // P11 Phase 2: All validation logic computed properties removed
-  // BEFORE: bool get isValid => status == PaymentStatus.pending && ...
-  // AFTER: Use decision.state from backend
-  //
-  // BEFORE: bool get canPay => status.canPay && isValid;
-  // AFTER: Use decision.allowed_actions.contains('pay')
-  //
-  // BEFORE: bool get isCompleted => status.isSuccess;
-  // AFTER: Use decision.state from backend
-  //
-  // BEFORE: bool get isFailed => status == PaymentStatus.failed || ...
-  // AFTER: Use decision.state from backend
-  //
-  // BEFORE: Duration? get timeRemaining { ... }
-  // AFTER: Use decision.display.timeRemainingSeconds from backend
+  // No client-side business-state derivation: payment state comes from the
+  // backend `status` field (PaymentStatus). Do not reintroduce
+  // isValid/canPay/isCompleted/isFailed/timeRemaining getters here.
 
   /// Create a copy with modified fields
   Payment copyWith({
@@ -205,7 +108,6 @@ class Payment extends Equatable {
     DateTime? paidAt,
     DateTime? expiredAt,
     String? paymentUrl,
-    DecisionContract? decision,
     String? priceSnapshotId,
     DateTime? updatedAt,
   }) {
@@ -227,7 +129,6 @@ class Payment extends Equatable {
       paidAt: paidAt ?? this.paidAt,
       expiredAt: expiredAt ?? this.expiredAt,
       paymentUrl: paymentUrl ?? this.paymentUrl,
-      decision: decision ?? this.decision,
       priceSnapshotId: priceSnapshotId ?? this.priceSnapshotId,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -250,7 +151,6 @@ class Payment extends Equatable {
     paidAt,
     expiredAt,
     paymentUrl,
-    decision,
     priceSnapshotId,
     updatedAt,
   ];

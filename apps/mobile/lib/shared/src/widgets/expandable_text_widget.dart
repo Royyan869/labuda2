@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Expandable Text Widget seperti Facebook
 ///
@@ -41,7 +42,7 @@ class _ExpandableTextWidgetState extends State<ExpandableTextWidget>
   void initState() {
     super.initState();
     _animationController = AnimationController(
-      duration: const Duration(milliseconds: 200),
+      duration: AppMotion.fast,
       vsync: this,
     );
     CurvedAnimation(parent: _animationController, curve: Curves.easeInOut);
@@ -101,7 +102,7 @@ class _ExpandableTextWidgetState extends State<ExpandableTextWidget>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         AnimatedSize(
-          duration: const Duration(milliseconds: 200),
+          duration: AppMotion.fast,
           curve: Curves.easeInOut,
           child: Text(
             widget.text,

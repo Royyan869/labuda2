@@ -1,8 +1,6 @@
-import 'dart:io';
-
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/domains/user/preference/seller/presentation/widgets/wizard/store_photo_preview.dart';
 import 'package:labuda/shared/shared.dart';
 
 /// Preview step for seller onboarding.
@@ -20,6 +18,7 @@ class SellerWizardPreviewWidget extends StatelessWidget {
   final String farmName;
   final String? farmPhotoUrl;
   final String? selectedStorePhotoPath;
+  final bool isStorePhotoUploading;
 
   final bool agreeToTerms;
   final ValueChanged<bool> onAgreeToTermsChanged;
@@ -35,6 +34,7 @@ class SellerWizardPreviewWidget extends StatelessWidget {
     required this.farmName,
     this.farmPhotoUrl,
     this.selectedStorePhotoPath,
+    this.isStorePhotoUploading = false,
     required this.agreeToTerms,
     required this.onAgreeToTermsChanged,
   });
@@ -43,7 +43,7 @@ class SellerWizardPreviewWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(AppMetrics.p24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -52,7 +52,7 @@ class SellerWizardPreviewWidget extends StatelessWidget {
           Text(
             'Review the package, account data, and store details before you continue to payment.',
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppType.s14,
               color: scheme.onSurfaceVariant,
             ),
           ),
@@ -72,7 +72,7 @@ class SellerWizardPreviewWidget extends StatelessWidget {
               Text(
                 'Payment is required before seller authority becomes active. KYC and bank review are handled later for payout access.',
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: AppType.s12,
                   height: 1.5,
                   color: scheme.onSurfaceVariant,
                 ),
@@ -105,39 +105,13 @@ class SellerWizardPreviewWidget extends StatelessWidget {
             children: [
               if (selectedStorePhotoPath != null || farmPhotoUrl != null)
                 Center(
-                  child: Container(
-                    width: 100,
-                    height: 100,
-                    margin: const EdgeInsets.only(bottom: 16),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: scheme.outlineVariant,
-                        width: 2,
-                      ),
-                    ),
-                    child: ClipOval(
-                      child: selectedStorePhotoPath != null
-                          ? (kIsWeb
-                                ? Image.network(
-                                    selectedStorePhotoPath!,
-                                    width: 96,
-                                    height: 96,
-                                    fit: BoxFit.cover,
-                                    errorBuilder:
-                                        (context, error, stackTrace) =>
-                                            _fallback(context),
-                                  )
-                                : Image.file(
-                                    File(selectedStorePhotoPath!),
-                                    width: 96,
-                                    height: 96,
-                                    fit: BoxFit.cover,
-                                    errorBuilder:
-                                        (context, error, stackTrace) =>
-                                            _fallback(context),
-                                  ))
-                          : AppImage.avatar(imageUrl: farmPhotoUrl!, size: 96),
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: AppMetrics.p16),
+                    child: StorePhotoPreview(
+                      localPath: selectedStorePhotoPath,
+                      displayUrl: farmPhotoUrl,
+                      isUploading: isStorePhotoUploading,
+                      size: 100,
                     ),
                   ),
                 ),
@@ -152,20 +126,20 @@ class SellerWizardPreviewWidget extends StatelessWidget {
           const SizedBox(height: 24),
 
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppMetrics.p16),
             decoration: BoxDecoration(
-              color: AppColors.warningYellow.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
+              color: context.statusColors.warning.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(AppShape.r12),
               border: Border.all(
-                color: AppColors.warningYellow.withValues(alpha: 0.3),
+                color: context.statusColors.warning.withValues(alpha: 0.3),
               ),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(
+                Icon(
                   Icons.info_outline,
-                  color: AppColors.warningYellow,
+                  color: context.statusColors.warning,
                   size: 20,
                 ),
                 const SizedBox(width: 12),
@@ -173,7 +147,7 @@ class SellerWizardPreviewWidget extends StatelessWidget {
                   child: Text(
                     'Payment activates seller authority. KYC and bank review are handled later for payout access.',
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: AppType.s13,
                       color: scheme.onSurfaceVariant,
                     ),
                   ),
@@ -190,7 +164,7 @@ class SellerWizardPreviewWidget extends StatelessWidget {
     return Text(
       title,
       style: TextStyle(
-        fontSize: 20,
+        fontSize: AppType.s20,
         fontWeight: FontWeight.bold,
         color: Theme.of(context).colorScheme.onSurface,
       ),
@@ -205,10 +179,10 @@ class SellerWizardPreviewWidget extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(AppMetrics.p20),
       decoration: BoxDecoration(
         color: scheme.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppShape.r16),
         border: Border.all(color: scheme.outlineVariant),
       ),
       child: Column(
@@ -217,7 +191,7 @@ class SellerWizardPreviewWidget extends StatelessWidget {
           Text(
             title,
             style: TextStyle(
-              fontSize: 16,
+              fontSize: AppType.s16,
               fontWeight: FontWeight.bold,
               color: scheme.onSurface,
             ),
@@ -232,7 +206,7 @@ class SellerWizardPreviewWidget extends StatelessWidget {
   Widget _buildInfoRow(BuildContext context, String label, String value) {
     final scheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: AppMetrics.p12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -241,7 +215,7 @@ class SellerWizardPreviewWidget extends StatelessWidget {
             child: Text(
               label,
               style: TextStyle(
-                fontSize: 13,
+                fontSize: AppType.s13,
                 fontWeight: FontWeight.w600,
                 color: scheme.onSurfaceVariant,
               ),
@@ -251,7 +225,7 @@ class SellerWizardPreviewWidget extends StatelessWidget {
             child: Text(
               value,
               style: TextStyle(
-                fontSize: 13,
+                fontSize: AppType.s13,
                 color: scheme.onSurface,
               ),
             ),
@@ -264,10 +238,10 @@ class SellerWizardPreviewWidget extends StatelessWidget {
   Widget _buildTermsAgreement(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         color: scheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(color: scheme.outlineVariant),
       ),
       child: Row(
@@ -279,11 +253,11 @@ class SellerWizardPreviewWidget extends StatelessWidget {
           ),
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.only(top: 12),
+              padding: const EdgeInsets.only(top: AppMetrics.p12),
               child: Text(
                 'I agree to the Seller Terms and understand that seller authority starts after payment is confirmed.',
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: AppType.s13,
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
@@ -294,11 +268,4 @@ class SellerWizardPreviewWidget extends StatelessWidget {
     );
   }
 
-  Widget _fallback(BuildContext context) {
-    return Icon(
-      Icons.store_outlined,
-      size: 48,
-      color: Theme.of(context).colorScheme.onSurfaceVariant,
-    );
-  }
 }

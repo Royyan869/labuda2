@@ -34,10 +34,10 @@ class _CommercePricingCard extends StatelessWidget {
     final colorScheme = theme.colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(core.AppMetrics.p16),
       decoration: BoxDecoration(
         color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(core.AppShape.r12),
         border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: Column(
@@ -106,10 +106,10 @@ class OrderSellerPricingCard extends StatelessWidget {
     final colorScheme = theme.colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(core.AppMetrics.p16),
       decoration: BoxDecoration(
         color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(core.AppShape.r12),
         border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: Column(
@@ -165,7 +165,7 @@ class _PricingRow extends StatelessWidget {
     final colorScheme = theme.colorScheme;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: core.AppMetrics.p8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [

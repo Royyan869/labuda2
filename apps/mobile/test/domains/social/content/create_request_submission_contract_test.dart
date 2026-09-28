@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:labuda/core/common/result.dart';
 import 'package:labuda/core/providers/core_providers.dart';
 import 'package:labuda/domains/social/content/content.dart';
 import 'package:labuda/domains/social/content/presentation/widgets/create_content/content_submission_handler.dart';
@@ -19,7 +20,7 @@ class _FakeUser {
 
 class _FakeContentRepository implements ContentRepository {
   @override
-  Future<ContentRepositoryResult<Content>> createContent({
+  Future<Result<Content>> createContent({
     required String authorId,
     String? authorUsername,
     String? authorAvatarUrl,
@@ -31,7 +32,7 @@ class _FakeContentRepository implements ContentRepository {
     ContentLocation? location,
   }) async {
     _capturedCreateCalled = true;
-    return ContentRepositoryResult.success(
+    return Result.success(
       Content(
         id: 'content-1',
         content: content,
@@ -51,76 +52,76 @@ class _FakeContentRepository implements ContentRepository {
   }
 
   @override
-  Future<ContentRepositoryResult<void>> deleteContent(String contentId) async {
-    return ContentRepositoryResult.error('not used');
+  Future<Result<void>> deleteContent(String contentId) async {
+    return Result.error('not used');
   }
 
   @override
-  Future<ContentRepositoryResult<Content>> getContentById(
+  Future<Result<Content>> getContentById(
     String contentId,
   ) async {
-    return ContentRepositoryResult.error('not used');
+    return Result.error('not used');
   }
 
   @override
-  Future<ContentRepositoryResult<List<Content>>> getContents({
+  Future<Result<List<Content>>> getContents({
     int? limit,
     int? offset,
     String? location,
     ContentStatus? status,
   }) async {
-    return ContentRepositoryResult.error('not used');
+    return Result.error('not used');
   }
 
   @override
-  Future<ContentRepositoryResult<List<Content>>> getContentsByAuthor(
+  Future<Result<List<Content>>> getContentsByAuthor(
     String authorId, {
     int? limit,
     int? offset,
   }) async {
-    return ContentRepositoryResult.error('not used');
+    return Result.error('not used');
   }
 
   @override
-  Future<ContentRepositoryResult<ContentAuthorPage>> getContentsByAuthorPaged(
+  Future<Result<ContentAuthorPage>> getContentsByAuthorPaged(
     String authorId, {
     int limit = 20,
     String? cursor,
   }) async {
-    return ContentRepositoryResult.error('not used');
+    return Result.error('not used');
   }
 
   @override
-  Future<ContentRepositoryResult<List<Content>>> getContentsByLocation({
+  Future<Result<List<Content>>> getContentsByLocation({
     required String location,
     int? limit,
   }) async {
-    return ContentRepositoryResult.error('not used');
+    return Result.error('not used');
   }
 
   @override
-  Future<ContentRepositoryResult<List<Content>>> getTrendingContents({
+  Future<Result<List<Content>>> getTrendingContents({
     int? limit,
   }) async {
-    return ContentRepositoryResult.error('not used');
+    return Result.error('not used');
   }
 
   @override
-  Future<ContentRepositoryResult<Content>> updateContent(
+  Future<Result<Content>> updateContent(
     String contentId,
     Content content,
   ) async {
-    return ContentRepositoryResult.error('not used');
+    return Result.error('not used');
   }
 
   @override
-  Future<ContentRepositoryResult<ContentSearchResult>> searchContents({
+  Future<Result<ContentSearchResult>> searchContents({
     required String query,
     int? limit,
     int? offset,
     String? location,
   }) async {
-    return ContentRepositoryResult.error('not used');
+    return Result.error('not used');
   }
 }
 

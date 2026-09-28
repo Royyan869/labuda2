@@ -21,7 +21,7 @@ import 'package:labuda/domains/system/notification/domain/entities/notification_
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:labuda/core/src/theme/app_colors.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 class NotificationNavigationService {
   final NavigationHandler _navigationHandler;
@@ -530,12 +530,12 @@ class NotificationNavigationService {
       builder: (context) => AlertDialog(
         title: Row(
           children: [
-            Icon(Icons.campaign, color: Theme.of(context).primaryColor),
+            Icon(Icons.campaign, color: Theme.of(context).colorScheme.primary),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
                 notification.title,
-                style: const TextStyle(fontSize: 18),
+                style: const TextStyle(fontSize: AppType.s18),
               ),
             ),
           ],
@@ -560,10 +560,10 @@ class NotificationNavigationService {
       builder: (context) => AlertDialog(
         title: Row(
           children: [
-            Icon(Icons.build, color: AppColors.statusWarning),
+            Icon(Icons.build, color: context.statusColors.warning),
             const SizedBox(width: 8),
             const Expanded(
-              child: Text('Maintenance System', style: TextStyle(fontSize: 18)),
+              child: Text('Maintenance System', style: TextStyle(fontSize: AppType.s18)),
             ),
           ],
         ),
@@ -580,12 +580,12 @@ class NotificationNavigationService {
               if (notification.data?['startTime'] != null)
                 Text(
                   'Mulai: ${notification.data!['startTime']}',
-                  style: const TextStyle(fontSize: 12),
+                  style: const TextStyle(fontSize: AppType.s12),
                 ),
               if (notification.data?['endTime'] != null)
                 Text(
                   'Ends: ${notification.data!['endTime']}',
-                  style: const TextStyle(fontSize: 12),
+                  style: const TextStyle(fontSize: AppType.s12),
                 ),
             ],
           ],

@@ -86,7 +86,7 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
       child: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(AppMetrics.p24),
           children: [
             // Password Section
             _buildSectionHeader(
@@ -119,10 +119,10 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
     final scheme = Theme.of(context).colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(AppMetrics.p20),
       decoration: BoxDecoration(
         color: scheme.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppShape.r16),
         border: Border.all(color: scheme.outlineVariant),
       ),
       child: Column(
@@ -132,7 +132,7 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
             l10n.changePassword,
             style: TextStyle(
               color: scheme.onSurface,
-              fontSize: 16,
+              fontSize: AppType.s16,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -222,24 +222,24 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
 
           // Security Tip
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(AppMetrics.p12),
             decoration: BoxDecoration(
-              color: AppColors.statusWarning.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
+              color: context.statusColors.warning.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(AppShape.r8),
               border: Border.all(
-                color: AppColors.statusWarning.withValues(alpha: 0.3),
+                color: context.statusColors.warning.withValues(alpha: 0.3),
               ),
             ),
             child: Row(
               children: [
-                Icon(Icons.security, color: AppColors.statusWarning, size: 16),
+                Icon(Icons.security, color: context.statusColors.warning, size: 16),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     l10n.strongPasswordMessage,
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      fontSize: 12,
+                      fontSize: AppType.s12,
                     ),
                   ),
                 ),
@@ -256,10 +256,10 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
     final scheme = Theme.of(context).colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(AppMetrics.p20),
       decoration: BoxDecoration(
         color: scheme.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppShape.r16),
         border: Border.all(color: scheme.outlineVariant),
       ),
       child: Column(
@@ -289,19 +289,19 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
     final scheme = Theme.of(context).colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(AppMetrics.p20),
       decoration: BoxDecoration(
         color: scheme.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppShape.r16),
         border: Border.all(color: scheme.outlineVariant),
       ),
       child: Column(
         children: [
           // Deactivate Account
           ListTile(
-            leading: const Icon(
+            leading: Icon(
               Icons.person_off_outlined,
-              color: AppColors.warning,
+              color: context.statusColors.warning,
             ),
             title: Text(l10n.deactivateAccount),
             trailing: const Icon(Icons.chevron_right),
@@ -312,9 +312,9 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
 
           // Delete Account
           ListTile(
-            leading: const Icon(
+            leading: Icon(
               Icons.delete_forever_outlined,
-              color: AppColors.error,
+              color: context.statusColors.error,
             ),
             title: Text(l10n.deleteAccount),
             trailing: const Icon(Icons.chevron_right),
@@ -329,7 +329,7 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
     return Text(
       title,
       style: TextStyle(
-        fontSize: 18,
+        fontSize: AppType.s18,
         fontWeight: FontWeight.bold,
         color: Theme.of(context).colorScheme.onSurface,
       ),
@@ -410,7 +410,7 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
               children: [
                 Text(
                   l10n.deactivateAccountDescription,
-                  style: const TextStyle(fontSize: 14),
+                  style: const TextStyle(fontSize: AppType.s14),
                 ),
                 const SizedBox(height: 16),
                 Text(
@@ -423,13 +423,13 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
                     border: Border.all(
                       color: Theme.of(context).colorScheme.outlineVariant,
                     ),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(AppShape.r8),
                   ),
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
                       value: selectedReason.isEmpty ? null : selectedReason,
                       hint: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12),
                         child: Text(l10n.selectReason),
                       ),
                       isExpanded: true,
@@ -499,7 +499,7 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
                 style: TextStyle(
                   color: selectedReason.isEmpty
                       ? Theme.of(context).colorScheme.onSurfaceVariant
-                      : AppColors.warning,
+                      : context.statusColors.warning,
                 ),
               ),
             ),
@@ -580,7 +580,7 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
             },
             child: Text(
               l10n.delete,
-              style: const TextStyle(color: AppColors.error),
+              style: TextStyle(color: context.statusColors.error),
             ),
           ),
         ],

@@ -21,11 +21,11 @@ class BankAccountCardWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.only(bottom: AppMetrics.p16),
+      padding: const EdgeInsets.all(AppMetrics.p20),
       decoration: BoxDecoration(
          color: scheme.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppShape.r16),
         border: Border.all(
           color: account.isDefault
               ? scheme.primary.withValues(alpha: 0.3)
@@ -48,10 +48,10 @@ class BankAccountCardWidget extends StatelessWidget {
             children: [
               // Bank icon
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(AppMetrics.p8),
                 decoration: BoxDecoration(
                   color: scheme.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(AppShape.r8),
                 ),
                 child: Icon(
                   Icons.account_balance,
@@ -68,7 +68,7 @@ class BankAccountCardWidget extends StatelessWidget {
                       account.bankName,
                       style: TextStyle(
                         color: scheme.onSurface,
-                        fontSize: 16,
+                        fontSize: AppType.s16,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -77,7 +77,7 @@ class BankAccountCardWidget extends StatelessWidget {
                       account.isDefault ? 'Rekening Utama' : account.bankCode,
                       style: TextStyle(
                         color: scheme.onSurfaceVariant,
-                        fontSize: 12,
+                        fontSize: AppType.s12,
                       ),
                     ),
                   ],
@@ -108,13 +108,13 @@ class BankAccountCardWidget extends StatelessWidget {
 
     switch (account.status) {
       case BankAccountStatus.active:
-        badgeColor = AppColors.success;
+        badgeColor = context.statusColors.success;
         textColor = scheme.onPrimary;
         statusText = 'Aktif';
         icon = Icons.check_circle_outline;
         break;
       case BankAccountStatus.deleted:
-        badgeColor = AppColors.error;
+        badgeColor = context.statusColors.error;
         textColor = scheme.onPrimary;
         statusText = 'Dihapus';
         icon = Icons.remove_circle_outline;
@@ -122,10 +122,10 @@ class BankAccountCardWidget extends StatelessWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
       decoration: BoxDecoration(
         color: badgeColor,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(AppShape.r6),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -136,7 +136,7 @@ class BankAccountCardWidget extends StatelessWidget {
             statusText,
             style: TextStyle(
               color: textColor,
-              fontSize: 10,
+              fontSize: AppType.s10,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -166,18 +166,18 @@ class BankAccountCardWidget extends StatelessWidget {
             label,
             style: TextStyle(
               color: scheme.onSurfaceVariant,
-              fontSize: 12,
+              fontSize: AppType.s12,
               fontWeight: FontWeight.w500,
             ),
           ),
         ),
-        const Text(': ', style: TextStyle(fontSize: 12)),
+        const Text(': ', style: TextStyle(fontSize: AppType.s12)),
         Expanded(
           child: Text(
             value,
             style: TextStyle(
               color: scheme.onSurface,
-              fontSize: 12,
+              fontSize: AppType.s12,
               fontWeight: FontWeight.w500,
             ),
           ),

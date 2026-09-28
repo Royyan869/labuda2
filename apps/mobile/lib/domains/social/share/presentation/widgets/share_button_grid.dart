@@ -17,7 +17,7 @@ class ShareButtonGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p12),
       child: Wrap(
         spacing: 12,
         runSpacing: 16,
@@ -38,7 +38,7 @@ class ShareButtonGrid extends StatelessWidget {
       width: 72,
       child: InkWell(
         onTap: () => onTap(destination),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -50,7 +50,7 @@ class ShareButtonGrid extends StatelessWidget {
                 color: destinationColor != null
                     ? destinationColor.withValues(alpha: 0.12)
                     : iconBgColor,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(AppShape.r12),
               ),
               child: Icon(
                 destination.iconData,

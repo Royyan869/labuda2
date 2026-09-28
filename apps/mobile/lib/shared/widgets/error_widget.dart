@@ -53,7 +53,7 @@ class ErrorDisplayWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppMetrics.p24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

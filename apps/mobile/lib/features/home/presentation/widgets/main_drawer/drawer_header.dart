@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/shared/models/seller_identity_data.dart';
 import 'package:labuda/generated/app_localizations.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Drawer header component
 ///
@@ -59,7 +60,7 @@ class _MainDrawerHeaderState extends ConsumerState<MainDrawerHeader> {
       child: SafeArea(
         bottom: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+          padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p16, AppMetrics.p16, AppMetrics.p16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
@@ -91,7 +92,7 @@ class _MainDrawerHeaderState extends ConsumerState<MainDrawerHeader> {
                             width: double.infinity,
                             decoration: BoxDecoration(
                               color: scheme.surfaceContainerHighest,
-                              borderRadius: BorderRadius.circular(999),
+                              borderRadius: BorderRadius.circular(AppShape.pill),
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -100,7 +101,7 @@ class _MainDrawerHeaderState extends ConsumerState<MainDrawerHeader> {
                             width: 120,
                             decoration: BoxDecoration(
                               color: scheme.surfaceContainerHighest,
-                              borderRadius: BorderRadius.circular(999),
+                              borderRadius: BorderRadius.circular(AppShape.pill),
                             ),
                           ),
                         ],
@@ -122,7 +123,7 @@ class _MainDrawerHeaderState extends ConsumerState<MainDrawerHeader> {
                             'LABUDA',
                             style: TextStyle(
                               color: scheme.onSurface,
-                              fontSize: 18,
+                              fontSize: AppType.s18,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -131,7 +132,7 @@ class _MainDrawerHeaderState extends ConsumerState<MainDrawerHeader> {
                             l10n.koiCommunity,
                             style: TextStyle(
                               color: scheme.onSurfaceVariant,
-                              fontSize: 12,
+                              fontSize: AppType.s12,
                             ),
                           ),
                         ],
@@ -152,14 +153,14 @@ class _MainDrawerHeaderState extends ConsumerState<MainDrawerHeader> {
                         style: OutlinedButton.styleFrom(
                           foregroundColor: scheme.primary,
                           side: BorderSide(color: scheme.primary),
-                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          padding: const EdgeInsets.symmetric(vertical: AppMetrics.p10),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(AppShape.r8),
                           ),
                         ),
                         child: const Text(
                           'Sign In',
-                          style: TextStyle(fontSize: 13),
+                          style: TextStyle(fontSize: AppType.s13),
                         ),
                       ),
                     ),
@@ -173,14 +174,14 @@ class _MainDrawerHeaderState extends ConsumerState<MainDrawerHeader> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: scheme.primary,
                           foregroundColor: scheme.onPrimary,
-                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          padding: const EdgeInsets.symmetric(vertical: AppMetrics.p10),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(AppShape.r8),
                           ),
                         ),
                         child: const Text(
                           'Sign Up',
-                          style: TextStyle(fontSize: 13),
+                          style: TextStyle(fontSize: AppType.s13),
                         ),
                       ),
                     ),

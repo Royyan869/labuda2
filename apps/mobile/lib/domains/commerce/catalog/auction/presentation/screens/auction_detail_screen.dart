@@ -250,7 +250,7 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
               SliverToBoxAdapter(child: _AuctionDetailTitle(auction: auction)),
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p0, AppMetrics.p16, AppMetrics.p16),
                   child: AuctionCountdownTimer(
                     auction: auction,
                     currentUserId: currentUserId.isNotEmpty
@@ -271,7 +271,7 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
               if (currentUserId.isNotEmpty)
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p0, AppMetrics.p16, AppMetrics.p16),
                     child: AuctionSellerSettlementMonitor(
                       auction: auction,
                       currentUserId: currentUserId,
@@ -282,7 +282,7 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
               if (currentUserId.isNotEmpty)
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p0, AppMetrics.p16, AppMetrics.p16),
                     child: AuctionBidPositionIndicator(
                       auction: auction,
                       userBids: liveBids
@@ -300,7 +300,7 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
               SliverToBoxAdapter(child: AuctionBidHistory(bids: liveBids)),
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+                  padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p0, AppMetrics.p16, AppMetrics.p80),
                   child: AuctionRecommendationsSection(
                     currentAuction: auction,
                     ownerOtherAuctions: ownerOtherAuctionsAsync,
@@ -471,7 +471,7 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
       final notifierState = ref.read(auctionNotifierProvider);
       // Backend-rejection handler (defense-in-depth): the backend stays the
       // single authority for EMAIL_VERIFICATION_REQUIRED. The bidding chain
-      // propagates the API code via RepositoryResult.errorCode →
+      // propagates the API code via Result.errorCode →
       // AuctionNotifierState.errorCode.
       if (notifierState.errorCode == api_codes.emailVerificationRequired) {
         if (!mounted) return;
@@ -765,7 +765,7 @@ class _AuctionDetailTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+      padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p16, AppMetrics.p16, AppMetrics.p16),
       child: Text(
         auction.title,
         style: Theme.of(context).textTheme.headlineSmall,
@@ -788,13 +788,13 @@ class _SettlementWarningBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p0, AppMetrics.p16, AppMetrics.p0),
+      padding: const EdgeInsets.all(AppMetrics.p12),
       decoration: BoxDecoration(
-        color: AppColors.statusWarning.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(8),
+        color: context.statusColors.warning.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppShape.r8),
         border: Border.all(
-          color: AppColors.statusWarning.withValues(alpha: 0.3),
+          color: context.statusColors.warning.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -802,14 +802,14 @@ class _SettlementWarningBanner extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.all(6),
+            padding: const EdgeInsets.all(AppMetrics.p6),
             decoration: BoxDecoration(
-              color: AppColors.statusWarning.withValues(alpha: 0.15),
+              color: context.statusColors.warning.withValues(alpha: 0.15),
               shape: BoxShape.circle,
             ),
-            child: const Icon(
+            child: Icon(
               Icons.warning_amber_rounded,
-              color: AppColors.statusWarning,
+              color: context.statusColors.warning,
               size: 18,
             ),
           ),
@@ -821,7 +821,7 @@ class _SettlementWarningBanner extends StatelessWidget {
                 Text(
                   '⚠️ Selesaikan dalam 24 jam',
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: AppType.s13,
                     fontWeight: FontWeight.w600,
                     color: scheme.onSurface,
                   ),
@@ -830,7 +830,7 @@ class _SettlementWarningBanner extends StatelessWidget {
                 Text(
                   'Jika tidak, Anda dapat dikenai pembatasan akun',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: AppType.s12,
                     color: scheme.onSurfaceVariant,
                   ),
                 ),

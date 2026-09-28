@@ -23,6 +23,3 @@ export 'entities/seller_subscription_payment_request.dart';
 
 // Repository Interfaces
 export 'repositories/payment_repository.dart';
-
-// Failures
-export 'failures/payment_failure.dart';

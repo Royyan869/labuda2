@@ -43,11 +43,11 @@ class AuctionCountdownTimer extends StatelessWidget {
     // Determine display based on auction state. All tones come from the
     // scheme authority — no light-only hex, no local brightness branch.
     final scheme = Theme.of(context).colorScheme;
-    final display = _getDisplay(scheme, hasEnded, timeRemaining);
+    final display = _getDisplay(context, scheme, hasEnded, timeRemaining);
 
     return Container(
       color: display.backgroundColor,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p12),
       child: Row(
         children: [
           Icon(display.icon, size: 20, color: display.iconColor),
@@ -59,7 +59,7 @@ class AuctionCountdownTimer extends StatelessWidget {
                 Text(
                   display.label,
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: AppType.s14,
                     fontWeight: display.fontWeight,
                     color: display.textColor,
                   ),
@@ -69,7 +69,7 @@ class AuctionCountdownTimer extends StatelessWidget {
                   Text(
                     display.subtitle,
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: AppType.s12,
                       color: display.textColor.withValues(alpha: 0.8),
                     ),
                   ),
@@ -83,9 +83,9 @@ class AuctionCountdownTimer extends StatelessWidget {
             Text(
               _formatDuration(timeRemaining),
               style: TextStyle(
-                fontSize: 16,
+                fontSize: AppType.s16,
                 fontWeight: FontWeight.bold,
-                color: _getTimeColor(scheme, timeRemaining),
+                color: _getTimeColor(context, scheme, timeRemaining),
               ),
             ),
           ],
@@ -94,7 +94,7 @@ class AuctionCountdownTimer extends StatelessWidget {
             Text(
               _formatDuration(timeRemaining),
               style: TextStyle(
-                fontSize: 16,
+                fontSize: AppType.s16,
                 fontWeight: FontWeight.bold,
                 color: scheme.secondary,
               ),
@@ -105,7 +105,7 @@ class AuctionCountdownTimer extends StatelessWidget {
     );
   }
 
-  _TimerDisplay _getDisplay(
+  _TimerDisplay _getDisplay(BuildContext context,
     ColorScheme scheme,
     bool hasEnded,
     Duration timeRemaining,
@@ -174,9 +174,9 @@ class AuctionCountdownTimer extends StatelessWidget {
           label: '🏆 Anda Menang!',
           subtitle: 'Harus diselesaikan dalam $timeRemainingText',
           icon: Icons.emoji_events,
-          iconColor: AppColors.statusWarning,
+          iconColor: context.statusColors.warning,
           textColor: scheme.onSurface,
-          backgroundColor: AppColors.statusWarning.withValues(alpha: 0.12),
+          backgroundColor: context.statusColors.warning.withValues(alpha: 0.12),
           fontWeight: FontWeight.bold,
         );
       }
@@ -186,9 +186,9 @@ class AuctionCountdownTimer extends StatelessWidget {
         label: 'Menunggu Pembayaran',
         subtitle: 'Pemenang sedang menyelesaikan pembayaran',
         icon: Icons.access_time,
-        iconColor: AppColors.statusWarning,
+        iconColor: context.statusColors.warning,
         textColor: scheme.onSurface,
-        backgroundColor: AppColors.statusWarning.withValues(alpha: 0.12),
+        backgroundColor: context.statusColors.warning.withValues(alpha: 0.12),
         fontWeight: FontWeight.w500,
       );
     }
@@ -207,9 +207,9 @@ class AuctionCountdownTimer extends StatelessWidget {
           subtitle:
               'Menang di Rp ${formatGroupedAmount(winningBid.round())} - Lanjut ke pembayaran untuk amankan',
           icon: Icons.emoji_events,
-          iconColor: AppColors.statusSuccess,
+          iconColor: context.statusColors.success,
           textColor: scheme.onSurface,
-          backgroundColor: AppColors.statusSuccess.withValues(alpha: 0.12),
+          backgroundColor: context.statusColors.success.withValues(alpha: 0.12),
           fontWeight: FontWeight.bold,
         );
       }
@@ -274,10 +274,10 @@ class AuctionCountdownTimer extends StatelessWidget {
         '${seconds.toString().padLeft(2, '0')}';
   }
 
-  Color _getTimeColor(ColorScheme scheme, Duration duration) {
+  Color _getTimeColor(BuildContext context, ColorScheme scheme, Duration duration) {
     if (duration.inHours < 1) return scheme.error;
-    if (duration.inHours < 6) return AppColors.statusWarning;
-    return AppColors.statusSuccess;
+    if (duration.inHours < 6) return context.statusColors.warning;
+    return context.statusColors.success;
   }
 }
 

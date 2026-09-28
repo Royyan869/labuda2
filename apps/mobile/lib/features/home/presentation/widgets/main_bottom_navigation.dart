@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/features/home/presentation/models/main_tab.dart';
+import 'package:labuda/core/core.dart';
 
 /// Main bottom navigation widget
 ///
@@ -29,12 +30,12 @@ class MainBottomNavigation extends StatelessWidget {
       selectedItemColor: scheme.primary,
       unselectedItemColor: scheme.onSurfaceVariant,
       selectedLabelStyle: TextStyle(
-        fontSize: 12,
+        fontSize: AppType.s12,
         fontWeight: FontWeight.w600,
         color: scheme.primary,
       ),
       unselectedLabelStyle: TextStyle(
-        fontSize: 12,
+        fontSize: AppType.s12,
         fontWeight: FontWeight.w400,
         color: scheme.onSurfaceVariant,
       ),
@@ -42,7 +43,7 @@ class MainBottomNavigation extends StatelessWidget {
           ? (currentIndex >= 2 ? currentIndex + 1 : currentIndex)
           : 0,
       onTap: onTap,
-      elevation: 8,
+      elevation: AppElevation.overlay,
       items: _buildBottomNavItems(context),
     );
   }

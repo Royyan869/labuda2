@@ -1,9 +1,7 @@
+import 'package:labuda/core/common/result.dart';
 import 'package:labuda/features/search/search/domain/entities/search_filters.dart';
 import 'package:labuda/features/search/search/domain/entities/search_result.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
-
-/// Result type for operations that can fail
-typedef ApiResult<T> = ({T? data, String? error});
 
 /// Search Repository Interface
 ///
@@ -23,7 +21,7 @@ abstract class SearchRepository {
   // =====================
 
   /// Search contents
-  Future<ApiResult<List<ContentSearchResult>>> searchContents({
+  Future<Result<List<ContentSearchResult>>> searchContents({
     required String query,
     int page = 1,
     int pageSize = 20,
@@ -40,7 +38,7 @@ abstract class SearchRepository {
   ///
   /// Only returns auctions with status IN ('scheduled', 'active', 'ended')
   /// Draft and cancelled auctions are NOT discoverable via search
-  Future<ApiResult<List<AuctionSearchResult>>> searchAuctions({
+  Future<Result<List<AuctionSearchResult>>> searchAuctions({
     required String query,
     int page = 1,
     int pageSize = 20,
@@ -59,7 +57,7 @@ abstract class SearchRepository {
   ///
   /// Returns ONLY the fields actually emitted by /search/for-sale —
   /// no fabricated quantity / status / visibility / for_sale_type.
-  Future<ApiResult<List<ForSaleSearchResult>>> searchForSale({
+  Future<Result<List<ForSaleSearchResult>>> searchForSale({
     required String query,
     String? cursor,
     int limit = 20,
@@ -72,7 +70,7 @@ abstract class SearchRepository {
   // =====================
 
   /// Search users by username or name
-  Future<ApiResult<List<UserSearchResult>>> searchUsers({
+  Future<Result<List<UserSearchResult>>> searchUsers({
     required String query,
     int page = 1,
     int pageSize = 20,
@@ -92,7 +90,7 @@ abstract class SearchRepository {
   /// ranking.
   ///
   /// [limit] is the per-domain page size (default 20).
-  Future<ApiResult<UnifiedSearchResults>> searchAll({
+  Future<Result<UnifiedSearchResults>> searchAll({
     required String query,
     SearchFilters? filters,
     int limit = 20,

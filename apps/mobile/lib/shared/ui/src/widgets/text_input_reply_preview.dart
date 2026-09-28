@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Reply message data for reply preview
 class ReplyData {
@@ -28,7 +29,7 @@ class TextInputReplyPreview extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p8),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHigh,
         border: Border(left: BorderSide(color: scheme.primary, width: 4)),
@@ -43,7 +44,7 @@ class TextInputReplyPreview extends StatelessWidget {
                   'Replying to ${replyingTo.senderName.isNotEmpty ? replyingTo.senderName : "User"}',
                   style: TextStyle(
                     color: scheme.primary,
-                    fontSize: 12,
+                    fontSize: AppType.s12,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -56,7 +57,7 @@ class TextInputReplyPreview extends StatelessWidget {
                       : 'Message',
                   style: TextStyle(
                     color: scheme.onSurfaceVariant,
-                    fontSize: 14,
+                    fontSize: AppType.s14,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -68,7 +69,7 @@ class TextInputReplyPreview extends StatelessWidget {
             GestureDetector(
               onTap: onCancelReply,
               child: Container(
-                padding: const EdgeInsets.all(4),
+                padding: const EdgeInsets.all(AppMetrics.p4),
                 child: Icon(
                   Icons.close,
                   color: scheme.onSurfaceVariant,

@@ -441,11 +441,11 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
         child: Form(
           key: _formKey,
           child: ListView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppMetrics.p16),
             children: [
               const Text(
                 'Informasi Dasar',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: AppType.s18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
               TextFormField(
@@ -482,14 +482,14 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
               const SizedBox(height: 24),
               const Text(
                 'Foto Ikan',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: AppType.s18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
               _buildMediaSection(),
               const SizedBox(height: 24),
               const Text(
                 'Detail Koi',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: AppType.s18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
               _buildKoiDetailsSection(),
@@ -553,7 +553,7 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
               const SizedBox(height: 20),
               const Text(
                 'Opsi Pengiriman *',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                style: TextStyle(fontSize: AppType.s16, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
               SellerShippingSetupsSelector(
@@ -576,10 +576,10 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
               const SizedBox(height: 24),
               if (_errorMessage != null) ...[
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(AppMetrics.p12),
                   decoration: BoxDecoration(
                     color: scheme.error.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(AppShape.r8),
                     border: Border.all(
                       color: scheme.error.withValues(alpha: 0.3),
                     ),
@@ -588,7 +588,7 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
                     _errorMessage!,
                     style: TextStyle(
                       color: scheme.onSurface,
-                      fontSize: 14,
+                      fontSize: AppType.s14,
                     ),
                   ),
                 ),
@@ -616,7 +616,7 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
                     : Text(
                         'Buat Lelang',
                         style: TextStyle(
-                          fontSize: 16,
+                          fontSize: AppType.s16,
                           fontWeight: FontWeight.w600,
                           color: scheme.onPrimary,
                         ),
@@ -638,7 +638,7 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
       children: [
         const Text(
           'Waktu Mulai *',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          style: TextStyle(fontSize: AppType.s16, fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 8),
         SegmentedButton<String>(
@@ -679,7 +679,7 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
       children: [
         const Text(
           'Durasi Lelang *',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          style: TextStyle(fontSize: AppType.s16, fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 8),
         Wrap(
@@ -703,9 +703,13 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
   Widget _buildMediaSection() {
     return MediaGridUploader(
       mediaUrls: _mediaUrls,
-      onMediaAdded: (url) => setState(() => _mediaUrls.add(url)),
-      onMediaRemoved: (index) => setState(() => _mediaUrls.removeAt(index)),
-    );
+       onMediaAdded: (url) => setState(() => _mediaUrls.add(url)),
+       onMediaRemoved: (index) => setState(() => _mediaUrls.removeAt(index)),
+       onMediaReordered: (oldIndex, newIndex) => setState(() {
+         final item = _mediaUrls.removeAt(oldIndex);
+         _mediaUrls.insert(newIndex, item);
+       }),
+     );
   }
 
   Widget _buildKoiDetailsSection() {
@@ -813,7 +817,7 @@ class _DateTimeField extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(AppShape.r12),
       child: InputDecorator(
         decoration: InputDecoration(
           labelText: label,

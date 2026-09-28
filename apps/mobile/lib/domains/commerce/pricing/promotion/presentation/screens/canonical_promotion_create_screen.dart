@@ -194,7 +194,7 @@ class _CanonicalPromotionCreateScreenState
     return Scaffold(
       appBar: AppBar(title: const Text('Buat Promosi')),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppMetrics.p16),
         child: Form(
           key: _formKey,
           child: Column(
@@ -203,7 +203,7 @@ class _CanonicalPromotionCreateScreenState
               _ReusableFundingCard(balanceAsync: balanceAsync),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: _kind,
+                initialValue: _kind,
                 decoration: const InputDecoration(labelText: 'Jenis Promosi'),
                 items: const [
                   DropdownMenuItem(
@@ -253,7 +253,7 @@ class _CanonicalPromotionCreateScreenState
               Text(
                 'Kosong = nasional (unrestricted). Isi = arbitrary city set, contoh 3204=Bandung, 3171=Jaksel.',
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: AppType.s12,
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
@@ -285,9 +285,9 @@ class _ReusableFundingCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(AppMetrics.p14),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
         color: Theme.of(context).colorScheme.surface,
       ),
@@ -297,7 +297,7 @@ class _ReusableFundingCard extends StatelessWidget {
           Text(
             'Saldo promo tersedia',
             style: TextStyle(
-              fontSize: 12,
+              fontSize: AppType.s12,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
@@ -308,7 +308,7 @@ class _ReusableFundingCard extends StatelessWidget {
                 return Text(
                   AppFormatters.formatCurrencyInt(result.data!.balance),
                   style: const TextStyle(
-                    fontSize: 20,
+                    fontSize: AppType.s20,
                     fontWeight: FontWeight.bold,
                   ),
                 );
@@ -316,7 +316,7 @@ class _ReusableFundingCard extends StatelessWidget {
               return Text(
                 result.error ?? 'Gagal memuat saldo promosi',
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: AppType.s14,
                   color: Theme.of(context).colorScheme.primary,
                 ),
               );
@@ -329,7 +329,7 @@ class _ReusableFundingCard extends StatelessWidget {
             error: (e, _) => Text(
               e.toString(),
               style: TextStyle(
-                fontSize: 14,
+                fontSize: AppType.s14,
                 color: Theme.of(context).colorScheme.primary,
               ),
             ),
@@ -339,7 +339,7 @@ class _ReusableFundingCard extends StatelessWidget {
             'Saldo ini bisa langsung dipakai untuk membuat promosi tanpa '
             'pembayaran baru.',
             style: TextStyle(
-              fontSize: 12,
+              fontSize: AppType.s12,
               color: Theme.of(context).colorScheme.outline,
             ),
           ),
@@ -495,17 +495,17 @@ class _PromotionFundingPaymentSheetState
         ),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(AppShape.r20)),
         ),
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppMetrics.p16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
                 'Kekurangan dana promosi',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: AppType.s18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
               _summaryRow(
@@ -524,14 +524,14 @@ class _PromotionFundingPaymentSheetState
                 'Promosi dibuat setelah kekurangan tepat ini dibayar. '
                 'Pembayaran tidak menambah saldo promo.',
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: AppType.s12,
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
               const SizedBox(height: 16),
               const Text(
                 'Metode pembayaran',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                style: TextStyle(fontSize: AppType.s13, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 6),
               _methodSelector(disclosure, selected),
@@ -549,7 +549,7 @@ class _PromotionFundingPaymentSheetState
                 Text(
                   _error!,
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: AppType.s13,
                     color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
@@ -581,11 +581,11 @@ class _PromotionFundingPaymentSheetState
 
   Widget _summaryRow(String label, int amount, {required bool bold}) {
     final style = TextStyle(
-      fontSize: 14,
+      fontSize: AppType.s14,
       fontWeight: bold ? FontWeight.w700 : FontWeight.w400,
     );
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
+      padding: const EdgeInsets.symmetric(vertical: AppMetrics.p2),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -602,7 +602,7 @@ class _PromotionFundingPaymentSheetState
   ) {
     if (_loading) {
       return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 8),
+        padding: EdgeInsets.symmetric(vertical: AppMetrics.p8),
         child: LinearProgressIndicator(),
       );
     }
@@ -620,11 +620,11 @@ class _PromotionFundingPaymentSheetState
     }
     return InkWell(
       onTap: _pickMethod,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(AppShape.r8),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p12),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppShape.r8),
           border: Border.all(
             color: Theme.of(context).colorScheme.outlineVariant,
           ),
@@ -634,7 +634,7 @@ class _PromotionFundingPaymentSheetState
             Expanded(
               child: Text(
                 selected?.displayName ?? 'Pilih metode pembayaran',
-                style: const TextStyle(fontSize: 14),
+                style: const TextStyle(fontSize: AppType.s14),
               ),
             ),
             Icon(

@@ -89,18 +89,18 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
         if (totalUnread > 0)
           Center(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.error,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(AppShape.r12),
                 ),
                 child: Text(
                   totalUnread > 99 ? '99+' : totalUnread.toString(),
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.onPrimary,
-                    fontSize: 12,
+                    fontSize: AppType.s12,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -119,7 +119,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
           : PreferredSize(
               preferredSize: const Size.fromHeight(kToolbarHeight),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16),
                 child: Row(
                   children: [
                     Expanded(
@@ -223,7 +223,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
 
     return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 48),
+        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p48),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -249,7 +249,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
             Text(
               hasNoChats ? 'Belum Ada Pesan' : 'Tidak Ada Chat Ditemukan',
               style: TextStyle(
-                fontSize: 18,
+                fontSize: AppType.s18,
                 fontWeight: FontWeight.w600,
                 color: Theme.of(context).colorScheme.onSurface,
               ),
@@ -263,7 +263,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
                   ? 'Hubungi penjual untuk menanyakan produk'
                   : 'Coba kata kunci pencarian lain',
               style: TextStyle(
-                fontSize: 14,
+                fontSize: AppType.s14,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               textAlign: TextAlign.center,
@@ -282,11 +282,11 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
                     backgroundColor: Theme.of(context).colorScheme.primary,
                     foregroundColor: Theme.of(context).colorScheme.onPrimary,
                     padding: const EdgeInsets.symmetric(
-                      vertical: 14,
-                      horizontal: 24,
+                      vertical: AppMetrics.p14,
+                      horizontal: AppMetrics.p24,
                     ),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(AppShape.r12),
                     ),
                   ),
                 ),
@@ -295,7 +295,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
               Text(
                 'atau jelajahi marketplace untuk menemukan penjual',
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: AppType.s12,
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),

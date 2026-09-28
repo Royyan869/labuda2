@@ -77,10 +77,10 @@ class _TokenValidityIndicator extends StatelessWidget {
   Widget _buildLoading(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppMetrics.p12),
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppShape.r8),
       ),
       child: Row(
         children: [
@@ -95,7 +95,7 @@ class _TokenValidityIndicator extends StatelessWidget {
               readiness.message,
               style: TextStyle(
                 color: colorScheme.onSurfaceVariant,
-                fontSize: 14,
+                fontSize: AppType.s14,
               ),
             ),
           ),
@@ -108,10 +108,10 @@ class _TokenValidityIndicator extends StatelessWidget {
   Widget _buildPrerequisite(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppMetrics.p12),
       decoration: BoxDecoration(
         color: colorScheme.secondary.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppShape.r8),
         border: Border.all(
           color: colorScheme.secondary.withValues(alpha: 0.25),
         ),
@@ -129,14 +129,14 @@ class _TokenValidityIndicator extends StatelessWidget {
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: colorScheme.secondary,
-                    fontSize: 14,
+                    fontSize: AppType.s14,
                   ),
                 ),
                 Text(
                   readiness.message,
                   style: TextStyle(
                     color: colorScheme.onSurfaceVariant,
-                    fontSize: 12,
+                    fontSize: AppType.s12,
                   ),
                 ),
               ],
@@ -154,16 +154,16 @@ class _TokenValidityIndicator extends StatelessWidget {
     // Expiry is an error condition (canonical `error` role); every other
     // not-ready reason is a business warning, which Labuda models as its own
     // status colour rather than a Material role.
-    final accent = isExpired ? colorScheme.error : AppColors.statusWarning;
+    final accent = isExpired ? colorScheme.error : context.statusColors.warning;
     final icon = isExpired
         ? Icons.timer_off_outlined
         : Icons.warning_amber_outlined;
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppMetrics.p12),
       decoration: BoxDecoration(
         color: accent.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppShape.r8),
         border: Border.all(color: accent),
       ),
       child: Row(
@@ -179,14 +179,14 @@ class _TokenValidityIndicator extends StatelessWidget {
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: accent,
-                    fontSize: 14,
+                    fontSize: AppType.s14,
                   ),
                 ),
                 Text(
                   readiness.message,
                   style: TextStyle(
                     color: colorScheme.onSurfaceVariant,
-                    fontSize: 12,
+                    fontSize: AppType.s12,
                   ),
                 ),
               ],
@@ -197,8 +197,8 @@ class _TokenValidityIndicator extends StatelessWidget {
             style: ElevatedButton.styleFrom(
               backgroundColor: accent,
               foregroundColor: colorScheme.onPrimary,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              textStyle: const TextStyle(fontSize: 12),
+              padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p8),
+              textStyle: const TextStyle(fontSize: AppType.s12),
             ),
             child: const Text('Refresh'),
           ),
@@ -232,21 +232,21 @@ class _TokenValidityIndicator extends StatelessWidget {
     final isUrgent = remainingTime != null && remainingTime!.inMinutes < 3;
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppMetrics.p12),
       decoration: BoxDecoration(
         color: isUrgent
-            ? AppColors.statusWarning.withValues(alpha: 0.1)
-            : AppColors.successGreen.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
+            ? context.statusColors.warning.withValues(alpha: 0.1)
+            : context.statusColors.success.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(AppShape.r8),
         border: Border.all(
-          color: isUrgent ? AppColors.statusWarning : AppColors.successGreen,
+          color: isUrgent ? context.statusColors.warning : context.statusColors.success,
         ),
       ),
       child: Row(
         children: [
           Icon(
             isUrgent ? Icons.timer_outlined : Icons.verified_outlined,
-            color: isUrgent ? AppColors.statusWarning : AppColors.successGreen,
+            color: isUrgent ? context.statusColors.warning : context.statusColors.success,
             size: 20,
           ),
           const SizedBox(width: 12),
@@ -259,16 +259,16 @@ class _TokenValidityIndicator extends StatelessWidget {
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: isUrgent
-                        ? AppColors.statusWarning
-                        : AppColors.successGreen,
-                    fontSize: 14,
+                        ? context.statusColors.warning
+                        : context.statusColors.success,
+                    fontSize: AppType.s14,
                   ),
                 ),
                 Text(
                   'Berlaku dalam $timeString',
                   style: TextStyle(
                     color: colorScheme.onSurfaceVariant,
-                    fontSize: 12,
+                    fontSize: AppType.s12,
                   ),
                 ),
               ],
@@ -278,9 +278,9 @@ class _TokenValidityIndicator extends StatelessWidget {
             onPressed: onRefresh,
             style: OutlinedButton.styleFrom(
               foregroundColor: colorScheme.onSurfaceVariant,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p8),
               minimumSize: const Size(0, 32),
-              textStyle: const TextStyle(fontSize: 12),
+              textStyle: const TextStyle(fontSize: AppType.s12),
               side: BorderSide(color: colorScheme.outlineVariant),
             ),
             icon: const Icon(Icons.refresh, size: 16),
@@ -359,10 +359,10 @@ class _OrderSummaryContent extends StatelessWidget {
     );
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: Column(
@@ -372,39 +372,39 @@ class _OrderSummaryContent extends StatelessWidget {
             children: [
               const Text(
                 'Ringkasan Pesanan',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: AppType.s18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(width: 8),
               // Auction badge - shows this is an auction-derived order
               if (isAuctionCheckout)
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 3,
+                    horizontal: AppMetrics.p8,
+                    vertical: AppMetrics.p3,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.successGreen.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(4),
+                    color: context.statusColors.success.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(AppShape.r4),
                     border: Border.all(
-                      color: AppColors.successGreen.withValues(alpha: 0.4),
+                      color: context.statusColors.success.withValues(alpha: 0.4),
                       width: 1,
                     ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.emoji_events,
                         size: 12,
-                        color: AppColors.successGreen,
+                        color: context.statusColors.success,
                       ),
                       const SizedBox(width: 3),
                       Text(
                         'Lelang',
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: AppType.s11,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.successGreen,
+                          color: context.statusColors.success,
                         ),
                       ),
                     ],
@@ -420,7 +420,7 @@ class _OrderSummaryContent extends StatelessWidget {
               // Product Image
               if (forSale.media.isNotEmpty)
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(AppShape.r8),
                   child: AppImage(
                     imageUrl: forSale.media.first.originalUrl,
                     width: 60,
@@ -445,7 +445,7 @@ class _OrderSummaryContent extends StatelessWidget {
                     Text(
                       forSale.title,
                       style: const TextStyle(
-                        fontSize: 14,
+                        fontSize: AppType.s14,
                         fontWeight: FontWeight.w600,
                       ),
                       maxLines: 2,
@@ -456,7 +456,7 @@ class _OrderSummaryContent extends StatelessWidget {
                       Text(
                         koiDetailsDisplay,
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: AppType.s12,
                           color: colorScheme.onSurfaceVariant,
                         ),
                       ),
@@ -527,7 +527,7 @@ class _OrderSummaryContent extends StatelessWidget {
               child: Text(
                 'Harga lokal sementara — menunggu harga dari server',
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: AppType.s12,
                   color: colorScheme.onSurfaceVariant,
                   fontStyle: FontStyle.italic,
                 ),
@@ -588,7 +588,7 @@ class _PriceRow extends StatelessWidget {
                     Text(
                       note!,
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: AppType.s11,
                         color: colorScheme.onSurfaceVariant,
                       ),
                     ),

@@ -53,9 +53,9 @@ class SearchResultExtraInfo extends StatelessWidget {
   Color _auctionStatusColor(BuildContext context) {
     switch (result.metadata['status']) {
       case 'active':
-        return AppColors.primaryGreen;
+        return context.statusColors.success;
       case 'scheduled':
-        return AppColors.statusWarning;
+        return context.statusColors.warning;
       case 'ended':
       default:
         return Theme.of(context).colorScheme.onSurfaceVariant;
@@ -120,7 +120,7 @@ class SearchResultExtraInfo extends StatelessWidget {
           _buildInfoChip(
             context,
             _priceLabel(price),
-            AppColors.primaryGreen,
+            context.statusColors.success,
           ),
         if (auctionStatusLabel != null)
           _buildInfoChip(
@@ -132,7 +132,7 @@ class SearchResultExtraInfo extends StatelessWidget {
           _buildInfoChip(
             context,
             endingSoonLabel,
-            AppColors.statusWarning,
+            context.statusColors.warning,
           ),
         if (_isAuction && bidCount > 0)
           _buildSmallInfo(context, Icons.gavel, bidCount.toString()),
@@ -158,15 +158,15 @@ class SearchResultExtraInfo extends StatelessWidget {
     Color color,
   ) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p2),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppShape.r8),
       ),
       child: Text(
         text,
         style: TextStyle(
-          fontSize: 11,
+          fontSize: AppType.s11,
           fontWeight: FontWeight.w600,
           color: color,
         ),
@@ -192,7 +192,7 @@ class SearchResultExtraInfo extends StatelessWidget {
         Text(
           text,
           style: TextStyle(
-            fontSize: 11,
+            fontSize: AppType.s11,
             color: scheme.onSurfaceVariant,
           ),
         ),

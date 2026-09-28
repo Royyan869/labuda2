@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:labuda/shared/widgets/app_text_field.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Section untuk limits, minimum purchase, & status discount
 ///
@@ -53,10 +54,10 @@ class _LimitsSectionState extends State<LimitsSection> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -64,7 +65,7 @@ class _LimitsSectionState extends State<LimitsSection> {
           Text(
             'Limits & Status',
             style: TextStyle(
-              fontSize: 16,
+              fontSize: AppType.s16,
               fontWeight: FontWeight.bold,
               color: Theme.of(context).colorScheme.onSurface,
             ),
@@ -88,7 +89,7 @@ class _LimitsSectionState extends State<LimitsSection> {
           Text(
             'Pembeli harus membeli minimal sejumlah ini untuk menggunakan kode diskon.',
             style: TextStyle(
-              fontSize: 12,
+              fontSize: AppType.s12,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
@@ -111,7 +112,7 @@ class _LimitsSectionState extends State<LimitsSection> {
           Text(
             'Limit total usage of this code by all buyers. Leave empty for unlimited.',
             style: TextStyle(
-              fontSize: 12,
+              fontSize: AppType.s12,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
@@ -119,10 +120,10 @@ class _LimitsSectionState extends State<LimitsSection> {
 
           // Active Status
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(AppMetrics.p12),
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.surfaceContainer,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(AppShape.r8),
             ),
             child: Row(
               children: [
@@ -133,7 +134,7 @@ class _LimitsSectionState extends State<LimitsSection> {
                       Text(
                         'Active Status',
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: AppType.s14,
                           fontWeight: FontWeight.w500,
                           color: Theme.of(context).colorScheme.onSurface,
                         ),
@@ -144,7 +145,7 @@ class _LimitsSectionState extends State<LimitsSection> {
                             ? 'Discount can be used by buyers'
                             : 'Discount is inactive and cannot be used',
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: AppType.s12,
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),

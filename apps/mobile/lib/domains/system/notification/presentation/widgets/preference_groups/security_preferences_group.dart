@@ -28,7 +28,7 @@ class SecurityPreferencesGroup extends StatelessWidget {
   Widget build(BuildContext context) {
     return PreferenceToggleWidget(
       icon: Icons.security_outlined,
-      iconColor: AppColors.statusWarning,
+      iconColor: context.statusColors.warning,
       title: 'Peringatan Keamanan',
       subtitle: 'Login dari perangkat baru & aktivitas mencurigakan',
       value: preferences.securityAlerts,

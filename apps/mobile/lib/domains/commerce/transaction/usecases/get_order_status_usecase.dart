@@ -25,8 +25,8 @@ class GetOrderStatusUseCase {
       final result = await _orderRepository.getOrderById(orderId);
 
       return result.fold(
-        (order) => Result.success(order.status),
         (error) => Result.error(error),
+        (order) => Result.success(order.status),
       );
     } catch (e) {
       return Result.error('Failed to get order status: $e');
@@ -43,12 +43,12 @@ class GetOrderStatusUseCase {
       final result = await _orderRepository.getOrderById(orderId);
 
       return result.fold(
+        (error) => Result.error(error),
         (order) => Result.success({
           'orderStatus': order.status,
           'paymentStatus': order.paymentStatus,
           'orderId': order.id,
         }),
-        (error) => Result.error(error),
       );
     } catch (e) {
       return Result.error('Failed to get order details: $e');

@@ -6,13 +6,14 @@ import 'package:labuda/shared/shared.dart';
 import 'avatar_picker_options.dart';
 import 'avatar_image_processor.dart';
 
-/// Avatar Editor Widget dengan Image Cropper
+/// Single crop entry for avatar, store photo, and cover.
 ///
 /// Features:
-/// - Image picker (camera/gallery)
-/// - Platform-specific cropping (web/mobile)
-/// - Direct Firebase upload
-/// - Cache management
+/// - Image picker (camera/gallery, OS camera single-shot)
+/// - Platform-specific cropping (crop_your_image on mobile, canvas on web)
+/// - Returns the cropped local path; the caller uploads (S3 fixed key).
+/// Crop shape is expressed honestly via [aspectRatio]/[circularCrop]/[cropTitle]:
+/// avatar+store are 1:1 circular, cover is 16:9 rectangular.
 ///
 /// Refactored into modular components:
 /// - AvatarPickerOptions: For UI options
@@ -22,7 +23,6 @@ class AvatarEditorWidget {
     required BuildContext context,
     required String userId,
     required Function(String? avatarUrl) onAvatarUpdated,
-    bool showAdvancedCropper = false,
     double aspectRatio = 1.0,
     bool circularCrop = true,
     String cropTitle = 'Crop Avatar',
@@ -35,7 +35,6 @@ class AvatarEditorWidget {
       content: _AvatarPickerContent(
         userId: userId,
         onAvatarUpdated: onAvatarUpdated,
-        showAdvancedCropper: showAdvancedCropper,
         parentContext: context,
         aspectRatio: aspectRatio,
         circularCrop: circularCrop,
@@ -48,7 +47,6 @@ class AvatarEditorWidget {
 class _AvatarPickerContent extends ConsumerStatefulWidget {
   final String userId;
   final Function(String? avatarUrl) onAvatarUpdated;
-  final bool showAdvancedCropper;
   final BuildContext parentContext;
   final double aspectRatio;
   final bool circularCrop;
@@ -57,7 +55,6 @@ class _AvatarPickerContent extends ConsumerStatefulWidget {
   const _AvatarPickerContent({
     required this.userId,
     required this.onAvatarUpdated,
-    required this.showAdvancedCropper,
     required this.parentContext,
     this.aspectRatio = 1.0,
     this.circularCrop = true,
@@ -113,10 +110,9 @@ class _AvatarPickerContentState extends ConsumerState<_AvatarPickerContent> {
         cropTitle: widget.cropTitle,
       );
     } catch (e) {
-      // Ensure dialog is closed
-      if (mounted && context.mounted && Navigator.canPop(context)) {
-        Navigator.of(context).pop();
-      }
+      // The dialog was already popped above before picking. Never pop again
+      // here: an extra pop would close the caller's screen (P1: the seller
+      // wizard died after crop and the app fell back to home).
       if (mounted && context.mounted) {
         AppSnackBar.showError(context, 'Failed to pick image: $e');
       }

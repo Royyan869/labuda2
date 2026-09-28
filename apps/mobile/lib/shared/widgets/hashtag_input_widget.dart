@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:labuda/core/core.dart';
 
 /// Reusable widget untuk hashtag display dan management
 /// Extracted from create_content_screen.dart untuk reusability
@@ -34,7 +35,7 @@ class HashtagInputWidget extends StatelessWidget {
                 backgroundColor: scheme.secondary.withValues(alpha: 0.1),
                 labelStyle: TextStyle(color: scheme.secondary),
                 side: BorderSide.none,
-                elevation: 0,
+                elevation: AppElevation.none,
               );
             }).toList(),
           ),

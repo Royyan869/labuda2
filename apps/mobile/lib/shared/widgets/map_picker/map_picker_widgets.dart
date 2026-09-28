@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/shared/services/places_autocomplete_service.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Header untuk Map Picker
 class MapPickerHeader extends StatelessWidget {
@@ -10,7 +11,7 @@ class MapPickerHeader extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         color: scheme.surface,
         border: Border(
@@ -25,7 +26,7 @@ class MapPickerHeader extends StatelessWidget {
             child: Text(
               'Pilih Lokasi',
               style: TextStyle(
-                fontSize: 18,
+                fontSize: AppType.s18,
                 fontWeight: FontWeight.w600,
                 color: scheme.onSurface,
               ),
@@ -112,7 +113,7 @@ class MapSearchBar extends StatelessWidget {
         Container(
           decoration: BoxDecoration(
             color: scheme.surfaceContainerHigh,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppShape.r12),
             boxShadow: [
               BoxShadow(
                 color: scheme.shadow.withValues(alpha: 0.1),
@@ -139,7 +140,7 @@ class MapSearchBar extends StatelessWidget {
                     )
                   : isSearching
                   ? const Padding(
-                      padding: EdgeInsets.all(14),
+                      padding: EdgeInsets.all(AppMetrics.p14),
                       child: SizedBox(
                         width: 20,
                         height: 20,
@@ -149,12 +150,12 @@ class MapSearchBar extends StatelessWidget {
                   : null,
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 14,
+                horizontal: AppMetrics.p16,
+                vertical: AppMetrics.p14,
               ),
             ),
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppType.s14,
               color: scheme.onSurface,
             ),
           ),
@@ -169,7 +170,7 @@ class MapSearchBar extends StatelessWidget {
               constraints: const BoxConstraints(maxHeight: 300),
               decoration: BoxDecoration(
                 color: scheme.surfaceContainerHigh,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(AppShape.r12),
                 boxShadow: [
                   BoxShadow(
                     color: scheme.shadow.withValues(alpha: 0.1),
@@ -179,7 +180,7 @@ class MapSearchBar extends StatelessWidget {
                 ],
               ),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(AppShape.r12),
                 child: ListView.separated(
                   shrinkWrap: true,
                   padding: EdgeInsets.zero,
@@ -224,7 +225,7 @@ class _SearchResultItem extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p12),
           child: Row(
             children: [
               Icon(Icons.location_on, color: scheme.primary, size: 20),
@@ -236,7 +237,7 @@ class _SearchResultItem extends StatelessWidget {
                     Text(
                       prediction.mainText ?? prediction.description,
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: AppType.s14,
                         fontWeight: FontWeight.w500,
                         color: scheme.onSurface,
                       ),
@@ -246,7 +247,7 @@ class _SearchResultItem extends StatelessWidget {
                       Text(
                         prediction.secondaryText!,
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: AppType.s12,
                           color: scheme.onSurfaceVariant,
                         ),
                       ),
@@ -284,10 +285,10 @@ class MapLocationInfoCard extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         boxShadow: [
           BoxShadow(
             color: scheme.shadow.withValues(alpha: 0.1),
@@ -308,7 +309,7 @@ class MapLocationInfoCard extends StatelessWidget {
                 child: Text(
                   'Lokasi yang Dipilih',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: AppType.s12,
                     fontWeight: FontWeight.w600,
                     color: scheme.onSurfaceVariant,
                   ),
@@ -318,12 +319,12 @@ class MapLocationInfoCard extends StatelessWidget {
               if (isDefaultLocation && !isLoading)
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
+                    horizontal: AppMetrics.p8,
+                    vertical: AppMetrics.p4,
                   ),
                   decoration: BoxDecoration(
                     color: scheme.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: BorderRadius.circular(AppShape.r6),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -337,7 +338,7 @@ class MapLocationInfoCard extends StatelessWidget {
                       Text(
                         'Default Location',
                         style: TextStyle(
-                          fontSize: 10,
+                          fontSize: AppType.s10,
                           fontWeight: FontWeight.w500,
                           color: scheme.primary,
                         ),
@@ -363,7 +364,7 @@ class MapLocationInfoCard extends StatelessWidget {
                 Text(
                   'Mendapatkan alamat...',
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: AppType.s14,
                     color: scheme.onSurfaceVariant,
                   ),
                 ),
@@ -376,7 +377,7 @@ class MapLocationInfoCard extends StatelessWidget {
                 Text(
                   address ?? 'Pilih lokasi di peta',
                   style: TextStyle(
-                    fontSize: 15,
+                    fontSize: AppType.s15,
                     fontWeight: FontWeight.w500,
                     height: 1.4,
                     color: scheme.onSurface,
@@ -386,11 +387,11 @@ class MapLocationInfoCard extends StatelessWidget {
                 ),
                 if (latitude != null && longitude != null)
                   Padding(
-                    padding: const EdgeInsets.only(top: 8),
+                    padding: const EdgeInsets.only(top: AppMetrics.p8),
                     child: Text(
                       '$latitude, $longitude',
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: AppType.s11,
                         fontFamily: 'monospace',
                         color: scheme.onSurfaceVariant,
                       ),
@@ -422,7 +423,12 @@ class MapConfirmButton extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
 
     return Container(
-      padding: EdgeInsets.fromLTRB(16, 12, 16, 12 + bottomPadding),
+      padding: EdgeInsets.fromLTRB(
+        AppMetrics.p16,
+        AppMetrics.p12,
+        AppMetrics.p16,
+        AppMetrics.p12 + bottomPadding,
+      ),
       decoration: BoxDecoration(
         color: scheme.surface,
         border: Border(
@@ -438,11 +444,11 @@ class MapConfirmButton extends StatelessWidget {
           style: FilledButton.styleFrom(
             backgroundColor: scheme.primary,
             foregroundColor: scheme.onPrimary,
-            padding: const EdgeInsets.symmetric(vertical: 14),
+            padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
           ),
           child: const Text(
             'Pilih Lokasi Ini',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            style: TextStyle(fontSize: AppType.s16, fontWeight: FontWeight.w600),
           ),
         ),
       ),

@@ -12,10 +12,10 @@ class OrderShippingInfoCard extends StatelessWidget {
     final shipping = order.shippingInfo;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(core.AppMetrics.p16),
       decoration: BoxDecoration(
         color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(core.AppShape.r12),
         border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: Column(
@@ -172,16 +172,16 @@ class _PhoneShippingRow extends StatelessWidget {
 
     return InkWell(
       onTap: () => _callPhone(context, phone),
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(core.AppShape.r8),
       child: Container(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.all(core.AppMetrics.p8),
         decoration: BoxDecoration(
-          color: core.AppColors.primaryGreen.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(8),
+          color: context.statusColors.success.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(core.AppShape.r8),
         ),
         child: Row(
           children: [
-            Icon(icon, size: 18, color: core.AppColors.primaryGreen),
+            Icon(icon, size: 18, color: context.statusColors.success),
             const SizedBox(width: 8),
             Expanded(
               child: Column(
@@ -190,20 +190,20 @@ class _PhoneShippingRow extends StatelessWidget {
                   Text(
                     label,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: core.AppColors.primaryGreen,
+                      color: context.statusColors.success,
                     ),
                   ),
                   Text(
                     phone,
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: core.AppColors.primaryGreen,
+                      color: context.statusColors.success,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],
               ),
             ),
-            Icon(Icons.call, size: 18, color: core.AppColors.primaryGreen),
+            Icon(Icons.call, size: 18, color: context.statusColors.success),
           ],
         ),
       ),
@@ -239,10 +239,10 @@ class _ShippingNoteSection extends StatelessWidget {
     final colorScheme = theme.colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(core.AppMetrics.p12),
       decoration: BoxDecoration(
         color: colorScheme.secondaryContainer,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(core.AppShape.r8),
         border: Border.all(
           color: colorScheme.secondary.withValues(alpha: 0.4),
         ),
@@ -333,7 +333,7 @@ class _ShippingInfoRow extends StatelessWidget {
                         // Copy to clipboard functionality could be added here
                       },
                       child: Padding(
-                        padding: const EdgeInsets.all(4),
+                        padding: const EdgeInsets.all(core.AppMetrics.p4),
                         child: Icon(
                           Icons.copy,
                           size: 16,
@@ -433,10 +433,10 @@ class _ShippingHelpSection extends ConsumerWidget {
         : null;
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(core.AppMetrics.p12),
       decoration: BoxDecoration(
         color: colorScheme.secondaryContainer,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(core.AppShape.r8),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -452,7 +452,7 @@ class _ShippingHelpSection extends ConsumerWidget {
               Text(
                 'Masalah dengan pengiriman?',
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: core.AppType.s12,
                   fontWeight: FontWeight.w600,
                   color: colorScheme.onSurface,
                 ),
@@ -519,14 +519,14 @@ class _HelpActionChip extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(6),
+      borderRadius: BorderRadius.circular(core.AppShape.r6),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: core.AppMetrics.p8, vertical: core.AppMetrics.p6),
         decoration: BoxDecoration(
           color: onTap != null
               ? colorScheme.secondary.withValues(alpha: 0.1)
               : colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(core.AppShape.r6),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -542,7 +542,7 @@ class _HelpActionChip extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                fontSize: 10,
+                fontSize: core.AppType.s10,
                 fontWeight: FontWeight.w500,
                 color: onTap != null
                     ? colorScheme.secondary

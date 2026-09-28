@@ -6,7 +6,6 @@ library;
 export 'repositories/order_repository.dart' show OrderRepository;
 export 'repositories/refund_repository.dart'
     show RefundRepository, ListOrderRefundHistoryParams;
-export 'repositories/repository_result.dart' show RepositoryResult;
 
 // Domain Entities
 export 'entities/order.dart';

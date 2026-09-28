@@ -955,3 +955,1480 @@ semuanya sudah DIEKSEKUSI, bukan dilaporkan:
   wajib; `ListView.builder(`/`SliverList(`/`return Card(`/`Positioned(` dilarang
   di 4 surface + 2 kartu) dan `commerce_detail_negative_contracts_test` (kedua
   channel wajib `CommerceDetailStates.`, dilarang spinner/icon sendiri).
+
+## Sesi 2026-09-28 — Penutup scope media + gate tema lib-wide + konvergensi file authority (laporan §11)
+
+### 1. Verdict
+LIMA scope tertutup dan terverifikasi, semuanya bounded: (a) residu analyzer
+scope media/satu-engine; (b) registry tema 161 entri → gate lib-wide;
+(c) higiene toolchain yang menghambat tiap perintah; (d) 7 residu tema di
+`lib/`; (e) konvergensi tiga file authority ganda yang terbukti mati total.
+CANONICAL TRUTHS baru sudah dicatat di `KONDISI_APP.md` §14 (tema, satu file
+satu authority, media satu engine).
+
+### 2. Root cause
+1. **Registry tema per-scope adalah kunci yang salah bentuk.** Ia mengunci 274
+   file sambil meninggalkan **100 file UI (27%)** yang sudah bersih tapi tak
+   dijaga, dan setiap closure menuntut entri manual. Enforcement-nya lebih
+   lemah daripada `lib/` yang faktual sudah 100% bersih.
+2. **Residu analyzer adalah penanda cleanup yang belum selesai**, bukan noise:
+   variabel `scheme` mati, param `badgeText` yang tak pernah diberi, ctor
+   non-const, `value:` deprecated — semuanya sisa konvergensi tema yang belum
+   ditutup.
+3. **`assets/images/payment_methods/` didaftarkan di pubspec padahal direktori
+   itu tidak ada dan nol kode mereferensikannya** → warning tercetak di SETIAP
+   perintah flutter (menutupi sinyal nyata).
+4. **Histori Labuda: tiap fitur menumbuhkan salinan sendiri lalu konvergensi
+   memindahkan konsumen tetapi meninggalkan salinannya.** Tiga salinan itu
+   byte-identik, nol importer, dan tiap direktori salinannya hanya berisi file
+   mati tersebut.
+
+### 3. Canonical behavior setelah perbaikan
+- Tema: satu authority `AppTheme.lightTheme/darkTheme`; widget `Theme.of(context)`;
+  hanya 3 file boleh memegang warna; gate menyapu SELURUH `lib/` (1162 file)
+  dengan allowlist eksplisit + lantai >1000 file supaya tidak bisa vakum.
+- Satu file satu authority: `Province/City/District/Village` →
+  `shared/models/wilayah_models.dart`; `PostLocation/LatLng` →
+  `shared/entities/post_location.dart`; `BaseEntity/BaseModel` →
+  `core/common/base_entity.dart`. Tidak boleh ada dua file `lib/` berbyte identik.
+- Media: satu engine (`MediaUploadOrchestrator` + config) dan satu grid.
+- Toolchain: pubspec hanya mendeklarasikan aset yang benar-benar ada; tiap
+  import langsung punya deklarasi dependency.
+
+### 4. File yang berubah
+- **Tema (test):** `test/core/theme/theme_authority_contract_test.dart` —
+  `_migratedUiPaths` (161 entri) DIBUNUH → `_authorityFiles` (3) +
+  `_libDartFiles()` sweep + pola diangkat ke satu definisi + test negatif-proof
+  baru; sweep snackbar memakai helper yang sama; import `material.dart` mati dihapus.
+- **Gate baru:** `test/core/file_authority_contract_test.dart` (3 test).
+- **Media:** `core/media/media_upload_config.dart` (doc menempel ke kelas),
+  `core/media/media_upload_orchestrator.dart` (4× `use_build_context_synchronously`
+  ditutup guard mounted + 1 html-in-doc), `shared/widgets/media_grid_uploader.dart`
+  (2× curly braces, `(_, _)`, doc, baris kosong nyasar).
+- **7 residu tema:** `auction_action_modal.dart` (var `scheme` mati),
+  `notification_empty_state_widget.dart` (ctor const + 2 call site const, supaya
+  tidak melahirkan `prefer_const_constructors`), `profile_screen.dart` (import
+  berlebih), `seller_dashboard_screen.dart` (param/field `badgeText` mati + Row
+  badge yang selalu kosong, 4× wildcard ganda), `canonical_promotion_create_screen.dart`
+  (`value:` → `initialValue:`), `app_dropdown.dart` (`DEFAULT_VARIETY`
+  SCREAMING_CASE dihapus, alias di-collapse), `features/home/data/dto/feed_dto.dart`
+  (if ber-brace).
+- **Gaya/format:** `test/core/media/`, `test/core/theme/` (milik sesi ini).
+- **Toolchain:** `pubspec.yaml` + `pubspec.lock` (regenerasi `flutter pub get --offline`).
+
+### 5. Residue yang dihapus
+- `assets/images/payment_methods/` dari daftar aset pubspec (direktori tidak ada).
+- `lib/domains/commerce/catalog/models/wilayah_models.dart` + direktori `models/`.
+- `lib/domains/commerce/catalog/entities/post_location.dart` + direktori `entities/`.
+- `lib/core/src/domain/base_entity.dart` + direktori `core/src/domain/`.
+- Registry tema 161 entri + seluruh komentar migrasi per-scope di dalamnya
+  (enforcement-nya digantikan gate; riwayat tetap ada di git sebagai backup,
+  bukan authority).
+
+### 6. Tests dan build yang dijalankan (command → hasil)
+- `flutter analyze lib/core/media lib/shared/widgets/media_grid_uploader.dart`
+  → **No issues found**.
+- `flutter test test/core/media/` → **5 PASS**.
+- `flutter test test/core/theme/theme_authority_contract_test.dart`
+  → **16 PASS** (sebelumnya 14: registry 2 test → gate 3 test).
+- `flutter analyze test/core/theme/theme_authority_contract_test.dart`
+  → setelah import mati dihapus: bersih.
+- `flutter pub get --offline` → **Got dependencies**; warning
+  `unable to find directory entry in pubspec.yaml` HILANG dari keluaran flutter.
+- `flutter test` dua pengimpor `fake_async` → **5 PASS**.
+- `flutter analyze lib` → **37 → 26 issue, 0 error** (tidak ada lint baru).
+- `flutter test` batch terarah (auction/promotion/seller/feed + gate tema)
+  → **84 PASS**; batch kedua (11 file, termasuk 9 pengimpor wilayah/PostLocation)
+  → **89 PASS**.
+- `flutter analyze` (penuh) → **164 issue, 0 error**.
+- **Negative proof gate file authority:** salinan mati dikembalikan sementara →
+  **3/3 test GAGAL** (byte identik tertangkap; rumah kelas ganda tertangkap;
+  path bangkit tertangkap); dihapus lagi → **3/3 PASS**.
+- **Negative proof gate tema:** 5 baris kebangkitan (`AppColors.neutralWhite`,
+  `Colors.white`, `Color(0x`, `isDark`, `brightness ==`) WAJIB memicu, dan 4
+  token sah (`scheme.*`, `statusSuccess`, `coinPrimary`, `statusBar*Brightness`)
+  WAJIB tidak memicu — dipin di dalam test.
+
+### 7. Hasil proof
+Sweep `lib/` (1162 file) untuk 6 pola warna terlarang: pelanggaran **nol** di
+luar 3 file authority. Sapuan md5 seluruh `lib/`: **hanya 3 pasangan identik**
+(yang sekarang sudah mati) — sebelum tindakan, tiap salinan nol importer via
+`package:`, nol export barrel, dan direktori salinannya hanya berisi file itu.
+Residue search pasca-hapus: 0 referensi ke `src/domain/base_entity`,
+`catalog/models/wilayah_models`, `catalog/entities/post_location` di `lib/`,
+`test/`, `tool/`; `flutter analyze lib` 0 error (kompilasi membuktikan tak ada
+import menggantung).
+
+### 8. Temuan di luar scope — PARKIRAN BARU (diklasifikasi, tidak dikerjakan)
+1. **P1 kandidat (menyentuh uang → §3 audit mendalam wajib): authority
+error/result ganda.** `NetworkFailure`, `ValidationFailure`, `UnknownFailure`
+hidup dua kali: `core/errors/failure.dart` vs
+`domains/finance/transaction/payment/domain/failures/payment_failure.dart`.
+`RepositoryResult` juga dua kali: `order/domain/repositories/repository_result.dart`
+vs `payment/domain/repositories/payment_repository.dart`. Plus kontrak domain
+ganda: `DecisionContract` + `DisplayHints` di `order/domain/entities/order.dart`
+vs `payment/domain/entities/payment.dart`.
+2. **P2 — nama kelas publik terduplikasi lain (bukan byte-identik, butuh audit
+tersendiri):** `ContentSearchResult` (content repo vs search repo),
+`ContentSearchResultDto` (content dto vs search dto), `UserSearchResponseDto`
+(follow dto vs search dto), `MessageDto` (chat dto vs support ticket dto),
+`NotificationEntity` (interface core vs entity domain), `SearchState`
+(content vs search), `ContentList` (freezed), `ProfileStats` +
+`ProfileActions`, `BlockActionState` (dua deklarasi di `shared/providers/`).
+Legit, bukan duplikat: `PlatformDetectorImpl` (conditional import io/web).
+3. **AMBIGUOUS — butuh keputusan owner, TIDAK disentuh:** `KoiVarieties` ganda.
+`core/constants/koi_varieties.dart` diexport `core.dart:35`, tetapi
+`shared/widgets/app_dropdown.dart` mendeklarasikan kelas lokal dengan nama yang
+sama (men-shadows export itu) memakai daftar berbeda ('Other' vs 'Lainnya',
+nama antar-daftar berbeda). Menyatukannya MENGUBAH daftar variety yang dilihat
+user → business decision, bukan cleanup.
+4. **P2 zombie kecil di `lib/`:** `core/dependencies/provider_scope_reader.dart`
+(import `core.dart` tak terpakai + `_ProviderScopeHolder` nol konsumen) dan
+`core/api/config/api_config.dart` (import `foundation.dart` tak terpakai).
+5. **P3 style (tidak boleh menghentikan progress):** 22× `use_null_aware_elements`
+di 7 file data layer (chat/auction/for_sale/share/saved_item/seller datasource)
++ `USE_FIREBASE` bukan lowerCamelCase di `shared/services/firebase_wilayah_service.dart:18`.
+6. Direktori `domains/commerce/catalog/models/`, `domains/commerce/catalog/entities/`,
+   dan `core/src/domain/` sudah tidak ada — jangan dibuat ulang.
+
+### 9. Risiko / belum terbukti
+- **Full regression tidak dijalankan** (suite penuh >1105 file test). Justifikasi:
+yang dihapus adalah file 0-importer, sisanya residu/format; bukti pengganti =
+`flutter analyze` 0 error + residue sweep 0 + batch terarah 89 PASS. Jika owner
+menginginkan gate rilis, jalankan `flutter test --reporter expanded` sekali.
+- Working tree multi-agen: 3 file media yang saya edit juga membawa perubahan
+sesi lain sebelumnya — hunk mereka tidak saya sentuh.
+- Runtime/device proof: belum ada, dan belum diperlukan untuk scope ini
+(nol perubahan perilaku UI: yang dihapus file mati, yang diedit residu analyzer;
+pengecualian: `DropdownButtonFormField.initialValue` dan hilangnya Row badge
+yang selalu kosong — keduanya nol perubahan visual).
+- `KoiVarieties` tetap AMBIGUOUS sampai owner memutuskan daftar variety.
+
+### 10. Git status
+Belum di-commit (owner belum minta). Milik sesi ini saja: `M` pubspec.yaml,
+pubspec.lock, 3 file media, 7 file residu tema, 1 test tema;
+`A` `test/core/file_authority_contract_test.dart`;
+`D` 3 file + 3 direktori kosong yang dirapikan. Sisa working tree (belasan file
+commerce/UI) milik agen/sesi paralel — jangan ikut di-stage.
+
+### 11. Owner retest diperlukan?
+Belum untuk scope ini. Retest device yang masih tertunda tetap milik scope
+projection/harga sesi sebelumnya (chat share for_sale/auction LIVE+TOMBSTONE,
+comment attachment, harga di discovery).
+
+## Sesi 2026-09-28 (lanjutan) — P1 audit: authority error/result & decision-contract jalur uang
+
+### 1. Verdict
+Audit mendalam SELESAI; satu eksekusi bounded SELESAI dan terkunci (rantai
+`DecisionContract` phantom di payment di-PURGE). Sisa scope — konvergensi
+`RepositoryResult` → `Result<T>` dan penyatuan taksonomi failure — **BELUM
+dieksekusi dan TIDAK boleh dianggap PASS**. Audit membuktikan ia migrasi ~13
+file lib + ~20 file test di jalur uang dengan satu jebakan senyap yang wajib
+ditangani per call site.
+
+### 2. Root cause (fakta, bukan asumsi)
+1. **Tiga tipe result untuk satu konsep.** `Result<T>`
+   (`core/common/result.dart`) = authority mayoritas (~60 file lib + ~35 test)
+   dan **superset**: punya `statusCode` + `isSuccess` dari flag internal.
+   `RepositoryResult<T>` (`order/domain/repositories/repository_result.dart`) =
+   salinan lebih lemah (tanpa `statusCode`, `isSuccess => data != null`, factory
+   `error` yang hanya alias `failure`). `RepositoryResult<T>` kedua di
+   `payment/domain/repositories/payment_repository.dart` membawa payload beda
+   (`PaymentFailure? failure`). Akibat nyata: dua repo commerce memakai tipe
+   berbeda untuk konsep sama — for_sale memakai `Result`, auction/order/seller
+   memakai `RepositoryResult`.
+2. **JEBAKAN SENYAP — `fold` berurutan terbalik.**
+   `RepositoryResult.fold(onSuccess, onError)` vs `Result.fold(onError, onSuccess)`.
+   Keduanya hidup di file yang sama: `auction_remote_datasource.dart:61` memakai
+   urutan error-dulu (Result), `auction_repository_impl.dart:344` memakai
+   sukses-dulu (RepositoryResult). Rename buta = menukar jalur sukses/gagal di
+   jalur uang.
+3. **Decision contract phantom di payment.** Backend hanya punya SATU:
+   `backend/internal/commerce/order/delivery/http/dto/decision.go`
+   (`primary_action`/`secondary_actions`/`decision_version`/`display`);
+   `grep allowed_actions` di backend = **nol**. Payment justru mem-parse
+   `allowed_actions`, DTO-nya sendiri menulis "`GET /payments/:id` does not
+   currently emit `decision`", nol pembaca `Payment.decision`, nol pin test.
+   Pola identik sudah dibersihkan di permukaan auction (`auction.dart:38`
+   menyimpannya sebagai breadcrumb) — purge ini menutup sisanya.
+4. **Taksonomi failure per-domain (fakta).** core `Failure` (dipakai follow via
+   `Either<Failure, T>` lewat barrel `core.dart:6`), `PaymentFailure`,
+   `SupportFailure`, `ShareFailure`, `ReportFailure`, `WarningFailure`,
+   `AppealFailure`, `AuthStateBackendFailure`. Hanya tiga nama yang bertabrakan
+   persis: `NetworkFailure`/`ValidationFailure`/`UnknownFailure` (core DAN
+   payment). Catatan: grep importer berbasis `package:` menyesatkan di sini —
+   barrel re-export adalah jalur hidupnya.
+
+### 3. Canonical behavior
+- **Satu decision contract**: `order/domain/entities/order.dart` (parity key
+  backend). Payment tidak memiliki decision contract.
+- **DIPUTUSKAN, belum dieksekusi**: `Result<T>` = satu-satunya result authority;
+  `RepositoryResult` (order + payment) mati.
+- Payment state tetap dari wire `status` (`PaymentStatus`); client tidak
+  menurunkan state bisnis sendiri.
+
+### 4. File yang berubah
+- `M` `lib/domains/finance/transaction/payment/domain/entities/payment.dart` —
+  `DecisionContract` + `DisplayHints` (dua kelas), field `decision`, param ctor,
+  entri copyWith, entri `props`, dan blok komentar P11 dihapus; penggantinya
+  satu catatan akurat: state payment hanya dari `status` backend.
+- `M` `lib/domains/finance/transaction/payment/data/dto/payment_dto.dart` —
+  `DecisionContractResponseDto` + `DisplayHintsDto` + field `decision` + blok
+  parse + konversi `toEntity` dihapus.
+- `M` `lib/domains/commerce/transaction/order/domain/entities/order.dart` —
+  vocabulary menyesatkan `decision.allowed_actions` (3 tempat) →
+  `decision.hasActionType(...)`.
+- `A` `test/domains/finance/transaction/payment/payment_decision_phantom_purge_test.dart`
+  (4 test).
+
+### 5. Residue yang dihapus
+Salinan decision contract payment berikut seluruh kaki tangannya: 2 kelas
+entity + 2 kelas DTO + 2 field `decision` (entity & DTO) + konversi DTO→domain +
+komentar "P11 PHASE 2 / TRACK 8" + vocabulary `allowed_actions` yang menyesatkan
+di rumah kanonik.
+
+### 6. Commands dan hasil
+- `flutter analyze lib/domains/finance/transaction/payment` → **No issues found**.
+- `flutter analyze lib test/domains/finance/transaction/payment test/domains/commerce/transaction/order`
+  → 33 issue, **0 error** (sisa = lint test pre-existing, mis.
+  `unnecessary_underscores`).
+- `flutter test` (seluruh dir payment + `dynamic_action_buttons_test` +
+  `order_contract_p1_test`) → **61 lulus / 3 gagal**.
+- `flutter test` (gate baru + `dynamic_action_buttons` + `order_contract_p1` +
+  `order_list_screen`) → **30/30 PASS**.
+- Residue sweep: `DecisionContractResponseDto|DisplayHintsDto|allowed_actions`
+  di `lib/`+`test/` = **nol kode hidup** (sisa hanya komentar akurat di
+  `auction.dart:38` dan teks gate sendiri); `decision` di domain payment = nol
+  (satu-satunya hit = kata Inggris di komentar UX `payment_webview_screen.dart`).
+
+### 7. Hasil proof
+`payment_decision_phantom_purge_test.dart` mengunci empat hal: (a) rantai
+phantom tetap mati (source ratchet 3 kata kunci di 2 file payment); (b) decision
+contract punya **tepat satu rumah** di `lib/`; (c) rumah kanonik masih membawa
+key wire backend (`secondary_actions`, `decision_version`,
+`time_remaining_seconds`); (d) wire kanonik dari
+`test/fixtures/payment_wire_contract.json` tetap ter-parse **tanpa** `decision`
+(status → `PaymentStatus.pending`) dan key `decision` asing **diabaikan**, bukan
+diparse. Assertion-nya kesetaraan eksak (bukan substring longgar), jadi tidak
+bisa lolos senyap.
+
+### 8. Temuan di luar scope + PARKIRAN BARU
+- **P1 — scope berikutnya (belum dikerjakan): konvergensi result + failure.**
+  Manifest: `order/domain/repositories/repository_result.dart` DIHAPUS, diikuti
+  ~13 file lib (`order_repository`/`_impl`, `refund_repository`/`_impl`,
+  `auction_repository`/`_impl`, `bidding_repository`/`_impl`,
+  `auction_remote_datasource`, `seller_repository`/`_impl`, `auction_detail_screen`)
+  + ~20 file test (≈350 call site, mis. `seller_repository_impl` 35,
+  `auction_repository_impl` 34, `seller_auctions_screen_test` 32).
+  `payment/domain/repositories/payment_repository.dart` (deklarasi kedua) juga
+  mati → menyeret `payment_repository_impl`, `payment_providers`, `data.dart`,
+  `domain/domain.dart`, 2 test.
+  Jebakan wajib per call site: (a) **urutan argumen `fold`**, (b) `isSuccess`
+  semantik (`data != null` → flag; banyak call site menulis
+  `isSuccess && data != null`, aman, tapi yang hanya `isSuccess` harus dibaca
+  ulang), (c) `statusCode` adalah penambahan (aman), (d) `StructuredApiException`
+  lahir khusus untuk memasok `RepositoryResult.error(code:)` di domain auction →
+  audit ulang perannya SETELAH migrasi, jangan dihapus bersamaan.
+- **P2 — blok "BACKWARD COMPATIBILITY … New code should use decision contract"**
+  di `order.dart` (sekitar `isSellerActionRequired`): getter masih hidup dan
+  dipakai; butuh audit apakah ia masih authority UI seller-action atau harus
+  membaca decision contract. Tidak disentuh.
+- **Pre-existing terverifikasi**: 3 gagal di `payment_result_notifier_test`
+  (authority `order.status` vs payment resource; baris 206/239/533). Bukti bukan
+  regresi purge: file test **tidak tersentuh** (tidak muncul di `git status`),
+  `grep -c decision` di file itu = **0**, dan nol pembaca `Payment.decision` di
+  luar dua file yang saya edit → purge tidak punya permukaan perilaku. Ledger
+  sesi sebelumnya juga sudah mencatat file ini merah.
+
+### 9. Risiko / belum terbukti
+- Konvergensi `RepositoryResult` **BELUM**: dua tipe result masih hidup
+  berdampingan — kondisi yang saya temukan, bukan saya ciptakan, dan tidak boleh
+  ditutup sebagai PASS.
+- Taksonomi failure (core vs payment, tiga nama kembar) menunggu keputusan desain
+  yang menyertainya.
+
+### 10. Git status
+Belum di-commit. Milik sesi ini: `M` 3 file lib + `A` 1 test. Sisa working tree
+masih multi-agen — jangan di-stage borongan.
+
+### 11. Owner retest
+Belum perlu: purge menyentuh field yang **tidak pernah terisi** (backend tak
+pernah mengirim `decision`) dan **tidak pernah dibaca**, jadi nol perubahan
+perilaku — dibuktikan kompilasi bersih + 30 test hijau.
+
+## Sesi 2026-09-28 (lanjutan 2) — Purge alias/backward-compat di fondasi result & status (§11)
+
+### 1. Verdict
+SELESAI & terverifikasi, bounded: alias dan jalur compat di `Result<T>` dan
+`PaymentStatus` dibunuh; parser status payment kini **menolak** kosakata gateway
+alih-alih mengoersinya diam-diam. Migrasi `RepositoryResult` (489 referensi / 48
+file) TETAP parkir sebagai scope tersendiri dengan rencana slice di bawah.
+
+### 2. Root cause
+Alias hidup sebagai jalur kompatibilitas tanpa pemilik:
+- `Result.isFailure` — komentarnya sendiri: "Alias for isError for backward
+  compatibility".
+- `PaymentStatus.isFinal` / `isSuccess` / `isSuccessful` — tiga nama untuk satu
+  arti, **nol konsumen** (analyzer membuktikannya: menghapus ketiganya tidak
+  memunculkan satu error pun).
+- `PaymentStatus.fromString` memetakan 9 nilai kosakata gateway Midtrans
+  (`settlement`, `capture`, `completed`, `challenge`, `deny`, `cancel`,
+  `cancelled`, `process`, `expire`) yang **tidak pernah ada di wire**: backend
+  memakai nama enum kanonik dan `midtrans_status` adalah forbidden response key.
+  Bukti tambahan dari audit backend: `grep settlement|capture` di
+  `backend/internal/commerce/order/` hanya menemukan **kata domain** (lifecycle
+  settlement auction), bukan nilai `payments.status`. Coercion diam-diam ini
+  berbahaya di jalur uang.
+
+### 3. Canonical behavior
+- Satu nama per arti: `isError` (bukan `isFailure`), `isTerminal` (bukan
+  `isFinal`).
+- `PaymentStatus.fromString`: cocokkan **nama enum** (trim + case-insensitive);
+  nilai lain → `FormatException` (gagal keras, bukan diam-diam jadi `pending`).
+
+### 4. File yang berubah
+- `M` `lib/core/common/result.dart` — getter alias `isFailure` dihapus.
+- `M` `lib/core/common/types/payment_types.dart` — 3 getter alias dihapus +
+  `fromString` ditulis ulang.
+- `M` `lib/domains/chat/chat/presentation/providers/chat_notifier.dart:605`,
+  `M` `lib/domains/system/analytics/data/repositories/firebase_analytics_repository_impl.dart:35,100`,
+  `M` `test/domains/social/follow/follow_identity_contract_test.dart:420,511`
+  — `isFailure` → `isError` (blast radius dilisting analyzer: 5 situs).
+- `M` `test/core/common/types/payment_types_test.dart` — pin legacy diganti
+  negative contract.
+
+### 5. Residue yang dihapus
+Getter alias `Result.isFailure`; tiga getter alias `PaymentStatus`; 9 cabang
+kosakata gateway + doc "legacy support"; 4 pin test yang menopang mapping
+tertolak (test bukan authority).
+
+### 6. Commands dan hasil
+- `flutter analyze lib test` → **0 error** (5 perbaikan call site; analyzer yang
+  melisting blast radius-nya).
+- `flutter test test/core/common/types/payment_types_test.dart
+  test/domains/finance/transaction/payment
+  test/domains/social/follow/follow_identity_contract_test.dart` →
+  **65 lulus / 3 gagal**, ketiganya `payment_result_notifier_test` pre-existing
+  (file tidak tersentuh).
+
+### 7. Hasil proof
+- Analyzer membuktikan tiga getter payment **nol konsumen**.
+- `isFailure` → `isError` semantiknya identik (`!_isSuccess`) → 5 perbaikan itu
+  murni rename, nol perubahan perilaku.
+- Negative contract baru: seluruh nama enum ter-parse (case-insensitive + trim),
+  9 nilai kosakata gateway WAJIB ditolak.
+
+### 8. INVENTARIS KERUMITAN (bahan desain ulang — diminta bagian “Complexity / Simplification” cara-kerja.md)
+Semua **dicatat, belum dikerjakan**:
+1. **Empat+ authority untuk satu konsep “hasil operasi”**: `Result<T>` (core,
+   ~60 file), `RepositoryResult<T>` (order — hidup di folder domain tapi dipakai
+   lintas domain: auction, seller, content, refund; **489 referensi / 48 file**),
+   `RepositoryResult<T>` kedua (payment, payload `PaymentFailure`),
+   `Either<Failure,T>` (dartz, dipakai follow). Ditambah `Withdrawal` yang punya
+   `isSuccess`/`error` sendiri, dan `PaymentResult`/`PaymentResultStatus` untuk
+   state layar hasil payment.
+2. **Alias yang masih hidup** (butuh audit konsumen sebelum dipotong): factory
+   `RepositoryResult.error(...)` (alias `failure`), pasangan
+   `isError`/`isFailure` di tipe itu, `Withdrawal.isSuccessful =>`,
+   `finance_gateway.isSuccessful => isSuccess`, `SupportFailure.isFailure`.
+3. **Compat yang masih hidup**: blok “BACKWARD COMPATIBILITY” + getter
+   `isSellerActionRequired` di `order.dart`; `AppFormatters`/`CurrencyUtils`
+   sebagai mesin uang kedua (parkiran sesi sebelumnya).
+4. **Layer berlebih**: `StructuredApiException` ada hanya untuk membawa error
+   code menembus `fold→throw→catch` di auction — audit ulang perannya SETELAH
+   `RepositoryResult` mati; jangan dihapus bersamaan.
+5. **Pelanggaran boundary**: domain `social/content` mengimpor tipe generik milik
+   folder `commerce/transaction/order` — tipe generik seharusnya milik fondasi
+   (`core`), bukan milik satu domain.
+
+### 9. RENCANA SLICE migrasi `RepositoryResult` → `Result<T>` (belum dikerjakan)
+Urutan aman (pindahkan konsumen dulu, hapus deklarasi terakhir, supaya tree
+TETAP kompilasi di setiap langkah — pola yang sama dengan migrasi envelope):
+1. order + refund (domain pemilik): `order_repository{,_impl}`,
+   `refund_repository{,_impl}` + test order (≈70 referensi).
+2. auction: `auction_repository{,_impl}`, `bidding_repository{,_impl}`,
+   `auction_remote_datasource`, `auction_detail_screen` + test auction (≈80).
+3. seller: `seller_repository{,_impl}` + test sertifikasi seller (≈47).
+4. content: `content_repository{,_impl}`, `content_notifier` + test content (≈59).
+5. payment: `payment_repository{,_impl}`, `payment_providers`, `data.dart`,
+   `domain/domain.dart` + test payment (≈30).
+6. BARU setelah slice 5: hapus `order/domain/repositories/repository_result.dart`
+   + export di `order/domain/domain.dart` + gate negative-proof (tipe & nama
+   factory tidak boleh kembali).
+Jebakan wajib per call site: (a) **urutan argumen `fold`** (RepositoryResult
+sukses-dulu, Result error-dulu), (b) `isSuccess` semantik (`data != null` vs
+flag; site yang menulis `isSuccess && data != null` aman), (c) `statusCode`
+penambahan aman, (d) `RepositoryResult.failure(...)` → `Result.error(...)`.
+
+### 10. Git status
+Belum di-commit. Milik sesi ini (lanjutan 2): `M` 3 file lib + `M` 3 file test.
+Sisa working tree multi-agen — jangan di-stage borongan.
+
+### 11. Owner retest
+Belum perlu: nol perubahan visual; satu-satunya perubahan perilaku yang disengaja
+= status payment tak dikenal/gateway kini **gagal keras**. Ini keputusan sadar
+(catatan: alternatifnya adalah fallback `pending` — dan itu kebohongan di jalur
+uang). Bila owner ingin unknown status dirender sebagai state error yang ramah,
+itu task UI tersendiri.
+
+## Sesi 2026-09-28 (lanjutan 3) — Migrasi `RepositoryResult` → `Result<T>` + bunuh 2 duplikat (§11)
+
+### 1. Verdict
+SELESAI untuk 5 dari 6 slice, dihentikan sengaja di slice payment karena temuan
+berubah bentuk: **dua** deklarasi duplikat dibunuh total
+(`order/.../repository_result.dart` dan `ContentRepositoryResult` — deklarasi
+**ketiga** yang tidak tercatat di inventaris sebelumnya), seluruh konsumennya
+pindah ke `Result<T>`, dan file/kelas duplikatnya DIHAPUS. Sisa satu salinan
+(payment) DIPARKIR sebagai keputusan owner karena payload-nya bukan string error
+melainkan `PaymentFailure` bertipe — konvergensinya bukan rename.
+Gate negative-proof baru: `test/core/result_authority_contract_test.dart`.
+
+### 2. Root cause (inventaris sebelumnya meleset)
+Catatan lanjutan 2 menyebut "empat+ authority"; audit lanjut menemukan bahwa
+duplikatnya berjumlah **3 deklarasi untuk 2 nama**:
+- `RepositoryResult<T>` — `order/domain/repositories/repository_result.dart`.
+  `isSuccess => data != null` (sukses-null terbaca gagal), `fold(onSuccess,
+  onError)` sukses-dulu, punya `failure` DAN `error` (alias).
+- `ContentRepositoryResult<T>` — **deklarasi ketiga, tidak tercatat**:
+  dideklarasikan di dalam `content/domain/repositories/content_repository.dart`
+  (file interface!), lengkap dengan `dataOrThrow` sendiri. `fold`-nya kebetulan
+  sudah error-dulu — jadi tiga tipe ini memakai **dua aturan urutan argumen
+  berbeda** untuk operasi yang sama.
+- `RepositoryResult<T>` (payment) — payload `PaymentFailure?` bertipe, `fold`
+  menerima objek failure, `dataOrThrow` melempar `PaymentFailure`.
+Akibatnya: `fold` berarti "sukses dulu" atau "error dulu" tergantung tipe mana
+yang kebetulan dipakai, dan call site tidak bisa tahu. Dua dari tiga tipe juga
+salah membaca sukses-yang-membawa-null.
+
+### 3. Canonical behavior
+- SATU tipe: `Result<T>` (`lib/core/common/result.dart`), `fold(onError,
+  onSuccess)` — **error dulu**, seragam di seluruh app.
+- `isSuccess`/`isError` = flag internal (bukan turunan `data != null`).
+- `Result.error(msg, {code, statusCode, details})` = satu-satunya nama;
+  `RepositoryResult.failure` (alias identik) tidak hidup lagi.
+
+### 4. File yang berubah (milik sesi ini)
+**Slice 1 — order + refund + use case**
+- `M` `order/domain/repositories/order_repository.dart`,
+  `order/domain/repositories/refund_repository.dart`,
+  `order/data/order_repository_impl.dart`,
+  `order/data/refund_repository_impl.dart` (import + rename + fold dibalik;
+  `RepositoryResult.failure(` → `Result.error(`).
+- `M` `order/presentation/providers/order_notifier.dart` — 7 `fold` dibalik
+  urutannya (14 error analyzer sebelumnya).
+- `M` `transaction/usecases/get_order_status_usecase.dart` — 2 `fold` dibalik.
+- `M` `test/.../order/order_refund_history_controller_test.dart` (fake 9 method),
+  `M` `test/.../order/recent_seller_orders_provider_test.dart`,
+  `M` `test/domains/finance/transaction/payment/presentation/providers/
+  payment_result_notifier_test.dart` (bagian fake order saja; bagian payment
+  tetap memakai tipe parkir).
+
+**Slice 2 — auction (blast radius lebih luas dari perkiraan)**
+- `M` `auction/domain/repositories/auction_repository.dart`,
+  `auction/domain/repositories/bidding_repository.dart`,
+  `auction/data/remote/auction_remote_datasource.dart`,
+  `auction/data/repositories/auction_repository_impl.dart`,
+  `auction/data/repositories/bidding_repository_impl.dart`,
+  `auction/presentation/screens/auction_detail_screen.dart` (komentar).
+- `M` `auction/presentation/providers/auction_notifier.dart` — **12 `fold`**
+  dibalik (termasuk `placeBid`/`updateAuction`/`cancelAuction`, closure error
+  dipindah ke depan) + `bidding_notifier.dart` (1).
+- `M` `auction/usecases/get_auction_usecase.dart` (3),
+  `M` `auction/usecases/place_auction_bid_usecase.dart` (1).
+- Test: 3 file auction + 8 file `test/features/home/**` + marketplace injection
+  + `guest_welcome_home_router_test` (fake `_FakeAuctionRepository`).
+
+**Slice 3 — seller**
+- `M` `seller/domain/repositories/seller_repository.dart`,
+  `M` `seller/data/repositories/seller_repository_impl.dart`,
+  `M` `seller/presentation/providers/withdraw_notifier.dart` (1 `fold` dibalik).
+- Test: `withdraw_history_pagination_test`,
+  `seller_dashboard_earnings_exposure_test` (14 fake method),
+  `seller_renewal_screen_test` (`RepositoryResult<X>.failure` →
+  `Result<X>.error`), `seller_upgrade_wizard_screen_identity_test`.
+
+**Slice 4 — content (mencakup deklarasi ketiga)**
+- `M` `content/domain/repositories/content_repository.dart` — **kelas
+  `ContentRepositoryResult<T>` + blok "Result Types" DIHAPUS**, import `Result`.
+- `M` `content/data/content_repository_impl.dart` (40 referensi),
+  `M` `content/presentation/providers/content_notifier.dart` (3).
+- Test: `router_lifetime_preservation_test` (20),
+  `content_media_failure_semantics_test` (20),
+  `create_request_submission_contract_test` (20),
+  `guest_welcome_home_router_test` (6), `feed_root_wiring_test` (6),
+  `follow_status_provider_lifecycle_test` (2),
+  `profile_header_identity_canonical_test` (2),
+  `update_content_projection_contract_test` (`dataOrThrow` →
+  `expect(isSuccess)` + `data!`).
+
+**Slice 6 — purge + gate**
+- `D` `order/domain/repositories/repository_result.dart` (file duplikat).
+- `M` `order/domain/domain.dart` (export `show RepositoryResult` dibuang).
+- `M` `core/api/structured_api_exception.dart` (komentar menunjuk tipe mati).
+- `M` `test/core/api/commerce_restriction_propagation_test.dart` — grup test
+  `RepositoryResult<T> — errorCode preservation` DIHAPUS: duplikat persis dari
+  grup `Result<T>` tepat di atasnya.
+- `M` `test/.../order/order_contract_p1_test.dart` (nama test).
+- BARU `test/core/result_authority_contract_test.dart`.
+
+### 5. Residue yang dihapus
+Dua file/kelas duplikat (`repository_result.dart` utuh + `ContentRepositoryResult`
+di dalam file interface content), alias `RepositoryResult.failure` (mati bersama
+tipenya), `dataOrThrow` milik content, export barrel `show RepositoryResult`, satu
+grup test duplikat yang menopang tipe mati, dan 4 komentar basi yang menunjuk
+tipe mati.
+
+### 6. Commands dan hasil
+- `flutter analyze lib test` → **0 error** setelah tiap slice (dicek 7 kali,
+  terakhir di akhir sesi: 149 issues, 0 error — jumlah issue turun dari 180
+  karena kerja agen lain, bukan karena sesi ini menambah/mengurangi lint).
+- Slice 1: `flutter test test/domains/commerce/transaction/order/
+  test/.../payment_result_notifier_test.dart` → **139 lulus / 3 gagal**;
+  3 gagal = pre-existing terverifikasi (authority `order.status` vs payment
+  resource).
+- Slice 2: `flutter test test/domains/commerce/catalog/auction/` → **137 PASS**.
+- Slice 3: `flutter test test/domains/user/preference/seller/
+  test/domains/finance/withdrawal/` → **123 PASS**.
+- Slice 4: `flutter test test/domains/social/content/
+  test/domains/social/follow/follow_status_provider_lifecycle_test.dart
+  test/domains/user/profile/profile_header_identity_canonical_test.dart` →
+  **59 PASS**.
+- Slice 6: `flutter test test/core/result_authority_contract_test.dart
+  test/core/file_authority_contract_test.dart
+  test/core/theme/theme_authority_contract_test.dart
+  test/core/api/commerce_restriction_propagation_test.dart` → **21 PASS**.
+- **Negative proof gate (dijalankan, bukan diklaim):** dibuat probe
+  `lib/.../payment/domain/repositories/__temp_dup_probe.dart` berisi
+  `class ContentRepositoryResult<T>` → gate **GAGAL 2 test** (deklarasi kedua +
+  nama duplikat muncul); probe dihapus → gate **PASS**.
+
+### 7. Hasil proof
+- `grep -rn '\bRepositoryResult\b' lib test` → hanya 2 file payment + 1 test
+  payment (yang memang diparkir). `ContentRepositoryResult` di luar gate →
+  **nol** (7 kemunculannya hanya di dalam gate itu sendiri, dan gate mengecualikan
+  dirinya dari sapuannya — kalau tidak, ia akan mendeteksi deskripsinya sendiri).
+- `grep -rn "repositories/repository_result.dart"` → hanya 1, yaitu entri
+  `_killedFiles` di dalam gate; nol import/export nyata.
+- `lib/.../repository_result.dart` → **file tidak ada**.
+- Urutan `fold` tiap call site kini satu arah; pergeserannya diverifikasi
+  analyzer (0 error), bukan dibaca manual.
+
+### 8. Temuan di luar scope (dicatat, TIDAK dikerjakan)
+1. **10 gagal pre-existing di
+   `test/features/home/presentation/providers/feed_promoted_click_destination_authority_test.dart`**
+   — dibuktikan pre-existing, bukan regresi: helper `_tapPromotedCard` mencari
+   `CommerceMarketplaceCardShell` / `PromotedExternalCard`, sedangkan
+   `PromotedForSaleCard`/`PromotedAuctionCard` (`feed_renderers.dart`, **tidak
+   tersentuh siapa pun**) merender `Card` + `InkWell` polos → helper tidak
+   menemukan apa pun → tidak ada tap → semua assert navigasi/click-ack gagal.
+   Diff sesi ini di file itu hanya **3 baris** (hapus import, 2 rename) dan tidak
+   menyentuh helper. Klasifikasi **P2** (test tidak menguji yang diklaimnya);
+   perbaikan = align helper ke kontrak widget kanonik — scope tersendiri.
+   (Catatan: `feed_promoted_impression_authority_test` + marketplace injection
+   LOLOS; seluruh 10 gagal berasal dari satu file ini.)
+2. **`payment/.../payment_repository.dart:12` `RepositoryResult<T>`** —
+   diparkir (lihat §9).
+3. Satu momen `flutter test test/core/theme/theme_authority_contract_test.dart`
+   melaporkan "Does not exist" padahal file ada (transien lingkungan saat banyak
+   file test dijalankan sekaligus); dijalankan ulang → hijau.
+
+### 9. Risiko / belum / parkiran baru (butuh keputusan owner)
+- **Payment `RepositoryResult<T>` TIDAK bisa direname.** Payload-nya
+  `PaymentFailure?` bertipe (`ValidationFailure`, `UnknownFailure`, …), `fold`
+  menerima objek failure, dan `dataOrThrow` **melempar** `PaymentFailure`.
+  Konvergensinya berarti mengubah jalur kegagalan payment dari *tipe* menjadi
+  *string + code* (`Result.error`) — mengubah cara UI payment membedakan jenis
+  gagal. Keputusan desain, bukan mekanik. Dua arah: (a) payment ikut `Result<T>`
+  dengan `code` + `errorDetails` sebagai channel baru dan `PaymentFailure`
+  menjadi konstruktor pesan di tepi; (b) `PaymentFailure` dipertahankan sebagai
+  exception bertipe yang dilempar dari repository, `Result` untuk sisanya.
+  Gate `result_authority_contract_test.dart` menuliskan allowlist-nya eksplisit
+  supaya keputusan ini tidak menguap.
+- Inventaris lanjutan-2 item #4 (`StructuredApiException` — perannya perlu
+  audit ulang SETELAH tipe mati; jangan dihapus bersamaan) dan sisa item #1
+  (`Either<Failure,T>` dartz di follow, `Withdrawal.isSuccess`,
+  `PaymentResult`/`PaymentResultStatus`) tetap terbuka — belum disentuh, sesuai
+  "satu scope aktif".
+- Full-suite `flutter test` (gate rilis) dijalankan di sesi ini; hasilnya di §12.
+
+### 10. Git status
+Belum di-commit. Milik sesi ini (lanjutan 3): ~30 file `lib` (termasuk 1 `D`) +
+~28 file `test` (1 `D` = `repository_result.dart`, 1 BARU = gate). Working tree
+tetap multi-agen — **jangan `git add -A`**.
+
+### 11. Owner retest
+Belum perlu. Nol perubahan visual. Perubahan perilaku yang disengaja hanya satu,
+dan hasil observabelnya tetap sama: pada jalur refund, `getRefundByOrderId` yang
+dulu "sukses-tanpa-refund" terbaca gagal (karena `isSuccess => data != null`)
+kini benar-benar sukses-dengan-null — layar tetap menampilkan `null` di dua
+jalur, tetapi alasannya kini jujur, bukan kebetulan.
+
+### 12. Full-suite (gate rilis) — dijalankan, 28 menit
+`flutter test --reporter compact` (seluruh `test/`, default concurrency) →
+**+2552 lulus / ~1 skip / -72 gagal, 28:00**.
+
+Klasifikasi 72 gagal (semuanya pre-existing, **nol** terkait sesi ini):
+- `grep -c "RepositoryResult|ContentRepositoryResult|Result.fold"` di seluruh
+  log → **0**. Nol kegagalan menyebut identifier yang sesi ini ubah.
+- Keempat gate sesi ini LOLOS di run penuh (tidak muncul di daftar `[E]`):
+  `result_authority_contract_test`, `file_authority_contract_test`,
+  `theme_authority_contract_test`, `commerce_restriction_propagation_test`.
+  Begitu juga `payment_decision_phantom_purge_test`, `payment_types_test`,
+  `order_status_wire_alignment_test`, `refund_action_api_test`,
+  `order_refund_history_controller_test`, `recent_seller_orders_provider_test`,
+  `seller_auctions_screen_test`, `auction_notifier_authority_test`,
+  `auction_repository_polling_retention_test`, `withdraw_history_pagination_test`,
+  `seller_dashboard_earnings_exposure_test`, `seller_renewal_screen_test`,
+  `seller_upgrade_wizard_screen_identity_test`, `content_media_failure_semantics_test`,
+  `create_request_submission_contract_test`, `update_content_projection_contract_test`,
+  `follow_status_provider_lifecycle_test`, `profile_header_identity_canonical_test`,
+  `feed_promoted_impression_authority_test`, `marketplace_promotion_injection_test`,
+  `guest_welcome_home_router_test`, `order_contract_p1_test`.
+- Akar 72 gagal (dari teks exception, bukan tebakan):
+  `UnimplementedError: ApiClient must be provided externally` (22),
+  `Bad state: No element` (10), `ProviderException` (10),
+  finder `Found 0 widgets ... ("hello" / "Feed belum bisa dimuat" / SwitchListTile
+  "Show Online Status")` (19+). Semuanya pola harness/provider-scope yang sama
+  seperti yang sudah tercatat di sesi-sesi sebelumnya ("test/features/home ...
+  penyebab sama (ApiClient/harness feed)"; "/settings toggle" ada di daftar
+  test-debt lama di §Parkiran A.6).
+- 13 dari 72 = `home_screen_feed_rendering_test`, 2 =
+  `home_screen_promoted_card_rendering_test` SCENARIO 4 (dua-duanya sudah
+  dinyatakan pre-existing + pernah dibuktikan dengan stash oleh sesi
+  sebelumnya), 10 = keluarga `feed_promoted_click_destination_authority_test`
+  (lihat §8), 3 = `payment_result_notifier_test` (lihat §6), 1 =
+  `router_lifetime_preservation_test` `/settings preserves local toggles`
+  (exception-nya soal `SwitchListTile 'Show Online Status'` = debt `/settings
+  toggle`, bukan tipe result), sisanya keluarga c1b3_mention/chat CTA/saved_item/
+  create_auction route — file-file yang sesi ini tidak sentuh.
+- Catatan: `home_screen_feed_rendering_test` butuh ~19 menit sendirian
+  (`pumpAndSettle` per test) — itu sebabnya run penuh memakan 28 menit.
+
+## Sesi 2026-09-28 (lanjutan 4) — Konvergensi result payment + hapus vocabulary gagal (§11)
+
+### 1. Verdict
+SELESAI. Duplikat result yang terakhir MATI: `RepositoryResult<T>` milik payment
++ `PaymentFailure` beserta 7 subclass-nya dihapus; repository kini meneruskan
+`code`/`statusCode`/`details` dari backend apa adanya, dan UI payment bercabang
+pada `errorCode`. **Allowlist parkir di gate `result_authority_contract_test.dart
+DIKOSONGKAN** — sekarang tidak ada satu pun pengecualian: nol duplikat result di
+seluruh `lib/` & `test/`.
+
+### 2. Audit (bukti yang memutuskan bentuk konvergensi)
+1. **Payload bertipe tidak pernah dibaca siapa pun.** `ValidationFailure.field`,
+   `PaymentExpiredFailure.expiredAt`, `PaymentNotFoundFailure.paymentId`,
+   `UnknownFailure.originalError` — nol konsumen.
+2. **2 dari 7 subclass mati sejak lahir**: `PaymentGatewayFailure`,
+   `InsufficientBalanceFailure` — tidak pernah dikonstruksi, tidak pernah
+   didiskriminasi.
+3. **Data palsu**: `_mapApiError` membangun `PaymentNotFoundFailure('payment')`
+   (string literal `'payment'` sebagai paymentId) dan
+   `PaymentExpiredFailure(DateTime.now())`.
+4. **Fabricator klasifikasi**: `_mapApiError` menebak jenis dengan *mencocokkan
+   teks pesan* (`errorStr.contains('network'/'not found'/'expired'/'invalid')`)
+   lalu **membuang** code backend yang sudah dibawa `Result.errorCode` dari
+   lapisan API. Anti-pattern yang doctrine sebut eksplisit.
+5. **Satu-satunya diskriminasi bertipe** ada di
+   `payment_initiation_notifier._getUserFriendlyErrorMessage` — 4 cabang
+   `is NetworkFailure` / `is PaymentNotFoundFailure` / `is PaymentExpiredFailure`
+   / `is ValidationFailure`, semuanya hanya untuk memilih pesan, dan hanya bisa
+   menyala secara kebetulan (karena berasal dari tebakan #4).
+6. **Code backend yang benar-benar ada untuk payment** (dari
+   `platform/response/error_mapper.go`): `INVALID_PAYMENT_STATUS` (409) dan
+   `REFERENCE_REQUIRED` (400). Tidak ada padanan untuk 4 jenis buatan klien.
+7. **Blast radius kecil**: 4 call site di `lib` + 2 konsumen lintas domain yang
+   baru terlihat dari analyzer (`checkout_screen_logic`,
+   `order_detail_handlers`) + 2 test.
+
+### 3. Canonical behavior
+- SATU tipe hasil: `Result<T>`. `PaymentRepository` mengembalikan
+  `Result<PaymentIntent>` / `Result<Payment>` / `Result<List<PaymentMethodOption>>`.
+- **Repository meneruskan, tidak menafsirkan**: kegagalan API diteruskan apa
+  adanya (`code: source.errorCode`, `statusCode: source.statusCode`,
+  `details: source.errorDetails`) lewat satu helper `_forwardFailure<T>`.
+- **Precondition lokal** (paymentId/orderId kosong, `request.validate()` gagal)
+  → `Result.error(pesan)` **tanpa code**, karena tidak ada kebenaran backend
+  yang boleh diklaim.
+- `dataOrThrow`, `isFailure`, `fold(onSuccess, onFailure)` payment: MATI.
+- Copy UI berbasis **code kanonik** (2 konstanta baru di
+  `core/api/api_error_codes.dart`: `invalidPaymentStatus`, `referenceRequired`),
+  sisanya pesan dari authority.
+
+### 4. File yang berubah (milik sesi ini)
+- `M` `payment/domain/repositories/payment_repository.dart` — kelas
+  `RepositoryResult<T>` (50 baris) DIHAPUS; import `result.dart`; 3 signature
+  jadi `Result<...>`.
+- `M` `payment/data/repositories/payment_repository_impl.dart` — `_mapApiError`
+  (fabricator) DIGANTI `_forwardFailure<T>`; `RepositoryResult.failure(...)` →
+  `Result.error(...)`; 3 `RepositoryResult.success(...)` → `Result.success(...)`.
+- `M` `payment/presentation/providers/payment_initiation_notifier.dart` —
+  1 `fold` dibalik; `_getUserFriendlyErrorMessage(PaymentFailure)` →
+  `_getUserFriendlyErrorMessage(String? code, String message)`; import
+  `payment_failure.dart as payment_failures` dibuang.
+- `M` `payment/presentation/providers/payment_notifier.dart` — 2 `fold` dibalik
+  (`failure.message` → `error`).
+- `M` `payment/presentation/providers/payment_result_notifier.dart` —
+  `paymentResult.isFailure` → `isError`, `${paymentResult.failure}` → `.error`.
+- `M` `payment/domain/domain.dart` — `export 'failures/payment_failure.dart'`
+  dibuang.
+- `D` `payment/domain/failures/payment_failure.dart` (+ direktori `failures/`).
+- `M` `core/api/api_error_codes.dart` — +`invalidPaymentStatus`,
+  +`referenceRequired` (authority code mobile, sesuai doc file itu sendiri).
+- `M` `checkout/presentation/screens/checkout_screen_logic.dart` +
+  `order/presentation/screens/order_detail/order_detail_handlers.dart` —
+  `fold<List<PaymentMethodOption>>` dibalik (2 konsumen lintas domain).
+- `M` `test/.../payment_result_notifier_test.dart` —
+  `payment_repo.RepositoryResult` → `Result`, `.failure(` → `.error(`, import
+  `payment_failure.dart` dibuang.
+- `M` `test/.../payment_wire_contract_test.dart` — `result.failure?.message` →
+  `result.error` (3 situs).
+- `M` `test/core/result_authority_contract_test.dart` — allowlist `_parked`
+  DIHAPUS; `homes['RepositoryResult']` wajib `isNull`; `_killedFiles` +=
+  `payment_failure.dart`; **ratchet baru** "payment forwards the backend code
+  instead of inventing a failure kind" (source scan: `\bPaymentFailure\b` &
+  `_mapApiError` terlarang di `lib/domains/finance/transaction/payment`; PLUS
+  positive proof `source.errorCode` & `source.statusCode` wajib ada).
+
+### 5. Residue yang dihapus
+Kelas `RepositoryResult<T>` payment; `PaymentFailure` + 7 subclass
+(`NetworkFailure`, `ValidationFailure`, `PaymentGatewayFailure`,
+`InsufficientBalanceFailure`, `PaymentExpiredFailure`, `PaymentNotFoundFailure`,
+`UnknownFailure`); method `dataOrThrow`; getter `isFailure`; `_mapApiError`
+(tebakan berbasis teks pesan); 4 cabang `is ...Failure` di UI; import + export
+`payment_failure.dart`; 1 direktori `failures/`.
+
+### 6. Commands dan hasil
+- `flutter analyze lib test` → **0 error** (149 issues non-error, sama seperti
+  sebelum sesi ini — tidak ada lint baru).
+- `flutter test test/domains/finance/transaction/payment/` → **39 lulus / 3
+  gagal**; 3 gagal = pre-existing terverifikasi (`payment_result_notifier_test`,
+  authority `order.status` vs payment resource — bukan soal tipe result).
+- `flutter test test/domains/finance/` → **98 lulus / 3 gagal** (tiga yang sama).
+- `flutter test test/domains/commerce/transaction/checkout/
+  test/domains/commerce/transaction/order/
+  test/core/result_authority_contract_test.dart
+  test/core/file_authority_contract_test.dart` → **187 lulus / 1 skip, semua
+  lulus**.
+- Gate `result_authority_contract_test.dart` → **6/6 PASS**.
+
+### 7. Hasil proof
+- **Negative proof ratchet payment DIJALANKAN**: file probe
+  `lib/domains/finance/transaction/payment/domain/failures/payment_failure.dart`
+  berisi `abstract class PaymentFailure { ... }` ditanam kembali → gate GAGAL
+  2 test ("killed authorities stay deleted" + "payment forwards the backend
+  code"); probe dihapus → 6/6 PASS.
+- `grep -rn '\bRepositoryResult\b' lib test` → hanya di dalam gate itu sendiri
+  (yang mengecualikan dirinya dari sapuannya). `ContentRepositoryResult` → idem.
+- `grep -rn "payment_failure\|PaymentFailure" lib test` → hanya
+  `_getPaymentFailureReason(Payment? payment)` (alasan status pembayaran, bukan
+  vocabulary gagal yang mati) + gate.
+- `dataOrThrow` di payment → nol.
+- Analyzer yang menemukan 2 konsumen lintas domain (checkout, order detail) yang
+  tidak terlihat dari sapuan direktori payment — pelajaran: dependency yang
+  benar-benar mengikat ditemukan compiler, bukan grep.
+
+### 8. KOREKSI CATATAN SESI INI (penting — klaim saya sendiri yang salah)
+Saat memutuskan purge `core/errors/failure.dart`, saya melaporkan ke owner
+"**nol importer**" berdasarkan `grep "errors/failure.dart"` yang hanya menemukan
+`core/core.dart:6` (satu-satunya import *langsung*). Itu **salah**: `Failure`
+dipakai lewat barrel `core.dart` sebagai tipe `Left` di `Either<Failure, T>` oleh
+**6 use case follow** (`follow_user_use_case`, `get_followers_use_case`,
+`get_following_use_case`, `get_follow_stats_use_case`, `search_users_use_case`,
+`unfollow_user_use_case`). Grep importer langsung = **false negative**.
+Konsekuensi: **purge `core/errors/failure.dart` DIBATALKAN** (tidak dieksekusi) —
+owner menyetujuinya atas dasar data saya yang cacat, jadi saya tidak
+melaksanakannya, dan keputusannya dikembalikan ke owner dengan data yang benar.
+`core/errors/failure.dart` sekarang diklasifikasi: **HIDUP**, milik vocabulary
+`Either<Failure,T>` (dartz) di follow — satu-satunya authority "hasil/gagal" yang
+masih tersisa di luar `Result`, dan penggabungannya adalah scope tersendiri
+(converge follow off dartz) yang akan sekaligus membuka purge file itu.
+Tidak ada perubahan file yang dilakukan atas dasar klaim cacat ini.
+
+### 9. Temuan di luar scope (dicatat, TIDAK dikerjakan)
+1. **`lib/domains/finance/finance_gateway.dart` = DEAD FILE total.** `abstract
+   class FinanceGateway` + `dataOrThrow` sendiri; nol importer, nol export di
+   barrel mana pun, nol rujukan di `test/`. Kandidat purge (P2). Ditemukan saat
+   menyisir `dataOrThrow`.
+2. **Regresi copy kecil, disengaja-dan-dicatat.** Cabang lama
+   `is NetworkFailure → 'Koneksi internet bermasalah. Silakan cek koneksi
+   Anda.'` MENYALA untuk kegagalan transport (pesan `ErrorInterceptor`
+   'Network error. Please check your connection.' mengandung 'network'). Setelah
+   konvergensi, kegagalan transport membawa `code == null`, jadi user melihat
+   pesan Inggris dari lapisan API. Perbaikan yang benar dan bounded: lapisan API
+   memberi code pada kegagalan transport dari **`DioExceptionType`** (enum
+   bertipe, bukan cocok-cocokan teks) di `base_api_repository.executeRequest`,
+   lalu UI memetakan code itu. Belum dikerjakan — menyentuh SEMUA domain (setiap
+   `Result.error` transport akan punya code), jadi ia scope tersendiri, bukan
+   ekor dari scope payment.
+3. `payment_result_notifier_test` 3 gagal (authority `order.status` vs payment
+   resource) tetap pre-existing; bukan soal tipe result.
+
+### 10. Risiko / belum
+- Tidak ada perubahan perilaku yang tidak disengaja: satu-satunya perubahan
+  copy adalah untuk 2 code backend nyata (kini Indonesia) dan kasus transport di
+  §9.2.
+- Sisa vocabulary "hasil/gagal" di app: `Either<Failure,T>` (follow, 6 use case),
+  `Withdrawal.isSuccess`/`error`, `PaymentResult`/`PaymentResultStatus`,
+  `SupportFailure`, `finance_gateway.dart` (mati). Semua belum disentuh.
+
+### 11. Git status
+Belum di-commit. Milik sesi ini (lanjutan 4): 9 file `lib` (1 `D` + 1 direktori
+dihapus) + 3 file `test`. Working tree tetap multi-agen — **jangan `git add -A`**.
+
+### 12. Owner retest
+Perlu, ringan: alur payment gagal yang paling mungkin terlihat beda adalah
+(1) `INVALID_PAYMENT_STATUS` (409) — sekarang copy Indonesia yang eksplisit;
+(2) kegagalan koneksi saat initiate payment — pesan kini dari lapisan API
+(Inggris). Kalau owner ingin copy Indonesia untuk transport, itu §9.2.
+Alur sukses tidak tersentuh.
+
+---
+
+## Sesi 2026-09-28 (lanjutan 5) — satu tabel klasifikasi kegagalan transport
+
+**Scope aktif (tunggal):** kegagalan transport — permintaan yang tidak pernah
+menghasilkan envelope HTTP — harus punya identitas machine-readable di
+`Result.errorCode`, diklasifikasi dari `DioExceptionType` di SATU tempat, dan
+tidak ada konsumen hidup yang mencocokkan teks pesan untuk mengenalinya.
+
+### 1. Kondisi awal (terverifikasi, bukan asumsi)
+
+**Koreksi klaim sesi sebelumnya.** Sesi lanjutan 4 menulis "kegagalan transport
+membawa `code == null`". Itu **SALAH**, dan §9.2 lanjutan 4 ikut salah. Bukti:
+`error_interceptor.dart` cabang `connectionTimeout` mengembalikan
+`const TimeoutException(...)` yang default code-nya `'TIMEOUT'`; cabang
+`connectionError`/`badCertificate` memberi code eksplisit. Jadi code transport
+SUDAH ADA untuk 3 dari 7 cabang. Yang benar-benar rusak berbeda:
+
+1. **Tiga rumah untuk satu identitas.** Literal di `error_interceptor.dart`
+   (`'BACKEND_UNREACHABLE'`, `'SSL_ERROR'`) + default kelas di
+   `api_exception.dart` (`'TIMEOUT'`, `'CANCELLED'`, `'NETWORK_ERROR'`,
+   `'UNKNOWN_ERROR'`). Authority code (`api_error_codes.dart`) tidak tahu satu
+   pun dari mereka, padahal file itu MENDEKLARASIKAN dirinya sebagai satu-satunya
+   authority identitas code.
+2. **Fabrikator di domain.** `checkout_repository_impl.dart` memberi
+   `code: 'NETWORK_ERROR'` untuk SEMUA `DioException` yang tidak ter-map —
+   termasuk 5xx yang justru envelope HTTP nyata. Nol konsumen membaca code itu
+   (`grep "== 'NETWORK_ERROR'"` = 0), jadi itu klasifikasi palsu yang dipajang
+   seolah fakta.
+3. **Tabel klasifikasi terfragmentasi.** `DioExceptionType` → code hanya ada di
+   `_convertToApiException`; jalur `ApiClient.extractException` untuk DioException
+   yang tidak sempat dibungkus interceptor MENEBUANG `e.type` dan memberi
+   `'UNKNOWN_ERROR'` — informasi klasifikasi hilang tepat di jalur yang paling
+   tidak terduga.
+4. **Konsumen mencocokkan teks.** Bukti paling telanjang: `error_interceptor.dart`
+   sengaja menyimpan kata "network" di pesan `connectionError` KHUSUS supaya
+   `_isBackendUnavailableError` (substring) tetap bekerja — komentarnya ada di
+   kode — dan `test/core/api/interceptors/error_interceptor_test.dart` mengunci
+   perilaku itu sebagai kontrak yang diinginkan. Test auth juga mencetak premis
+   itu di namanya: "…falls back to free-text matching, which classifies it as
+   backendUnavailable" — lulus karena kata "network", bukan karena code.
+
+Alasan copy Indonesia transport hilang setelah konvergensi payment: bukan
+karena `code == null`, tapi karena `_getUserFriendlyErrorMessage` tidak mengenali
+code transport mana pun dan jatuh ke pesan lapisan API (Inggris). Perbaikannya
+sama; alasannya diperbaiki.
+
+### 2. Authority yang dikunci
+
+- `core/api/api_error_codes.dart` = satu-satunya rumah identitas code. Keluarga
+  transport baru: `backendUnreachable`, `requestTimeout`, `networkError`,
+  `sslError`, `requestCancelled`, `unknownError`, plus predikat
+  `isTransportFailureCode(code)` sebagai satu-satunya authority "ini kegagalan
+  transport". `unknownError` SENGAJA di luar predikat: "tidak bisa
+  diklasifikasi" bukan klaim yang sama dengan "ini kegagalan transport".
+- `ApiExceptionFactory.fromTransport(DioException)` = SATU tabel
+  `DioExceptionType` → `ApiException` + code (9 cabang). Mengembalikan `null`
+  untuk `badResponse` — itu envelope HTTP, bukan transport — sehingga dua
+  keluarga kegagalan itu tidak bisa tertukar oleh siapa pun yang memanggilnya.
+- `ApiClient.extractException` (jalur DioException yang tidak lewat interceptor)
+  sekarang mengklasifikasi dari `e.type`, bukan menebak `'UNKNOWN_ERROR'`.
+- Kelas transport di `api_exception.dart` merujuk konstanta, bukan literal:
+  identitas dideklarasikan sekali, dirujuk berkali-kali.
+
+### 3. Perubahan
+
+`lib` (8 file):
+
+1. `core/api/api_error_codes.dart` — +6 konstanta transport + predikat.
+2. `core/api/exceptions/api_exception.dart` — import `dart:io`/`dio`; default code
+   kelas transport → konstanta; +`ApiExceptionFactory.fromTransport`.
+3. `core/api/interceptors/error_interceptor.dart` — switch 45 baris → 2 baris
+   (`ApiExceptionFactory.fromTransport(err) ?? _parseErrorResponse(err.response)`),
+   `dart:io` dibuang, komentar "pertahankan kata network" DIHAPUS.
+4. `core/api/api_client.dart` — `extractException` mengklasifikasi dari type.
+5. `core/errors/failure.dart` — `FailureFactory.network` memakai konstanta
+   (literal transport terakhir di luar authority).
+6. `domains/user/identity/authentication/.../auth_controller.dart` — +cabang
+   `isTransportFailureCode(errorCode)` → `backendUnavailable`, sebelum cek 5xx.
+7. `domains/commerce/transaction/checkout/data/repositories/
+   checkout_repository_impl.dart` — fabrikator `'NETWORK_ERROR'` dibunuh;
+   transport memakai code dari lapisan API, non-transport tidak menemukan code
+   (null, jujur), `'UNKNOWN_ERROR'` → konstanta.
+8. `domains/finance/transaction/payment/.../payment_initiation_notifier.dart` —
+   +copy transport Indonesia; temuan §9.2 lanjutan 4 DITUTUP.
+
+`test` (3 file): 1 gate baru + 2 test yang premisnya (substring match) sudah mati:
+`error_interceptor_test.dart` (kini membuktikan code kanonik, bukan kata
+"network") dan `auth_sync_error_classification_test.dart` (grup transport
+struktural + grup terpisah untuk throw mentah non-HTTP).
+
+### 4. Gate & proof
+
+`test/core/api/transport_failure_classification_contract_test.dart` (15 test):
+
+1. Tabel perilaku lewat pipeline NYATA — adapter Dio gagal → `ErrorInterceptor`
+   → `ApiClient.extractException` → `BaseApiRepository.executeRequest` →
+   `Result.errorCode` — untuk 4 timeout, connectionError, badCertificate,
+   cancel, `unknown`+`SocketException`, `unknown` biasa, dan `badResponse` 500.
+2. `badResponse` tetap keluarga HTTP: `statusCode == 500`, code dari envelope,
+   dan `isTransportFailureCode(code) == false`.
+3. Truth table `isTransportFailureCode`: true untuk 5 code transport, false untuk
+   `unknownError`, `null`, `''`, dan code backend (`COMMERCE_RESTRICTED`,
+   `INVALID_PAYMENT_STATUS`, `MARKET_AUTHORITY_REQUIRED`).
+4. `case DioExceptionType.` hanya boleh ada di `api_exception.dart` (sweep
+   lib-wide, tanpa allowlist).
+5. Literal code transport DILARANG di luar authority (sweep lib-wide, tanpa
+   allowlist) + positive proof konstanta masih dideklarasikan.
+6. Konsumen hasil konvergensi memakai code/predikat (source scan `fromTransport`
+   di 2 ujung pipeline + `isTransportFailureCode` di 2 konsumen).
+7. Negative proof detektor.
+
+**Negative proof nyata dijalankan:** probe `lib/core/api/_zz_probe_resurrection.dart`
+(switch fork + `code: 'NETWORK_ERROR'`) ditanam → gate GAGAL di 2 test
+("the DioExceptionType table lives in exactly one file" +
+"no transport code literal exists outside the authority file"); probe dihapus →
+15/15 PASS.
+
+### 5. Verifikasi
+
+- `flutter analyze lib test` = **0 error**, 149 issue non-error (= baseline).
+- `test/core/api` + gate result/file/theme authority = **144 PASS**.
+- `test/domains/user/identity/authentication` + `test/domains/finance` = 319
+  total, **3 gagal pre-existing** (`payment_result_notifier_test.dart`: 2 otoritas
+  `order.status` + 1 helper) — sama dengan baseline, tidak tersentuh sesi ini.
+- `test/domains/commerce/transaction/checkout` + `order` = **178 PASS / 1 skip**.
+- `test/core` = 332 total, **4 gagal pre-existing** (3
+  `create_auction_route_contract_test` redirect `/seller/upgrade`, 1
+  `router_lifetime_preservation_test`) — router, tidak tersentuh.
+- `test/domains/user` = 402 total, **4 gagal pre-existing**
+  (`saved_item_runtime_authority_test`).
+- Grep penutup: literal code transport di `lib` = **hanya** `api_error_codes.dart`;
+  `case DioExceptionType.` = **hanya** `api_exception.dart`; `fromTransport`
+  dipakai 3 file; `isTransportFailureCode` dipakai 2 konsumen hidup.
+
+### 6. Temuan luar scope (diparkir, tidak dikerjakan)
+
+- **P2 `lib/core/utils/retry_helper.dart` = DEAD FILE TOTAL** (284 baris). Bukti:
+  `grep -rn "RetryHelper|RetryConfig|RetryFutureExtension" lib test` hanya
+  menemukan file itu sendiri (nol importer). Ia masih menyimpan
+  `_isRetryableError` yang mencocokkan teks ('network'/'connection'/'timeout'/
+  'socket'/'internet') dan `executeResult` yang membuang `errorCode` sebelum
+  memutuskan retry. Karena mati, ini bukan cacat konsumen hidup — purgenya
+  masuk scope dead-file bersama `finance_gateway.dart`.
+- **P1/P2 `ApiResult` = vocabulary result KEEMPAT & KELIMA, TAK TERLIHAT gate.**
+  Tiga deklarasi, dua bentuk yang saling bertabrakan:
+  `class ApiResult<T> {data, error, code}` di
+  `domains/system/support/data/datasources/support_api_datasource.dart`
+  (fold named, **error KEDUA**, `onError(String, String?)`) DAN
+  `typedef ApiResult<T> = ({T? data, String? error})` (record, **tanpa kanal
+  code sama sekali**) di `features/search/search/domain/repositories/
+  search_repository.dart` + `search_history_repository.dart`. Gate
+  `result_authority_contract_test.dart` hanya menyapu 3 nama (`Result`,
+  `RepositoryResult`, `ContentRepositoryResult`), jadi buta terhadap nama ini.
+  Konsekuensi nyata: domain search tidak punya kanal code → kegagalan transport
+  di search tidak bisa diklasifikasi. Scope tersendiri.
+- **P2 `support_repository_api._mapApiErrorToFailure`** masih mencocokkan teks
+  ('network'/'connection'/'timeout') untuk memilih `SupportFailureNetwork`, dan
+  `code` yang diterimanya adalah status code sebagai STRING (`'404'`, `'403'`).
+  Satu paket dengan penggabungan `ApiResult`/`SupportResult`/`SupportFailure`.
+- **P2 `auction_detail_screen._buildErrorScaffold`** mencocokkan teks
+  ('network'/'connection'/'not found'/'permission'/'expired'). State notifier-nya
+  hanya membawa `String? error`, jadi butuh mengalirkan `errorCode` ke state
+  presentasi — scope state, bukan scope klasifikasi API.
+- **P2 default code berbasis status HTTP** di `api_exception.dart`
+  (`'BAD_REQUEST'`, `'UNAUTHORIZED'`, `'FORBIDDEN'`, …): `_parseErrorResponse`
+  selalu memanggil `fromStatusCode(code: code)` dengan `code` nullable, dan
+  argumen eksplisit `null` MENIMPA default — jadi default itu tidak pernah
+  bertahan di jalur nyata. Fabricated-but-dead; nol konsumen
+  (`grep "== 'UNAUTHORIZED'"` dst = 0). Jangan dihapus bersamaan dengan scope ini.
+- **P3 `FailureFactory.network/validation/unexpected`** di `core/errors/failure.dart`:
+  nol pemanggil (`grep -rn "FailureFactory\."` = 0). `network()` kini merujuk
+  konstanta; dua literal lain mati bersama pemanggilnya.
+- **P2 `lib/domains/finance/finance_gateway.dart`** masih dead (temuan sesi
+  sebelumnya), belum dipurge.
+
+### 7. Git status
+
+Belum di-commit. Milik sesi ini (lanjutan 5): 8 file `lib` + 3 file `test`
+(1 baru). Working tree tetap multi-agen — **jangan `git add -A`**.
+
+### 8. Owner retest
+
+Ringan: (1) matikan backend lalu lakukan initiate payment → copy
+"Koneksi bermasalah. Periksa koneksi internet Anda lalu coba lagi." (bukan lagi
+Inggris dari lapisan API); (2) matikan backend saat buka app → state
+`backendUnavailable`, kini dari code `BACKEND_UNREACHABLE`, bukan dari kata
+"network" di pesan. Alur sukses tidak tersentuh.
+
+### 9. Next (kandidat scope berikutnya — pilih satu)
+
+Purge dead-file (`retry_helper.dart` + `finance_gateway.dart`) · converge
+`ApiResult` (search) + `SupportResult`/`SupportFailure` (support) ke `Result` ·
+alirkan `errorCode` ke state presentasi (auction detail) · baseline bertanggal
+untuk 72 gagal pre-existing.
+
+---
+
+## Sesi 2026-09-28 (lanjutan 6) — `ApiResult` (vocabulary result keempat & kelima) dibunuh; search & support berhenti membuang `errorCode` (§11)
+
+**Scope aktif (tunggal):** `ApiResult` — satu `class` di support + DUA `typedef`
+bernamasama di search — harus mati, dan search/support harus berhenti membuang
+identitas kegagalan machine-readable (`errorCode`/`statusCode`) saat gagal.
+Bukan sekadar ganti nama tipe: tanpa memperbaiki kanal code, "migrasi" ini hanya
+memindahkan kebohongan lama ke tipe baru.
+
+### 1. Kondisi awal (terverifikasi, bukan asumsi)
+
+Tiga deklarasi, dua bentuk yang saling bertabrakan (temuan lanjutan 5, kini
+dikerjakan):
+
+1. `class ApiResult<T>` di `support_api_datasource.dart:293` — field
+   `data`/`error`/`code`; `fold` NAMED dan **error KEDUA**
+   (`onError(String error, String? code)`); `isSuccess => error == null`.
+2. `typedef ApiResult<T> = ({T? data, String? error})` di
+   `search_repository.dart` **dan** `search_history_repository.dart` — nama sama
+   dideklarasikan dua kali, **tanpa kanal code sama sekali**.
+
+Kerusakan nyata (alasan scope ini ada):
+
+- **Search meruntuhkan code jadi teks.** Impl search menangkap semua dengan
+  `catch (e)` dan mengembalikan `(data: null, error: 'Failed to ...: ${e}'`.
+  Kegagalan transport (`NETWORK_ERROR`/`TIMEOUT`/`BACKEND_UNREACHABLE`) datang
+  sebagai `DioException`→`ApiException` ber-code kanonik dari scope transport,
+  lalu dibuang. Konsumen tidak punya jalan lain selain cocok-cocokan teks.
+- **Support memakai status code sebagai STRING.** `_mapApiErrorToFailure`
+  switch pada `'403'/'401'/'404'/'409'/'400'`, sisanya mencocokkan TEKS pesan
+  ('already assigned', 'already resolved', 'network'/'connection'/'timeout').
+  Setelah scope transport, code transport adalah `'NETWORK_ERROR'` dst — bukan
+  status numerik — jadi cabang network berbasis teks itu hanya benar kalau
+  pesannya kebetulan memuat kata "network".
+
+### 2. Authority yang dikunci
+
+- `core/common/result.dart` `Result<T>` = satu-satunya vocabulary hasil. Sesi ini
+  menambah anggotanya, bukan membuat yang baru.
+- `ApiExceptionFactory.fromTransport` + `isTransportFailureCode` tetap SATU
+  authority klasifikasi. Sesi ini **tidak** menambah tabel `DioExceptionType`
+  kedua; gate transport menegakkannya (lihat §4).
+- `StructuredApiException` = jembatan `throw` → `Result` untuk lapisan data yang
+  masih melempar (pola yang sudah dipakai auction), sehingga klasifikasi tetap
+  terjadi sekali di lapisan API dan repo hanya menerjemahkan.
+
+### 3. Perubahan
+
+`lib` (10 file):
+
+1. `domains/system/support/data/datasources/support_api_datasource.dart` —
+   `class ApiResult<T>` + blok `API RESULT TYPE` DIHAPUS; 2 helper + 7 method →
+   `Future<Result<T>>`; cabang envelope sekarang meneruskan
+   `code` **dan** `statusCode`; cabang `DioException` meneruskan
+   `code: exception.code, statusCode: exception.statusCode` (tidak lagi hanya
+   `code`).
+2. `domains/system/support/data/repositories/support_repository_api.dart` —
+   `fold(onError:, onSuccess:)` NAMED dibuang → `if (result.isError)`;
+   `_mapApiErrorToFailure` kini menerima `Result<Object?>` dan memutuskan dari
+   `isTransportFailureCode(result.errorCode)` + `switch (result.statusCode)`;
+   cabang `code == '404'` di `getTicket` → `statusCode`; SELURUH cocok-teks
+   dihapus.
+3. `features/search/search/domain/repositories/search_repository.dart` —
+   `typedef ApiResult` DIHAPUS; 5 signature → `Result<...>`.
+4. `features/search/search/domain/repositories/search_history_repository.dart` —
+   `typedef ApiResult` DIHAPUS; 4 signature → `Result<...>`.
+5. `features/search/search/data/remote/search_api_service.dart` — +satu
+   `_guard<T>` (`DioException` → `StructuredApiException(message, code,
+   details)` lewat `_apiClient.extractException`) membungkus 8 pemanggilan
+   `_apiClient`; nol literal code, nol `DioExceptionType`.
+6. `features/search/search/data/search_repository_impl.dart` — record literal →
+   `Result.success`/`Result.error`; +`_failure` (membaca `StructuredApiException`)
+   dan +`_propagate` (meneruskan `errorCode`/`statusCode`/`errorDetails` saat satu
+   domain gagal di `searchAll`); cast `as ApiResult<...>` → `as Result<...>`.
+7. `features/search/search/data/search_history_repository_impl.dart` — idem,
+   +`_failure`.
+8. `features/search/search/domain/usecases/search_usecase.dart` — `data != null`
+   → `isError`, dan kegagalan diteruskan **dengan** `errorCode`/`statusCode`/
+   `errorDetails` (sebelumnya diratakan jadi pesan).
+9. `features/search/search/presentation/providers/search_history_notifier.dart` —
+   `.error != null` / `.error == null` → `.isError` / `.isSuccess`.
+10. `features/search/search/search.dart` — `ApiResult` dicabut dari klausa
+    `show` barrel (satu-satunya jalur publik vocabulary itu).
+
+`test` (4 file): 3 wiring test search-history (fake `ApiResult` → `Result`) +
+`test/core/result_authority_contract_test.dart` (gate diperluas).
+
+### 4. Gate & proof
+
+Gate lama (`result_authority_contract_test.dart`) **buta** terhadap nama ini — ia
+hanya menyapu `Result`/`RepositoryResult`/`ContentRepositoryResult`. Sekarang:
+
+1. `ApiResult` masuk `_duplicateNames` (sweep `lib`+`test`, tanpa allowlist) DAN
+   masuk regex deklarasi (`class ApiResult<T> {` maupun
+   `typedef ApiResult<T> = ({...})`), jadi `homes['ApiResult']` wajib `null`.
+2. Positive proof surface: 3 file (datasource support + 2 interface search)
+   wajib masih menyebut `Result<`.
+3. Positive proof support: `isTransportFailureCode(code)` + `result.statusCode`
+   ada; **negative proof**: `error.contains(` dan `case '404'` DILARANG — teks
+   pesan bukan lagi authority keluarga kegagalan.
+4. Positive proof search: `extractException` + `StructuredApiException` ada di
+   `search_api_service.dart`, `error is StructuredApiException` + `code:
+   error.code` ada di kedua impl; **negative proof**: `DioExceptionType.`
+   DILARANG di service (tabel kedua), `data: null, error:` DILARANG di impl
+   (bentuk record tanpa code).
+5. Negative proof detektor ditambah dua bentuk `ApiResult` di atas.
+
+**Negative proof nyata dijalankan (3 probe terpisah, bukan satu):**
+
+- Probe A: `typedef ApiResult<T> = ({T? data, String? error});` ditanam ulang di
+  `search_repository.dart` → **GAGAL** di 2 test ("Result is declared in exactly
+  one file under lib/" menampilkan `homes['ApiResult']` = file itu, dan "no file
+  anywhere names a duplicate result type").
+- Probe B: `isTransportFailureCode(code)` diganti `error.contains('network')` +
+  `case '404'` ditanam di mapper support → **GAGAL** di test klasifikasi support.
+- Probe C: `code: error.code` dibuang dari `_failure` dan satu call site
+  dikembalikan ke `Result.error('Failed to search contents: $e')` → **GAGAL** di
+  test "search carries the API failure code across its throw boundary".
+
+Semua probe dihapus → gate result **10/10 PASS**, dan bersama gate transport
+**24/24 PASS**.
+
+**Gate gate bekerja lintas scope:** komentar doc saya di mapper support sempat
+menyebut literal `NETWORK_ERROR`/`TIMEOUT`; gate transport
+("no transport code literal exists outside the authority file") menangkapnya
+sebagai pelanggaran → komentar ditulis ulang tanpa literal → PASS. Tidak ada
+pengecualian yang ditambahkan ke gate itu.
+
+### 5. Verifikasi
+
+- `flutter analyze lib test` = **0 error**, **149 issue** (= baseline persis).
+- `test/core/result_authority_contract_test.dart` + `test/features/search` +
+  `test/domains/system/support` = **129 PASS** (termasuk 3 wiring test search
+  history dan 4 test kontrak support; tanpa skip).
+- Gabungan lebih luas (`test/core` + `test/features/search` +
+  `test/domains/system/support` + 2 test mention widget + proof chat) = **512
+  test, 18 gagal**. Ketiga belas+lima-nya **bukan milik sesi ini**: 13 mention
+  (`UnimplementedError: ApiClient must be provided externally` — keluarga
+  pre-existing), 4 router (3 `create_auction_route_contract_test` + 1
+  `router_lifetime_preservation_test`, pre-existing), 1 gate media
+  (`media_pick_engine_authority_test`, lihat §6). Nol regresi dari perubahan ini.
+- Grep penutup: `ApiResult` di `lib` = **0**; `ApiResult` di `test` = **hanya**
+  gate yang sengaja menamainya sebagai detektor.
+
+### 6. Temuan luar scope (diparkir, tidak dikerjakan)
+
+- **P2 `SupportResult`/`SupportFailure` masih hidup = vocabulary hasil kelima.**
+  Sesi ini hanya menyembuhkan jalur MASUK-nya (code). Keluarganya sendiri masih
+  punya `dataOrThrow`, `fold` NAMED sukses-dulu, dan `isSuccess => failure ==
+  null`. Paket tersendiri: converge ke `Result<T>` atau kanonikkan sebagai tipe
+  domain — jangan setengah jalan.
+- **P2 `SupportFailureAlreadyResolved` + `SupportFailureCannotReopen` kini NOL
+  konstruktor.** Satu-satunya jalan menuju `AlreadyResolved` dulu adalah
+  substring `'already resolved'` yang sesi ini bunuh. Varian itu sekarang mati
+  tapi masih diekspor; jangan dihidupkan kembali lewat pencocokan teks, dan
+  jangan dihapus terpisah dari scope `SupportFailure`.
+- **P3 semantik mapper support dipertahankan apa adanya:** 409 →
+  `AlreadyAssigned`, 400/422 → `Validation`, 401/403 → `Permission`, 404 →
+  `NotFound`. Sesi ini hanya memindahkannya dari string status ke
+  `result.statusCode`; apakah keluarga 409/422 itu benar untuk API user-side
+  (reopen/conflict) adalah pertanyaan kontrak yang belum diadili.
+- **P2 gate media merah oleh file agen lain.**
+  `test/core/media/media_pick_engine_authority_test.dart` gagal karena
+  `lib/domains/commerce/transaction/order/presentation/widgets/
+  evidence_media_gallery.dart` (untracked, bukan milik sesi ini) mendeteksi video
+  secara lokal: `url.toLowerCase().contains('/videos/')` dan
+  `.split('?').first.endsWith('.mp4')`. Authority-nya
+  `MediaUploadOrchestrator.isVideoUrl/isVideoFile`. Gate bekerja benar; yang
+  perlu dibereskan file itu (agen pemiliknya).
+- **P2 pre-existing, tidak tersentuh:** 13 test mention
+  (`ApiClient must be provided externally`), 3 `create_auction_route_contract`
+  + 1 `router_lifetime_preservation`, keluarga feed promoted & saved_item.
+  Baseline bertanggal masih belum dibuat.
+- **Sisa vocabulary "hasil/gagal" yang BELUM converge (tidak berubah sesi ini):**
+  `Either<Failure,T>` dartz di 6 use case follow (purge `core/errors/failure.dart`
+  DIBATALKAN atas koreksi data — `Failure` masih tipe `Left`), `Withdrawal.isSuccess`,
+  `PaymentResult`/`PaymentResultStatus`, `SupportResult`/`SupportFailure`,
+  `finance_gateway.dart` (dead file), `retry_helper.dart` (dead file).
+
+### 7. Git status
+
+Belum di-commit. Milik sesi ini (lanjutan 6): **10 file `lib` + 4 file `test`**
+(0 file baru). Working tree tetap multi-agen (`evidence_media_gallery.dart`
+untracked dari agen lain, backend Go & file media lain ikut berubah) —
+**jangan `git add -A`**.
+
+### 8. Owner retest
+
+Ringan, dua jalur yang dulu kehilangan code: (1) matikan backend lalu lakukan
+pencarian → state error kini berasal dari code transport (`BACKEND_UNREACHABLE`),
+bukan dari kalimat pesan, dan pencarian tidak lagi "berhasil" dengan daftar
+kosong; (2) matikan backend lalu buka/balas ticket support →
+`SupportFailureNetwork` dipilih karena code, bukan karena kata "network" di
+pesan. Alur sukses (search & support) tidak tersentuh.
+
+### 9. Next (kandidat scope berikutnya — pilih satu)
+
+Converge `SupportResult`/`SupportFailure` (vocabulary hasil kelima) · alirkan
+`errorCode` ke state presentasi (`auction_detail_screen` masih `String`) · purge
+dead-file (`retry_helper.dart` + `finance_gateway.dart`) · converge 6 use case
+follow off dartz `Either<Failure,T>` · baseline bertanggal untuk 72 gagal
+pre-existing.
+
+---
+
+## Sesi 2026-09-28 (lanjutan 7) — purge dead-file: `retry_helper.dart` + `finance_gateway.dart` (§11)
+
+**Scope aktif (tunggal):** dua file yang sesi-sesi sebelumnya sebut "dead total"
+harus DIBUKTIKAN mati lewat sweep referensi seluruh repo, lalu dihapus, lalu
+dikunci supaya tidak bisa hidup lagi. Klaim mati tanpa bukti bukan bukti; klaim
+mati yang salah = menghapus kapabilitas.
+
+### 1. Bukti kematian (sweep, bukan asumsi)
+
+Sweep dilakukan atas file TRACKED (`git grep`, seluruh index, semua tipe file)
+DAN file UNTRACKED (termasuk milik agen lain: `evidence_media_gallery.dart`,
+`store_photo_preview.dart`, gate-gate baru):
+
+- `git grep -n -I -e RetryHelper -e RetryConfig -e RetryFutureExtension -e
+  retry_helper -e FinanceGateway -e FinanceResult -e finance_gateway` di SELURUH
+  repo → hanya 3 kategori: (a) file itu sendiri, (b) catatan ledger
+  (`PARKIRAN_AUDIT.md`, `KONDISI_APP.md`) yang menyebutnya sebagai bahan audit,
+  (c) NOL rujukan kode/test.
+- `grep -rn` di `apps/mobile/lib` + `apps/mobile/test` → nol rujukan di luar
+  kedua file itu.
+- `tool/`, `assets/`, `android/`, `ios/` → nihil. Satu-satunya "match" adalah
+  `android/.gradle/8.12/executionHistory/executionHistory.bin`, cache build
+  Gradle lama yang kebetulan memuat string hasil kompilasi lampau — artefak,
+  bukan jalur hidup (dan tidak boleh "dibersihkan" oleh sesi ini).
+- Nol barrel: `lib/core/core.dart` meng-export `src/utils/...` (direktori BEDA
+  dari `lib/core/utils/`), dan `lib/domains/finance/` tidak punya file `.dart`
+  lain di root-nya — jadi tidak ada `export` yang menyembunyikan importer.
+
+Isi keduanya 100% self-contained — nol importer, nol implementor, nol konsumen,
+nol test:
+
+1. `lib/core/utils/retry_helper.dart` (284 baris) — `RetryConfig` (termasuk
+   `RetryConfig.network`/`.critical`), `RetryHelper.execute`/`executeResult`
+   (exponential backoff + jitter), extension `RetryFutureExtension.retry`.
+   `_isRetryableError` memutuskan retry dengan MENCOCOKKAN TEKS error
+   ('network'/'connection'/'timeout'/'socket'/'internet'/'500'..'504'/'429'),
+   dan `executeResult` membuang `errorCode` sebelum memutuskan. Jadi: kebijakan
+   retry yang tidak pernah dijalankan app, dengan aturan klasifikasi yang JUSTRU
+   sudah dilarang total oleh scope transport (lanjutan 5).
+2. `lib/domains/finance/finance_gateway.dart` — `abstract class FinanceGateway`
+   (7 method: charge/releaseEscrow/refund/checkBalance/getBalance/holdFunds/
+   verifyPayment) + `FinanceResult<T>` (`dataOrThrow`, `isSuccessful`) +
+   `FinanceException`. Nol implementor, nol konsumen, nol barrel.
+
+**Authority check (kenapa purge ini TIDAK melanggar "authority dulu").**
+`finance_gateway.dart` MENGKLAIM dirinya otoritas arsitektur di dok headernya:
+"commerce CANNOT directly import or call finance repositories … ✅ REQUIRED: Use
+FinanceGateway interface for all finance operations". Klaim itu sudah dibatalkan
+kenyataan di DUA arah: `lib/domains/commerce/**` mengimpor `domains/finance/**`
+(coins, payment entity, payment presentation, `payment_result_notifier`), dan
+`lib/domains/finance/**` mengimpor `domains/commerce/**` (`order`, `order_status`,
+`order_providers`). Dokumen owner (`KONDISI_APP.md`, `GUIDE_CLEANUP.md`,
+`cara-kerja.md`) tidak satu pun menyebut `FinanceGateway`/`RetryHelper` sebagai
+wajib (sweep `-- "*.md"` = nol). Jadi ini *fake authority*, bukan authority —
+yang berhak menentukan boundary adalah owner, dan keputusan boundary
+commerce↔finance yang sebenarnya masuk §5 sebagai scope terpisah.
+
+### 2. Perubahan
+
+- `lib/core/utils/retry_helper.dart` **DIHAPUS** (284 baris).
+- `lib/domains/finance/finance_gateway.dart` **DIHAPUS** (`FinanceGateway` +
+  `FinanceResult` + `FinanceException`) — sekaligus membunuh vocabulary hasil
+  KEENAM sebelum sempat dipakai.
+- `test/core/dead_file_purge_contract_test.dart` **BARU** (gate, 4 test).
+- Tidak ada file lain disentuh. Direktori induk tetap hidup dan diverifikasi:
+  `lib/core/utils/` masih berisi `polling_monitor.dart` (dipakai
+  `auction_repository_impl` + `seller_remote_datasource`) dan
+  `notification_navigation_handler.dart` (dipakai 3 service notifikasi);
+  `lib/domains/finance/` masih berisi `transaction/` + `wallet/`.
+
+### 3. Gate & proof
+
+`test/core/dead_file_purge_contract_test.dart` mengeklaim empat hal:
+
+1. Kedua file yang dipurge **tetap mati** (`File.existsSync() == false`).
+2. **Nol kode menamainya lagi** — sweep `lib` + `test` (semua `.dart`,
+   termasuk file untracked) + `pubspec.yaml`, mencocokkan DUA bentuk: identifier
+   ber-word-boundary (`RetryHelper`, `RetryConfig`, `RetryFutureExtension`,
+   `FinanceGateway`, `FinanceResult`, `FinanceException`) DAN fragmen path
+   (`utils/retry_helper.dart`, `finance/finance_gateway.dart`) — karena jalur
+   kebangkitan yang sebenarnya adalah baris `import`/`export`, bukan nama kelas.
+   Dokumen (`*.md`) SENGAJA di luar sweep: ledger mencatat purge ini DENGAN NAMA,
+   dan prosa tidak bisa menghidupkan kode terkompilasi.
+3. Surface sweep nyata + purge ter-scope: lantai jumlah file (>1400) dan tiga
+   "live neighbour" wajib masih ada (`polling_monitor.dart`,
+   `notification_navigation_handler.dart`, `payment_repository.dart`) — gate ini
+   tidak boleh bisa lulus dengan menghapus direktori.
+4. Negative proof detektor (identifier word-boundary menangkap `class
+   RetryHelper {`/`FinanceResult>` tetapi TIDAK menangkap `_isRetryableError`
+   maupun `FinanceResultX`; fragmen path menangkap bentuk `import`).
+
+**Negative proof nyata dijalankan (2 probe terpisah):**
+
+- Probe A: `lib/core/utils/retry_helper.dart` dibuat ulang (`class RetryHelper {
+  static void execute() {} }`) → **GAGAL di 2 test** ("purged dead files stay
+  deleted" + "no code names a purged dead file or its vocabulary", pelanggar
+  `lib/core/utils/retry_helper.dart names RetryHelper`). Probe dihapus.
+- Probe B: satu baris komentar ditanam di file HIDUP
+  (`lib/core/utils/polling_monitor.dart`: `// probe: RetryConfig and
+  finance/finance_gateway.dart …`) yang tetap KOMPILASI — untuk membuktikan
+  detektor jalan pada kode yang sehat, bukan hanya pada file yang dihapus →
+  **GAGAL di test 2**. File dikembalikan dan diverifikasi byte-identik
+  (`git diff --stat` = kosong).
+
+Semua probe bersih → gate **4/4 PASS**.
+
+### 4. Verifikasi
+
+- `flutter analyze lib test` = **0 error**, **149 issue** (= baseline persis,
+  tidak berubah walau 2 file hilang — bukti keduanya nol issue/nol konsumen).
+- `test/core` + `test/domains/finance` = **436 test, 8 gagal**, ketujuhnya
+  pre-existing dan tidak satu pun menyentuh purge ini: 3
+  `payment_result_notifier_test` (authority `order.status` vs resource payment),
+  3 `create_auction_route_contract_test` + 1 `router_lifetime_preservation_test`
+  (router), 1 `media_pick_engine_authority_test` (file agen lain).
+- Grep penutup: `RetryHelper|RetryConfig|RetryFutureExtension|retry_helper|
+  FinanceGateway|FinanceResult|FinanceException|finance_gateway` di `lib` =
+  **0**; di `test` = hanya gate yang sengaja menamainya sebagai detektor.
+
+### 5. Temuan luar scope (diparkir, tidak dikerjakan)
+
+- **P1 boundary commerce↔finance TIDAK PERNAH DITEGAKKAN.** Satu-satunya tempat
+  aturan itu dinyatakan adalah dok header file yang kini mati, dan kenyataan
+  sudah dua arah: commerce → finance (coins, payment entity/presentation,
+  `payment_result_notifier`) dan finance → commerce (`order`, `order_status`,
+  `order_providers`). Purge ini TIDAK memutuskan boundary mana yang benar; ia
+  hanya berhenti memajang aturan yang tidak dijalankan. Butuh keputusan owner
+  (tegakkan lewat gate import, atau nyatakan boundary dua arah sebagai kanonik
+  dan hapus aturannya).
+- **P2 retry TIDAK ADA di jalur hidup mana pun sekarang.** `retry_helper.dart`
+  mati dan tidak ada pengganti; `ApiClient`/`BaseApiRepository` tidak punya
+  retry. Ini konsisten dengan
+  `LABUDA_IDENTITY_AUTH_DESIGN_PROPOSAL.md` yang menyatakan auto-retry backoff
+  pada sync "sudah dibunuh (Stage 3B) … tidak boleh dikembalikan" — jadi
+  keputusan sadar, bukan kehilangan. Kalau nanti retry dibutuhkan, bangun di
+  jalur `Result` berbasis `isTransportFailureCode` + `errorCode`,
+  JANGAN hidupkan kembali `_isRetryableError` yang mencocokkan teks.
+- **P3 `RetryConfig.critical`** menyebut "critical operations like user sync" —
+  user sync di app sudah tanpa retry otomatis; tidak ada lagi yang merujuk
+  konsep itu.
+- **P3 cache Gradle** `apps/mobile/android/.gradle/**/executionHistory.bin`
+  masih memuat string kelas yang sudah mati. Artefak build lokal (bukan tracked),
+  tidak berdampak; tidak dibersihkan oleh sesi ini.
+- Sisa vocabulary "hasil/gagal" yang belum converge (tidak berubah):
+  `SupportResult`/`SupportFailure` (kelima — sisa berikutnya), `PaymentResult`/
+  `PaymentResultStatus`, `Either<Failure,T>` dartz di 6 use case follow,
+  `Withdrawal.isSuccess`. Vocabulary keenam (`FinanceResult`) mati bersama purge
+  ini.
+
+### 6. Git status
+
+Belum di-commit. Milik sesi ini (lanjutan 7): **2 file `lib` DIHAPUS + 1 file
+`test` BARU**. Working tree tetap multi-agen (backend Go, file media agen lain,
+`evidence_media_gallery.dart` untracked) — **jangan `git add -A`**.
+
+### 7. Owner retest
+
+Tidak ada alur pengguna yang berubah: kedua file tidak punya call site, jadi
+nol permukaan UI/network. Cukup smoke test biasa (buka app, checkout, buka
+support) untuk memastikan tidak ada regresi tak terduga dari penghapusan.
+
+### 8. Next (kandidat scope berikutnya — pilih satu)
+
+Converge `SupportResult`/`SupportFailure` (vocabulary hasil kelima, sisa
+terdekat) · tegakkan atau batalkan boundary commerce↔finance sebagai gate import
+(butuh keputusan owner) · alirkan `errorCode` ke state presentasi
+(`auction_detail_screen`) · converge 6 use case follow off dartz
+`Either<Failure,T>` · baseline bertanggal untuk 72 gagal pre-existing.
+
+## Sesi 2026-09-28 (malam) — Tema: SATU WARNA SATU NAMA + purge 2 zombie lib
+
+### 1. Verdict
+Dua scope ditutup dan terverifikasi, keduanya bounded: (a) konvergensi nama
+warna status — satu warna satu nama, **253 situs di 66 file** dipindahkan ke
+nama kanonik **tanpa perubahan visual** (const yang sama, hanya beda ejaan);
+(b) purge 2 zombie `lib/` yang diparkir sesi siang. Scope tema yang sudah hijau
+(gate lib-wide, fundasi AppTheme) **tidak dibuka kembali** — diperkuat saja.
+
+### 2. Root cause
+`AppColors` menyimpan satu warna dengan **tiga nama**: `error = statusError`,
+`success = statusSuccess = successGreen`, `warning = statusWarning =
+warningYellow`, plus `primary = primaryRed`. Karena nilainya identik, tiap
+layar boleh memilih ejaan sendiri dan tidak ada yang merasa salah — duplicate
+authority yang tak terlihat. Dari sisi lain,
+`Theme.of(context).primaryColor` (role M2) menjawab pertanyaan "warna brand"
+di luar `colorScheme`, dan `AppColors.primary` mengulanginya dari sisi token.
+Gate lib-wide tidak memblokir nama-nama ini (cuma `primaryRed`/`primaryBlue`).
+
+### 3. Canonical behavior
+- Kanonik status (token brand tanpa scheme role): `AppColors.statusSuccess` /
+  `statusWarning` / `statusError` / `statusInfo`.
+- Jawaban kanonik untuk warna role: `Theme.of(context).colorScheme.*`
+  (`primary`, `error`). `Theme.of(context).primaryColor` **DILARANG**.
+- `AppColors` tidak lagi punya alias sama sekali (blok alias dihapus total).
+- `Colors.transparent` = exemption terdokumentasi (nilai bebas-mode untuk
+  scrim/immersive chrome, bukan pilihan palet).
+- `DetailChipWidget.color` kini `Color?` (null → inherit `scheme.primary`),
+  jadi varian `.size` tidak mengikat token brand di initializer const.
+- Zombie dibunuh: `core/dependencies/provider_scope_reader.dart` DIHAPUS
+  (+ direktori kosongnya) dan import `foundation.dart` mati di `api_config.dart`.
+
+### 4. File yang berubah
+- **66 file `lib/`**: rename `AppColors.error|success|warning|successGreen|warningYellow` → `status*` (253 situs).
+- **6 file `lib/`**: `AppColors.primary` / `Theme.of(context).primaryColor` → `colorScheme.primary` (`help_center_screen`, `profile_about_tab` ×2, `search_result_type_helper`, `location_picker_component`, `notification_navigation_service`, `saved_item_screen`).
+- `core/src/theme/app_colors.dart`: 8 baris alias dihapus (+2 blank sisa).
+- `shared/widgets/detail_chip_widget.dart`: field `Color?`, tint di-resolve dari scheme di `build`, `.size` menginit `color = null`.
+- `core/api/config/api_config.dart`: import `foundation.dart` mati dihapus.
+- **Dihapus**: `lib/core/dependencies/provider_scope_reader.dart` + direktori `core/dependencies/`.
+- **Test**: `test/core/theme/theme_authority_contract_test.dart` (+3 pola larangan: alias nama & `.primaryColor`; +3 sample resurrection, +3 sample legit, +6 asersi alias di `AppColors`), `test/core/dead_file_purge_contract_test.dart` (file ke-3 + identifier `_ProviderScopeHolder` + path fragment + negative proof).
+- **Dokumen**: `KONDISI_APP.md` §14 butir TEMA diperbarui (satu warna satu nama, `primaryColor` dilarang, exemption `Colors.transparent`).
+
+### 5. Residue yang dihapus
+6 alias const di `AppColors`; 2 baris komentar alias; 1 import mati; 1 kelas
+zombie (`_ProviderScopeHolder`, nol konsumen di `lib`/`test`/`tool`); 1 direktori
+kosong; 4 blank line sisa.
+
+### 6. Proof (command → hasil)
+- residue grep `AppColors.(primary|error|success|warning|successGreen|warningYellow)` + `.primaryColor` + path/nama file mati, di `lib`+`test`+`tool` → **0**.
+- `flutter analyze lib` → **23 issue, 0 error** (baseline 26: 3 warning zombie hilang, **tidak ada lint baru**).
+- `flutter analyze test/core/theme test/core/dead_file_purge_contract_test` → **No issues found**.
+- `flutter test test/core/theme test/core/dead_file_purge_contract_test test/core/file_authority_contract_test` → **23 PASS**.
+- `flutter test` 2 test checkout terdampak (satu-satunya test non-tema yang menyebut `AppColors`/`DetailChipWidget`) → **10 PASS**.
+- **Negative proof**: `AppColors.primary`, `AppColors.successGreen`, `Theme.of(context).primaryColor` WAJIB memicu gate; `scheme.primary`, `AppColors.statusWarning`, `Colors.transparent` WAJIB tidak — dipin dalam test, terbukti saat test ke-8 gagal sebelum pola `successGreen` ditambahkan.
+
+### 7. Kenapa tidak full regression
+Perubahan = rename nilai identik (const sama persis) + hapus file nol
+konsumen; bukti pengganti = `flutter analyze lib` 0 error (seluruh konsumen
+terkompilasi), residue grep 0, dan 33 test kontrak hijau. `test/` tidak pernah
+menyebut `AppColors.` (0 hit), jadi tidak ada fixture yang bergantung pada nama
+lama. Full regression tetap milik gate rilis.
+
+### 8. Parkiran (di luar scope, sudah diklasifikasi)
+1. **P2 — butuh keputusan owner (visual): dua hijau untuk semantik sukses.** `primaryGreen` #10B981 (32 situs/18 file: refund approved, chat category, operational queue) vs `statusSuccess` #059669 (197 situs). Menyatukannya MENGUBAH tampilan.
+2. **P2 — butuh keputusan owner (visual) + arsitektur: retune tone status untuk dark.** `scheme.error` = `statusError` = #DC2626 di KEDUA mode; kontras di atas `surface` dark #161B22 ≈ **3.6:1 (di bawah WCAG AA 4.5)**; `statusSuccess` ≈ 4.6:1 (pas), `statusWarning` ≈ 5.5:1. Perbaikan butuh authority per-brightness (ThemeExtension) karena `AppColors` bersifat const — kalau hanya `ColorScheme.error` yang diubah, `scheme.error` (96 situs) dan `AppColors.statusError` (182 situs) berbeda nilai = divergensi.
+3. **P2** — `scheme.error` (96) vs `AppColors.statusError` (182) masih dua nama untuk nilai sama; menyatu otomatis kalau status diangkat ke ThemeExtension.
+4. **P2** — regex gate tersalin di `checkout_theme_authority_contract_test.dart:367` (versi subset) → risiko drift; hoist ke satu definisi.
+5. **P2** — `appBarTheme`/`cardTheme`/`elevatedButtonTheme`/`inputDecorationTheme` masih bind token mentah (nilai kebetulan = role scheme, drift laten) dan **tidak ikut dipin** test "component themes pinned to scheme"; plus 2 override AppBar per-widget (`main_app_bar.dart:51`, `media_viewer_widget.dart:67`) dan 31 `Scaffold(backgroundColor:)`.
+6. **P3** — typography scale ad-hoc: 0 `textTheme:` di `AppTheme`, 234 `TextStyle(fontSize:)` dengan 16 nilai berbeda (14/12/16/13/…) — menetapkan skala tipografi = keputusan owner.
+7. **P3** — 22× `use_null_aware_elements`, `USE_FIREBASE` bukan lowerCamelCase, 19 file masih mengimpor `app_colors.dart` langsung (saat ini hanya token status/brand, sah menurut gate).
+
+### 9. Git status
+Belum di-commit (owner belum minta). Milik sesi ini: 66 file rename, 8 file
+edit, 1 file `D` + 1 direktori kosong, 2 file test, 1 dokumen. Sisa working
+tree (±160 file) milik sesi/agen lain — jangan ikut di-stage.
+
+### 10. Owner retest diperlukan?
+Belum. **Nol perubahan visual** di scope ini (nilai warna identik, file yang
+dihapus nol konsumen). Yang menunggu keputusan owner ada di parkiran #1 dan #2.

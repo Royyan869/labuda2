@@ -110,14 +110,14 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
           title: Text(
             'Addresses',
             style: TextStyle(
-              fontSize: 18,
+              fontSize: AppType.s18,
               fontWeight: FontWeight.w600,
               color: scheme.onSurfaceVariant,
             ),
           ),
           backgroundColor: scheme.onSurfaceVariant,
           foregroundColor: scheme.onSurfaceVariant,
-          elevation: 0,
+          elevation: AppElevation.none,
           surfaceTintColor: Colors.transparent,
           scrolledUnderElevation: 0,
           leading: IconButton(
@@ -241,7 +241,7 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
         title: const Text('Addresses'),
         backgroundColor: scheme.onSurfaceVariant,
         foregroundColor: scheme.onSurfaceVariant,
-        elevation: 0,
+        elevation: AppElevation.none,
         surfaceTintColor: Colors.transparent,
         scrolledUnderElevation: 0,
       ),
@@ -268,12 +268,12 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
     }
 
     return ListView(
-      padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 16),
+      padding: const EdgeInsets.only(left: AppMetrics.p16, right: AppMetrics.p16, top: AppMetrics.p16, bottom: AppMetrics.p16),
       children: [
         // Address Cards
         ...filteredAddresses.map((address) {
           return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.only(bottom: AppMetrics.p12),
             child: _buildAddressCard(
               context,
               address,
@@ -296,7 +296,7 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
   ) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppMetrics.p24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -311,7 +311,7 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
             Text(
               'No ${purpose.label} Yet',
               style: TextStyle(
-                fontSize: 20,
+                fontSize: AppType.s20,
                 fontWeight: FontWeight.bold,
                 color: scheme.onSurfaceVariant,
               ),
@@ -323,7 +323,7 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
                   : 'Add a sender address (farm/warehouse location)',
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: AppType.s14,
                 color: scheme.onSurfaceVariant,
               ),
             ),
@@ -349,7 +349,7 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
     }
 
     return Container(
-      padding: const EdgeInsets.only(left: 16, right: 16, top: 12, bottom: 12),
+      padding: const EdgeInsets.only(left: AppMetrics.p16, right: AppMetrics.p16, top: AppMetrics.p12, bottom: AppMetrics.p12),
       decoration: BoxDecoration(
         color: scheme.surface,
         border: Border(
@@ -367,9 +367,9 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
           style: ElevatedButton.styleFrom(
             backgroundColor: scheme.primary,
             foregroundColor: scheme.onPrimary,
-            padding: const EdgeInsets.symmetric(vertical: 14),
+            padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppShape.r12),
             ),
           ),
         ),
@@ -382,7 +382,7 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: scheme.onSurfaceVariant,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppShape.r16)),
         title: Row(
           children: [
             Icon(Icons.info_outline, color: scheme.primary, size: 24),
@@ -390,7 +390,7 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
             Text(
               'Address Information',
               style: TextStyle(
-                fontSize: 18,
+                fontSize: AppType.s18,
                 fontWeight: FontWeight.bold,
                 color: scheme.onSurfaceVariant,
               ),
@@ -416,10 +416,10 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
             ),
             const SizedBox(height: 16),
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(AppMetrics.p12),
               decoration: BoxDecoration(
                 color: scheme.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(AppShape.r8),
               ),
               child: Row(
                 children: [
@@ -429,7 +429,7 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
                     child: Text(
                       'Min. 1 address per category\nMax. 10 addresses per category',
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: AppType.s13,
                         color: scheme.onSurfaceVariant,
                       ),
                     ),
@@ -472,7 +472,7 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
               Text(
                 title,
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: AppType.s14,
                   fontWeight: FontWeight.w600,
                   color: scheme.onSurfaceVariant,
                 ),
@@ -480,7 +480,7 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
               Text(
                 desc,
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: AppType.s12,
                   color: scheme.onSurfaceVariant,
                 ),
               ),
@@ -503,7 +503,7 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
     return Container(
       decoration: BoxDecoration(
         color: scheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(
           color: address.isPrimary
               ? scheme.primary
@@ -512,7 +512,7 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
         ),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppMetrics.p16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -528,7 +528,7 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
                 Text(
                   address.displayLabel,
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: AppType.s16,
                     fontWeight: FontWeight.bold,
                     color: scheme.onSurfaceVariant,
                   ),
@@ -537,17 +537,17 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
                   const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
+                      horizontal: AppMetrics.p8,
+                      vertical: AppMetrics.p2,
                     ),
                     decoration: BoxDecoration(
                       color: scheme.primary,
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: BorderRadius.circular(AppShape.r4),
                     ),
 child: Text(
                        'Primary',
                       style: TextStyle(
-                        fontSize: 10,
+                        fontSize: AppType.s10,
                         fontWeight: FontWeight.w600,
                         color: scheme.onPrimary,
                       ),
@@ -604,12 +604,12 @@ child: Text(
                             Icon(
                               Icons.delete,
                               size: 18,
-                              color: AppColors.error,
+                              color: context.statusColors.error,
                             ),
                             const SizedBox(width: 8),
                             Text(
                               'Delete',
-                              style: TextStyle(color: AppColors.error),
+                              style: TextStyle(color: context.statusColors.error),
                             ),
                           ],
                         ),
@@ -633,7 +633,7 @@ child: Text(
                   child: Text(
                     '${address.recipientName} • ${address.phone}',
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: AppType.s13,
                       fontWeight: FontWeight.w500,
                       color: scheme.onSurfaceVariant,
                     ),
@@ -647,7 +647,7 @@ child: Text(
             Text(
               address.fullAddress,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: AppType.s14,
                 color: scheme.onSurfaceVariant,
               ),
             ),
@@ -656,10 +656,10 @@ child: Text(
             if (address.notes != null && address.notes!.isNotEmpty) ...[
               const SizedBox(height: 8),
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(AppMetrics.p8),
                 decoration: BoxDecoration(
                   color: scheme.onSurfaceVariant,
-                  borderRadius: BorderRadius.circular(6),
+                  borderRadius: BorderRadius.circular(AppShape.r6),
                 ),
                 child: Row(
                   children: [
@@ -669,7 +669,7 @@ child: Text(
                       child: Text(
                         address.notes!,
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: AppType.s12,
                           fontStyle: FontStyle.italic,
                           color: scheme.onSurfaceVariant,
                         ),
@@ -685,17 +685,17 @@ child: Text(
               const SizedBox(height: 8),
               InkWell(
                 onTap: () => _showCoordinatePreview(context, address, scheme),
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(AppShape.r6),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
+                    horizontal: AppMetrics.p10,
+                    vertical: AppMetrics.p6,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.success.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(6),
+                    color: context.statusColors.success.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(AppShape.r6),
                     border: Border.all(
-                      color: AppColors.success.withValues(alpha: 0.3),
+                      color: context.statusColors.success.withValues(alpha: 0.3),
                     ),
                   ),
                   child: Row(
@@ -704,22 +704,22 @@ child: Text(
                       Icon(
                         Icons.location_on,
                         size: 14,
-                        color: AppColors.success,
+                        color: context.statusColors.success,
                       ),
                       const SizedBox(width: 6),
                       Text(
                         'Pinpoint Location Saved',
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: AppType.s12,
                           fontWeight: FontWeight.w500,
-                          color: AppColors.success,
+                          color: context.statusColors.success,
                         ),
                       ),
                       const SizedBox(width: 4),
                       Icon(
                         Icons.chevron_right,
                         size: 14,
-                        color: AppColors.success,
+                        color: context.statusColors.success,
                       ),
                     ],
                   ),
@@ -795,7 +795,7 @@ child: Text(
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            style: TextButton.styleFrom(foregroundColor: context.statusColors.error),
             child: const Text('Delete'),
           ),
         ],

@@ -116,7 +116,7 @@ class _SupportTicketThreadScreenState
     final categoryConfig = CategoryConfig.get(ticket.category);
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainer,
         border: Border(
@@ -154,7 +154,7 @@ class _SupportTicketThreadScreenState
                 const SizedBox(width: 4),
                 Text(
                   'Order #${ticket.linkedOrderId!.substring(0, 8)}...',
-                  style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.secondary),
+                  style: TextStyle(fontSize: AppType.s12, color: Theme.of(context).colorScheme.secondary),
                 ),
               ],
             ),
@@ -165,7 +165,7 @@ class _SupportTicketThreadScreenState
           Text(
             'Created ${SupportUtils.formatTimeAgo(ticket.createdAt)}',
             style: TextStyle(
-              fontSize: 11,
+              fontSize: AppType.s11,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
@@ -180,21 +180,21 @@ class _SupportTicketThreadScreenState
     required int colorValue,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p10, vertical: AppMetrics.p4),
       decoration: BoxDecoration(
         color: Color(colorValue).withAlpha(40),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(color: Color(colorValue).withAlpha(128)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(icon, style: const TextStyle(fontSize: 12)),
+          Text(icon, style: const TextStyle(fontSize: AppType.s12)),
           const SizedBox(width: 4),
           Text(
             label,
             style: TextStyle(
-              fontSize: 11,
+              fontSize: AppType.s11,
               fontWeight: FontWeight.bold,
               color: Color(colorValue),
             ),
@@ -217,16 +217,16 @@ class _SupportTicketThreadScreenState
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(
+                Icon(
                   Icons.error_outline,
                   size: 48,
-                  color: AppColors.error,
+                  color: context.statusColors.error,
                 ),
                 const SizedBox(height: 16),
                 Text(
                   snapshot.error.toString(),
                   textAlign: TextAlign.center,
-                  style: const TextStyle(color: AppColors.error),
+                  style: TextStyle(color: context.statusColors.error),
                 ),
               ],
             ),
@@ -238,16 +238,16 @@ class _SupportTicketThreadScreenState
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(
+                Icon(
                   Icons.error_outline,
                   size: 48,
-                  color: AppColors.error,
+                  color: context.statusColors.error,
                 ),
                 const SizedBox(height: 16),
                 Text(
                   snapshot.data?.failure?.message ?? 'Failed to load messages',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(color: AppColors.error),
+                  style: TextStyle(color: context.statusColors.error),
                 ),
               ],
             ),
@@ -262,7 +262,7 @@ class _SupportTicketThreadScreenState
         }
 
         return ListView.builder(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppMetrics.p16),
           itemCount: messages.length,
           itemBuilder: (context, index) {
             final message = messages[index];
@@ -287,7 +287,7 @@ class _SupportTicketThreadScreenState
           Text(
             'Ticket berhasil dibuat',
             style: TextStyle(
-              fontSize: 18,
+              fontSize: AppType.s18,
               fontWeight: FontWeight.bold,
               color: Theme.of(context).colorScheme.onSurface,
             ),
@@ -296,7 +296,7 @@ class _SupportTicketThreadScreenState
           Text(
             'Tim support kami akan segera merespon',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
+            style: TextStyle(fontSize: AppType.s14, color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
         ],
       ),
@@ -307,7 +307,7 @@ class _SupportTicketThreadScreenState
   Widget _buildComposer() {
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+      padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p12, AppMetrics.p16, AppMetrics.p16),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainer,
         border: Border(
@@ -331,7 +331,7 @@ class _SupportTicketThreadScreenState
                 filled: true,
                 fillColor: Theme.of(context).colorScheme.surfaceContainer,
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(AppShape.r12),
                   borderSide: BorderSide.none,
                 ),
               ),
@@ -376,16 +376,16 @@ class _ThreadMessageCard extends StatelessWidget {
   Widget build(BuildContext context) {
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      elevation: 0,
+      margin: const EdgeInsets.only(bottom: AppMetrics.p16),
+      elevation: AppElevation.none,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         side: BorderSide(
           color: Theme.of(context).colorScheme.outlineVariant,
         ),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppMetrics.p16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -401,7 +401,7 @@ class _ThreadMessageCard extends StatelessWidget {
                   child: Text(
                     isFromUser ? 'Y' : 'S',
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: AppType.s12,
                       fontWeight: FontWeight.bold,
                       color: Theme.of(context).colorScheme.onPrimary,
                     ),
@@ -417,7 +417,7 @@ class _ThreadMessageCard extends StatelessWidget {
                       Text(
                         isFromUser ? 'You' : 'Support Team',
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: AppType.s14,
                           fontWeight: FontWeight.bold,
                           color: Theme.of(context).colorScheme.onSurface,
                         ),
@@ -425,7 +425,7 @@ class _ThreadMessageCard extends StatelessWidget {
                       Text(
                         _getSenderTypeLabel(),
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: AppType.s11,
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
@@ -437,7 +437,7 @@ class _ThreadMessageCard extends StatelessWidget {
                 Text(
                   _formatTimestamp(message.createdAt),
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: AppType.s11,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
@@ -450,7 +450,7 @@ class _ThreadMessageCard extends StatelessWidget {
             Text(
               message.displayText,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: AppType.s14,
                 height: 1.5,
                 color: Theme.of(context).colorScheme.onSurface,
               ),

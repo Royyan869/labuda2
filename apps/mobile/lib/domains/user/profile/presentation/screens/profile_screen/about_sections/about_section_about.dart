@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/domains/user/profile/profile.dart' show ProfileAboutData;
 import 'package:intl/intl.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// About section - displays bio, location, join date, last active
 class AboutSectionAbout extends StatelessWidget {
@@ -20,7 +21,7 @@ class AboutSectionAbout extends StatelessWidget {
           Text(
             data.bio,
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppType.s14,
               height: 1.5,
               color: scheme.onSurfaceVariant,
             ),
@@ -74,7 +75,7 @@ class AboutSectionAbout extends StatelessWidget {
         Text(
           text,
           style: TextStyle(
-            fontSize: 14,
+            fontSize: AppType.s14,
             color: scheme.onSurfaceVariant,
           ),
         ),

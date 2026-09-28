@@ -317,7 +317,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     if (_scrollController.hasClients) {
       _scrollController.animateTo(
         _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 300),
+        duration: AppMotion.settled,
         curve: Curves.easeOut,
       );
     }
@@ -520,7 +520,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                   style: Theme.of(
                     context,
                   ).textTheme.bodySmall?.copyWith(
-                    color: AppColors.statusSuccess,
+                    color: context.statusColors.success,
                   ),
                 ),
             ],
@@ -597,7 +597,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.error_outline, size: 64, color: AppColors.statusError),
+          Icon(Icons.error_outline, size: 64, color: context.statusColors.error),
           const SizedBox(height: 16),
           Text(
             'Failed to load messages',
@@ -724,12 +724,12 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   Widget _buildPendingReferenceChip(BuildContext context) {
     final reference = widget.pendingReference!;
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p8, AppMetrics.p16, AppMetrics.p0),
       child: Material(
         color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p4),
           child: Row(
             children: [
               Icon(
@@ -936,12 +936,12 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     final pending = _pendingCommerce!;
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p8, AppMetrics.p16, AppMetrics.p0),
       child: Material(
         color: scheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p4),
           child: Row(
             children: [
               Icon(Icons.sell_outlined, size: 20, color: scheme.primary),
@@ -985,14 +985,14 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   }
 
   /// Foto+video chat — 1 mesin, S3 presigned via orchestrator.
-  /// Kini mengirim sebagai text berisi URL (preview di bubble via Image.network).
+  /// Kini mengirim sebagai text berisi URL (preview di bubble via AppImage).
   /// Backend chat_media_assets ready untuk evolusi ke attachment_json.
   Future<void> _sendMediaMessage(String mediaUrl) async {
     final authState = ref.read(authControllerProvider);
     if (authState is! AuthStateAuthenticated) return;
     final senderId = authState.user.id;
     final senderName = authState.user.username.isNotEmpty ? authState.user.username : 'User';
-    final isVideo = mediaUrl.toLowerCase().endsWith('.mp4') || mediaUrl.contains('/videos/');
+    final isVideo = MediaUploadOrchestrator.isVideoUrl(mediaUrl);
     final content = isVideo ? '🎬 Video: $mediaUrl' : '📷 Foto: $mediaUrl';
     final notifier = ref.read(chatDetailProvider(widget.chatId).notifier);
     final result = await notifier.sendMessage(
@@ -1231,7 +1231,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
               Text(
                 shareRef.preview.title,
                 style: const TextStyle(
-                  fontSize: 13,
+                  fontSize: AppType.s13,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -1239,7 +1239,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
               Text(
                 'Masukkan harga tawaran Anda',
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: AppType.s12,
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
@@ -1789,10 +1789,10 @@ class _ChatVerificationBadge extends ConsumerWidget {
             (user.isIdVerified ?? false) ||
             (user.isFarmVerified ?? false);
         if (!isVerified) return const SizedBox.shrink();
-        return const Icon(
+        return Icon(
           Icons.verified,
           size: 16,
-          color: AppColors.statusInfo,
+          color: context.statusColors.info,
         );
       },
       loading: () => const SizedBox.shrink(),
@@ -1849,7 +1849,7 @@ class _MessageListWidget extends ConsumerWidget {
           // Loading indicator for more messages
           return const Center(
             child: Padding(
-              padding: EdgeInsets.all(16),
+              padding: EdgeInsets.all(AppMetrics.p16),
               child: CircularProgressIndicator(),
             ),
           );
@@ -1902,18 +1902,18 @@ class _MessageListWidget extends ConsumerWidget {
 
   Widget _buildDateHeader(BuildContext context, DateTime date) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: AppMetrics.p8),
       child: Center(
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p4),
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppShape.r12),
           ),
           child: Text(
             _formatDate(date),
             style: TextStyle(
-              fontSize: 12,
+              fontSize: AppType.s12,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),

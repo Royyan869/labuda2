@@ -85,7 +85,7 @@ class SettingsSupportSection extends ConsumerWidget {
     ColorScheme scheme,
   ) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p16, AppMetrics.p16, AppMetrics.p8),
       child: Row(
         children: [
           Icon(
@@ -97,7 +97,7 @@ class SettingsSupportSection extends ConsumerWidget {
           Text(
             title,
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppType.s14,
               fontWeight: FontWeight.w600,
               color: scheme.onSurfaceVariant,
             ),

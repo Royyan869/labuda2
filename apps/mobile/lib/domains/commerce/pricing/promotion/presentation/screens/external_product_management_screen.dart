@@ -51,7 +51,7 @@ class _ExternalProductManagementScreenState
           if (products.isEmpty) {
             return const Center(
               child: Padding(
-                padding: EdgeInsets.all(24),
+                padding: EdgeInsets.all(AppMetrics.p24),
                 child: Text(
                   'No external products yet.\nTap + to create one.',
                   textAlign: TextAlign.center,
@@ -61,7 +61,7 @@ class _ExternalProductManagementScreenState
           }
 
           return ListView.separated(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppMetrics.p16),
             itemCount: products.length,
             separatorBuilder: (_, _) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
@@ -178,11 +178,11 @@ class _ExternalProductCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(AppShape.r12),
       child: Container(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(AppMetrics.p14),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppShape.r12),
           border: Border.all(
             color: Theme.of(context).colorScheme.outlineVariant,
           ),
@@ -197,7 +197,7 @@ class _ExternalProductCard extends StatelessWidget {
                     product.title,
                     style: const TextStyle(
                       fontWeight: FontWeight.w700,
-                      fontSize: 16,
+                      fontSize: AppType.s16,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -210,7 +210,7 @@ class _ExternalProductCard extends StatelessWidget {
             Text(
               product.externalUrl,
               style: TextStyle(
-                fontSize: 13,
+                fontSize: AppType.s13,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               maxLines: 1,
@@ -221,7 +221,7 @@ class _ExternalProductCard extends StatelessWidget {
               Text(
                 product.rejectionReason!,
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: AppType.s12,
                   color: Theme.of(context).colorScheme.primary,
                 ),
                 maxLines: 2,
@@ -235,14 +235,14 @@ class _ExternalProductCard extends StatelessWidget {
                   Icon(
                     Icons.visibility,
                     size: 14,
-                    color: AppColors.successGreen,
+                    color: context.statusColors.success,
                   ),
                   const SizedBox(width: 4),
                   Text(
                     'Publicly visible',
                     style: TextStyle(
-                      fontSize: 12,
-                      color: AppColors.successGreen,
+                      fontSize: AppType.s12,
+                      color: context.statusColors.success,
                     ),
                   ),
                 ],
@@ -269,11 +269,11 @@ class _ReviewStatusBadge extends StatelessWidget {
       ),
       ExternalProductReviewStatus.pendingReview => (
         'Menunggu Review',
-        AppColors.warning,
+        context.statusColors.warning,
       ),
       ExternalProductReviewStatus.approved => (
         'Disetujui',
-        AppColors.successGreen,
+        context.statusColors.success,
       ),
       ExternalProductReviewStatus.rejected => (
         'Ditolak',
@@ -281,7 +281,7 @@ class _ReviewStatusBadge extends StatelessWidget {
       ),
       ExternalProductReviewStatus.requestChanges => (
         'Perlu Perbaikan',
-        AppColors.warning,
+        context.statusColors.warning,
       ),
       ExternalProductReviewStatus.hidden => (
         'Disembunyikan',
@@ -290,15 +290,15 @@ class _ReviewStatusBadge extends StatelessWidget {
     };
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p3),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         color: color.withValues(alpha: 0.1),
       ),
       child: Text(
         label,
         style: TextStyle(
-          fontSize: 12,
+          fontSize: AppType.s12,
           color: color,
           fontWeight: FontWeight.w600,
         ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Avatar picker options UI component
 ///
@@ -33,7 +34,7 @@ class AvatarPickerOptions extends StatelessWidget {
         children: [
           CircularProgressIndicator(color: scheme.primary),
           SizedBox(height: 20),
-          Text('Processing image...', style: TextStyle(fontSize: 14)),
+          Text('Processing image...', style: TextStyle(fontSize: AppType.s14)),
         ],
       );
     }
@@ -95,20 +96,20 @@ class AvatarPickerOption extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         child: Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppMetrics.p16),
           decoration: BoxDecoration(
             border: Border.all(color: scheme.outlineVariant),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppShape.r12),
           ),
           child: Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(AppMetrics.p12),
                 decoration: BoxDecoration(
                   color: iconColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(AppShape.r8),
                 ),
                 child: Icon(icon, color: iconColor, size: 24),
               ),
@@ -120,7 +121,7 @@ class AvatarPickerOption extends StatelessWidget {
                     Text(
                       label,
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: AppType.s16,
                         fontWeight: FontWeight.w500,
                         color: isDestructive
                             ? scheme.error
@@ -131,7 +132,7 @@ class AvatarPickerOption extends StatelessWidget {
                     Text(
                       description,
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: AppType.s14,
                         color: scheme.onSurfaceVariant,
                       ),
                     ),

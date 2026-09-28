@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/shared/widgets/hybrid_avatar.dart';
 import 'package:labuda/features/search/search/search.dart'; // R3.1: Import mention providers from search domain
+import 'package:labuda/core/core.dart';
 
 /// Overlay widget untuk show user suggestions saat mention
 ///
@@ -34,21 +35,21 @@ class MentionSuggestionOverlay extends ConsumerWidget {
     final usersAsync = ref.watch(mentionUserSearchProvider(searchParams));
 
     return Material(
-      elevation: 8,
-      borderRadius: BorderRadius.circular(12),
+      elevation: AppElevation.overlay,
+      borderRadius: BorderRadius.circular(AppShape.r12),
       color: scheme.surfaceContainerHigh,
       child: Container(
         constraints: const BoxConstraints(maxHeight: 250, minHeight: 60),
         child: usersAsync.when(
           loading: () => const Center(
             child: Padding(
-              padding: EdgeInsets.all(16),
+              padding: EdgeInsets.all(AppMetrics.p16),
               child: CircularProgressIndicator(),
             ),
           ),
           error: (error, _) => Center(
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(AppMetrics.p16),
               child: Text(
                 'Error loading users',
                 style: TextStyle(
@@ -61,7 +62,7 @@ class MentionSuggestionOverlay extends ConsumerWidget {
             if (users.isEmpty && !showSpecialMentions) {
               return Center(
                 child: Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(AppMetrics.p16),
                   child: Text(
                     'No users found',
                     style: TextStyle(
@@ -140,7 +141,7 @@ class MentionSuggestionOverlay extends ConsumerWidget {
       subtitle: Text(
         subtitle,
         style: TextStyle(
-          fontSize: 12,
+          fontSize: AppType.s12,
           color: scheme.onSurfaceVariant,
         ),
       ),
@@ -178,7 +179,7 @@ class MentionSuggestionOverlay extends ConsumerWidget {
       subtitle: Text(
         '@${user.username}',
         style: TextStyle(
-          fontSize: 12,
+          fontSize: AppType.s12,
           color: scheme.onSurfaceVariant,
         ),
         overflow: TextOverflow.ellipsis,

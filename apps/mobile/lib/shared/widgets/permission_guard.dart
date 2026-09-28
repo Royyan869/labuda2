@@ -98,7 +98,7 @@ class AuthGuard extends ConsumerWidget {
               'Loading profile...',
               style: TextStyle(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
-                fontSize: 14,
+                fontSize: AppType.s14,
               ),
             ),
           ],
@@ -120,16 +120,16 @@ class AuthGuard extends ConsumerWidget {
         title: const Text('Connection Error'),
         surfaceTintColor: Colors.transparent,
         scrolledUnderElevation: 0,
-        elevation: 0,
+        elevation: AppElevation.none,
       ),
       body: Center(
         child: Padding(
-          padding: const EdgeInsets.all(32),
+          padding: const EdgeInsets.all(AppMetrics.p32),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(AppMetrics.p24),
                 decoration: BoxDecoration(
                   color: scheme.error.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
@@ -181,8 +181,8 @@ class AuthGuard extends ConsumerWidget {
                   backgroundColor: scheme.primary,
                   foregroundColor: scheme.onPrimary,
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 32,
-                    vertical: 12,
+                    horizontal: AppMetrics.p32,
+                    vertical: AppMetrics.p12,
                   ),
                 ),
               ),
@@ -212,16 +212,16 @@ class AuthGuard extends ConsumerWidget {
         title: const Text('Access Limited'),
         surfaceTintColor: Colors.transparent,
         scrolledUnderElevation: 0,
-        elevation: 0,
+        elevation: AppElevation.none,
       ),
       body: Center(
         child: Padding(
-          padding: const EdgeInsets.all(32),
+          padding: const EdgeInsets.all(AppMetrics.p32),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(AppMetrics.p24),
                 decoration: BoxDecoration(
                   color: scheme.primary.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
@@ -264,7 +264,7 @@ class AuthGuard extends ConsumerWidget {
                       style: OutlinedButton.styleFrom(
                         foregroundColor: scheme.primary,
                         side: BorderSide(color: scheme.primary),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        padding: const EdgeInsets.symmetric(vertical: AppMetrics.p12),
                       ),
                     ),
                   ),
@@ -279,7 +279,7 @@ class AuthGuard extends ConsumerWidget {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: scheme.primary,
                         foregroundColor: scheme.onPrimary,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        padding: const EdgeInsets.symmetric(vertical: AppMetrics.p12),
                       ),
                     ),
                   ),
@@ -351,24 +351,24 @@ class RoleGuard extends ConsumerWidget {
         title: const Text('Access Denied'),
         surfaceTintColor: Colors.transparent,
         scrolledUnderElevation: 0,
-        elevation: 0,
+        elevation: AppElevation.none,
       ),
       body: Center(
         child: Padding(
-          padding: const EdgeInsets.all(32),
+          padding: const EdgeInsets.all(AppMetrics.p32),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(AppMetrics.p24),
                 decoration: BoxDecoration(
-                  color: AppColors.statusWarning.withValues(alpha: 0.1),
+                  color: context.statusColors.warning.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.block,
                   size: 64,
-                  color: AppColors.statusWarning,
+                  color: context.statusColors.warning,
                 ),
               ),
               const SizedBox(height: 32),
@@ -399,8 +399,8 @@ class RoleGuard extends ConsumerWidget {
                   backgroundColor: scheme.primary,
                   foregroundColor: scheme.onPrimary,
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 32,
-                    vertical: 12,
+                    horizontal: AppMetrics.p32,
+                    vertical: AppMetrics.p12,
                   ),
                 ),
               ),
@@ -519,24 +519,24 @@ class SellerGuard extends ConsumerWidget {
         title: const Text('Seller Access Required'),
         surfaceTintColor: Colors.transparent,
         scrolledUnderElevation: 0,
-        elevation: 0,
+        elevation: AppElevation.none,
       ),
       body: Center(
         child: Padding(
-          padding: const EdgeInsets.all(32),
+          padding: const EdgeInsets.all(AppMetrics.p32),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(AppMetrics.p24),
                 decoration: BoxDecoration(
-                  color: AppColors.statusWarning.withValues(alpha: 0.1),
+                  color: context.statusColors.warning.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.store_outlined,
                   size: 64,
-                  color: AppColors.statusWarning,
+                  color: context.statusColors.warning,
                 ),
               ),
               const SizedBox(height: 32),
@@ -565,8 +565,8 @@ class SellerGuard extends ConsumerWidget {
                   backgroundColor: scheme.primary,
                   foregroundColor: scheme.onPrimary,
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 32,
-                    vertical: 12,
+                    horizontal: AppMetrics.p32,
+                    vertical: AppMetrics.p12,
                   ),
                 ),
               ),

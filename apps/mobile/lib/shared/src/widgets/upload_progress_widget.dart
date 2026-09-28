@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 // Internal
 import 'package:labuda/shared/src/providers/upload_progress_provider.dart';
 import 'package:labuda/shared/src/widgets/upload_task_utils.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Widget untuk menampilkan upload progress di home screen
 class UploadProgressWidget extends ConsumerWidget {
@@ -23,10 +24,10 @@ class UploadProgressWidget extends ConsumerWidget {
 
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+      margin: const EdgeInsets.fromLTRB(AppMetrics.p12, AppMetrics.p8, AppMetrics.p12, AppMetrics.p0),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(
           color: scheme.outlineVariant,
           width: 1,
@@ -47,7 +48,7 @@ class UploadProgressWidget extends ConsumerWidget {
   ) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppMetrics.p12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -64,14 +65,14 @@ class UploadProgressWidget extends ConsumerWidget {
                       UploadTaskUtils.getTaskTitle(task.type),
                       style: const TextStyle(
                         fontWeight: FontWeight.w600,
-                        fontSize: 14,
+                        fontSize: AppType.s14,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       task.description,
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: AppType.s12,
                         color: scheme.onSurfaceVariant,
                       ),
                       maxLines: 1,
@@ -121,7 +122,7 @@ class UploadProgressWidget extends ConsumerWidget {
                 Text(
                   '${(task.progress * 100).toInt()}%',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: AppType.s12,
                     fontWeight: FontWeight.w500,
                     color: scheme.onSurface,
                   ),
@@ -135,7 +136,7 @@ class UploadProgressWidget extends ConsumerWidget {
               Text(
                 'Langkah ${task.currentStep} dari ${task.totalSteps}',
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: AppType.s11,
                   color: scheme.onSurfaceVariant,
                 ),
               ),
@@ -148,7 +149,7 @@ class UploadProgressWidget extends ConsumerWidget {
             Text(
               task.errorMessage!,
               style: TextStyle(
-                fontSize: 11,
+                fontSize: AppType.s11,
                 color: scheme.error,
               ),
               maxLines: 2,

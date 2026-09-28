@@ -25,7 +25,7 @@ class ContentMetadataSections {
       content: Text(
         location,
         style: TextStyle(
-          fontSize: 14,
+          fontSize: AppType.s14,
           color: scheme.onSurface,
         ),
       ),
@@ -56,7 +56,7 @@ class ContentMetadataSections {
                 label: Text(
                   tag,
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: AppType.s12,
                     color: Theme.of(context).colorScheme.secondary,
                     fontWeight: FontWeight.w500,
                   ),
@@ -73,7 +73,7 @@ class ContentMetadataSections {
                   context,
                 ).colorScheme.secondary.withValues(alpha: 0.1),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(AppShape.r16),
                 ),
                 side: BorderSide.none,
               ),
@@ -95,11 +95,11 @@ class ContentMetadataSections {
   }) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.only(bottom: AppMetrics.p12),
+      padding: const EdgeInsets.all(AppMetrics.p12),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -114,7 +114,7 @@ class ContentMetadataSections {
                   Text(
                     title,
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: AppType.s13,
                       fontWeight: FontWeight.w600,
                       color: scheme.onSurface,
                     ),

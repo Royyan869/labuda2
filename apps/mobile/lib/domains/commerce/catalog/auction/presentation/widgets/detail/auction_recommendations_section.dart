@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
 import 'package:labuda/shared/utils/media_extensions.dart';
 import 'package:labuda/shared/widgets/app_image.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Recommendations section widget for auction detail
 class AuctionRecommendationsSection extends StatelessWidget {
@@ -64,7 +65,7 @@ class AuctionRecommendationsSection extends StatelessWidget {
       children: [
         Text(
           title,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          style: const TextStyle(fontSize: AppType.s16, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
         SizedBox(
@@ -119,12 +120,12 @@ class AuctionRecommendationsSection extends StatelessWidget {
                             ),
                           ),
                         Padding(
-                          padding: const EdgeInsets.all(8),
+                          padding: const EdgeInsets.all(AppMetrics.p8),
                           child: Text(
                             auction.title,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 12),
+                            style: const TextStyle(fontSize: AppType.s12),
                           ),
                         ),
                       ],

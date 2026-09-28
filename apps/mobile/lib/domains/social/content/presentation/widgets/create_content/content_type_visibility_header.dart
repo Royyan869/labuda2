@@ -25,7 +25,7 @@ class ContentVisibilityHeader extends StatelessWidget {
     final user = authenticatedUser;
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
+      padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p6, AppMetrics.p16, AppMetrics.p6),
       child: Row(
         children: [
           if (user != null)
@@ -55,7 +55,7 @@ class ContentVisibilityHeader extends StatelessWidget {
                     '@${user.username}',
                     style: const TextStyle(
                       fontWeight: FontWeight.w600,
-                      fontSize: 16,
+                      fontSize: AppType.s16,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -64,7 +64,7 @@ class ContentVisibilityHeader extends StatelessWidget {
                     height: 14,
                     decoration: BoxDecoration(
                       color: scheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(999),
+                      borderRadius: BorderRadius.circular(AppShape.pill),
                     ),
                   ),
           ),
@@ -80,12 +80,12 @@ class ContentVisibilityHeader extends StatelessWidget {
     return Container(
       width: 116,
       height: 32,
-      padding: const EdgeInsets.symmetric(horizontal: 8),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8),
       decoration: BoxDecoration(
         border: Border.all(
           color: scheme.outlineVariant,
         ),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(AppShape.r6),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
@@ -122,7 +122,7 @@ class ContentVisibilityHeader extends StatelessWidget {
                   Flexible(
                     child: Text(
                       value,
-                      style: const TextStyle(fontSize: 13),
+                      style: const TextStyle(fontSize: AppType.s13),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),

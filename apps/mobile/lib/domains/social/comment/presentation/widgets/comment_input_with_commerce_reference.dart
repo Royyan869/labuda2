@@ -79,7 +79,7 @@ class _CommentInputWithCommerceReferenceState
     final scheme = Theme.of(context).colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         color: scheme.surface,
         border: Border(
@@ -129,12 +129,12 @@ class _CommentInputWithCommerceReferenceState
                       filled: true,
                       fillColor: scheme.surfaceContainerHigh,
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(24),
+                        borderRadius: BorderRadius.circular(AppShape.r24),
                         borderSide: BorderSide.none,
                       ),
                       contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
+                        horizontal: AppMetrics.p16,
+                        vertical: AppMetrics.p12,
                       ),
                       counterText: '',
                     ),
@@ -301,10 +301,10 @@ class _SelectedResourceCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(AppMetrics.p10),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(AppShape.r10),
         border: Border.all(
           color: scheme.primary.withValues(alpha: 0.3),
           width: 1,
@@ -313,7 +313,7 @@ class _SelectedResourceCard extends StatelessWidget {
       child: Row(
         children: [
           ClipRRect(
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: BorderRadius.circular(AppShape.r6),
             child: selection.imageUrl != null
       ? AppImage(
           imageUrl: selection.imageUrl,
@@ -333,7 +333,7 @@ class _SelectedResourceCard extends StatelessWidget {
                   selection.title,
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
-                    fontSize: 13,
+                    fontSize: AppType.s13,
                     color: scheme.onSurface,
                   ),
                   maxLines: 1,
@@ -346,7 +346,7 @@ class _SelectedResourceCard extends StatelessWidget {
                     style: TextStyle(
                       color: scheme.primary,
                       fontWeight: FontWeight.bold,
-                      fontSize: 13,
+                      fontSize: AppType.s13,
                     ),
                   ),
               ],
@@ -370,7 +370,7 @@ class _SelectedResourceCard extends StatelessWidget {
       height: 45,
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(AppShape.r6),
       ),
       child: Icon(
         Icons.image_not_supported,

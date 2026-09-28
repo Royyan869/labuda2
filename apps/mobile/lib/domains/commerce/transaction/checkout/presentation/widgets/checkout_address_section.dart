@@ -36,10 +36,10 @@ class _SavedAddressPickerSectionState
     final addressesAsync = ref.watch(addressesListProvider);
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: Column(
@@ -50,7 +50,7 @@ class _SavedAddressPickerSectionState
             children: [
               const Text(
                 'Alamat Pengiriman',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: AppType.s18, fontWeight: FontWeight.bold),
               ),
               TextButton.icon(
                 onPressed: () => context.push(RoutePaths.addresses),
@@ -59,8 +59,8 @@ class _SavedAddressPickerSectionState
                 style: TextButton.styleFrom(
                   foregroundColor: colorScheme.primary,
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
+                    horizontal: AppMetrics.p8,
+                    vertical: AppMetrics.p4,
                   ),
                 ),
               ),
@@ -99,12 +99,12 @@ class _SavedAddressPickerSectionState
             },
             loading: () => const Center(
               child: Padding(
-                padding: EdgeInsets.all(16),
+                padding: EdgeInsets.all(AppMetrics.p16),
                 child: CircularProgressIndicator(),
               ),
             ),
             error: (e, _) => Padding(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(AppMetrics.p8),
               child: Text(
                 'Gagal memuat alamat: $e',
                 style: TextStyle(color: colorScheme.error),
@@ -123,10 +123,10 @@ class _EmptyAddressPrompt extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppShape.r8),
       ),
       child: Column(
         children: [
@@ -143,7 +143,7 @@ class _EmptyAddressPrompt extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             'Tambahkan alamat pengiriman terlebih dahulu',
-            style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
+            style: TextStyle(fontSize: AppType.s12, color: colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 12),
           ElevatedButton.icon(
@@ -179,10 +179,10 @@ class _AddressCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.all(12),
+        margin: const EdgeInsets.only(bottom: AppMetrics.p8),
+        padding: const EdgeInsets.all(AppMetrics.p12),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppShape.r8),
           border: Border.all(
             color: isSelected
                 ? colorScheme.primary
@@ -218,17 +218,17 @@ class _AddressCard extends StatelessWidget {
                         const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
+                            horizontal: AppMetrics.p6,
+                            vertical: AppMetrics.p2,
                           ),
                           decoration: BoxDecoration(
                             color: colorScheme.primary.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(4),
+                            borderRadius: BorderRadius.circular(AppShape.r4),
                           ),
                           child: Text(
                             'Utama',
                             style: TextStyle(
-                              fontSize: 10,
+                              fontSize: AppType.s10,
                               color: colorScheme.primary,
                               fontWeight: FontWeight.w500,
                             ),
@@ -241,7 +241,7 @@ class _AddressCard extends StatelessWidget {
                   Text(
                     address.phone,
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: AppType.s12,
                       color: colorScheme.onSurfaceVariant,
                     ),
                   ),
@@ -251,7 +251,7 @@ class _AddressCard extends StatelessWidget {
                     '${address.district.name}, ${address.city.name}, '
                     '${address.province.name} ${address.postalCode}',
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: AppType.s12,
                       color: colorScheme.onSurfaceVariant,
                     ),
                     maxLines: 3,

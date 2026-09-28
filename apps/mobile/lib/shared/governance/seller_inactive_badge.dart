@@ -11,6 +11,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 import 'content_lifecycle.dart';
 
@@ -38,7 +39,7 @@ class SellerInactiveBadge extends StatelessWidget {
   const SellerInactiveBadge({
     super.key,
     this.label = 'Penjual tidak aktif',
-    this.padding = const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    this.padding = const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
   });
 
   @override
@@ -48,7 +49,7 @@ class SellerInactiveBadge extends StatelessWidget {
       padding: padding,
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppShape.r8),
         border: Border.all(color: theme.colorScheme.outlineVariant),
       ),
       child: Row(

@@ -11,13 +11,13 @@ class RefundStatusCard extends StatelessWidget {
     final colorScheme = theme.colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(16),
-      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(core.AppMetrics.p16),
+      margin: const EdgeInsets.only(bottom: core.AppMetrics.p12),
       decoration: BoxDecoration(
         color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(core.AppShape.r12),
         border: Border.all(
-          color: _getRefundStatusColor(colorScheme).withValues(alpha: 0.3),
+          color: _getRefundStatusColor(context, colorScheme).withValues(alpha: 0.3),
           width: 1.5,
         ),
       ),
@@ -30,7 +30,7 @@ class RefundStatusCard extends StatelessWidget {
               Icon(
                 _getRefundStatusIcon(),
                 size: 20,
-                color: _getRefundStatusColor(colorScheme),
+                color: _getRefundStatusColor(context, colorScheme),
               ),
               const SizedBox(width: 8),
               Text(
@@ -72,6 +72,10 @@ class RefundStatusCard extends StatelessWidget {
             label: 'Tanggal',
             value: AppFormatters.formatDateTime(refund.createdAt),
           ),
+          if (refund.evidenceUrls != null && refund.evidenceUrls!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            EvidenceMediaGallery(urls: refund.evidenceUrls!),
+          ],
           // Status-specific info
           if (refund.status == RefundStatus.pendingSellerReview)
             const _PendingReviewBanner(),
@@ -94,20 +98,20 @@ class RefundStatusCard extends StatelessWidget {
     );
   }
 
-  Color _getRefundStatusColor(ColorScheme colorScheme) {
+  Color _getRefundStatusColor(BuildContext context, ColorScheme colorScheme) {
     switch (refund.status) {
       case RefundStatus.pendingSellerReview:
-        return core.AppColors.statusWarning;
+        return context.statusColors.warning;
       case RefundStatus.sellerApproved:
       case RefundStatus.adminApproved:
-        return core.AppColors.statusSuccess;
+        return context.statusColors.success;
       case RefundStatus.escalatedToAdmin:
         return colorScheme.secondary;
       case RefundStatus.sellerRejected:
       case RefundStatus.rejected:
-        return core.AppColors.statusError;
+        return context.statusColors.error;
       case RefundStatus.refunded:
-        return core.AppColors.primaryGreen;
+        return context.statusColors.success;
     }
   }
 
@@ -186,22 +190,22 @@ class _RefundStatusBadge extends StatelessWidget {
     final colorScheme = theme.colorScheme;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: core.AppMetrics.p8, vertical: core.AppMetrics.p4),
       decoration: BoxDecoration(
-        color: _getBadgeColor(colorScheme).withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
+        color: _getBadgeColor(context, colorScheme).withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(core.AppShape.r8),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(status.emoji, style: const TextStyle(fontSize: 12)),
+          Text(status.emoji, style: const TextStyle(fontSize: core.AppType.s12)),
           const SizedBox(width: 4),
           Text(
             status.displayName,
             style: theme.textTheme.bodySmall?.copyWith(
-              color: _getBadgeColor(colorScheme),
+              color: _getBadgeColor(context, colorScheme),
               fontWeight: FontWeight.w600,
-              fontSize: 11,
+              fontSize: core.AppType.s11,
             ),
           ),
         ],
@@ -209,20 +213,20 @@ class _RefundStatusBadge extends StatelessWidget {
     );
   }
 
-  Color _getBadgeColor(ColorScheme colorScheme) {
+  Color _getBadgeColor(BuildContext context, ColorScheme colorScheme) {
     switch (status) {
       case RefundStatus.pendingSellerReview:
-        return core.AppColors.statusWarning;
+        return context.statusColors.warning;
       case RefundStatus.sellerApproved:
       case RefundStatus.adminApproved:
-        return core.AppColors.statusSuccess;
+        return context.statusColors.success;
       case RefundStatus.escalatedToAdmin:
         return colorScheme.secondary;
       case RefundStatus.sellerRejected:
       case RefundStatus.rejected:
-        return core.AppColors.statusError;
+        return context.statusColors.error;
       case RefundStatus.refunded:
-        return core.AppColors.primaryGreen;
+        return context.statusColors.success;
     }
   }
 }
@@ -235,17 +239,17 @@ class _PendingReviewBanner extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Container(
-      margin: const EdgeInsets.only(top: 12),
-      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.only(top: core.AppMetrics.p12),
+      padding: const EdgeInsets.all(core.AppMetrics.p12),
       decoration: BoxDecoration(
-        color: core.AppColors.statusWarning.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
+        color: context.statusColors.warning.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(core.AppShape.r8),
       ),
       child: Row(
         children: [
           Icon(
             Icons.info_outline,
-            color: core.AppColors.statusWarning,
+            color: context.statusColors.warning,
             size: 16,
           ),
           const SizedBox(width: 8),
@@ -253,7 +257,7 @@ class _PendingReviewBanner extends StatelessWidget {
             child: Text(
               'Menunggu respon penjual',
               style: theme.textTheme.bodySmall?.copyWith(
-                color: core.AppColors.statusWarning,
+                color: context.statusColors.warning,
               ),
             ),
           ),
@@ -275,10 +279,10 @@ class _RefundNoteBanner extends StatelessWidget {
     final colorScheme = theme.colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(core.AppMetrics.p12),
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(core.AppShape.r8),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

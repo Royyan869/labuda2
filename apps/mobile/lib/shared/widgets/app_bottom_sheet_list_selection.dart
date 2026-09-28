@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 import 'app_bottom_sheet_base.dart';
 
 /// List Selection Item Class
@@ -110,12 +111,12 @@ class _ListSelectionContentState<T> extends State<_ListSelectionContent<T>> {
               filled: true,
               fillColor: scheme.surfaceContainerHigh,
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(AppShape.r12),
                 borderSide: BorderSide.none,
               ),
               contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 12,
+                horizontal: AppMetrics.p16,
+                vertical: AppMetrics.p12,
               ),
             ),
           ),
@@ -143,8 +144,8 @@ class _ListSelectionContentState<T> extends State<_ListSelectionContent<T>> {
                     : null,
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 16,
+                    horizontal: AppMetrics.p16,
+                    vertical: AppMetrics.p16,
                   ),
                   child: Row(
                     children: [
@@ -168,7 +169,7 @@ class _ListSelectionContentState<T> extends State<_ListSelectionContent<T>> {
                             Text(
                               item.title,
                               style: TextStyle(
-                                fontSize: 16,
+                                fontSize: AppType.s16,
                                 fontWeight: FontWeight.w500,
                                 color: item.enabled
                                     ? scheme.onSurface
@@ -180,7 +181,7 @@ class _ListSelectionContentState<T> extends State<_ListSelectionContent<T>> {
                               Text(
                                 item.subtitle!,
                                 style: TextStyle(
-                                  fontSize: 14,
+                                  fontSize: AppType.s14,
                                   color: scheme.onSurfaceVariant,
                                 ),
                               ),
@@ -219,7 +220,7 @@ class _ListSelectionContentState<T> extends State<_ListSelectionContent<T>> {
               Text(
                 'No items found',
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: AppType.s16,
                   color: scheme.onSurfaceVariant,
                 ),
               ),

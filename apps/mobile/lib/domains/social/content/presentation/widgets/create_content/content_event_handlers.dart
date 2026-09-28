@@ -1,11 +1,15 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:labuda/core/media/media_upload_orchestrator.dart';
 import 'package:labuda/core/src/config/google_config.dart';
 import 'package:labuda/shared/widgets/interactive_map_picker_bottom_sheet.dart';
 import 'package:labuda/shared/entities/post_location.dart' as loc;
-import 'package:labuda/domains/social/content/presentation/widgets/content_media_handler.dart';
 
-/// Handles events for create post screen
+/// Handles events for create post screen.
+///
+/// Media picking runs through the canonical [MediaUploadOrchestrator]
+/// (`forContent`, deferred): same limits, same validation, same camera as
+/// every other surface.
 class ContentEventHandlers {
   /// Handle add location action
   static Future<loc.PostLocation?> handleAddLocation({
@@ -22,24 +26,22 @@ class ContentEventHandlers {
   /// Handle gallery media selection
   static Future<List<File>> handleGalleryPick({
     required BuildContext context,
-    required ContentMediaHandler mediaHandler,
     required int currentMediaCount,
   }) async {
-    return await mediaHandler.pickMediaFromGallery(
+    return await MediaUploadOrchestrator.forContent().pickLocalFiles(
       context: context,
-      currentMediaCount: currentMediaCount,
+      currentCount: currentMediaCount,
     );
   }
 
   /// Handle camera capture
   static Future<List<File>> handleCamera({
     required BuildContext context,
-    required ContentMediaHandler mediaHandler,
     required int currentMediaCount,
   }) async {
-    return await mediaHandler.openCamera(
+    return await MediaUploadOrchestrator.forContent().openCameraLocal(
       context: context,
-      currentMediaCount: currentMediaCount,
+      currentCount: currentMediaCount,
     );
   }
 
@@ -49,9 +51,7 @@ class ContentEventHandlers {
     final videos = <File>[];
 
     for (final file in files) {
-      final extension = file.path.split('.').last.toLowerCase();
-      final isVideo = ['mp4', 'mov', 'avi', 'mkv'].contains(extension);
-      if (isVideo) {
+      if (MediaUploadOrchestrator.isVideoFile(file)) {
         videos.add(file);
       } else {
         images.add(file);

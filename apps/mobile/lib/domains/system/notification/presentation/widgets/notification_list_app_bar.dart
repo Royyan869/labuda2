@@ -13,6 +13,7 @@ import 'package:labuda/domains/system/notification/presentation/helpers/notifica
 
 // Flutter
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 class NotificationListAppBar extends ConsumerWidget
     implements PreferredSizeWidget {
@@ -36,7 +37,7 @@ class NotificationListAppBar extends ConsumerWidget
     final scheme = Theme.of(context).colorScheme;
 
     return AppBar(
-      elevation: 0,
+      elevation: AppElevation.none,
       surfaceTintColor: Colors.transparent,
       scrolledUnderElevation: 0,
       leading: IconButton(
@@ -46,7 +47,7 @@ class NotificationListAppBar extends ConsumerWidget
       title: const Text(
         'Notifications',
         style: TextStyle(
-          fontSize: 20,
+          fontSize: AppType.s20,
           fontWeight: FontWeight.w600,
           letterSpacing: -0.5,
         ),

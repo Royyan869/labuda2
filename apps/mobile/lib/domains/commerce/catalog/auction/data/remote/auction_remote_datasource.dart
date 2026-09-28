@@ -3,8 +3,8 @@
 library;
 
 import 'package:labuda/core/api/api.dart';
+import 'package:labuda/core/common/result.dart';
 import 'package:labuda/domains/commerce/catalog/auction/data/dto/auction_dto.dart';
-import 'package:labuda/domains/commerce/transaction/order/domain/repositories/repository_result.dart';
 
 /// Auction Remote Datasource
 ///
@@ -126,10 +126,10 @@ class AuctionRemoteDatasource extends BaseApiRepository {
 
   /// Place bid on auction
   ///
-  /// Returns a [RepositoryResult] so the call site can read the API error
+  /// Returns a [Result] so the call site can read the API error
   /// code via `result.errorCode` (e.g. `EMAIL_VERIFICATION_REQUIRED`)
   /// instead of pattern-matching on the error string.
-  Future<RepositoryResult<BidDto>> placeBid(
+  Future<Result<BidDto>> placeBid(
     String auctionId,
     PlaceBidDto request,
   ) async {
@@ -139,13 +139,13 @@ class AuctionRemoteDatasource extends BaseApiRepository {
     );
 
     if (result.isError) {
-      return RepositoryResult.error(
+      return Result.error(
         result.error ?? 'Unknown error',
         code: result.errorCode,
         details: result.errorDetails,
       );
     }
-    return RepositoryResult.success(result.data!);
+    return Result.success(result.data!);
   }
 
   /// Get bid history for auction

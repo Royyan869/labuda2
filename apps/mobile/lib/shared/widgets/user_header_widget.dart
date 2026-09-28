@@ -126,7 +126,7 @@ class UserHeaderWidget extends ConsumerWidget {
               width: dotSize,
               height: dotSize,
               decoration: BoxDecoration(
-                color: AppColors.success,
+                color: context.statusColors.success,
                 shape: BoxShape.circle,
                 border: Border.all(
                   color: Theme.of(context).colorScheme.surface,

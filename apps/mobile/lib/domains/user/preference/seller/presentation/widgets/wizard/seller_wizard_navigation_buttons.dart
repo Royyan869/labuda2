@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Navigation buttons for Seller Wizard
 /// Extracted from SellerUpgradeWizardScreen to reduce complexity
@@ -30,12 +31,12 @@ class SellerWizardNavigationButtons extends StatelessWidget {
 
     return Container(
       padding: EdgeInsets.only(
-        left: 24,
-        right: 24,
-        top: 16,
-        bottom: bottomPadding > 0
-            ? bottomPadding + 16
-            : 24, // Add extra padding if navigation bar exists
+        left: AppMetrics.p24,
+        right: AppMetrics.p24,
+        top: AppMetrics.p16,
+        bottom: bottomPadding > AppMetrics.p0
+            ? bottomPadding + AppMetrics.p16
+            : AppMetrics.p24, // Add extra padding if navigation bar exists
       ),
       decoration: BoxDecoration(
         color: scheme.surface,

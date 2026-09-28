@@ -22,25 +22,25 @@ class BlockedUserBanner extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p12),
       decoration: BoxDecoration(
-        color: AppColors.statusWarning.withValues(alpha: 0.12),
+        color: context.statusColors.warning.withValues(alpha: 0.12),
         border: Border(
           bottom: BorderSide(
-            color: AppColors.statusWarning.withValues(alpha: 0.3),
+            color: context.statusColors.warning.withValues(alpha: 0.3),
           ),
         ),
       ),
       child: Row(
         children: [
-          const Icon(Icons.block, size: 20, color: AppColors.statusWarning),
+          Icon(Icons.block, size: 20, color: context.statusColors.warning),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               displayName != null
                   ? 'Kamu telah memblokir $displayName'
                   : 'Kamu telah memblokir user ini',
-              style: TextStyle(fontSize: 14, color: scheme.onSurface),
+              style: TextStyle(fontSize: AppType.s14, color: scheme.onSurface),
             ),
           ),
           if (onUnblock != null) ...[
@@ -50,8 +50,8 @@ class BlockedUserBanner extends StatelessWidget {
               style: TextButton.styleFrom(
                 foregroundColor: scheme.primary,
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
+                  horizontal: AppMetrics.p12,
+                  vertical: AppMetrics.p6,
                 ),
                 minimumSize: Size.zero,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -68,7 +68,7 @@ class BlockedUserBanner extends StatelessWidget {
                   : const Text(
                       'Unblock',
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: AppType.s14,
                         fontWeight: FontWeight.w600,
                       ),
                     ),

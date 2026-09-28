@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:labuda/core/core.dart';
 
 /// Base AppBottomSheet with standard content support
 class AppBottomSheetBase {
@@ -29,7 +30,7 @@ class AppBottomSheetBase {
       useRootNavigator: useRootNavigator,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      elevation: 0,
+      elevation: AppElevation.none,
       builder: (context) => Padding(
         padding: MediaQuery.of(context).viewInsets,
         child: Container(
@@ -42,7 +43,7 @@ class AppBottomSheetBase {
             color:
                 backgroundColor ??
                 scheme.surface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(AppShape.r20)),
             boxShadow: [
               BoxShadow(
                 color: scheme.shadow.withValues(alpha: 0.2),
@@ -57,12 +58,12 @@ class AppBottomSheetBase {
               // Drag Handle
               if (showDragHandle)
                 Container(
-                  margin: const EdgeInsets.only(top: 12, bottom: 8),
+                  margin: const EdgeInsets.only(top: AppMetrics.p12, bottom: AppMetrics.p8),
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
 color: scheme.outlineVariant,
-                    borderRadius: BorderRadius.circular(2),
+                    borderRadius: BorderRadius.circular(AppShape.r2),
                   ),
                 ),
 
@@ -70,11 +71,11 @@ color: scheme.outlineVariant,
               if (title != null) ...[
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                  padding: const EdgeInsets.fromLTRB(AppMetrics.p20, AppMetrics.p8, AppMetrics.p20, AppMetrics.p16),
                   child: Text(
                     title,
                     style: TextStyle(
-                      fontSize: 18,
+                      fontSize: AppType.s18,
                       fontWeight: FontWeight.w600,
 color: scheme.onSurface,
                     ),
@@ -83,7 +84,7 @@ color: scheme.onSurface,
                 ),
                 Container(
                   height: 1,
-                  margin: const EdgeInsets.symmetric(horizontal: 20),
+                  margin: const EdgeInsets.symmetric(horizontal: AppMetrics.p20),
                   decoration: BoxDecoration(
 color: scheme.outlineVariant,
                   ),
@@ -95,7 +96,7 @@ color: scheme.outlineVariant,
                 child: SingleChildScrollView(
                   child: Container(
                     width: double.infinity,
-                    padding: padding ?? const EdgeInsets.all(20),
+                    padding: padding ?? const EdgeInsets.all(AppMetrics.p20),
                     child: content,
                   ),
                 ),
@@ -105,20 +106,20 @@ color: scheme.outlineVariant,
               if (showSaveButton && onSave != null) ...[
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                  padding: const EdgeInsets.fromLTRB(AppMetrics.p20, AppMetrics.p8, AppMetrics.p20, AppMetrics.p16),
                   child: ElevatedButton(
                     onPressed: onSave,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: scheme.primary,
                       minimumSize: const Size(double.infinity, 48),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(AppShape.r12),
                       ),
                     ),
                     child: Text(
                       saveButtonText,
 style: TextStyle(
-                         fontSize: 16,
+                         fontSize: AppType.s16,
                          fontWeight: FontWeight.w600,
                          color: scheme.onPrimary,
                        ),

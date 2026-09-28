@@ -3,21 +3,13 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import 'package:labuda/core/services/s3_service.dart';
 import 'package:labuda/shared/shared.dart';
 import 'web_image_cropper.dart';
 import 'flutter_crop_image.dart';
 
-/// Avatar image processing utilities
-///
-/// Features:
-/// - Platform-specific image picking
-/// - Image cropping (web/mobile) using pure Flutter implementation
-/// - AWS S3 upload
-/// - Cache management
-///
-/// MIGRATED from Firebase Storage to AWS S3
+/// Single crop authority: pick (OS single-shot camera/gallery) → crop
+/// (crop_your_image on mobile, canvas on web) → cropped local path.
+/// Upload is the caller's job (S3 fixed key via the domain service).
 class AvatarImageProcessor {
   /// Pick and process image from given source
   static Future<void> pickAndCropImage(
@@ -194,102 +186,5 @@ class AvatarImageProcessor {
       throw Exception('Failed to save cropped image: $e');
     }
   }
-
-  /// Upload avatar to AWS S3 — canonical fixed-key flow.
-  static Future<void> uploadAvatar(
-    dynamic imageData, // Can be Uint8List or String (file path)
-    String userId,
-    Function(String? avatarUrl) onAvatarUpdated,
-  ) async {
-    try {
-      final extension = kIsWeb ? 'png' : 'jpg';
-      final contentType = kIsWeb ? 'image/png' : 'image/jpeg';
-      final key = 'images/avatars/$userId.$extension';
-
-      final s3Service = S3Service();
-      String? downloadUrl;
-
-      if (imageData is Uint8List) {
-        // Cropped bytes from FlutterImageCropper or WebImageCropper — honors fixed key.
-        final result = await s3Service.uploadImageBytesWithFixedKey(
-          imageData,
-          key,
-          contentType: contentType,
-        );
-        if (result.isSuccess) {
-          downloadUrl = result.data!.url;
-        }
-      } else if (imageData is String) {
-        // File path (for backward compatibility)
-        final file = File(imageData);
-        final result = await s3Service.uploadImageWithFixedKey(
-          file,
-          key,
-          mediaLabel: 'avatar',
-        );
-        if (result.isSuccess) {
-          downloadUrl = result.data!.url;
-        }
-      } else {
-        throw Exception('Invalid image data type');
-      }
-
-      if (downloadUrl == null) {
-        onAvatarUpdated(null);
-        return;
-      }
-
-      // Use consistent URL with cache-busting for all platforms
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final finalUrl = '$downloadUrl?t=$timestamp';
-
-      // Clear all cache variations before updating
-      await clearImageCache(downloadUrl);
-      await clearImageCache(finalUrl);
-
-      await Future.delayed(const Duration(milliseconds: 500));
-      onAvatarUpdated(finalUrl);
-    } catch (e) {
-      onAvatarUpdated(null);
-    }
-  }
-
-  /// Clear image cache for various URL formats
-  static Future<void> clearImageCache(String imageUrl) async {
-    try {
-      // Clear the exact URL
-      await CachedNetworkImage.evictFromCache(imageUrl);
-
-      // Clear base URL without parameters
-      final baseUrl = imageUrl.split('?')[0];
-      await CachedNetworkImage.evictFromCache(baseUrl);
-
-      // Clear timestamped variations
-      await CachedNetworkImage.evictFromCache(
-        '$baseUrl?t=${DateTime.now().millisecondsSinceEpoch}',
-      );
-
-      // Clear previous timestamped URLs
-      final now = DateTime.now().millisecondsSinceEpoch;
-      for (int i = 0; i < 10; i++) {
-        final pastTimestamp = now - (i * 1000);
-        await CachedNetworkImage.evictFromCache('$baseUrl?t=$pastTimestamp');
-      }
-
-      // Clear different file extensions
-      if (baseUrl.contains('.')) {
-        final baseWithoutExt = baseUrl.substring(0, baseUrl.lastIndexOf('.'));
-        for (final ext in ['jpg', 'jpeg', 'png', 'webp']) {
-          await CachedNetworkImage.evictFromCache('$baseWithoutExt.$ext');
-          await CachedNetworkImage.evictFromCache(
-            '$baseWithoutExt.$ext?t=${DateTime.now().millisecondsSinceEpoch}',
-          );
-        }
-      }
-    } catch (e) {
-      // Cache clearing failed, not critical
-    }
-  }
-
 
 }

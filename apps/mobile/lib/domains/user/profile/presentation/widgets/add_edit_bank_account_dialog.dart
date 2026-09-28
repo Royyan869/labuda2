@@ -5,6 +5,7 @@ import 'package:labuda/shared/shared.dart';
 import 'package:labuda/domains/user/profile/domain/entities/bank_account_entity.dart';
 import 'package:labuda/domains/user/profile/presentation/providers/bank_account_provider.dart'
     show bankAccountRepositoryProvider;
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Add/Edit Bank Account Dialog
 /// Modal dialog for adding or editing bank account
@@ -79,33 +80,33 @@ class _AddEditBankAccountDialogState
 
     return Dialog(
       backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.all(24),
+      insetPadding: const EdgeInsets.all(AppMetrics.p24),
       child: Container(
         constraints: const BoxConstraints(maxWidth: 500),
         decoration: BoxDecoration(
           color: scheme.surfaceContainerHigh,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(AppShape.r20),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             // Header
             Container(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(AppMetrics.p24),
               decoration: BoxDecoration(
                 color: scheme.surfaceContainerHighest,
                 borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(20),
-                  topRight: Radius.circular(20),
+                  topLeft: Radius.circular(AppShape.r20),
+                  topRight: Radius.circular(AppShape.r20),
                 ),
               ),
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.all(AppMetrics.p8),
                     decoration: BoxDecoration(
                       color: scheme.primary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(AppShape.r8),
                     ),
                     child: Icon(
                       Icons.account_balance,
@@ -118,7 +119,7 @@ class _AddEditBankAccountDialogState
                     child: Text(
                       isEdit ? 'Edit Bank Account' : 'Add Bank Account',
                       style: TextStyle(
-                        fontSize: 18,
+                        fontSize: AppType.s18,
                         fontWeight: FontWeight.bold,
                         color: scheme.onSurface,
                       ),
@@ -138,7 +139,7 @@ class _AddEditBankAccountDialogState
             // Form
             Flexible(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(AppMetrics.p24),
                 child: Form(
                   key: _formKey,
                   child: Column(
@@ -199,12 +200,12 @@ class _AddEditBankAccountDialogState
 
             // Actions
             Container(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(AppMetrics.p24),
               decoration: BoxDecoration(
                 color: scheme.surfaceContainerHighest,
                 borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(20),
-                  bottomRight: Radius.circular(20),
+                  bottomLeft: Radius.circular(AppShape.r20),
+                  bottomRight: Radius.circular(AppShape.r20),
                 ),
               ),
               child: Row(
@@ -236,7 +237,7 @@ class _AddEditBankAccountDialogState
     return Text(
       text,
       style: TextStyle(
-        fontSize: 14,
+        fontSize: AppType.s14,
         fontWeight: FontWeight.w600,
         color: Theme.of(context).colorScheme.onSurface,
       ),
@@ -252,19 +253,19 @@ class _AddEditBankAccountDialogState
         filled: true,
         fillColor: scheme.surfaceContainerHighest,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppShape.r12),
           borderSide: BorderSide(color: scheme.outlineVariant),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppShape.r12),
           borderSide: BorderSide(color: scheme.outlineVariant),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppShape.r12),
           borderSide: BorderSide(color: scheme.primary, width: 2),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppShape.r12),
           borderSide: BorderSide(color: scheme.error),
         ),
       ),
@@ -274,7 +275,7 @@ class _AddEditBankAccountDialogState
           value: bank.code,
           child: Row(
             children: [
-              Text(bank.icon, style: const TextStyle(fontSize: 20)),
+              Text(bank.icon, style: const TextStyle(fontSize: AppType.s20)),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(

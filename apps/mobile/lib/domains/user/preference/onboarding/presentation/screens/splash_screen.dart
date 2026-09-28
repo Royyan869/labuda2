@@ -47,7 +47,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   void _setupAnimations() {
     // Logo animations
     _logoController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
+      duration: AppMotion.longest,
       vsync: this,
     );
 
@@ -67,7 +67,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
     // Text animation
     _textController = AnimationController(
-      duration: const Duration(milliseconds: 800),
+      duration: AppMotion.deliberate,
       vsync: this,
     );
 
@@ -77,7 +77,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
     // Loading animation
     _buttonController = AnimationController(
-      duration: const Duration(milliseconds: 800),
+      duration: AppMotion.deliberate,
       vsync: this,
     );
 
@@ -91,13 +91,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     _logoController.forward();
 
     // Start text animation after logo
-    await Future.delayed(const Duration(milliseconds: 800));
+    await Future.delayed(AppMotion.deliberate);
     if (mounted) {
       _textController.forward();
     }
 
     // Start loading animation
-    await Future.delayed(const Duration(milliseconds: 400));
+    await Future.delayed(AppMotion.relaxed);
     if (mounted) {
       _buttonController.forward();
     }
@@ -208,7 +208,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       body: SafeArea(
         child: Center(
           child: Padding(
-            padding: const EdgeInsets.all(32),
+            padding: const EdgeInsets.all(AppMetrics.p32),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -261,7 +261,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                       backgroundColor: scheme.primary,
                       foregroundColor: scheme.onPrimary,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(AppShape.r12),
                       ),
                     ),
                   ),
@@ -290,7 +290,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       width: 120,
       height: 120,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(AppShape.r20),
         boxShadow: [
           BoxShadow(
             color: scheme.shadow.withValues(alpha: 0.3),
@@ -301,7 +301,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(AppShape.r20),
         child: Image.asset(
           'assets/images/app_logo.png',
           width: 120,

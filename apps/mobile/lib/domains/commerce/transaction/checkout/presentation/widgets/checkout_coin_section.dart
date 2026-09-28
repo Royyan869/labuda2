@@ -24,10 +24,10 @@ class _CoinToggleSection extends ConsumerWidget {
     );
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         // Coin brand colour: Labuda Coins has no Material colour-scheme role.
         border: Border.all(
           color: AppColors.coinPrimary.withValues(alpha: 0.3),
@@ -64,7 +64,7 @@ class _CoinToggleSection extends ConsumerWidget {
                     const Text(
                       'Gunakan Koin Labuda',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: AppType.s16,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -72,7 +72,7 @@ class _CoinToggleSection extends ConsumerWidget {
                     Text(
                       'Koin tersedia: $currentBalance',
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: AppType.s13,
                         color: AppColors.coinSecondary,
                         fontWeight: FontWeight.w500,
                       ),
@@ -92,10 +92,10 @@ class _CoinToggleSection extends ConsumerWidget {
           if (useCoins && currentBalance > 0) ...[
             const SizedBox(height: 12),
             Container(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(AppMetrics.p10),
               decoration: BoxDecoration(
                 color: AppColors.coinPrimary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(AppShape.r8),
               ),
               child: Row(
                 children: [
@@ -109,7 +109,7 @@ class _CoinToggleSection extends ConsumerWidget {
                     child: Text(
                       'Anda akan menggunakan $currentBalance koin untuk diskon',
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: AppType.s12,
                         color: AppColors.coinSecondary,
                       ),
                     ),

@@ -127,13 +127,16 @@ func NewCommentResponseWithMedia(
 		resp.ResourceProjection = projection
 	}
 
+	// Foto+video attachments resolve onto the canonical CloudFront read URL
+	// like every other media surface — raw persisted references must never
+	// reach the wire (a raw S3 URL 403s once the bucket sits behind OAC).
 	if len(media) > 0 {
 		resp.Media = make([]CommentMediaResponse, 0, len(media))
 		for _, m := range media {
 			resp.Media = append(resp.Media, CommentMediaResponse{
 				ID:         m.ID,
 				StorageKey: m.StorageKey,
-				MediaURL:   m.MediaURL,
+				MediaURL:   commerceshared.ResolveReadableMediaReference(m.MediaURL),
 				MediaType:  string(m.MediaType),
 				Position:   m.Position,
 			})

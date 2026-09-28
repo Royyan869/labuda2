@@ -48,7 +48,7 @@ class BlockedUsersScreen extends ConsumerWidget {
             }
 
             return ListView.builder(
-              padding: const EdgeInsets.symmetric(vertical: 8),
+              padding: const EdgeInsets.symmetric(vertical: AppMetrics.p8),
               itemCount: blockedUsers.length,
               itemBuilder: (context, index) {
                 final blockedUser = blockedUsers[index];
@@ -82,7 +82,7 @@ class BlockedUsersScreen extends ConsumerWidget {
                 Text(
                   'Failed to load blocked users',
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: AppType.s16,
                     color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
@@ -90,7 +90,7 @@ class BlockedUsersScreen extends ConsumerWidget {
                 Text(
                   error.toString(),
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: AppType.s12,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                   textAlign: TextAlign.center,
@@ -107,7 +107,7 @@ class BlockedUsersScreen extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(AppMetrics.p32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -120,7 +120,7 @@ class BlockedUsersScreen extends ConsumerWidget {
             Text(
               'No Blocked Users',
               style: TextStyle(
-                fontSize: 18,
+                fontSize: AppType.s18,
                 fontWeight: FontWeight.bold,
                 color: scheme.onSurface,
               ),
@@ -129,7 +129,7 @@ class BlockedUsersScreen extends ConsumerWidget {
             Text(
               'Users you block will appear here.\nYou won\'t see their posts or messages.',
               style: TextStyle(
-                fontSize: 14,
+                fontSize: AppType.s14,
                 color: scheme.onSurfaceVariant,
                 height: 1.5,
               ),
@@ -214,7 +214,7 @@ class _BlockedUserTile extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
 
     return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      contentPadding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p8),
       leading: ProfileAvatar(
         userId: userId,
         size: 48,
@@ -230,21 +230,21 @@ class _BlockedUserTile extends StatelessWidget {
       subtitle: Text(
         'Blocked ${_formatBlockedDate(blockedAt)}',
         style: TextStyle(
-          fontSize: 12,
+          fontSize: AppType.s12,
           color: scheme.onSurfaceVariant,
         ),
       ),
       trailing: OutlinedButton(
         onPressed: onUnblock,
         style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p8),
           side: BorderSide(color: scheme.primary),
         ),
         child: Text(
           'Unblock',
           style: TextStyle(
             color: scheme.primary,
-            fontSize: 13,
+            fontSize: AppType.s13,
             fontWeight: FontWeight.w600,
           ),
         ),

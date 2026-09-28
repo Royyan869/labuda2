@@ -47,7 +47,7 @@ class _ExternalLinkDialog extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
 
     return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppShape.r16)),
       title: Row(
         children: [
           Icon(Icons.open_in_new, color: scheme.secondary, size: 24),
@@ -55,7 +55,7 @@ class _ExternalLinkDialog extends StatelessWidget {
           const Expanded(
             child: Text(
               'Buka tautan eksternal?',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+              style: TextStyle(fontSize: AppType.s18, fontWeight: FontWeight.w700),
             ),
           ),
         ],
@@ -67,16 +67,16 @@ class _ExternalLinkDialog extends StatelessWidget {
           Text(
             'Anda akan meninggalkan Labuda dan membuka situs eksternal.',
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppType.s14,
               color: scheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 16),
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(AppMetrics.p12),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(AppShape.r8),
               color: scheme.surfaceContainerHigh,
               border: Border.all(
                 color: scheme.outlineVariant,
@@ -88,7 +88,7 @@ class _ExternalLinkDialog extends StatelessWidget {
                 Text(
                   uri.host,
                   style: TextStyle(
-                    fontSize: 15,
+                    fontSize: AppType.s15,
                     fontWeight: FontWeight.w600,
                     color: scheme.onSurface,
                   ),
@@ -99,7 +99,7 @@ class _ExternalLinkDialog extends StatelessWidget {
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: AppType.s12,
                     color: scheme.onSurfaceVariant,
                   ),
                 ),
@@ -109,12 +109,12 @@ class _ExternalLinkDialog extends StatelessWidget {
           const SizedBox(height: 12),
           Row(
             children: [
-              Icon(Icons.warning_amber_rounded, size: 16, color: AppColors.statusWarning),
+              Icon(Icons.warning_amber_rounded, size: 16, color: context.statusColors.warning),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
                   'Labuda tidak bertanggung jawab atas konten di situs eksternal.',
-                  style: TextStyle(fontSize: 12, color: AppColors.statusWarning),
+                  style: TextStyle(fontSize: AppType.s12, color: context.statusColors.warning),
                 ),
               ),
             ],
@@ -137,7 +137,7 @@ class _ExternalLinkDialog extends StatelessWidget {
             backgroundColor: scheme.secondary,
             foregroundColor: scheme.onSecondary,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(AppShape.r8),
             ),
           ),
         ),

@@ -14,10 +14,10 @@ class _NotesSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: Column(
@@ -25,7 +25,7 @@ class _NotesSection extends StatelessWidget {
         children: [
           const Text(
             'Catatan (Opsional)',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            style: TextStyle(fontSize: AppType.s16, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 12),
           AppTextField(

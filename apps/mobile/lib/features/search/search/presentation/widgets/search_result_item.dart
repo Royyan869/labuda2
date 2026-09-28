@@ -8,6 +8,7 @@ import 'package:labuda/shared/governance/seller_inactive_badge.dart';
 import 'package:labuda/shared/widgets/promoted_badge.dart';
 import 'package:labuda/shared/widgets/follow_button.dart';
 import 'package:labuda/shared/widgets/app_image.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Widget to display a single search result item
 class SearchResultItem extends ConsumerWidget {
@@ -84,9 +85,9 @@ class SearchResultItem extends ConsumerWidget {
       opacity: isUnavailable ? 0.55 : 1.0,
       child: InkWell(
         onTap: isUnavailable ? null : onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p12),
           child: Row(
             children: [
               _buildImage(context),
@@ -125,6 +126,7 @@ class SearchResultItem extends ConsumerWidget {
             ? AppImage(
                 imageUrl: result.imageUrl,
                 fit: BoxFit.cover,
+                cacheWidth: 144,
                 backgroundColor: scheme.surfaceContainerHighest,
                 errorWidget: _buildPlaceholder(context),
               )
@@ -192,7 +194,7 @@ class SearchResultItem extends ConsumerWidget {
           Text(
             'Tidak tersedia',
             style: TextStyle(
-              fontSize: 12,
+              fontSize: AppType.s12,
               fontWeight: FontWeight.w600,
               color: scheme.onSurfaceVariant,
             ),
@@ -204,7 +206,7 @@ class SearchResultItem extends ConsumerWidget {
           Text(
             sellerRedactionSubtitle,
             style: TextStyle(
-              fontSize: 13,
+              fontSize: AppType.s13,
               fontStyle: FontStyle.italic,
               color: scheme.onSurfaceVariant,
             ),
@@ -216,7 +218,7 @@ class SearchResultItem extends ConsumerWidget {
           Text(
             contentAuthorRedactionSubtitle,
             style: TextStyle(
-              fontSize: 13,
+              fontSize: AppType.s13,
               fontStyle: FontStyle.italic,
               color: scheme.onSurfaceVariant,
             ),
@@ -228,7 +230,7 @@ class SearchResultItem extends ConsumerWidget {
           Text(
             result.subtitle!,
             style: TextStyle(
-              fontSize: 13,
+              fontSize: AppType.s13,
               color: scheme.onSurfaceVariant,
             ),
             maxLines: subtitleMaxLines,
@@ -249,15 +251,15 @@ class SearchResultItem extends ConsumerWidget {
     final label = SearchResultTypeHelper.getLabel(result.type);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
       ),
       child: Text(
         label,
         style: TextStyle(
-          fontSize: 11,
+          fontSize: AppType.s11,
           fontWeight: FontWeight.w600,
           color: color,
         ),

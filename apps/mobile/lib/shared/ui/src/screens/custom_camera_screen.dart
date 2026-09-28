@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Custom Camera Screen
 /// Supports both photo and video capture with toggle
@@ -189,7 +190,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
   @override
   Widget build(BuildContext context) {
     return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 200),
+      duration: AppMotion.fast,
       switchInCurve: Curves.easeIn,
       switchOutCurve: Curves.easeOut,
       transitionBuilder: (Widget child, Animation<double> animation) {
@@ -237,10 +238,10 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
             right: 0,
             child: Container(
               padding: EdgeInsets.only(
-                top: MediaQuery.of(context).padding.top + 8,
-                left: 16,
-                right: 16,
-                bottom: 16,
+                top: MediaQuery.of(context).padding.top + AppMetrics.p8,
+                left: AppMetrics.p16,
+                right: AppMetrics.p16,
+                bottom: AppMetrics.p16,
               ),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -267,10 +268,10 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
 
                   // Mode Toggle
                   Container(
-                    padding: const EdgeInsets.all(4),
+                    padding: const EdgeInsets.all(AppMetrics.p4),
                     decoration: BoxDecoration(
                       color: colorScheme.scrim.withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(AppShape.r20),
                     ),
                     child: Row(
                       children: [
@@ -302,8 +303,8 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
             right: 0,
             child: Container(
               padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).padding.bottom + 16,
-                top: 16,
+                bottom: MediaQuery.of(context).padding.bottom + AppMetrics.p16,
+                top: AppMetrics.p16,
               ),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -320,14 +321,14 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
                   // Recording Indicator
                   if (_isRecording)
                     Container(
-                      margin: const EdgeInsets.only(bottom: 16),
+                      margin: const EdgeInsets.only(bottom: AppMetrics.p16),
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
+                        horizontal: AppMetrics.p16,
+                        vertical: AppMetrics.p8,
                       ),
                       decoration: BoxDecoration(
                         color: colorScheme.primary,
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(AppShape.r20),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -403,17 +404,17 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
     return GestureDetector(
       onTap: () => setState(() => _mode = mode),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p8),
         decoration: BoxDecoration(
           color: isSelected ? colorScheme.primary : Colors.transparent,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(AppShape.r16),
         ),
         child: Text(
           label,
           style: TextStyle(
             color: colorScheme.onPrimary,
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-            fontSize: 13,
+            fontSize: AppType.s13,
           ),
         ),
       ),
@@ -450,10 +451,10 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
             right: 0,
             child: Container(
               padding: EdgeInsets.only(
-                top: MediaQuery.of(context).padding.top + 8,
-                left: 16,
-                right: 16,
-                bottom: 16,
+                top: MediaQuery.of(context).padding.top + AppMetrics.p8,
+                left: AppMetrics.p16,
+                right: AppMetrics.p16,
+                bottom: AppMetrics.p16,
               ),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -487,10 +488,10 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
             right: 0,
             child: Container(
               padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).padding.bottom + 16,
-                top: 16,
-                left: 16,
-                right: 16,
+                bottom: MediaQuery.of(context).padding.bottom + AppMetrics.p16,
+                top: AppMetrics.p16,
+                left: AppMetrics.p16,
+                right: AppMetrics.p16,
               ),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -514,7 +515,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
                         'Retake',
                         style: TextStyle(
                           color: colorScheme.onPrimary,
-                          fontSize: 16,
+                          fontSize: AppType.s16,
                         ),
                       ),
                       style: OutlinedButton.styleFrom(
@@ -522,9 +523,9 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
                           color: colorScheme.onPrimary,
                           width: 2,
                         ),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(AppShape.r12),
                         ),
                       ),
                     ),
@@ -539,14 +540,14 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
                         'Use',
                         style: TextStyle(
                           color: colorScheme.onPrimary,
-                          fontSize: 16,
+                          fontSize: AppType.s16,
                         ),
                       ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: colorScheme.primary,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(AppShape.r12),
                         ),
                       ),
                     ),

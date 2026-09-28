@@ -60,12 +60,12 @@ class AuctionNotifier extends Notifier<AuctionNotifierState> {
     );
 
     result.fold(
+      (error) => state = state.copyWith(isLoading: false, error: error),
       (auctions) => state = state.copyWith(
         auctions: auctions,
         isLoading: false,
         error: null,
       ),
-      (error) => state = state.copyWith(isLoading: false, error: error),
     );
   }
 
@@ -84,12 +84,12 @@ class AuctionNotifier extends Notifier<AuctionNotifierState> {
     );
 
     result.fold(
+      (error) => state = state.copyWith(isLoading: false, error: error),
       (auctions) => state = state.copyWith(
         auctions: auctions,
         isLoading: false,
         error: null,
       ),
-      (error) => state = state.copyWith(isLoading: false, error: error),
     );
   }
 
@@ -101,15 +101,18 @@ class AuctionNotifier extends Notifier<AuctionNotifierState> {
 
     final result = await _auctionRepository.getAuctionById(auctionId);
 
-    result.fold((auction) {
-      state = state.copyWith(
-        selectedAuction: auction,
-        isLoading: false,
-        error: null,
-      );
+    result.fold(
+      (error) => state = state.copyWith(isLoading: false, error: error),
+      (auction) {
+        state = state.copyWith(
+          selectedAuction: auction,
+          isLoading: false,
+          error: null,
+        );
 
-      // Note: View tracking is handled by backend automatically via GET endpoint
-    }, (error) => state = state.copyWith(isLoading: false, error: error));
+        // Note: View tracking is handled by backend automatically via GET endpoint
+      },
+    );
   }
 
   /// Load auction bids
@@ -120,8 +123,8 @@ class AuctionNotifier extends Notifier<AuctionNotifierState> {
     );
 
     result.fold(
-      (bids) => state = state.copyWith(bids: bids),
       (error) => state = state.copyWith(error: error),
+      (bids) => state = state.copyWith(bids: bids),
     );
   }
 
@@ -154,6 +157,10 @@ class AuctionNotifier extends Notifier<AuctionNotifierState> {
       final auctionResult = await _auctionRepository.getAuctionById(auctionId);
 
       return auctionResult.fold(
+        (error) {
+          state = state.copyWith(isPlacingBid: false, error: error);
+          return false;
+        },
         (auction) async {
           // BOUNDARY NORMALIZATION (PHASE 1D):
           // UX pre-validation checks - backend is final authority
@@ -229,10 +236,6 @@ class AuctionNotifier extends Notifier<AuctionNotifierState> {
           loadAuctionDetails(auctionId);
           loadAuctionBids(auctionId);
           return true;
-        },
-        (error) {
-          state = state.copyWith(isPlacingBid: false, error: error);
-          return false;
         },
       );
     } finally {
@@ -386,6 +389,10 @@ class AuctionNotifier extends Notifier<AuctionNotifierState> {
     final result = await _auctionRepository.updateAuction(auctionId, updates);
 
     return result.fold(
+      (error) {
+        state = state.copyWith(isUpdating: false, error: error);
+        return false;
+      },
       (auction) {
         state = state.copyWith(
           isUpdating: false,
@@ -394,10 +401,6 @@ class AuctionNotifier extends Notifier<AuctionNotifierState> {
           selectedAuction: auction,
         );
         return true;
-      },
-      (error) {
-        state = state.copyWith(isUpdating: false, error: error);
-        return false;
       },
     );
   }
@@ -417,6 +420,10 @@ class AuctionNotifier extends Notifier<AuctionNotifierState> {
     );
 
     return result.fold(
+      (error) {
+        state = state.copyWith(isLoading: false, error: error);
+        return false;
+      },
       (_) {
         state = state.copyWith(
           isLoading: false,
@@ -426,10 +433,6 @@ class AuctionNotifier extends Notifier<AuctionNotifierState> {
         // Reload auction to get updated status
         loadAuctionDetails(auctionId);
         return true;
-      },
-      (error) {
-        state = state.copyWith(isLoading: false, error: error);
-        return false;
       },
     );
   }
@@ -469,13 +472,13 @@ final marketplaceAuctionsProvider =
     FutureProvider.autoDispose<List<Auction>>((ref) async {
   final repository = ref.watch(auctionRepositoryProvider);
   final result = await repository.getActiveAuctions(limit: 50);
-  return result.fold((auctions) {
+  return result.fold((e) => throw Exception(e), (auctions) {
     final now = DateTime.now();
     final cutoff = now.subtract(const Duration(minutes: 5));
     final filtered = auctions.where((a) => a.endTime.isAfter(cutoff)).toList();
     filtered.sort((a, b) => a.endTime.compareTo(b.endTime));
     return filtered;
-  }, (e) => throw Exception(e));
+  });
 });
 
 /// Seller showcase auctions — mirrors sellerForSalesProvider (Future, not Stream).
@@ -484,7 +487,7 @@ final sellerAuctionsProvider =
     FutureProvider.autoDispose.family<List<Auction>, String>((ref, sellerId) async {
   final repository = ref.watch(auctionRepositoryProvider);
   final result = await repository.getUserAuctions(sellerId: sellerId, limit: 50);
-  return result.fold((a) => a, (e) => throw Exception(e));
+  return result.fold((e) => throw Exception(e), (a) => a);
 });
 
 /// Seller auctions with status filter (dashboard) — Future, not Stream.
@@ -497,7 +500,7 @@ final myAuctionsProvider = FutureProvider.autoDispose
     status: params.status,
     limit: 50,
   );
-  return result.fold((a) => a, (e) => throw Exception(e));
+  return result.fold((e) => throw Exception(e), (a) => a);
 });
 
 /// Stream provider for auction detail (real-time updates)
@@ -527,7 +530,7 @@ final auctionDetailProvider = FutureProvider.family<Auction?, String>((
   final repository = ref.watch(auctionRepositoryProvider);
   final result = await repository.getAuctionById(auctionId);
 
-  return result.fold((auction) => auction, (error) => throw Exception(error));
+  return result.fold((error) => throw Exception(error), (auction) => auction);
 });
 
 /// Future provider for auction bids
@@ -538,5 +541,5 @@ final auctionBidsProvider = FutureProvider.family<List<AuctionBid>, String>((
   final repository = ref.watch(auctionRepositoryProvider);
   final result = await repository.getAuctionBids(auctionId: auctionId);
 
-  return result.fold((bids) => bids, (error) => throw Exception(error));
+  return result.fold((error) => throw Exception(error), (bids) => bids);
 });

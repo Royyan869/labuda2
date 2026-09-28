@@ -7,7 +7,6 @@ import 'package:labuda/domains/commerce/catalog/auction/data/repositories/auctio
 import 'package:labuda/domains/commerce/catalog/auction/data/remote/auction_remote_datasource.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/domain.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction_media_identity.dart';
-import 'package:labuda/domains/commerce/transaction/order/domain/repositories/repository_result.dart';
 import 'package:labuda/domains/social/content/domain/entities/content.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 
@@ -144,16 +143,16 @@ class _ScriptedAuctionRepository extends AuctionRepositoryImpl {
     required this.bidResults,
   }) : super(datasource: _NoopAuctionRemoteDatasource(), logger: _NoopLogger());
 
-  final Queue<Future<RepositoryResult<List<Auction>>> Function()> activeResults;
-  final Queue<Future<RepositoryResult<Auction>> Function()> detailResults;
-  final Queue<Future<RepositoryResult<List<AuctionBid>>> Function()> bidResults;
+  final Queue<Future<Result<List<Auction>>> Function()> activeResults;
+  final Queue<Future<Result<Auction>> Function()> detailResults;
+  final Queue<Future<Result<List<AuctionBid>>> Function()> bidResults;
 
   int activeCalls = 0;
   int detailCalls = 0;
   int bidCalls = 0;
 
   @override
-  Future<RepositoryResult<List<Auction>>> getActiveAuctions({
+  Future<Result<List<Auction>>> getActiveAuctions({
     String? variety,
     double? minSize,
     double? maxSize,
@@ -166,13 +165,13 @@ class _ScriptedAuctionRepository extends AuctionRepositoryImpl {
   }
 
   @override
-  Future<RepositoryResult<Auction>> getAuctionById(String auctionId) {
+  Future<Result<Auction>> getAuctionById(String auctionId) {
     detailCalls += 1;
     return detailResults.removeFirst()();
   }
 
   @override
-  Future<RepositoryResult<List<AuctionBid>>> getAuctionBids({
+  Future<Result<List<AuctionBid>>> getAuctionBids({
     required String auctionId,
     int limit = 50,
   }) {
@@ -251,7 +250,7 @@ void main() {
             activeResults: Queue.of([]),
             detailResults: Queue.of([
               () => Future.value(
-                RepositoryResult.success(
+                Result.success(
                   _auction(
                     id: 'auction-1',
                     currentBid: 1000000,
@@ -262,7 +261,7 @@ void main() {
                 ),
               ),
               () => Future.value(
-                RepositoryResult.success(
+                Result.success(
                   _auction(
                     id: 'auction-1',
                     currentBid: 1500000,
@@ -273,7 +272,7 @@ void main() {
                 ),
               ),
               () => Future.value(
-                RepositoryResult.error('transient detail error'),
+                Result.error('transient detail error'),
               ),
             ]),
             bidResults: Queue.of([]),
@@ -328,17 +327,17 @@ void main() {
             detailResults: Queue.of([]),
             bidResults: Queue.of([
               () => Future.value(
-                RepositoryResult.success(<AuctionBid>[
+                Result.success(<AuctionBid>[
                   _bid(id: 'bid-1', amount: 1000000, bidderId: 'bidder-1'),
                 ]),
               ),
               () => Future.value(
-                RepositoryResult.success(<AuctionBid>[
+                Result.success(<AuctionBid>[
                   _bid(id: 'bid-1', amount: 1000000, bidderId: 'bidder-1'),
                 ]),
               ),
               () => Future.value(
-                RepositoryResult.success(<AuctionBid>[
+                Result.success(<AuctionBid>[
                   _bid(id: 'bid-1', amount: 1500000, bidderId: 'bidder-2'),
                 ]),
               ),

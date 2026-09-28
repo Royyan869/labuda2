@@ -7,6 +7,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/domains/system/support/domain/domain.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 // ============================================
 // WIDGET
@@ -39,13 +40,13 @@ class SupportTicketCardRefactored extends ConsumerWidget {
         : SupportUtils.formatTimeAgo(ticket.createdAt);
 
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppShape.r12)),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppMetrics.p16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -127,7 +128,7 @@ class SupportTicketCardRefactored extends ConsumerWidget {
                                 child: Text(
                                   'Order #${ticket.linkedOrderId!.substring(0, 8)}...',
                                   style: TextStyle(
-                                    fontSize: 11,
+                                    fontSize: AppType.s11,
                                     color: Theme.of(context).colorScheme.secondary,
                                   ),
                                   overflow: TextOverflow.ellipsis,
@@ -180,22 +181,22 @@ class SupportTicketCardRefactored extends ConsumerWidget {
     required int colorValue,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
       decoration: BoxDecoration(
         color: Color(colorValue).withAlpha(40),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(AppShape.r6),
         border: Border.all(color: Color(colorValue).withAlpha(128)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(icon, style: const TextStyle(fontSize: 12)),
+          Text(icon, style: const TextStyle(fontSize: AppType.s12)),
           const SizedBox(width: 4),
           Flexible(
             child: Text(
               label,
               style: TextStyle(
-                fontSize: 11,
+                fontSize: AppType.s11,
                 fontWeight: FontWeight.bold,
                 color: Color(colorValue),
               ),
@@ -215,8 +216,8 @@ class SupportTicketCardRefactored extends ConsumerWidget {
         icon: const Icon(Icons.mail_outline, size: 18),
         label: Text(label),
         style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          padding: const EdgeInsets.symmetric(vertical: AppMetrics.p12),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppShape.r8)),
         ),
       ),
     );

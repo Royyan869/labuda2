@@ -106,5 +106,5 @@ final withdrawalHistoryProvider = FutureProvider.autoDispose<List<Withdrawal>>((
   final repository = ref.watch(sellerRepositoryProvider);
   final result = await repository.getWithdrawHistory();
 
-  return result.fold((data) => data, (_) => const []);
+  return result.fold((_) => const [], (data) => data);
 });

@@ -23,24 +23,24 @@ class PhoneVerificationField extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Column(
       children: [
-        _buildPhoneInput(scheme),
+        _buildPhoneInput(context, scheme),
         if (!phoneVerified) ...[
           const SizedBox(height: 12),
-          _buildVerifyPrompt(scheme),
+          _buildVerifyPrompt(context, scheme),
         ],
       ],
     );
   }
 
-  Widget _buildPhoneInput(ColorScheme scheme) {
+  Widget _buildPhoneInput(BuildContext context, ColorScheme scheme) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         color: scheme.onSurfaceVariant,
         border: Border.all(
           color: scheme.onSurfaceVariant,
         ),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppShape.r8),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -56,12 +56,12 @@ class PhoneVerificationField extends StatelessWidget {
               Text(
                 'Phone Number',
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: AppType.s12,
                   color: scheme.onSurfaceVariant,
                 ),
               ),
               const Spacer(),
-              _buildVerificationBadge(scheme),
+              _buildVerificationBadge(context, scheme),
             ],
           ),
           const SizedBox(height: 12),
@@ -69,7 +69,7 @@ class PhoneVerificationField extends StatelessWidget {
             controller: phoneController,
             keyboardType: TextInputType.phone,
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppType.s14,
               fontWeight: FontWeight.w500,
               color: scheme.onSurface,
             ),
@@ -79,23 +79,23 @@ class PhoneVerificationField extends StatelessWidget {
                 color: scheme.onSurfaceVariant,
               ),
               contentPadding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 10,
+                horizontal: AppMetrics.p12,
+                vertical: AppMetrics.p10,
               ),
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(AppShape.r8),
                 borderSide: BorderSide(
                   color: scheme.onSurfaceVariant,
                 ),
               ),
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(AppShape.r8),
                 borderSide: BorderSide(
                   color: scheme.onSurfaceVariant,
                 ),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(AppShape.r8),
 borderSide: BorderSide(
                    color: scheme.primary,
                    width: 1.5,
@@ -108,7 +108,7 @@ borderSide: BorderSide(
             Text(
               'Verified on ${phoneVerifiedAt!.day}/${phoneVerifiedAt!.month}/${phoneVerifiedAt!.year}',
               style: TextStyle(
-                fontSize: 11,
+                fontSize: AppType.s11,
                 color: scheme.onSurfaceVariant,
               ),
             ),
@@ -118,18 +118,18 @@ borderSide: BorderSide(
     );
   }
 
-  Widget _buildVerificationBadge(ColorScheme scheme) {
+  Widget _buildVerificationBadge(BuildContext context, ColorScheme scheme) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
       decoration: BoxDecoration(
         color: phoneVerified
-            ? AppColors.successGreen.withValues(alpha: 0.1)
-            : AppColors.warning.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(6),
+            ? context.statusColors.success.withValues(alpha: 0.1)
+            : context.statusColors.warning.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(AppShape.r6),
         border: Border.all(
           color: phoneVerified
-              ? AppColors.successGreen.withValues(alpha: 0.3)
-              : AppColors.warning.withValues(alpha: 0.3),
+              ? context.statusColors.success.withValues(alpha: 0.3)
+              : context.statusColors.warning.withValues(alpha: 0.3),
         ),
       ),
       child: Row(
@@ -137,15 +137,15 @@ borderSide: BorderSide(
         children: [
           Icon(
             phoneVerified ? Icons.verified : Icons.warning,
-            color: phoneVerified ? AppColors.successGreen : AppColors.warning,
+            color: phoneVerified ? context.statusColors.success : context.statusColors.warning,
             size: 12,
           ),
           const SizedBox(width: 4),
           Text(
             phoneVerified ? 'Verified' : 'Unverified',
             style: TextStyle(
-              color: phoneVerified ? AppColors.successGreen : AppColors.warning,
-              fontSize: 10,
+              color: phoneVerified ? context.statusColors.success : context.statusColors.warning,
+              fontSize: AppType.s10,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -154,23 +154,23 @@ borderSide: BorderSide(
     );
   }
 
-  Widget _buildVerifyPrompt(ColorScheme scheme) {
+  Widget _buildVerifyPrompt(BuildContext context, ColorScheme scheme) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppMetrics.p12),
       decoration: BoxDecoration(
-        color: AppColors.warning.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.warning.withValues(alpha: 0.2)),
+        color: context.statusColors.warning.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(AppShape.r8),
+        border: Border.all(color: context.statusColors.warning.withValues(alpha: 0.2)),
       ),
       child: Row(
         children: [
-          Icon(Icons.info_outline, color: AppColors.warning, size: 16),
+          Icon(Icons.info_outline, color: context.statusColors.warning, size: 16),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               'Please verify your phone number',
               style: TextStyle(
-                fontSize: 11,
+                fontSize: AppType.s11,
                 color: scheme.onSurfaceVariant,
               ),
             ),

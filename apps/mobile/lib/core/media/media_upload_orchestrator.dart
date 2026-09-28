@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/ui/src/helpers/media_picker_helper.dart';
 import 'package:labuda/shared/ui/src/screens/custom_camera_screen.dart';
@@ -13,7 +14,7 @@ import 'media_upload_config.dart';
 /// per-domain media handlers (for_sale now routes through MediaGridUploader).
 /// Exposes 2 modes:
 ///  - pickLocalFiles() — deferred upload (content: returns File, preview lokal)
-///  - pickAndUpload() / showPickerAndUpload() — immediate upload (commerce/komentar/chat: returns List<String> URLs)
+///  - pickAndUpload() / showPickerAndUpload() — immediate upload (commerce/komentar/chat: returns `List<String>` URLs)
 ///
 /// Single place to change wechat_assets_picker, S3 presign, max limits.
 class MediaUploadOrchestrator {
@@ -32,11 +33,21 @@ class MediaUploadOrchestrator {
       const MediaUploadOrchestrator(config: MediaUploadConfig.forChat);
 
   // ── file type helpers ──
+  // Single video-detection authority for every surface (pick, preview,
+  // render, upload). Extension set + owned `videos/` key prefix.
   static const _videoExts = {'mp4', 'mov', 'webm', 'm4v', 'avi', 'mkv', '3gp', 'wmv'};
 
-  static bool isVideoFile(File file) {
-    final ext = file.path.split('.').last.toLowerCase();
-    return _videoExts.contains(ext);
+  static bool isVideoFile(File file) => isVideoPath(file.path);
+
+  static bool isVideoUrl(String url) => isVideoPath(url.trim());
+
+  static bool isVideoPath(String path) {
+    final lower = path.trim().toLowerCase();
+    if (lower.isEmpty) return false;
+    final pathPart = lower.split('?').first;
+    final ext = pathPart.split('.').last;
+    if (_videoExts.contains(ext)) return true;
+    return pathPart.contains('/videos/');
   }
 
   // ── pick without upload (content) ──
@@ -55,6 +66,7 @@ class MediaUploadOrchestrator {
         maxAssets: remaining,
       );
       if (paths == null || paths.isEmpty) return [];
+      if (!context.mounted) return [];
       return await _validateFiles(paths, context);
     } catch (_) {
       if (!context.mounted) return [];
@@ -75,6 +87,7 @@ class MediaUploadOrchestrator {
     try {
       final paths = await CustomCameraScreen.show(context);
       if (paths == null || paths.isEmpty) return [];
+      if (!context.mounted) return [];
       return await _validateFiles(paths, context);
     } catch (_) {
       if (!context.mounted) return [];
@@ -149,9 +162,9 @@ class MediaUploadOrchestrator {
       builder: (sheetCtx) => Container(
         decoration: BoxDecoration(
           color: Theme.of(sheetCtx).scaffoldBackgroundColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(AppShape.r20)),
         ),
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(AppMetrics.p20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -236,6 +249,64 @@ class MediaUploadOrchestrator {
     }
   }
 
+  // ── headless single-type picks (evidence/external): same engine, no sheet ──
+  // Business rules (counts, required-vs-optional) stay with the caller;
+  // picking mechanics + MB validation live here.
+  static Future<XFile?> pickGalleryVideo({
+    required BuildContext context,
+    Duration maxDuration = const Duration(minutes: 2),
+  }) async {
+    try {
+      final video = await ImagePicker().pickVideo(
+        source: ImageSource.gallery,
+        maxDuration: maxDuration,
+      );
+      if (video == null || !context.mounted) return null;
+      final ok = await validateFile(
+        File(video.path),
+        context,
+        MediaUploadConfig.forEvidence,
+      );
+      return ok ? video : null;
+    } catch (_) {
+      if (!context.mounted) return null;
+      _showErrorStatic(context, 'Gagal memilih video. Coba lagi.');
+      return null;
+    }
+  }
+
+  static Future<List<XFile>> pickGalleryImages({
+    required BuildContext context,
+    int maxAssets = 5,
+    int imageQuality = 80,
+    double maxWidth = 1920,
+    double maxHeight = 1920,
+  }) async {
+    try {
+      final photos = await ImagePicker().pickMultiImage(
+        imageQuality: imageQuality,
+        maxWidth: maxWidth,
+        maxHeight: maxHeight,
+      );
+      if (photos.isEmpty || !context.mounted) return [];
+      final valid = <XFile>[];
+      for (final p in photos.take(maxAssets)) {
+        if (!context.mounted) break;
+        final ok = await validateFile(
+          File(p.path),
+          context,
+          MediaUploadConfig.forEvidence,
+        );
+        if (ok) valid.add(p);
+      }
+      return valid;
+    } catch (_) {
+      if (!context.mounted) return [];
+      _showErrorStatic(context, 'Gagal memilih foto. Coba lagi.');
+      return [];
+    }
+  }
+
   // ── validation ──
   Future<List<File>> _validateFiles(List<String> paths, BuildContext context) async {
     final List<File> valid = [];
@@ -247,20 +318,33 @@ class MediaUploadOrchestrator {
     return valid;
   }
 
-  Future<bool> _validateSingle(File file, BuildContext context) async {
+  Future<bool> _validateSingle(File file, BuildContext context) =>
+      validateFile(file, context, config);
+
+  static Future<bool> validateFile(
+    File file,
+    BuildContext context,
+    MediaUploadConfig cfg,
+  ) async {
     final bytes = await file.length();
     final mb = bytes / (1024 * 1024);
     final isVideo = isVideoFile(file);
-    final max = isVideo ? config.maxVideoSizeMb : config.maxImageSizeMb;
+    final max = isVideo ? cfg.maxVideoSizeMb : cfg.maxImageSizeMb;
     if (mb > max) {
       if (!context.mounted) return false;
-      _showError(context, 'Ukuran ${isVideo ? "video" : "foto"} maksimal ${max}MB');
+      _showErrorStatic(
+        context,
+        'Ukuran ${isVideo ? "video" : "foto"} maksimal ${max}MB',
+      );
       return false;
     }
     return true;
   }
 
-  void _showError(BuildContext context, String msg) {
+  void _showError(BuildContext context, String msg) =>
+      _showErrorStatic(context, msg);
+
+  static void _showErrorStatic(BuildContext context, String msg) {
     if (!context.mounted) return;
     AppSnackBar.showError(context, msg, duration: const Duration(seconds: 4));
   }

@@ -1,12 +1,11 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 import 'package:labuda/domains/social/content/presentation/widgets/content_toolbar_widget.dart';
-import 'package:labuda/domains/social/content/presentation/widgets/content_media_handler.dart';
 import 'package:labuda/domains/social/content/presentation/widgets/create_content/content_event_handlers.dart';
 
 /// Widget for post creation toolbar with keyboard-aware padding
 class ContentToolbarSection extends StatelessWidget {
-  final ContentMediaHandler mediaHandler;
   final List<File> selectedImages;
   final List<File> selectedVideos;
   final int taggedPeopleCount;
@@ -17,7 +16,6 @@ class ContentToolbarSection extends StatelessWidget {
 
   const ContentToolbarSection({
     super.key,
-    required this.mediaHandler,
     required this.selectedImages,
     required this.selectedVideos,
     required this.taggedPeopleCount,
@@ -41,8 +39,8 @@ class ContentToolbarSection extends StatelessWidget {
         ),
       ),
       padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom > 0
-            ? 0
+        bottom: MediaQuery.of(context).viewInsets.bottom > AppMetrics.p0
+            ? AppMetrics.p0
             : MediaQuery.of(context).padding.bottom,
       ),
       child: ContentToolbarWidget(
@@ -59,7 +57,6 @@ class ContentToolbarSection extends StatelessWidget {
   Future<void> _handleGalleryTap(BuildContext context) async {
     final media = await ContentEventHandlers.handleGalleryPick(
       context: context,
-      mediaHandler: mediaHandler,
       currentMediaCount: selectedImages.length + selectedVideos.length,
     );
     if (media.isNotEmpty) {
@@ -71,7 +68,6 @@ class ContentToolbarSection extends StatelessWidget {
   Future<void> _handleCameraTap(BuildContext context) async {
     final media = await ContentEventHandlers.handleCamera(
       context: context,
-      mediaHandler: mediaHandler,
       currentMediaCount: selectedImages.length + selectedVideos.length,
     );
     if (media.isNotEmpty) {

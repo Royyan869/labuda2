@@ -74,7 +74,7 @@ class CanonicalPromotionListScreen extends ConsumerWidget {
   Widget _buildEmptyState(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppMetrics.p24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -87,7 +87,7 @@ class CanonicalPromotionListScreen extends ConsumerWidget {
             Text(
               'Belum ada promosi',
               style: TextStyle(
-                fontSize: 18,
+                fontSize: AppType.s18,
                 fontWeight: FontWeight.bold,
                 color: Theme.of(context).colorScheme.onSurface,
               ),
@@ -97,7 +97,7 @@ class CanonicalPromotionListScreen extends ConsumerWidget {
               'Promosi canonical Anda akan muncul di sini.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: AppType.s14,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
@@ -110,7 +110,7 @@ class CanonicalPromotionListScreen extends ConsumerWidget {
   Widget _buildErrorState(BuildContext context, WidgetRef ref, String message) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppMetrics.p24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -123,7 +123,7 @@ class CanonicalPromotionListScreen extends ConsumerWidget {
             Text(
               'Gagal Memuat Promosi',
               style: TextStyle(
-                fontSize: 20,
+                fontSize: AppType.s20,
                 fontWeight: FontWeight.bold,
                 color: Theme.of(context).colorScheme.onSurface,
               ),
@@ -133,7 +133,7 @@ class CanonicalPromotionListScreen extends ConsumerWidget {
               message,
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: AppType.s14,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
@@ -153,7 +153,7 @@ class CanonicalPromotionListScreen extends ConsumerWidget {
     List<PromotionContractDto> contracts,
   ) {
     return ListView.separated(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       itemCount: contracts.length,
       separatorBuilder: (context, index) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
@@ -241,9 +241,9 @@ class _PromotionListItemState extends ConsumerState<_PromotionListItem> {
   Widget build(BuildContext context) {
     final isNationwide = contract.cityIds.isEmpty;
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(AppMetrics.p14),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
         color: Theme.of(context).colorScheme.surface,
       ),
@@ -257,14 +257,14 @@ class _PromotionListItemState extends ConsumerState<_PromotionListItem> {
                   contract.kind == 'internal' ? 'Internal' : 'Eksternal',
                   style: const TextStyle(
                     fontWeight: FontWeight.w700,
-                    fontSize: 16,
+                    fontSize: AppType.s16,
                   ),
                 ),
               ),
               Text(
                 _statusLabel(contract.status),
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: AppType.s12,
                   fontWeight: FontWeight.w600,
                   color: _statusColor(context, contract.status),
                 ),
@@ -392,13 +392,13 @@ class _PromotionListItemState extends ConsumerState<_PromotionListItem> {
   static Color _statusColor(BuildContext context, String status) {
     switch (status) {
       case 'active':
-        return AppColors.successGreen;
+        return context.statusColors.success;
       case 'paused':
-        return AppColors.statusInfo;
+        return context.statusColors.info;
       case 'finalized':
         return Theme.of(context).colorScheme.outline;
       default:
-        return AppColors.statusInfo;
+        return context.statusColors.info;
     }
   }
 }

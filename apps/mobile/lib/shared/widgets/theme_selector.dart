@@ -61,11 +61,11 @@ class ThemeSelector extends ConsumerWidget {
           ),
         ),
         trailing: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p6),
           decoration: BoxDecoration(
             color: scheme.surfaceContainerHighest,
             border: Border.all(color: scheme.outlineVariant),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(AppShape.r8),
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<ThemeMode>(
@@ -74,7 +74,7 @@ class ThemeSelector extends ConsumerWidget {
               icon: Icon(
                 Icons.keyboard_arrow_down,
                 color: scheme.onSurfaceVariant,
-                size: 16,
+                size: AppMetrics.p16,
               ),
               dropdownColor: scheme.surfaceContainerHigh,
               items: ThemeMode.values.map((themeMode) {
@@ -85,15 +85,15 @@ class ThemeSelector extends ConsumerWidget {
                     children: [
                       Icon(
                         themeMode.icon,
-                        size: 16,
+                        size: AppMetrics.p16,
                         color: scheme.onSurfaceVariant,
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: AppMetrics.p8),
                       Text(
                         _getThemeDisplayName(themeMode, l10n),
                         style: TextStyle(
                           color: scheme.onSurface,
-                          fontSize: 14,
+                          fontSize: AppType.s14,
                         ),
                       ),
                     ],
@@ -131,11 +131,11 @@ class ThemeSelector extends ConsumerWidget {
 
     return Container(
       padding:
-          padding ?? const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          padding ?? const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p8),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHighest,
         border: Border.all(color: scheme.outlineVariant),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppShape.r8),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<ThemeMode>(
@@ -162,7 +162,7 @@ class ThemeSelector extends ConsumerWidget {
                     _getThemeDisplayName(themeMode, l10n),
                     style: TextStyle(
                       color: scheme.onSurface,
-                      fontSize: 14,
+                      fontSize: AppType.s14,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -215,7 +215,7 @@ class ThemeSelectorTile extends ConsumerWidget {
         l10n.theme,
         style: TextStyle(
           color: scheme.onSurface,
-          fontSize: 16,
+          fontSize: AppType.s16,
           fontWeight: FontWeight.w500,
         ),
       ),
@@ -223,7 +223,7 @@ class ThemeSelectorTile extends ConsumerWidget {
         _getThemeDisplayName(currentTheme, l10n),
         style: TextStyle(
           color: scheme.onSurfaceVariant,
-          fontSize: 14,
+          fontSize: AppType.s14,
         ),
       ),
       trailing: Icon(
@@ -232,7 +232,7 @@ class ThemeSelectorTile extends ConsumerWidget {
       ),
       contentPadding:
           contentPadding ??
-          const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+          const EdgeInsets.symmetric(horizontal: AppMetrics.p24, vertical: AppMetrics.p4),
       onTap: () => showThemeSelectionSheet(context, ref),
     );
   }
@@ -273,11 +273,11 @@ void showThemeSelectionSheet(BuildContext context, WidgetRef ref) {
     context: context,
     backgroundColor: scheme.surfaceContainerHigh,
     shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      borderRadius: BorderRadius.vertical(top: Radius.circular(AppShape.r20)),
     ),
     builder: (BuildContext context) {
       return Container(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(AppMetrics.p20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -289,7 +289,7 @@ void showThemeSelectionSheet(BuildContext context, WidgetRef ref) {
                 height: 4,
                 decoration: BoxDecoration(
                   color: scheme.outlineVariant,
-                  borderRadius: BorderRadius.circular(2),
+                  borderRadius: BorderRadius.circular(AppShape.r2),
                 ),
               ),
             ),
@@ -300,7 +300,7 @@ void showThemeSelectionSheet(BuildContext context, WidgetRef ref) {
               l10n.theme,
               style: TextStyle(
                 color: scheme.onSurface,
-                fontSize: 20,
+                fontSize: AppType.s20,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -316,13 +316,13 @@ void showThemeSelectionSheet(BuildContext context, WidgetRef ref) {
                   color: isSelected
                       ? scheme.primary
                       : scheme.onSurfaceVariant,
-                  size: 24,
+                  size: AppMetrics.p24,
                 ),
                 title: Text(
                   name(themeMode),
                   style: TextStyle(
                     color: scheme.onSurface,
-                    fontSize: 16,
+                    fontSize: AppType.s16,
                     fontWeight: isSelected
                         ? FontWeight.w600
                         : FontWeight.w500,
@@ -333,7 +333,7 @@ void showThemeSelectionSheet(BuildContext context, WidgetRef ref) {
                         'Follow system setting',
                         style: TextStyle(
                           color: scheme.onSurfaceVariant,
-                          fontSize: 12,
+                          fontSize: AppType.s12,
                         ),
                       )
                     : null,

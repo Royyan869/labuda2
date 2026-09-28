@@ -1,4 +1,4 @@
-import 'package:labuda/core/src/theme/app_colors.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:labuda/shared/ui/base/base_component.dart';
@@ -45,13 +45,13 @@ class DescriptionInputComponent extends BaseComponent
         controller ?? TextEditingController(text: initialValue);
 
     if (enableRichText) {
-      return _buildRichTextInput(textController);
+      return _buildRichTextInput(context, textController);
     }
 
-    return _buildSimpleTextInput(textController);
+    return _buildSimpleTextInput(context, textController);
   }
 
-  Widget _buildSimpleTextInput(TextEditingController controller) {
+  Widget _buildSimpleTextInput(BuildContext context, TextEditingController controller) {
     return TextFormField(
       controller: controller,
       maxLines: maxLines,
@@ -68,21 +68,21 @@ class DescriptionInputComponent extends BaseComponent
         border: const OutlineInputBorder(),
         alignLabelWithHint: true,
         suffixIcon: isRequired
-            ? const Padding(
-                padding: EdgeInsets.only(top: 8),
-                child: Icon(Icons.star, size: 12, color: AppColors.error),
+            ? Padding(
+                padding: EdgeInsets.only(top: AppMetrics.p8),
+                child: Icon(Icons.star, size: 12, color: context.statusColors.error),
               )
             : null,
       ),
     );
   }
 
-  Widget _buildRichTextInput(TextEditingController controller) {
+  Widget _buildRichTextInput(BuildContext context, TextEditingController controller) {
     // Placeholder untuk rich text editor
     // Implementasi rich text bisa ditambah nanti
     return Column(
       children: [
-        _buildSimpleTextInput(controller),
+        _buildSimpleTextInput(context, controller),
         const SizedBox(height: 8),
         Row(
           children: [

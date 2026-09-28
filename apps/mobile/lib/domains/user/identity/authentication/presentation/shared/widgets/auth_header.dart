@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Authentication screen header
 ///
@@ -115,7 +116,7 @@ class AuthHeader extends StatelessWidget {
         width: 80,
         height: 80,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(AppShape.r16),
           boxShadow: [
             BoxShadow(
               color: scheme.shadow.withValues(alpha: 0.2),
@@ -125,7 +126,7 @@ class AuthHeader extends StatelessWidget {
           ],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(AppShape.r16),
           child: Image.asset(
             logoPath ?? 'assets/images/app_logo.png',
             width: 80,
@@ -138,7 +139,7 @@ class AuthHeader extends StatelessWidget {
                 height: 80,
                 decoration: BoxDecoration(
                   color: scheme.primary,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(AppShape.r16),
                 ),
                 child: Icon(
                   Icons.lock_person,

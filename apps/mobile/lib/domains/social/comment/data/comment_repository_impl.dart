@@ -5,6 +5,7 @@ import 'package:labuda/domains/social/comment/data/mappers/comment_mapper.dart';
 import 'package:labuda/domains/social/comment/data/remote/comment_api_datasource.dart';
 import 'package:labuda/domains/social/comment/domain/entities/comment.dart';
 import 'package:labuda/domains/social/comment/domain/repositories/comment_repository.dart';
+import 'package:labuda/core/media/media_upload_orchestrator.dart';
 import 'package:uuid/uuid.dart';
 
 /// API-based implementation of CommentRepository
@@ -169,12 +170,7 @@ class CommentRepositoryImpl implements CommentRepository {
     for (int i = 0; i < urls.length; i++) {
       final url = urls[i].trim();
       if (url.isEmpty) continue;
-      final lower = url.toLowerCase();
-      final isVideo =
-          lower.endsWith('.mp4') ||
-          lower.endsWith('.mov') ||
-          lower.endsWith('.webm') ||
-          lower.endsWith('.m4v');
+      final isVideo = MediaUploadOrchestrator.isVideoUrl(url);
       // Derive storageKey from URL last segment; fallback to url
       final uri = Uri.tryParse(url);
       final storageKey = uri != null && uri.pathSegments.isNotEmpty

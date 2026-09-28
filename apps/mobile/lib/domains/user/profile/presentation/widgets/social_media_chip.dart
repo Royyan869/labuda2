@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Social media chip widget
 /// Displays a clickable social media link with icon
@@ -22,12 +23,12 @@ class SocialMediaChip extends StatelessWidget {
 
     return InkWell(
       onTap: () => _launchUrl(context),
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(AppShape.r8),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p8),
         decoration: BoxDecoration(
           color: scheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppShape.r8),
           border: Border.all(
             color: scheme.outlineVariant,
           ),
@@ -40,7 +41,7 @@ class SocialMediaChip extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                fontSize: 13,
+                fontSize: AppType.s13,
                 color: scheme.onSurface,
               ),
             ),

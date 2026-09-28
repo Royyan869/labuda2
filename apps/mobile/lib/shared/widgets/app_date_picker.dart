@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Reusable Date/DateTime Picker widget dengan styling konsisten sesuai LABUDA design
 ///
@@ -85,30 +86,30 @@ class AppDatePicker extends StatelessWidget {
                   )
                 : null,
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppShape.r12),
               borderSide: BorderSide(
                 color: scheme.outlineVariant,
               ),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppShape.r12),
               borderSide: BorderSide(
                 color: scheme.outlineVariant,
               ),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppShape.r12),
               borderSide: BorderSide(
                 color: scheme.primary,
                 width: 2,
               ),
             ),
             errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppShape.r12),
               borderSide: BorderSide(color: scheme.error),
             ),
             focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppShape.r12),
               borderSide: BorderSide(color: scheme.error, width: 2),
             ),
           ),
@@ -207,7 +208,7 @@ class AppDatePicker extends StatelessWidget {
                                 child: Text(
                                   index.toString().padLeft(2, '0'),
                                   style: TextStyle(
-                                    fontSize: 18,
+                                    fontSize: AppType.s18,
                                     color: scheme.onSurface,
                                   ),
                                 ),
@@ -221,7 +222,7 @@ class AppDatePicker extends StatelessWidget {
                   Text(
                     ':',
                     style: TextStyle(
-                      fontSize: 24,
+                      fontSize: AppType.s24,
                       color: scheme.onSurface,
                     ),
                   ),
@@ -258,7 +259,7 @@ class AppDatePicker extends StatelessWidget {
                                 child: Text(
                                   minute.toString().padLeft(2, '0'),
                                   style: TextStyle(
-                                    fontSize: 18,
+                                    fontSize: AppType.s18,
                                     color: scheme.onSurface,
                                   ),
                                 ),

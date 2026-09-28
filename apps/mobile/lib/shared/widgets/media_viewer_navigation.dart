@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Navigation components untuk Media Viewer
 ///
@@ -81,17 +82,17 @@ class MediaViewerNavigation extends StatelessWidget {
     return Container(
       alignment: Alignment.center,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p8),
         decoration: BoxDecoration(
           color: scheme.scrim.withValues(alpha: 0.6),
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(AppShape.r20),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: List.generate(
             totalItems,
             (index) => Container(
-              margin: const EdgeInsets.symmetric(horizontal: 3),
+              margin: const EdgeInsets.symmetric(horizontal: AppMetrics.p3),
               width: 6,
               height: 6,
               decoration: BoxDecoration(

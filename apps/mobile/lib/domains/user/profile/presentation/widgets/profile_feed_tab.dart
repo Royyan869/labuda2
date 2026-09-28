@@ -218,7 +218,7 @@ class _ProfileFeedTabState extends ConsumerState<ProfileFeedTab> {
         // Filter section (content-only)
         SliverToBoxAdapter(
           child: Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppMetrics.p16),
             decoration: BoxDecoration(
               color: scheme.surface,
               border: Border(
@@ -230,7 +230,7 @@ class _ProfileFeedTabState extends ConsumerState<ProfileFeedTab> {
                 Text(
                   'Content (${_filteredContent.length})',
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: AppType.s16,
                     fontWeight: FontWeight.w600,
                     color: scheme.onSurface,
                   ),
@@ -238,19 +238,19 @@ class _ProfileFeedTabState extends ConsumerState<ProfileFeedTab> {
                 const Spacer(),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
+                    horizontal: AppMetrics.p12,
+                    vertical: AppMetrics.p6,
                   ),
                   decoration: BoxDecoration(
                     color: scheme.surfaceContainer,
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(AppShape.r20),
                   ),
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
                       value: _selectedFilter,
                       isDense: true,
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: AppType.s14,
                         color: scheme.onSurface,
                       ),
                       dropdownColor: scheme.surfaceContainerHigh,
@@ -284,7 +284,7 @@ class _ProfileFeedTabState extends ConsumerState<ProfileFeedTab> {
           SliverFillRemaining(child: _buildEmptyState(context))
         else
           SliverPadding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
+            padding: const EdgeInsets.symmetric(vertical: AppMetrics.p8),
             sliver: SliverList(
               delegate: SliverChildBuilderDelegate((context, index) {
                 final feedItem = _filteredContent[index];
@@ -300,7 +300,7 @@ class _ProfileFeedTabState extends ConsumerState<ProfileFeedTab> {
         if (_isLoadingMore)
           const SliverToBoxAdapter(
             child: Padding(
-              padding: EdgeInsets.symmetric(vertical: 16),
+              padding: EdgeInsets.symmetric(vertical: AppMetrics.p16),
               child: Center(child: LoadingIndicator()),
             ),
           ),
@@ -358,7 +358,7 @@ class _ProfileFeedTabState extends ConsumerState<ProfileFeedTab> {
           Text(
             _getEmptyStateTitle(),
             style: TextStyle(
-              fontSize: 18,
+              fontSize: AppType.s18,
               fontWeight: FontWeight.w600,
               color: scheme.onSurface,
             ),
@@ -367,7 +367,7 @@ class _ProfileFeedTabState extends ConsumerState<ProfileFeedTab> {
           Text(
             _getEmptyStateSubtitle(),
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppType.s14,
               color: scheme.onSurfaceVariant,
             ),
           ),

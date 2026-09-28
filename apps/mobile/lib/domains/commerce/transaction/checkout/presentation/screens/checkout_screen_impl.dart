@@ -429,12 +429,12 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           ),
           // Colours come from the canonical AppBarTheme (AppTheme), not from a
           // checkout-local brightness branch.
-          elevation: 0,
+          elevation: AppElevation.none,
           surfaceTintColor: Colors.transparent,
           scrolledUnderElevation: 0,
         ),
         body: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppMetrics.p16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -449,7 +449,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
               // **STOCK WARNING UX FIX 2:** Show stock warning after preview succeeds
               if (_previewResult != null && !_hasShownStockWarning)
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.only(bottom: AppMetrics.p16),
                   child: _StockWarningBanner(),
                 ),
 
@@ -564,7 +564,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     }
 
     // Schedule preview after debounce
-    _previewDebounceTimer = Timer(const Duration(milliseconds: 500), () {
+    _previewDebounceTimer = Timer(AppMotion.slow, () {
       _fetchPreview();
     });
   }
@@ -837,7 +837,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       builder: (context) => AlertDialog(
         icon: Icon(
           Icons.inventory_2_outlined,
-          color: AppColors.statusWarning,
+          color: context.statusColors.warning,
           size: 48,
         ),
         title: Text(title),
@@ -848,10 +848,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             Text(message),
             const SizedBox(height: 16),
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(AppMetrics.p12),
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(AppShape.r8),
               ),
               child: Row(
                 children: [
@@ -865,7 +865,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                     child: Text(
                       CheckoutHonestyMessages.firstComeFirstServedExplanation,
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: AppType.s12,
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                         fontStyle: FontStyle.italic,
                       ),
@@ -926,7 +926,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       builder: (dialogCtx) => AlertDialog(
         icon: Icon(
           Icons.local_shipping_outlined,
-          color: AppColors.statusWarning,
+          color: context.statusColors.warning,
           size: 48,
         ),
         title: Text(title),
@@ -1013,7 +1013,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       builder: (context) => AlertDialog(
         icon: Icon(
           Icons.timer_outlined,
-          color: AppColors.statusWarning,
+          color: context.statusColors.warning,
           size: 48,
         ),
         title: const Text('Waktu Harga Habis'),

@@ -5,6 +5,7 @@ import 'package:labuda/shared/services/places_autocomplete_service.dart';
 import 'package:labuda/shared/services/location_service.dart';
 import 'package:labuda/shared/widgets/map_picker/address_formatter.dart';
 import 'package:labuda/shared/widgets/app_snackbar.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Handler mixin untuk Map Picker logic
 mixin MapPickerHandlers<T extends StatefulWidget> on State<T> {
@@ -123,7 +124,7 @@ mixin MapPickerHandlers<T extends StatefulWidget> on State<T> {
     if (addressFromSearch) {
       // Skip reverse geocoding jika address dari search
       // Reset flag setelah delay
-      Future.delayed(const Duration(milliseconds: 500), () {
+      Future.delayed(AppMotion.slow, () {
         if (mounted) {
           setAddressFromSearch(false);
         }

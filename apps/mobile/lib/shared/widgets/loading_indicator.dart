@@ -89,7 +89,7 @@ class FullScreenLoading extends StatelessWidget {
         child: Center(
           child: Card(
             child: Padding(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(AppMetrics.p24),
               child: LoadingIndicator.large(message: message ?? 'Loading...'),
             ),
           ),

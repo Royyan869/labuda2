@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:labuda/core/src/theme/app_colors.dart';
 import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/shared/widgets/app_snackbar.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Shipping Quote Creation Modal
 ///
@@ -104,10 +105,10 @@ class _ShippingQuoteCreationModalState
           children: [
             // ForSale info
             Container(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(AppMetrics.p10),
               decoration: BoxDecoration(
                 color: colorScheme.primary.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(AppShape.r8),
                 border: Border.all(
                   color: colorScheme.primary.withValues(alpha: 0.25),
                   width: 1,
@@ -125,7 +126,7 @@ class _ShippingQuoteCreationModalState
                     child: Text(
                       widget.forSaleName,
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: AppType.s12,
                         fontWeight: FontWeight.w500,
                         color: colorScheme.onSurface,
                       ),
@@ -142,7 +143,7 @@ class _ShippingQuoteCreationModalState
             Text(
               'Biaya Ongkir',
               style: TextStyle(
-                fontSize: 13,
+                fontSize: AppType.s13,
                 fontWeight: FontWeight.w600,
                 color: colorScheme.onSurface,
               ),
@@ -167,7 +168,7 @@ class _ShippingQuoteCreationModalState
                 labelText: 'Rp',
                 prefixText: 'Rp ',
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(AppShape.r8),
                 ),
                 filled: true,
                 fillColor: colorScheme.surfaceContainerLow,
@@ -196,7 +197,7 @@ class _ShippingQuoteCreationModalState
             Text(
               'Catatan (opsional)',
               style: TextStyle(
-                fontSize: 13,
+                fontSize: AppType.s13,
                 fontWeight: FontWeight.w600,
                 color: colorScheme.onSurface,
               ),
@@ -208,7 +209,7 @@ class _ShippingQuoteCreationModalState
               decoration: InputDecoration(
                 hintText: 'Contoh: Ongkir via JNE reguler',
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(AppShape.r8),
                 ),
                 filled: true,
                 fillColor: colorScheme.surfaceContainerLow,
@@ -218,10 +219,10 @@ class _ShippingQuoteCreationModalState
             // Info hint
             const SizedBox(height: 12),
             Container(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(AppMetrics.p10),
               decoration: BoxDecoration(
                 color: AppColors.coinPrimary.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(AppShape.r8),
                 border: Border.all(
                   color: AppColors.coinPrimary.withValues(alpha: 0.25),
                   width: 1,
@@ -239,7 +240,7 @@ class _ShippingQuoteCreationModalState
                     child: Text(
                       'Ongkir yang Anda berikan akan dikirim ke pembeli dan dapat langsung digunakan untuk checkout.',
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: AppType.s11,
                         color: colorScheme.onSurfaceVariant,
                         height: 1.4,
                       ),

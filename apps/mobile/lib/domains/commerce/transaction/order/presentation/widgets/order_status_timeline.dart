@@ -16,13 +16,13 @@ class SellerActionRequiredBanner extends StatelessWidget {
     final colorScheme = theme.colorScheme;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: core.AppMetrics.p16),
+      padding: const EdgeInsets.all(core.AppMetrics.p16),
       decoration: BoxDecoration(
-        color: core.AppColors.statusWarning.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
+        color: context.statusColors.warning.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(core.AppShape.r12),
         border: Border.all(
-          color: core.AppColors.statusWarning.withValues(alpha: 0.3),
+          color: context.statusColors.warning.withValues(alpha: 0.3),
         ),
       ),
       child: Row(
@@ -31,12 +31,12 @@ class SellerActionRequiredBanner extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: core.AppColors.statusWarning.withValues(alpha: 0.2),
+              color: context.statusColors.warning.withValues(alpha: 0.2),
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.notification_important,
-              color: core.AppColors.statusWarning,
+              color: context.statusColors.warning,
               size: 20,
             ),
           ),
@@ -49,7 +49,7 @@ class SellerActionRequiredBanner extends StatelessWidget {
                   'Tindakan Diperlukan',
                   style: theme.textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w600,
-                    color: core.AppColors.statusWarning,
+                    color: context.statusColors.warning,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -115,10 +115,10 @@ class OrderStatusTimeline extends StatelessWidget {
     final steps = _buildTimelineSteps();
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(core.AppMetrics.p16),
       decoration: BoxDecoration(
         color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(core.AppShape.r12),
         border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: Column(
@@ -316,9 +316,9 @@ class _TimelineStepTile extends StatelessWidget {
       iconBgColor = colorScheme.primary.withValues(alpha: 0.1);
       lineColor = colorScheme.primary;
     } else if (step.isCompleted) {
-      iconColor = core.AppColors.statusSuccess;
-      iconBgColor = core.AppColors.statusSuccess.withValues(alpha: 0.1);
-      lineColor = core.AppColors.statusSuccess;
+      iconColor = context.statusColors.success;
+      iconBgColor = context.statusColors.success.withValues(alpha: 0.1);
+      lineColor = context.statusColors.success;
     } else {
       iconColor = colorScheme.onSurfaceVariant;
       iconBgColor = colorScheme.surfaceContainerHighest;
@@ -352,7 +352,9 @@ class _TimelineStepTile extends StatelessWidget {
         // Content column
         Expanded(
           child: Padding(
-            padding: EdgeInsets.only(bottom: isLast ? 0 : 8),
+            padding: EdgeInsets.only(
+              bottom: isLast ? core.AppMetrics.p0 : core.AppMetrics.p8,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

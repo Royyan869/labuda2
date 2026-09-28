@@ -23,6 +23,7 @@ import 'package:labuda/domains/system/notification/presentation/widgets/notifica
 
 // Flutter
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 class NotificationListScreen extends ConsumerWidget {
   final String userId;
@@ -73,7 +74,7 @@ class NotificationListScreen extends ConsumerWidget {
     NotificationFilter filter,
   ) {
     return AppBar(
-      elevation: 0,
+      elevation: AppElevation.none,
       surfaceTintColor: Colors.transparent,
       leading: IconButton(
         icon: const Icon(Icons.arrow_back),
@@ -112,7 +113,7 @@ class NotificationListScreen extends ConsumerWidget {
   ) {
     return Container(
       height: 50,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: NotificationFilter.values.length,
@@ -122,7 +123,7 @@ class NotificationListScreen extends ConsumerWidget {
           final count = counts[filter] ?? 0;
 
           return Padding(
-            padding: const EdgeInsets.only(right: 12),
+            padding: const EdgeInsets.only(right: AppMetrics.p12),
             child: FilterChip(
               avatar: Icon(filter.icon, size: 18),
               label: Row(
@@ -191,7 +192,7 @@ class NotificationListScreen extends ConsumerWidget {
   Widget _buildErrorState(BuildContext context, WidgetRef ref, Object error) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppMetrics.p24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -199,13 +200,13 @@ class NotificationListScreen extends ConsumerWidget {
             const SizedBox(height: 16),
             const Text(
               'Failed to Load Notifications',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+              style: TextStyle(fontSize: AppType.s18, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
             Text(
               error.toString(),
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
+              style: TextStyle(fontSize: AppType.s14, color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(

@@ -12,6 +12,7 @@ import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/widgets/for_sale_card.dart';
 import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_marketplace_primitives.dart';
 import 'package:labuda/shared/widgets/empty_state.dart';
+import 'package:labuda/core/core.dart';
 
 /// ForSale List Screen - Public marketplace
 class ForSaleListScreen extends ConsumerStatefulWidget {
@@ -102,7 +103,7 @@ class _ForSaleListScreenState extends ConsumerState<ForSaleListScreen> {
           ),
           backgroundColor: scheme.surface,
           foregroundColor: scheme.onSurface,
-          elevation: 0,
+          elevation: AppElevation.none,
           surfaceTintColor: Colors.transparent,
           scrolledUnderElevation: 0,
           actions: [
@@ -118,7 +119,7 @@ class _ForSaleListScreenState extends ConsumerState<ForSaleListScreen> {
             children: [
               // Search bar
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(AppMetrics.p16),
                 child: TextField(
                   controller: _searchController,
                   decoration: InputDecoration(
@@ -134,7 +135,7 @@ class _ForSaleListScreenState extends ConsumerState<ForSaleListScreen> {
                           )
                         : null,
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(AppShape.r12),
                     ),
                   ),
                   onChanged: (_) => _onFilterChanged(),
@@ -250,10 +251,10 @@ class _ForSaleFilterSheetState extends State<_ForSaleFilterSheet> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(AppShape.r20)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,

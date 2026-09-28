@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/shared/entities/post_location.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Clickable location widget yang bisa buka Google Maps
 ///
@@ -72,9 +73,9 @@ class ClickableLocationWidget extends StatelessWidget {
       // Compact mode - inline dengan icon
       return InkWell(
         onTap: () => _openInMaps(context),
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(AppShape.r4),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 0),
+          padding: const EdgeInsets.symmetric(vertical: AppMetrics.p4, horizontal: AppMetrics.p0),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -84,7 +85,7 @@ class ClickableLocationWidget extends StatelessWidget {
                 child: Text(
                   location.address,
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: AppType.s13,
                     color: scheme.secondary,
                     decoration: TextDecoration.underline,
                   ),
@@ -103,12 +104,12 @@ class ClickableLocationWidget extends StatelessWidget {
     // Full mode - card dengan detail
     return InkWell(
       onTap: () => _openInMaps(context),
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(AppShape.r8),
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(AppMetrics.p12),
         decoration: BoxDecoration(
           color: scheme.secondary.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppShape.r8),
           border: Border.all(
             color: scheme.secondary.withValues(alpha: 0.3),
           ),
@@ -116,10 +117,10 @@ class ClickableLocationWidget extends StatelessWidget {
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(AppMetrics.p8),
               decoration: BoxDecoration(
                 color: scheme.primary.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(AppShape.r8),
               ),
               child: Icon(
                 Icons.location_on,
@@ -135,7 +136,7 @@ class ClickableLocationWidget extends StatelessWidget {
                   Text(
                     location.address,
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: AppType.s14,
                       fontWeight: FontWeight.w500,
                       color: scheme.onSurface,
                     ),
@@ -147,7 +148,7 @@ class ClickableLocationWidget extends StatelessWidget {
                     Text(
                       '${location.latitude!.toStringAsFixed(6)}, ${location.longitude!.toStringAsFixed(6)}',
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: AppType.s11,
                         fontFamily: 'monospace',
                         color: scheme.onSurfaceVariant,
                       ),

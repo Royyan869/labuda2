@@ -9,6 +9,7 @@ import 'package:labuda/domains/user/profile/presentation/widgets/phone_verificat
 import 'package:labuda/domains/user/profile/presentation/widgets/phone_verification/otp_input_field.dart';
 import 'package:labuda/domains/user/profile/presentation/widgets/phone_verification/verification_error_message.dart';
 import 'package:labuda/domains/user/profile/presentation/widgets/phone_verification/verification_action_buttons.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Dialog untuk verifikasi nomor telepon dengan OTP
 class PhoneVerificationDialog extends ConsumerStatefulWidget {
@@ -118,20 +119,20 @@ class _PhoneVerificationDialogState
 
         return Dialog(
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(AppShape.r16),
           ),
           insetPadding: const EdgeInsets.symmetric(
-            horizontal: 20,
-            vertical: 24,
+            horizontal: AppMetrics.p20,
+            vertical: AppMetrics.p24,
           ),
           child: SingleChildScrollView(
             child: Container(
               width: dialogWidth,
               constraints: BoxConstraints(maxWidth: screenWidth * 0.9),
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(AppMetrics.p16),
               decoration: BoxDecoration(
                  color: Theme.of(context).colorScheme.surfaceContainerHigh,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(AppShape.r16),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,

@@ -23,7 +23,7 @@ export 'domain/entities/search_result.dart'
 export 'domain/entities/search_history.dart' show SearchHistory;
 export 'domain/entities/user_search.dart' show UserSearch;
 export 'domain/repositories/search_repository.dart'
-    show SearchRepository, ApiResult, ContentSearchResult, UserSearchResult;
+    show SearchRepository, ContentSearchResult, UserSearchResult;
 export 'domain/repositories/search_history_repository.dart'
     show SearchHistoryRepository;
 

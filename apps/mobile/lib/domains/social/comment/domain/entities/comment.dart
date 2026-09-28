@@ -3,6 +3,25 @@ import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/shared/attachment/entities/share_reference.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 
+class CommentMedia extends Equatable {
+  final String id;
+  final String mediaUrl;
+  final String mediaType;
+  final int position;
+
+  const CommentMedia({
+    required this.id,
+    required this.mediaUrl,
+    required this.mediaType,
+    required this.position,
+  });
+
+  bool get isVideo => mediaType == 'video';
+
+  @override
+  List<Object?> get props => [id, mediaUrl, mediaType, position];
+}
+
 /// Comment Entity - canonical domain entity for comments system.
 ///
 /// Comment is a social interaction object, NOT a commerce object.
@@ -31,7 +50,8 @@ class Comment extends Equatable {
   /// the backend projection authority. This is the ONLY display source for a
   /// commerce-reference comment — [reference] carries identity only.
   final ResourceProjection? resourceProjection;
-  final String? parentId; // Set for replies (max depth = 1)
+  final List<CommentMedia> media;
+  final String? parentId; // Set for replies (max depth = 1)                         
   final DateTime createdAt;
   final DateTime? updatedAt;
   final DateTime? deletedAt;
@@ -59,6 +79,7 @@ class Comment extends Equatable {
     required this.type,
     this.reference,
     this.resourceProjection,
+    this.media = const [],
     this.parentId,
     required this.createdAt,
     this.updatedAt,
@@ -95,6 +116,7 @@ class Comment extends Equatable {
     type,
     reference,
     resourceProjection,
+    media,
     parentId,
     createdAt,
     updatedAt,
@@ -112,6 +134,7 @@ class Comment extends Equatable {
     String? type,
     ShareReference? reference,
     ResourceProjection? resourceProjection,
+    List<CommentMedia>? media,
     String? parentId,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -126,9 +149,10 @@ class Comment extends Equatable {
       authorAvatarUrl: authorAvatarUrl ?? this.authorAvatarUrl,
       body: body ?? this.body,
       type: type ?? this.type,
-      reference: reference ?? this.reference,
-      resourceProjection: resourceProjection ?? this.resourceProjection,
-      parentId: parentId ?? this.parentId,
+       reference: reference ?? this.reference,
+       resourceProjection: resourceProjection ?? this.resourceProjection,
+       media: media ?? this.media,
+       parentId: parentId ?? this.parentId,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt ?? this.deletedAt,

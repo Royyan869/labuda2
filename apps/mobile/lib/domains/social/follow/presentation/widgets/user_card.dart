@@ -4,6 +4,7 @@ import 'package:labuda/shared/widgets/app_image.dart';
 import 'package:labuda/shared/widgets/follow_button.dart';
 import 'package:labuda/domains/social/follow/domain/entities/follow_entity.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
+import 'package:labuda/core/core.dart';
 
 /// UserCard untuk Follow List Screen
 ///
@@ -31,17 +32,17 @@ class UserCard extends ConsumerWidget {
 
     return Card(
       margin: EdgeInsets.zero,
-      elevation: 0,
+      elevation: AppElevation.none,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         side: BorderSide(color: colorScheme.outline.withValues(alpha: 0.2)),
       ),
       child: InkWell(
         // Tap disabled for degraded users — profile is unavailable/removed.
         onTap: isDegraded ? null : onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p10),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [

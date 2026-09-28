@@ -209,7 +209,7 @@ class _ForSaleDetailScreenState extends ConsumerState<ForSaleDetailScreen> {
         // (attributes, shipping readiness and description live here).
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p0, AppMetrics.p16, AppMetrics.p16),
             child: CommerceCommonProductDetailSection(
               title: 'Detail Produk',
               data: CommerceCommonProductDetailsData.fromForSale(forSale),
@@ -278,7 +278,7 @@ class _ForSaleDetailTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+      padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p16, AppMetrics.p16, AppMetrics.p16),
       child: Text(
         forSale.title,
         style: Theme.of(context).textTheme.headlineSmall,
@@ -302,7 +302,7 @@ class _ForSalePriceSection extends StatelessWidget {
     final colorScheme = theme.colorScheme;
 
     return CommerceDetailSectionCard(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      margin: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p0, AppMetrics.p16, AppMetrics.p16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -315,10 +315,10 @@ class _ForSalePriceSection extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p8),
             decoration: BoxDecoration(
               color: colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(AppShape.r8),
             ),
             child: Row(
               children: [
@@ -334,7 +334,7 @@ class _ForSalePriceSection extends StatelessWidget {
                         ? 'Beli langsung — penawaran bisa diajukan lewat chat'
                         : 'Beli langsung — harga pas tanpa tawar',
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: AppType.s13,
                       color: colorScheme.onSurfaceVariant,
                       fontStyle: FontStyle.italic,
                     ),
@@ -364,7 +364,7 @@ class _SellerInactiveBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p12),
       decoration: BoxDecoration(
         color: theme.scaffoldBackgroundColor,
         border: Border(
@@ -542,7 +542,7 @@ class _ForSaleActionBar extends ConsumerWidget {
     final showPrimary = canBuy;
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+      padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p8, AppMetrics.p16, AppMetrics.p12),
       decoration: BoxDecoration(
         color: theme.scaffoldBackgroundColor,
         border: Border(
@@ -556,14 +556,14 @@ class _ForSaleActionBar extends ConsumerWidget {
           children: [
             if (unavailable)
               Container(
-                margin: const EdgeInsets.only(bottom: 8),
+                margin: const EdgeInsets.only(bottom: AppMetrics.p8),
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
+                  horizontal: AppMetrics.p12,
+                  vertical: AppMetrics.p8,
                 ),
                 decoration: BoxDecoration(
                   color: theme.colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(AppShape.r8),
                 ),
                 child: Text(
                   'Item sudah tidak tersedia untuk dibeli',
@@ -606,12 +606,12 @@ class _ForSaleActionBar extends ConsumerWidget {
                     backgroundColor: theme.colorScheme.primary,
                     foregroundColor: theme.colorScheme.onPrimary,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(AppShape.r12),
                     ),
                   ),
                   child: const Text(
                     'Beli Sekarang',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: AppType.s16, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
@@ -633,7 +633,7 @@ class _ForSaleActionBar extends ConsumerWidget {
       label: Text(label),
       style: OutlinedButton.styleFrom(
         minimumSize: const Size.fromHeight(44),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppShape.r12)),
       ),
     );
   }

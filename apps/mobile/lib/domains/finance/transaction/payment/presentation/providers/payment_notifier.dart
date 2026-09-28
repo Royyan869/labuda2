@@ -39,8 +39,8 @@ class PaymentNotifier extends _$PaymentNotifier {
       final result = await repo.createPayment(request);
 
       result.fold(
+        (error) => state = PaymentState.error(error),
         (intent) => state = PaymentState.paymentCreated(intent),
-        (failure) => state = PaymentState.error(failure.message),
       );
     } finally {
       // Always reset guard in finally
@@ -56,8 +56,8 @@ class PaymentNotifier extends _$PaymentNotifier {
     final result = await repo.getPayment(paymentId);
 
     result.fold(
+      (error) => state = PaymentState.error(error),
       (payment) => state = PaymentState.paymentLoaded(payment),
-      (failure) => state = PaymentState.error(failure.message),
     );
   }
 

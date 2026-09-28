@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/labuda/backend/internal/platform/mediaresolve"
+	"github.com/labuda/backend/internal/platform/s3presign"
 	"github.com/labuda/backend/internal/social/content/entity"
 )
 
@@ -107,5 +109,62 @@ func TestNewCommentResponse_AuthorLifecycle(t *testing.T) {
 }
 
 func ptr(s string) *string { return &s }
+
+// TestNewCommentResponseWithMedia_ResolvesCDN locks the single media read
+// authority for comment attachments: persisted storage keys and raw bucket
+// URLs project onto the canonical CloudFront URL. A raw S3 URL must never
+// reach the wire — it 403s once the bucket sits behind OAC.
+func TestNewCommentResponseWithMedia_ResolvesCDN(t *testing.T) {
+	mediaresolve.SetDefaultConfig(mediaresolve.Config{
+		PresignCfg: s3presign.Config{
+			Region:    "us-east-1",
+			AccessKey: "test-access-key",
+			SecretKey: "test-secret-key",
+			Bucket:    "labuda-uploads",
+		},
+		CDNBaseURL: "https://cdn.example.test",
+		ReadTTL:    time.Minute,
+	})
+
+	comment := &entity.Comment{
+		ID:        uuid.New(),
+		TargetID:  uuid.New(),
+		AuthorID:  uuid.New(),
+		Type:      entity.CommentType("normal"),
+		CreatedAt: time.Now().UTC(),
+	}
+	media := []*entity.CommentMedia{
+		{
+			ID:         uuid.New(),
+			StorageKey: "images/1749600000005_chat.jpg",
+			MediaURL:   "images/1749600000005_chat.jpg",
+			MediaType:  entity.MediaTypeImage,
+			Position:   0,
+		},
+		{
+			ID:         uuid.New(),
+			StorageKey: "images/1749600000006_chat.jpg",
+			MediaURL:   "https://labuda-uploads.s3.us-east-1.amazonaws.com/images/1749600000006_chat.jpg",
+			MediaType:  entity.MediaTypeImage,
+			Position:   1,
+		},
+	}
+
+	resp := NewCommentResponseWithMedia(comment, nil, media, "bob", nil, "active")
+	if len(resp.Media) != 2 {
+		t.Fatalf("media length = %d; want 2", len(resp.Media))
+	}
+	for i, want := range []string{
+		"https://cdn.example.test/images/1749600000005_chat.jpg",
+		"https://cdn.example.test/images/1749600000006_chat.jpg",
+	} {
+		if resp.Media[i].MediaURL != want {
+			t.Fatalf("media[%d].url = %q; want %q", i, resp.Media[i].MediaURL, want)
+		}
+		if resp.Media[i].Position != i {
+			t.Fatalf("media[%d].position = %d; want %d", i, resp.Media[i].Position, i)
+		}
+	}
+}
 
 

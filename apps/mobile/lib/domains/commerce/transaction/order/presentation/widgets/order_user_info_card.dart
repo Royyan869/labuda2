@@ -21,10 +21,10 @@ class OrderUserInfoCard extends ConsumerWidget {
     final showBuyerInfo = isSeller;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(core.AppMetrics.p16),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(core.AppShape.r12),
         border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: Column(
@@ -147,14 +147,14 @@ class _UserInfoTile extends ConsumerWidget {
                   sellerIdentity.line1,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w600,
-                    fontSize: 12,
+                    fontSize: core.AppType.s12,
                   ),
                 ),
                 if (sellerIdentity.line2 != null) ...[
                   const SizedBox(height: 2),
                   Text(
                     sellerIdentity.line2!,
-                    style: theme.textTheme.bodyMedium?.copyWith(fontSize: 12),
+                    style: theme.textTheme.bodyMedium?.copyWith(fontSize: core.AppType.s12),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -164,7 +164,7 @@ class _UserInfoTile extends ConsumerWidget {
                   userId.length > 20 ? '${userId.substring(0, 20)}...' : userId,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontFamily: 'monospace',
-                    fontSize: 12,
+                    fontSize: core.AppType.s12,
                   ),
                 ),
             ],
@@ -216,12 +216,12 @@ class _ChatButton extends ConsumerWidget {
     final colorScheme = Theme.of(context).colorScheme;
     return InkWell(
       onTap: () => _handleChatTap(context, ref),
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(core.AppShape.r8),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: core.AppMetrics.p12, vertical: core.AppMetrics.p6),
         decoration: BoxDecoration(
           color: colorScheme.primary.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(core.AppShape.r8),
           border: Border.all(
             color: colorScheme.primary.withValues(alpha: 0.3),
           ),
@@ -238,7 +238,7 @@ class _ChatButton extends ConsumerWidget {
             Text(
               'Chat',
               style: TextStyle(
-                fontSize: 13,
+                fontSize: core.AppType.s13,
                 fontWeight: FontWeight.w500,
                 color: colorScheme.primary,
               ),

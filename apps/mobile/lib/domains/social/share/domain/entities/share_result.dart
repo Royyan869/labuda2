@@ -8,12 +8,12 @@ class ShareResult {
   final String? error;
   final DateTime timestamp;
 
-  const ShareResult({
+  ShareResult({
     required this.success,
     required this.destination,
     this.error,
     DateTime? timestamp,
-  }) : timestamp = timestamp ?? const Duration(milliseconds: 0) as DateTime;
+  }) : timestamp = timestamp ?? DateTime.fromMillisecondsSinceEpoch(0);
 
   factory ShareResult.success(ShareDestinationType destination) {
     return ShareResult(

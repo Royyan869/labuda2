@@ -199,11 +199,11 @@ class _ControlledFollowRepository implements IFollowRepository {
 
 class _FakeContentRepository implements ContentRepository {
   @override
-  Future<ContentRepositoryResult<ContentAuthorPage>> getContentsByAuthorPaged(
+  Future<Result<ContentAuthorPage>> getContentsByAuthorPaged(
     String authorId, {
     int limit = 20,
     String? cursor,
-  }) async => ContentRepositoryResult.success(
+  }) async => Result.success(
     const ContentAuthorPage(
       items: <Content>[],
       hasMore: false,

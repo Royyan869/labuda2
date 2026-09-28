@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/domains/user/preference/seller/presentation/providers/current_seller_provider.dart';
 import 'package:labuda/domains/user/preference/seller/domain/entities/seller_state.dart';
 import 'package:labuda/domains/commerce/pricing/discount/discount.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Marketing & Promotion Section
 /// Handles: Promotions & Discounts
@@ -58,7 +59,7 @@ class SettingsMarketingSection extends ConsumerWidget {
     ColorScheme scheme,
   ) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p16, AppMetrics.p16, AppMetrics.p8),
       child: Row(
         children: [
           Icon(
@@ -70,7 +71,7 @@ class SettingsMarketingSection extends ConsumerWidget {
           Text(
             title,
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppType.s14,
               fontWeight: FontWeight.w600,
               color: scheme.onSurfaceVariant,
             ),
@@ -102,7 +103,7 @@ class SettingsMarketingSection extends ConsumerWidget {
         subtitle,
         style: TextStyle(
           color: scheme.onSurfaceVariant,
-          fontSize: 13,
+          fontSize: AppType.s13,
         ),
       ),
       trailing: Icon(

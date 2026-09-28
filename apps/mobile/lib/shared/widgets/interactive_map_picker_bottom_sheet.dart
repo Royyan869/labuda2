@@ -7,6 +7,7 @@ import 'package:labuda/shared/services/location_service.dart';
 import 'package:labuda/shared/services/logger_service.dart';
 import 'package:labuda/shared/widgets/map_picker/map_picker_widgets.dart';
 import 'package:labuda/shared/widgets/map_picker/map_picker_handlers.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Interactive Map Picker dengan draggable pin (WhatsApp-style)
 ///
@@ -149,7 +150,7 @@ class _InteractiveMapPickerBottomSheetState
     if (_selectedLocation == null) return;
 
     // Tunggu sebentar untuk map controller siap
-    await Future.delayed(const Duration(milliseconds: 300));
+    await Future.delayed(AppMotion.settled);
 
     if (_mapController != null && mounted) {
       await _mapController!.animateCamera(
@@ -160,7 +161,7 @@ class _InteractiveMapPickerBottomSheetState
 
   /// Animate ke location setelah delay (untuk initialLocation case)
   void _animateToLocationAfterDelay() {
-    Future.delayed(const Duration(milliseconds: 500), () {
+    Future.delayed(AppMotion.slow, () {
       if (_mapController != null && _selectedLocation != null && mounted) {
         _mapController!.animateCamera(
           gmaps.CameraUpdate.newLatLngZoom(_selectedLocation!, 16),
@@ -192,7 +193,7 @@ class _InteractiveMapPickerBottomSheetState
       height: mediaQuery.size.height * 0.9,
       decoration: BoxDecoration(
         color: scheme.surfaceContainerLow,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(AppShape.r16)),
       ),
       child: Column(
         children: [
@@ -292,7 +293,7 @@ class _InteractiveMapPickerBottomSheetState
       onCameraIdle: onCameraIdle,
       onCameraMoveStarted: () {
         // Hanya reset jika sudah lebih dari 500ms sejak search
-        Future.delayed(const Duration(milliseconds: 500), () {
+        Future.delayed(AppMotion.slow, () {
           if (mounted) {
             setAddressFromSearch(false);
           }
@@ -390,10 +391,10 @@ class _InitialLoadingIndicator extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(AppMetrics.p20),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         boxShadow: [
           BoxShadow(
             color: scheme.shadow.withValues(alpha: 0.1),
@@ -410,7 +411,7 @@ class _InitialLoadingIndicator extends StatelessWidget {
           Text(
             'Mendapatkan lokasi...',
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppType.s14,
               color: scheme.onSurface,
             ),
           ),
@@ -431,10 +432,10 @@ class _DefaultLocationBanner extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppMetrics.p12),
       decoration: BoxDecoration(
         color: scheme.error.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(
           color: scheme.error.withValues(alpha: 0.4),
           width: 1,
@@ -456,7 +457,7 @@ class _DefaultLocationBanner extends StatelessWidget {
                 Text(
                   'GPS Tidak Terdeteksi',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: AppType.s12,
                     fontWeight: FontWeight.w600,
                     color: scheme.onSurface,
                   ),
@@ -464,7 +465,7 @@ class _DefaultLocationBanner extends StatelessWidget {
                 Text(
                   'Menggunakan lokasi default (Jakarta)',
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: AppType.s11,
                     color: scheme.onSurfaceVariant,
                   ),
                 ),
@@ -474,10 +475,10 @@ class _DefaultLocationBanner extends StatelessWidget {
           TextButton(
             onPressed: onRetry,
             style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p6),
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
-            child: const Text('Coba Lagi', style: TextStyle(fontSize: 12)),
+            child: const Text('Coba Lagi', style: TextStyle(fontSize: AppType.s12)),
           ),
         ],
       ),

@@ -5,6 +5,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// A simple "Promoted" badge for disclosure
 ///
@@ -54,10 +55,10 @@ class PromotedBadge extends StatelessWidget {
 
   Widget _buildPill(BuildContext context, String label, ThemeData theme) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
       decoration: BoxDecoration(
         color: theme.colorScheme.secondary.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(
           color: theme.colorScheme.secondary.withValues(alpha: 0.3),
           width: 1,
@@ -66,7 +67,7 @@ class PromotedBadge extends StatelessWidget {
       child: Text(
         label,
         style: TextStyle(
-          fontSize: 11,
+          fontSize: AppType.s11,
           fontWeight: FontWeight.w600,
           color: theme.colorScheme.secondary.withValues(alpha: 0.8),
           letterSpacing: 0.3,
@@ -80,13 +81,13 @@ class PromotedBadge extends StatelessWidget {
       label: Text(
         label,
         style: TextStyle(
-          fontSize: 10,
+          fontSize: AppType.s10,
           fontWeight: FontWeight.w600,
           color: theme.colorScheme.secondary.withValues(alpha: 0.8),
         ),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      labelPadding: const EdgeInsets.symmetric(horizontal: 4),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p6, vertical: AppMetrics.p2),
+      labelPadding: const EdgeInsets.symmetric(horizontal: AppMetrics.p4),
       backgroundColor: theme.colorScheme.secondary.withValues(alpha: 0.1),
       side: BorderSide(
         color: theme.colorScheme.secondary.withValues(alpha: 0.3),
@@ -100,7 +101,7 @@ class PromotedBadge extends StatelessWidget {
     return Text(
       label,
       style: TextStyle(
-        fontSize: 10,
+        fontSize: AppType.s10,
         fontWeight: FontWeight.w600,
         color: theme.colorScheme.secondary.withValues(alpha: 0.7),
         letterSpacing: 0.5,

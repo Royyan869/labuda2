@@ -85,7 +85,7 @@ class _RatingListScreenState extends ConsumerState<RatingListScreen> {
 
   Widget _buildSummaryHeader(RatingSummary summary) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       child: Row(
         children: [
           Column(

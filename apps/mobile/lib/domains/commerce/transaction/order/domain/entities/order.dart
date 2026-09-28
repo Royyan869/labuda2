@@ -355,9 +355,9 @@ class DecisionContract {
 
 /// Display Hints from Backend (NON-AUTHORITATIVE)
 ///
-/// These are UI hints ONLY. Frontend MUST NOT derive state or
-/// allowed_actions from these hints. Always use decision.state and
-/// decision.allowed_actions for logic.
+/// These are UI hints ONLY. Frontend MUST NOT derive state or allowed
+/// actions from these hints. Always use decision.state and
+/// decision.hasActionType(...) for logic.
 class DisplayHints {
   final String? badge;
   final String? badgeVariant;
@@ -611,7 +611,7 @@ class Order extends Equatable {
   /// Check if seller action is required (for UI display)
   ///
   /// O1: Updated to remove 'processing' which was never a real backend status.
-  /// Better: Use decision.allowed_actions.contains('accept', 'ship', etc.)
+  /// Better: read decision.hasActionType('accept') instead.
   bool get isSellerActionRequired {
     // Only pending orders require seller acceptance/action
     return switch (status) {
@@ -620,9 +620,9 @@ class Order extends Equatable {
     };
   }
 
-  // P11 Phase 2: All canX methods removed - use decision.allowed_actions instead
-  // BEFORE: bool get canCancel => ...
-  // AFTER: decision.allowed_actions.contains('cancel')
+  // P11 Phase 2: All canX methods removed — action availability comes from the
+  // backend decision contract (decision.hasActionType('cancel')). Never
+  // reintroduce locally derived predicates here.
 
   @override
   List<Object?> get props => [

@@ -57,7 +57,7 @@ class MentionRichText extends ConsumerWidget {
         style ??
         TextStyle(
           color: scheme.onSurface,
-          fontSize: 14,
+          fontSize: AppType.s14,
         );
 
     final defaultMentionStyle =

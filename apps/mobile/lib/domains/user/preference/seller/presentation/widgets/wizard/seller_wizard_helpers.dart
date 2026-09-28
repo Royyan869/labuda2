@@ -27,7 +27,7 @@ class SellerWizardHelpers {
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            style: ElevatedButton.styleFrom(backgroundColor: context.statusColors.error),
             child: const Text('Exit'),
           ),
         ],

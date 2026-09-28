@@ -116,7 +116,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
         }
 
         return ListView.builder(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(core.AppMetrics.p16),
           itemCount: orders.length,
           itemBuilder: (context, index) {
             return _buildOrderCard(orders[index]);
@@ -128,10 +128,10 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
+            Icon(
               Icons.error_outline,
               size: 48,
-              color: core.AppColors.statusError,
+              color: context.statusColors.error,
             ),
             const SizedBox(height: 16),
             const Text('Data belum bisa dimuat.'),
@@ -158,11 +158,11 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
         );
       },
       child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(16),
+        margin: const EdgeInsets.only(bottom: core.AppMetrics.p12),
+        padding: const EdgeInsets.all(core.AppMetrics.p16),
         decoration: BoxDecoration(
           color: colorScheme.surface,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(core.AppShape.r12),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -175,7 +175,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
                   child: Text(
                     order.id.substring(0, 8).toUpperCase(),
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: core.AppType.s14,
                       fontWeight: FontWeight.bold,
                       color: colorScheme.onSurface,
                     ),
@@ -185,17 +185,17 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
                 // Status Badge
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
+                    horizontal: core.AppMetrics.p8,
+                    vertical: core.AppMetrics.p4,
                   ),
                   decoration: BoxDecoration(
                     color: _getStatusColor(order.status).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(core.AppShape.r4),
                   ),
                   child: Text(
                     _getStatusLabel(order.status),
                     style: TextStyle(
-                      fontSize: 11,
+                      fontSize: core.AppType.s11,
                       fontWeight: FontWeight.w600,
                       color: _getStatusColor(order.status),
                     ),
@@ -207,14 +207,14 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
                   const SizedBox(width: 4),
                   Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
+                      horizontal: core.AppMetrics.p6,
+                      vertical: core.AppMetrics.p2,
                     ),
                     decoration: BoxDecoration(
                       color: _getOverdueBadgeColor(
                         order.overdueTier,
                       ).withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: BorderRadius.circular(core.AppShape.r4),
                       border: Border.all(
                         color: _getOverdueBadgeColor(order.overdueTier),
                         width: 1,
@@ -232,7 +232,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
                         Text(
                           _getOverdueBadgeLabel(order.overdueTier),
                           style: TextStyle(
-                            fontSize: 10,
+                            fontSize: core.AppType.s10,
                             fontWeight: FontWeight.w600,
                             color: _getOverdueBadgeColor(order.overdueTier),
                           ),
@@ -249,7 +249,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
             Row(
               children: [
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(core.AppShape.r8),
                   child: AppImage(
                     imageUrl: firstItem?.forSaleImage,
                     width: 60,
@@ -272,7 +272,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
                       Text(
                         firstItem?.forSaleName ?? 'Pesanan',
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: core.AppType.s14,
                           fontWeight: FontWeight.w600,
                           color: colorScheme.onSurface,
                         ),
@@ -285,7 +285,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
                             ? 'Lihat detail pesanan'
                             : '${order.items.length} item${order.items.length > 1 ? 's' : ''}',
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: core.AppType.s12,
                           color: colorScheme.onSurfaceVariant,
                         ),
                       ),
@@ -306,7 +306,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
                     Text(
                       'Total Payment',
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: core.AppType.s12,
                         color: colorScheme.onSurfaceVariant,
                       ),
                     ),
@@ -318,7 +318,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
                             )
                           : '—',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: core.AppType.s16,
                         fontWeight: FontWeight.bold,
                         color: colorScheme.primary,
                       ),
@@ -339,8 +339,8 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
                     backgroundColor: colorScheme.primary,
                     foregroundColor: colorScheme.onPrimary,
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 10,
+                      horizontal: core.AppMetrics.p20,
+                      vertical: core.AppMetrics.p10,
                     ),
                   ),
                   child: const Text('View Details'),
@@ -382,21 +382,21 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
   Color _getStatusColor(OrderStatus status) {
     switch (status) {
       case OrderStatus.pending:
-        return core.AppColors.statusWarning;
+        return context.statusColors.warning;
       case OrderStatus.paid:
       case OrderStatus.shipped:
-        return core.AppColors.statusInfo;
+        return context.statusColors.info;
       case OrderStatus.delivered:
       case OrderStatus.completed:
-        return core.AppColors.statusSuccess;
+        return context.statusColors.success;
       case OrderStatus.cancelled:
       case OrderStatus.cancelledTimeout:
       case OrderStatus.refunded:
-        return core.AppColors.statusError;
+        return context.statusColors.error;
       case OrderStatus.disputeOpen:
-        return core.AppColors.statusWarning;
+        return context.statusColors.warning;
       case OrderStatus.partiallyRefunded:
-        return core.AppColors.statusInfo;
+        return context.statusColors.info;
       case OrderStatus.expired:
         return Theme.of(context).colorScheme.onSurfaceVariant;
     }
@@ -410,12 +410,12 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
   Color _getOverdueBadgeColor(String? overdueTier) {
     switch (overdueTier) {
       case 'overdue': // Tier 1
-        return core.AppColors.statusWarning; // Orange
+        return context.statusColors.warning; // Orange
       case 'severely_overdue': // Tier 2
       case 'critical_overdue': // Tier 3
-        return core.AppColors.statusError; // Red
+        return context.statusColors.error; // Red
       default:
-        return core.AppColors.statusWarning; // Default to orange
+        return context.statusColors.warning; // Default to orange
     }
   }
 
@@ -437,7 +437,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
     final colorScheme = Theme.of(context).colorScheme;
     return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 48),
+        padding: const EdgeInsets.symmetric(horizontal: core.AppMetrics.p48),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -463,7 +463,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
             Text(
               isSeller ? 'Belum Ada Pesanan Masuk' : 'Belum Ada Pesanan',
               style: TextStyle(
-                fontSize: 18,
+                fontSize: core.AppType.s18,
                 fontWeight: FontWeight.w600,
                 color: colorScheme.onSurface,
               ),
@@ -477,7 +477,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
                   ? 'Pesanan dari pembeli akan muncul di sini'
                   : 'Mulai berbelanja dari koleksi Koi terbaik',
               style: TextStyle(
-                fontSize: 14,
+                fontSize: core.AppType.s14,
                 color: colorScheme.onSurfaceVariant,
               ),
               textAlign: TextAlign.center,
@@ -500,11 +500,11 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
                   backgroundColor: colorScheme.primary,
                   foregroundColor: colorScheme.onPrimary,
                   padding: const EdgeInsets.symmetric(
-                    vertical: 14,
-                    horizontal: 24,
+                    vertical: core.AppMetrics.p14,
+                    horizontal: core.AppMetrics.p24,
                   ),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(core.AppShape.r12),
                   ),
                 ),
               ),

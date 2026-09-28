@@ -12,6 +12,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	commerceshared "github.com/labuda/backend/internal/commerce/shared"
 	"github.com/labuda/backend/internal/platform/response"
 	promotionApp "github.com/labuda/backend/internal/pricing/promotion/application"
 	"github.com/labuda/backend/internal/pricing/promotion/entity"
@@ -963,13 +964,22 @@ func externalProductMediaToResponse(media *entity.ExternalProductMedia) External
 		return ExternalProductMediaResponse{}
 	}
 
+	// Both read slots project onto the canonical CloudFront URL like every
+	// other media surface — raw persisted references 403 once the bucket
+	// sits behind OAC. External absolute URLs pass through untouched.
+	var thumbnailURL *string
+	if media.ThumbnailURL != nil {
+		thumbnail := commerceshared.ResolveReadableMediaReference(*media.ThumbnailURL)
+		thumbnailURL = &thumbnail
+	}
+
 	return ExternalProductMediaResponse{
 		ID:                media.ID,
 		ExternalProductID: media.ExternalProductID,
 		MediaType:         string(media.MediaType),
 		StorageKey:        media.StorageKey,
-		URL:               media.URL,
-		ThumbnailURL:      media.ThumbnailURL,
+		URL:               commerceshared.ResolveReadableMediaReference(media.URL),
+		ThumbnailURL:      thumbnailURL,
 		SortOrder:         media.SortOrder,
 		Metadata:          media.Metadata,
 		CreatedAt:         media.CreatedAt.Format(time.RFC3339),

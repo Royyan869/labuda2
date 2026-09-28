@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/features/search/search/search.dart'; // R3.1: Full import for providers and extensions
 import 'package:labuda/features/search/search/data/dto/search_dto.dart'; // R3.1: Import for UserSearchResultDto.toUserSearch() extension
 import 'package:labuda/shared/shared.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Bottom sheet untuk search dan select users (Instagram style)
 /// Digunakan untuk tag people di create post/request
@@ -157,7 +158,7 @@ class _UserSearchBottomSheetState extends ConsumerState<UserSearchBottomSheet> {
       height: modalHeight,
       decoration: BoxDecoration(
         color: scheme.surfaceContainerLow,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(AppShape.r16)),
       ),
       child: Column(
         children: [
@@ -186,14 +187,14 @@ class _UserSearchBottomSheetState extends ConsumerState<UserSearchBottomSheet> {
   Widget _buildHeader(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       child: Row(
         children: [
           Expanded(
             child: Text(
               'Tag People',
               style: TextStyle(
-                fontSize: 18,
+                fontSize: AppType.s18,
                 fontWeight: FontWeight.w600,
                 color: scheme.onSurface,
               ),
@@ -204,7 +205,7 @@ class _UserSearchBottomSheetState extends ConsumerState<UserSearchBottomSheet> {
             child: Text(
               'Done',
               style: TextStyle(
-                fontSize: 16,
+                fontSize: AppType.s16,
                 fontWeight: FontWeight.w600,
                 color: _selectedUserIds.isEmpty
                     ? scheme.onSurfaceVariant
@@ -220,7 +221,7 @@ class _UserSearchBottomSheetState extends ConsumerState<UserSearchBottomSheet> {
   Widget _buildSearchBar(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16),
       child: TextField(
         controller: _searchController,
         autofocus: true,
@@ -244,12 +245,12 @@ class _UserSearchBottomSheetState extends ConsumerState<UserSearchBottomSheet> {
           filled: true,
           fillColor: scheme.surfaceContainerHigh,
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(AppShape.r8),
             borderSide: BorderSide.none,
           ),
           contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 12,
+            horizontal: AppMetrics.p16,
+            vertical: AppMetrics.p12,
           ),
         ),
       ),
@@ -259,11 +260,11 @@ class _UserSearchBottomSheetState extends ConsumerState<UserSearchBottomSheet> {
   Widget _buildSelectedCount(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p8),
       child: Text(
         '${_selectedUserIds.length} / ${widget.maxSelections} selected',
         style: TextStyle(
-          fontSize: 12,
+          fontSize: AppType.s12,
           color: scheme.onSurfaceVariant,
         ),
       ),
@@ -287,7 +288,7 @@ class _UserSearchBottomSheetState extends ConsumerState<UserSearchBottomSheet> {
             Text(
               'Search for users to tag',
               style: TextStyle(
-                fontSize: 16,
+                fontSize: AppType.s16,
                 color: scheme.onSurfaceVariant,
               ),
             ),
@@ -316,7 +317,7 @@ class _UserSearchBottomSheetState extends ConsumerState<UserSearchBottomSheet> {
             Text(
               'No users found',
               style: TextStyle(
-                fontSize: 16,
+                fontSize: AppType.s16,
                 color: scheme.onSurfaceVariant,
               ),
             ),

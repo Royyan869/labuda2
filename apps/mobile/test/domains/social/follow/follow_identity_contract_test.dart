@@ -417,7 +417,7 @@ void main() {
 
       final result = await datasource.getFollowers('user-30');
 
-      expect(result.isFailure, isTrue);
+      expect(result.isError, isTrue);
       expect(result.error, 'boom');
       expect(result.errorCode, 'FOLLOW_ERROR');
       expect(result.statusCode, 400);
@@ -508,7 +508,7 @@ void main() {
 
       final result = await datasource.getFollowers('user-42');
 
-      expect(result.isFailure, isTrue);
+      expect(result.isError, isTrue);
       expect(result.error, 'Invalid response data format');
     });
 

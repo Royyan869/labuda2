@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/domains/user/profile/domain/entities/address_entity.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Empty state widget for address list
 class AddressEmptyState extends StatelessWidget {
@@ -16,7 +17,7 @@ class AddressEmptyState extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppMetrics.p24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -31,7 +32,7 @@ class AddressEmptyState extends StatelessWidget {
             Text(
               'No ${purpose.label} Yet',
               style: TextStyle(
-                fontSize: 20,
+                fontSize: AppType.s20,
                 fontWeight: FontWeight.bold,
                 color: scheme.onSurfaceVariant,
               ),
@@ -43,7 +44,7 @@ class AddressEmptyState extends StatelessWidget {
                   : 'Add a sender address (farm/warehouse location)',
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: AppType.s14,
                 color: scheme.onSurfaceVariant,
               ),
             ),

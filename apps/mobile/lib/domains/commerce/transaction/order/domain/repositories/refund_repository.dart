@@ -1,37 +1,38 @@
 /// Refund Repository Interface
 library;
 
+import 'package:labuda/core/common/result.dart';
 import '../domain.dart';
 
 abstract class RefundRepository {
-  Future<RepositoryResult<RefundRequest>> createRefund(
+  Future<Result<RefundRequest>> createRefund(
     CreateRefundParams params,
   );
-  Future<RepositoryResult<RefundRequest>> getRefund(String refundId);
-  Future<RepositoryResult<RefundRequest?>> getRefundByOrderId(String orderId);
-  Future<RepositoryResult<List<RefundRequest>>> listBuyerRefunds(
+  Future<Result<RefundRequest>> getRefund(String refundId);
+  Future<Result<RefundRequest?>> getRefundByOrderId(String orderId);
+  Future<Result<List<RefundRequest>>> listBuyerRefunds(
     ListRefundsParams params,
   );
-  Future<RepositoryResult<List<RefundRequest>>> listSellerRefunds(
+  Future<Result<List<RefundRequest>>> listSellerRefunds(
     ListRefundsParams params,
   );
   Stream<RefundRequest?> watchRefundByOrderId(String orderId);
 
   // Refund decision actions (H2-D1)
-  Future<RepositoryResult<RefundRequest>> approveRefund(
+  Future<Result<RefundRequest>> approveRefund(
     String refundId, {
     String? notes,
   });
-  Future<RepositoryResult<RefundRequest>> rejectRefund(
+  Future<Result<RefundRequest>> rejectRefund(
     String refundId, {
     String? notes,
   });
-  Future<RepositoryResult<Map<String, dynamic>>> escalateRefund(
+  Future<Result<Map<String, dynamic>>> escalateRefund(
     String refundId,
   );
 
   // Order-scoped refund history forSale (used by refund history pager)
-  Future<RepositoryResult<RefundHistoryPageResult>> listOrderRefundHistory(
+  Future<Result<RefundHistoryPageResult>> listOrderRefundHistory(
     ListOrderRefundHistoryParams params,
   );
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Widget to display search suggestions and popular search items
 ///
@@ -28,7 +29,7 @@ class SearchSuggestionsList extends StatelessWidget {
     if (isLoading) {
       return const Center(
         child: Padding(
-          padding: EdgeInsets.all(32),
+          padding: EdgeInsets.all(AppMetrics.p32),
           child: CircularProgressIndicator(),
         ),
       );
@@ -69,7 +70,7 @@ class SearchSuggestionsList extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p8),
           child: Row(
             children: [
               Icon(icon, size: 18, color: scheme.primary),
@@ -77,7 +78,7 @@ class SearchSuggestionsList extends StatelessWidget {
               Text(
                 title,
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: AppType.s16,
                   fontWeight: FontWeight.w600,
                   color: scheme.onSurface,
                 ),
@@ -86,7 +87,7 @@ class SearchSuggestionsList extends StatelessWidget {
           ),
         ),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16),
           child: Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -111,10 +112,10 @@ class SearchSuggestionsList extends StatelessWidget {
       selectedColor: scheme.primary.withValues(alpha: 0.2),
       labelStyle: TextStyle(
         color: scheme.onSurfaceVariant,
-        fontSize: 14,
+        fontSize: AppType.s14,
       ),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(AppShape.r20),
         side: BorderSide(
           color: scheme.outlineVariant,
         ),

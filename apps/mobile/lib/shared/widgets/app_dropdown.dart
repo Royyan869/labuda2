@@ -92,7 +92,7 @@ class AppDropdown<T> extends StatelessWidget {
       return RichText(
         text: TextSpan(
           text: textWithoutAsterisk,
-          style: TextStyle(color: scheme.onSurface, fontSize: 16),
+          style: TextStyle(color: scheme.onSurface, fontSize: AppType.s16),
           children: [
             TextSpan(
               text: ' *',
@@ -121,23 +121,23 @@ class AppDropdown<T> extends StatelessWidget {
             : null,
         // Consistent OutlineInputBorder with AppTextField
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppShape.r12),
           borderSide: BorderSide(color: scheme.outlineVariant),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppShape.r12),
           borderSide: BorderSide(color: scheme.outlineVariant),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppShape.r12),
           borderSide: BorderSide(color: scheme.primary, width: 2),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppShape.r12),
           borderSide: BorderSide(color: scheme.error),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppShape.r12),
           borderSide: BorderSide(color: scheme.error, width: 2),
         ),
       ),
@@ -162,8 +162,6 @@ class AppDropdown<T> extends StatelessWidget {
 
 /// Koi varieties data - centralized for reuse
 class KoiVarieties {
-  static const String DEFAULT_VARIETY = 'Other';
-
   static const List<String> _baseVarieties = [
     'Kohaku',
     'Sanke',
@@ -198,8 +196,8 @@ class KoiVarieties {
     'Butterfly',
   ];
 
-  /// Default variety constant
-  static const String defaultVariety = DEFAULT_VARIETY;
+  /// Default variety, kept at the top of the picker.
+  static const String defaultVariety = 'Other';
 
   /// Get sorted varieties with 'Other' at top
   static List<String> get all {

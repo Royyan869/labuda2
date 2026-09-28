@@ -72,7 +72,7 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
       },
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppMetrics.p16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -99,7 +99,7 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
               subtitle: 'Akumulasi sepanjang waktu',
               amount: earnings.totalRevenue,
               icon: Icons.trending_up,
-              color: AppColors.successGreen,
+              color: context.statusColors.success,
             ),
 
             const SizedBox(height: 16),
@@ -110,7 +110,7 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
               subtitle: 'Dalam eskrow (menunggu pengiriman)',
               amount: earnings.pendingRevenue,
               icon: Icons.hourglass_empty,
-              color: AppColors.statusWarning,
+              color: context.statusColors.warning,
             ),
 
             const SizedBox(height: 16),
@@ -169,12 +169,12 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
     VoidCallback? onTap,
   }) {
     return Card(
-      elevation: 2,
+      elevation: AppElevation.card,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppMetrics.p16),
           child: Row(
             children: [
               Container(
@@ -182,7 +182,7 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
                 height: 48,
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(AppShape.r12),
                 ),
                 child: Icon(icon, color: color, size: 24),
               ),
@@ -194,7 +194,7 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
                     Text(
                       title,
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: AppType.s12,
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
@@ -202,7 +202,7 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
                     Text(
                       AppFormatters.formatCurrency(amount),
                       style: TextStyle(
-                        fontSize: 20,
+                        fontSize: AppType.s20,
                         fontWeight: FontWeight.bold,
                         color: color,
                       ),
@@ -210,7 +210,7 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
                     Text(
                       subtitle,
                       style: TextStyle(
-                        fontSize: 10,
+                        fontSize: AppType.s10,
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
@@ -232,9 +232,9 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
 
   Widget _buildInfoSection() {
     return Card(
-      elevation: 1,
+      elevation: AppElevation.raised,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppMetrics.p16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -249,7 +249,7 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
                 Text(
                   'Tentang Penghasilan',
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: AppType.s16,
                     fontWeight: FontWeight.bold,
                     color: Theme.of(context).colorScheme.onSurface,
                   ),
@@ -283,12 +283,12 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
 
   Widget _buildManageBankAccountCard(BuildContext context) {
     return Card(
-      elevation: 1,
+      elevation: AppElevation.raised,
       child: InkWell(
         onTap: () => context.push(RoutePaths.sellerBankAccounts),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppMetrics.p16),
           child: Row(
             children: [
               Icon(
@@ -304,7 +304,7 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
                     Text(
                       'Bank Account for Withdrawals',
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: AppType.s14,
                         fontWeight: FontWeight.w600,
                         color: Theme.of(context).colorScheme.onSurface,
                       ),
@@ -313,7 +313,7 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
                     Text(
                       'Add or manage bank accounts used to receive payouts',
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: AppType.s12,
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
@@ -339,7 +339,7 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
         Text(
           title,
           style: TextStyle(
-            fontSize: 14,
+            fontSize: AppType.s14,
             fontWeight: FontWeight.w500,
             color: Theme.of(context).colorScheme.onSurface,
           ),
@@ -348,7 +348,7 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
         Text(
           description,
           style: TextStyle(
-            fontSize: 12,
+            fontSize: AppType.s12,
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
@@ -370,12 +370,12 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
         style: ElevatedButton.styleFrom(
           backgroundColor: Theme.of(context).colorScheme.primary,
           foregroundColor: Theme.of(context).colorScheme.onPrimary,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppShape.r8)),
         ),
         child: const Text(
           'Tarik Dana',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          style: TextStyle(fontSize: AppType.s16, fontWeight: FontWeight.bold),
         ),
       ),
     );
@@ -384,10 +384,10 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
   Widget _buildMinBalanceInfo(double withdrawalFeeAmount) {
     final scheme = Theme.of(context).colorScheme;
     return Card(
-      elevation: 1,
+      elevation: AppElevation.raised,
       color: scheme.surfaceContainer,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppMetrics.p16),
         child: Row(
           children: [
             Icon(Icons.info_outline, color: scheme.onSurfaceVariant),
@@ -395,7 +395,7 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
             Expanded(
               child: Text(
                 'Minimum penarikan Rp 10.000. Biaya penarikan ${AppFormatters.formatCurrency(withdrawalFeeAmount)} dipotong dari jumlah yang diminta.',
-                style: TextStyle(fontSize: 14, color: scheme.onSurfaceVariant),
+                style: TextStyle(fontSize: AppType.s14, color: scheme.onSurfaceVariant),
               ),
             ),
           ],
@@ -411,7 +411,7 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
   Widget _buildError(String message) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppMetrics.p24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -424,7 +424,7 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
             Text(
               'Error Loading Earnings',
               style: TextStyle(
-                fontSize: 20,
+                fontSize: AppType.s20,
                 fontWeight: FontWeight.bold,
                 color: Theme.of(context).colorScheme.onSurface,
               ),
@@ -433,7 +433,7 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
             Text(
               message,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: AppType.s14,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               textAlign: TextAlign.center,
@@ -496,7 +496,7 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
         : null;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
@@ -504,7 +504,7 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
             scheme.secondary.withValues(alpha: 0.05),
           ],
         ),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(color: scheme.secondary.withValues(alpha: 0.3)),
       ),
       child: Column(
@@ -517,7 +517,7 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
               Text(
                 'Butuh Bantuan Penarikan?',
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: AppType.s14,
                   fontWeight: FontWeight.w600,
                   color: scheme.onSurface,
                 ),
@@ -527,7 +527,7 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
           const SizedBox(height: 8),
           Text(
             'Cara menarik dana, solusi masalah pencairan, dan info batas minimum.',
-            style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+            style: TextStyle(fontSize: AppType.s12, color: scheme.onSurfaceVariant),
           ),
           const SizedBox(height: 12),
           Row(
@@ -549,8 +549,8 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
                   label: const Text('Panduan Penarikan'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: scheme.secondary,
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    textStyle: const TextStyle(fontSize: 12),
+                    padding: const EdgeInsets.symmetric(vertical: AppMetrics.p8),
+                    textStyle: const TextStyle(fontSize: AppType.s12),
                     side: BorderSide(
                       color: scheme.secondary.withValues(alpha: 0.5),
                     ),
@@ -575,8 +575,8 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: scheme.secondary,
                     foregroundColor: scheme.onSecondary,
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    textStyle: const TextStyle(fontSize: 12),
+                    padding: const EdgeInsets.symmetric(vertical: AppMetrics.p8),
+                    textStyle: const TextStyle(fontSize: AppType.s12),
                   ),
                 ),
               ),
@@ -599,9 +599,9 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
     final scheme = Theme.of(context).colorScheme;
 
     return Card(
-      elevation: 1,
+      elevation: AppElevation.raised,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppMetrics.p16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -619,7 +619,7 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
                     Text(
                       'Riwayat Penarikan',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: AppType.s16,
                         fontWeight: FontWeight.bold,
                         color: scheme.onSurface,
                       ),
@@ -639,7 +639,7 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
               data: (withdrawals) {
                 if (withdrawals.isEmpty) {
                   return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 24),
+                    padding: const EdgeInsets.symmetric(vertical: AppMetrics.p24),
                     child: Center(
                       child: Column(
                         children: [
@@ -652,7 +652,7 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
                           Text(
                             'Belum ada riwayat penarikan',
                             style: TextStyle(
-                              fontSize: 14,
+                              fontSize: AppType.s14,
                               color: scheme.onSurfaceVariant,
                             ),
                           ),
@@ -669,15 +669,15 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
                 );
               },
               loading: () => const Padding(
-                padding: EdgeInsets.symmetric(vertical: 24),
+                padding: EdgeInsets.symmetric(vertical: AppMetrics.p24),
                 child: Center(child: CircularProgressIndicator()),
               ),
               error: (_, _) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16),
+                padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
                 child: Text(
                   'Gagal memuat riwayat penarikan',
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: AppType.s14,
                     color: scheme.onSurfaceVariant,
                   ),
                 ),
@@ -695,12 +695,12 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
     final statusLabel = _getStatusLabel(withdrawal.status);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: AppMetrics.p8),
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(AppMetrics.p12),
         decoration: BoxDecoration(
           color: scheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppShape.r8),
           border: Border.all(color: scheme.outlineVariant),
         ),
         child: Column(
@@ -712,24 +712,24 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
                 Text(
                   AppFormatters.formatCurrency(withdrawal.amount),
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: AppType.s16,
                     fontWeight: FontWeight.bold,
                     color: scheme.onSurface,
                   ),
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
+                    horizontal: AppMetrics.p8,
+                    vertical: AppMetrics.p4,
                   ),
                   decoration: BoxDecoration(
                     color: statusColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(AppShape.r4),
                   ),
                   child: Text(
                     statusLabel,
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: AppType.s12,
                       fontWeight: FontWeight.w600,
                       color: statusColor,
                     ),
@@ -749,7 +749,7 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
                 Text(
                   _formatDate(withdrawal.createdAt),
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: AppType.s12,
                     color: scheme.onSurfaceVariant,
                   ),
                 ),
@@ -765,7 +765,7 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
                     child: Text(
                       withdrawal.bankNameSnapshot!,
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: AppType.s12,
                         color: scheme.onSurfaceVariant,
                       ),
                       maxLines: 1,
@@ -777,14 +777,14 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
             ),
             if (withdrawal.accountNumberSnapshot != null)
               Padding(
-                padding: const EdgeInsets.only(top: 4),
+                padding: const EdgeInsets.only(top: AppMetrics.p4),
                 child: Row(
                   children: [
                     const SizedBox(width: 18),
                     Text(
                       '**** ${withdrawal.accountNumberSnapshot!.substring(withdrawal.accountNumberSnapshot!.length - 4)}',
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: AppType.s12,
                         color: scheme.onSurfaceVariant,
                       ),
                     ),
@@ -801,17 +801,17 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
     switch (status) {
       case WithdrawalStatus.settled:
       case WithdrawalStatus.completed:
-        return AppColors.successGreen;
+        return context.statusColors.success;
       case WithdrawalStatus.requested:
       case WithdrawalStatus.processing:
       case WithdrawalStatus.submitted:
       case WithdrawalStatus.settling:
       case WithdrawalStatus.pilotBlocked:
-        return AppColors.statusWarning;
+        return context.statusColors.warning;
       case WithdrawalStatus.failed:
       case WithdrawalStatus.failedRetryable:
       case WithdrawalStatus.failedFinal:
-        return AppColors.error;
+        return context.statusColors.error;
       case WithdrawalStatus.unknown:
         return Theme.of(context).colorScheme.outline;
     }

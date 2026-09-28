@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:labuda/core/common/result.dart';
 import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
 
 import '../domain/domain.dart';
@@ -23,15 +24,15 @@ class OrderRepositoryImpl implements OrderRepository {
   OrderRepositoryImpl(this._datasource, {ILoggerService? logger})
     : _logger = logger;
 
-  RepositoryResult<T> _mapError<T>(Object e) {
+  Result<T> _mapError<T>(Object e) {
     if (e is OrderApiException) {
-      return RepositoryResult.error(
+      return Result.error(
         e.message,
         code: e.code,
         details: e.details,
       );
     }
-    return RepositoryResult.error(e.toString());
+    return Result.error(e.toString());
   }
 
   // ========================================
@@ -39,7 +40,7 @@ class OrderRepositoryImpl implements OrderRepository {
   // ========================================
 
   @override
-  Future<RepositoryResult<PreviewOrderResult>> previewOrder(
+  Future<Result<PreviewOrderResult>> previewOrder(
     PreviewOrderParams params,
   ) async {
     try {
@@ -59,7 +60,7 @@ class OrderRepositoryImpl implements OrderRepository {
       };
       final data = await _datasource.fetchPricingPreview(body);
       final snapshot = data['pricing_snapshot'] as Map<String, dynamic>? ?? {};
-      return RepositoryResult.success(
+      return Result.success(
         PreviewOrderResult(
           pricing: OrderPricing(
             subtotal: (snapshot['subtotal'] as num?)?.toDouble() ?? 0.0,
@@ -92,17 +93,17 @@ class OrderRepositoryImpl implements OrderRepository {
   // ========================================
 
   @override
-  Future<RepositoryResult<Order>> getOrderById(String orderId) async {
+  Future<Result<Order>> getOrderById(String orderId) async {
     try {
       final result = await _datasource.getOrder(orderId);
-      return RepositoryResult.success(OrderMapper.toOrder(result));
+      return Result.success(OrderMapper.toOrder(result));
     } catch (e) {
       return _mapError(e);
     }
   }
 
   @override
-  Future<RepositoryResult<List<Order>>> getBuyerOrders(
+  Future<Result<List<Order>>> getBuyerOrders(
     GetOrdersParams params,
   ) async {
     try {
@@ -112,14 +113,14 @@ class OrderRepositoryImpl implements OrderRepository {
       );
 
       final result = await _datasource.listMyOrders(params: queryParams);
-      return RepositoryResult.success(OrderMapper.toOrderList(result.data));
+      return Result.success(OrderMapper.toOrderList(result.data));
     } catch (e) {
       return _mapError(e);
     }
   }
 
   @override
-  Future<RepositoryResult<List<Order>>> getSellerOrders(
+  Future<Result<List<Order>>> getSellerOrders(
     GetOrdersParams params,
   ) async {
     try {
@@ -129,23 +130,23 @@ class OrderRepositoryImpl implements OrderRepository {
       );
 
       final result = await _datasource.listSellerOrders(params: queryParams);
-      return RepositoryResult.success(OrderMapper.toOrderList(result.data));
+      return Result.success(OrderMapper.toOrderList(result.data));
     } catch (e) {
       return _mapError(e);
     }
   }
 
   @override
-  Future<RepositoryResult<OrderPageResult>> getBuyerOrdersPage(
+  Future<Result<OrderPageResult>> getBuyerOrdersPage(
     GetOrdersParams params,
   ) async {
     final result = await getBuyerOrders(params);
     if (result.isError || result.data == null) {
-      return RepositoryResult.error(
+      return Result.error(
         result.error ?? 'Failed to load buyer orders',
       );
     }
-    return RepositoryResult.success(
+    return Result.success(
       OrderPageResult(
         orders: result.data!,
         page: params.page ?? 0,
@@ -155,16 +156,16 @@ class OrderRepositoryImpl implements OrderRepository {
   }
 
   @override
-  Future<RepositoryResult<OrderPageResult>> getSellerOrdersPage(
+  Future<Result<OrderPageResult>> getSellerOrdersPage(
     GetOrdersParams params,
   ) async {
     final result = await getSellerOrders(params);
     if (result.isError || result.data == null) {
-      return RepositoryResult.error(
+      return Result.error(
         result.error ?? 'Failed to load seller orders',
       );
     }
-    return RepositoryResult.success(
+    return Result.success(
       OrderPageResult(
         orders: result.data!,
         page: params.page ?? 0,
@@ -178,7 +179,7 @@ class OrderRepositoryImpl implements OrderRepository {
   // ========================================
 
   @override
-  Future<RepositoryResult<Order>> cancelOrder(
+  Future<Result<Order>> cancelOrder(
     String orderId,
     CancelOrderParams params,
   ) async {
@@ -191,7 +192,7 @@ class OrderRepositoryImpl implements OrderRepository {
   }
 
   @override
-  Future<RepositoryResult<Order>> markAsShipped(
+  Future<Result<Order>> markAsShipped(
     MarkAsShippedParams params,
   ) async {
     try {
@@ -203,7 +204,7 @@ class OrderRepositoryImpl implements OrderRepository {
   }
 
   @override
-  Future<RepositoryResult<Order>> markAsDelivered(String orderId) async {
+  Future<Result<Order>> markAsDelivered(String orderId) async {
     try {
       await _datasource.completeOrder(orderId);
       return await getOrderById(orderId);
@@ -217,12 +218,12 @@ class OrderRepositoryImpl implements OrderRepository {
   // ========================================
 
   @override
-  Future<RepositoryResult<void>> extendOrderConfirmation(String orderId) async {
+  Future<Result<void>> extendOrderConfirmation(String orderId) async {
     try {
       await _datasource.extendOrderConfirmation(orderId);
       // Backend action response is slim; refetch canonical order payload.
       await _datasource.getOrder(orderId);
-      return RepositoryResult.success(null);
+      return Result.success(null);
     } catch (e) {
       _logger?.error('Failed to extend order confirmation: $e');
       return _mapError(e);

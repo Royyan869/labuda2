@@ -29,9 +29,9 @@ class SearchResultTypeHelper {
         return Theme.of(context).colorScheme.secondary;
       case SearchResultType.forSale:
       case SearchResultType.externalProduct:
-        return AppColors.primary;
+        return Theme.of(context).colorScheme.primary;
       case SearchResultType.auction:
-        return AppColors.statusWarning;
+        return context.statusColors.warning;
       case SearchResultType.content:
         return Theme.of(context).colorScheme.onSurfaceVariant;
     }

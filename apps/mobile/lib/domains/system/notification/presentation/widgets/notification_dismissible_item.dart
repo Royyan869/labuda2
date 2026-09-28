@@ -15,6 +15,7 @@ import 'package:labuda/shared/shared.dart';
 
 // Flutter
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 class NotificationDismissibleItem extends ConsumerWidget {
   final NotificationEntity notification;
@@ -43,7 +44,7 @@ class NotificationDismissibleItem extends ConsumerWidget {
           NotificationItemWidget(notification: notification, onTap: onTap),
           if (!isLast)
             const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
+              padding: EdgeInsets.symmetric(horizontal: AppMetrics.p16),
               child: Divider(height: 1),
             ),
         ],
@@ -55,7 +56,7 @@ class NotificationDismissibleItem extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     return Container(
       alignment: Alignment.centerRight,
-      padding: const EdgeInsets.only(right: 20),
+      padding: const EdgeInsets.only(right: AppMetrics.p20),
       color: scheme.error,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.end,

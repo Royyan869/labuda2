@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/domains/social/follow/domain/entities/follow_entity.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 class FollowStatsWidget extends StatelessWidget {
   final FollowStats stats;
@@ -26,9 +27,9 @@ class FollowStatsWidget extends StatelessWidget {
         // Followers
         InkWell(
           onTap: onFollowersTap,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppShape.r8),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p8),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -61,9 +62,9 @@ class FollowStatsWidget extends StatelessWidget {
         // Following
         InkWell(
           onTap: onFollowingTap,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppShape.r8),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p8),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -97,7 +98,7 @@ class FollowStatsWidget extends StatelessWidget {
 
           // Mutual follows
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p8),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [

@@ -30,7 +30,7 @@ final mentionUserSearchProvider =
       }
 
       // Debounce: wait 300ms before executing search
-      await Future.delayed(const Duration(milliseconds: 300));
+      await Future.delayed(AppMotion.settled);
 
       try {
         final apiClient = ref.watch(apiClientProvider);

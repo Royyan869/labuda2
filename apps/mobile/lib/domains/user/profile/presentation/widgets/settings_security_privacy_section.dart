@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/generated/app_localizations.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Security & Privacy Section
 /// Handles: Security, Privacy Settings, Blocked Users
@@ -55,7 +56,7 @@ class SettingsSecurityPrivacySection extends StatelessWidget {
     ColorScheme scheme,
   ) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p16, AppMetrics.p16, AppMetrics.p8),
       child: Row(
         children: [
           Icon(
@@ -67,7 +68,7 @@ class SettingsSecurityPrivacySection extends StatelessWidget {
           Text(
             title,
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppType.s14,
               fontWeight: FontWeight.w600,
               color: scheme.onSurfaceVariant,
             ),

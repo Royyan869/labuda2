@@ -45,7 +45,7 @@ class NotificationItemWidget extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p12),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -54,15 +54,15 @@ class NotificationItemWidget extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: _mapColor(
+                  color: _mapColor(context, 
                     displayMetadata.color,
                     theme.colorScheme,
                   ).withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(AppShape.r12),
                 ),
                 child: Icon(
                   _mapIcon(displayMetadata.icon),
-                  color: _mapColor(displayMetadata.color, theme.colorScheme),
+                  color: _mapColor(context, displayMetadata.color, theme.colorScheme),
                   size: 24,
                 ),
               ),
@@ -142,12 +142,12 @@ class NotificationItemWidget extends StatelessWidget {
                           const SizedBox(width: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
+                              horizontal: AppMetrics.p8,
+                              vertical: AppMetrics.p2,
                             ),
                             decoration: BoxDecoration(
                               color: theme.colorScheme.error.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(4),
+                              borderRadius: BorderRadius.circular(AppShape.r4),
                               border: Border.all(
                                 color: theme.colorScheme.error.withValues(alpha: 0.3),
                                 width: 1,
@@ -156,7 +156,7 @@ class NotificationItemWidget extends StatelessWidget {
 child: Text(
                                'Perlu tindakan',
                                style: TextStyle(
-                                 fontSize: 10,
+                                 fontSize: AppType.s10,
                                  fontWeight: FontWeight.w700,
                                  color: theme.colorScheme.error,
                                  letterSpacing: 0.3,
@@ -169,19 +169,19 @@ child: Text(
                           const SizedBox(width: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
+                              horizontal: AppMetrics.p8,
+                              vertical: AppMetrics.p2,
                             ),
                             decoration: BoxDecoration(
-                              color: AppColors.statusWarning.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(4),
+                              color: context.statusColors.warning.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(AppShape.r4),
                             ),
-                            child: const Text(
+                            child: Text(
                               'BARU',
                               style: TextStyle(
-                                fontSize: 11,
+                                fontSize: AppType.s11,
                                 fontWeight: FontWeight.w700,
-                                color: AppColors.statusWarning,
+                                color: context.statusColors.warning,
                                 letterSpacing: 0.5,
                               ),
                             ),
@@ -246,16 +246,16 @@ child: Text(
   }
 
   /// Map domain color enum to Flutter Color
-  Color _mapColor(NotificationDisplayColor color, ColorScheme scheme) {
+  Color _mapColor(BuildContext context, NotificationDisplayColor color, ColorScheme scheme) {
     switch (color) {
       case NotificationDisplayColor.green:
       case NotificationDisplayColor.teal:
-        return AppColors.statusSuccess;
+        return context.statusColors.success;
       case NotificationDisplayColor.red:
       case NotificationDisplayColor.deepOrange:
         return scheme.error;
       case NotificationDisplayColor.orange:
-        return AppColors.statusWarning;
+        return context.statusColors.warning;
       case NotificationDisplayColor.blue:
       case NotificationDisplayColor.indigo:
       case NotificationDisplayColor.cyan:

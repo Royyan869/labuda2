@@ -128,39 +128,6 @@ func NormalizeStorageReferenceWithConfig(reference string, cfg Config) (string, 
 	return "", &MediaReferenceError{Reference: ref, Reason: "expected storage key or absolute URL"}
 }
 
-// ResolveMediaReadURLs resolves a batch of references.
-func ResolveMediaReadURLs(references []string) ([]string, error) {
-	out := make([]string, 0, len(references))
-	for _, ref := range references {
-		if strings.TrimSpace(ref) == "" {
-			continue
-		}
-		resolved, err := ResolveMediaReadURL(ref)
-		if err != nil {
-			return nil, err
-		}
-		out = append(out, resolved)
-	}
-	return out, nil
-}
-
-// NormalizeMediaReferences converts a batch of references to storage keys or
-// preserved external URLs.
-func NormalizeMediaReferences(references []string) ([]string, error) {
-	out := make([]string, 0, len(references))
-	for _, ref := range references {
-		if strings.TrimSpace(ref) == "" {
-			continue
-		}
-		normalized, err := NormalizeStorageReference(ref)
-		if err != nil {
-			return nil, err
-		}
-		out = append(out, normalized)
-	}
-	return out, nil
-}
-
 func resolveStorageKey(key string, cfg Config) (string, error) {
 	key = strings.TrimSpace(key)
 	if !looksLikeStorageKey(key) {

@@ -1,3 +1,5 @@
+import 'package:labuda/core/api/structured_api_exception.dart';
+import 'package:labuda/core/common/result.dart';
 import 'package:labuda/features/search/search/data/mappers/search_mapper.dart';
 import 'package:labuda/features/search/search/data/remote/search_api_service.dart';
 import 'package:labuda/features/search/search/data/dto/search_dto.dart';
@@ -35,8 +37,33 @@ class SearchRepositoryImpl implements SearchRepository {
 
   SearchRepositoryImpl(this._apiService);
 
+  /// Convert a thrown failure into a `Result` failure.
+  ///
+  /// [StructuredApiException] is the bridge that carried the canonical API
+  /// classification (`errorCode`, `details`) across the throw boundary, so a
+  /// failed request answers with the backend's machine-readable identity
+  /// instead of a bare message string.
+  Result<T> _failure<T>(Object error) {
+    if (error is StructuredApiException) {
+      return Result.error(
+        error.message,
+        code: error.code,
+        details: error.details,
+      );
+    }
+    return Result.error(error.toString());
+  }
+
+  /// Forward the failure channels of an already-classified `Result`.
+  Result<T> _propagate<T>(Result<Object?> source) => Result.error(
+    source.error ?? 'Search failed',
+    code: source.errorCode,
+    statusCode: source.statusCode,
+    details: source.errorDetails,
+  );
+
   @override
-  Future<ApiResult<List<ContentSearchResult>>> searchContents({
+  Future<Result<List<ContentSearchResult>>> searchContents({
     required String query,
     int page = 1,
     int pageSize = 20,
@@ -51,14 +78,14 @@ class SearchRepositoryImpl implements SearchRepository {
 
       final results = response.contents.map((dto) => dto.toDomain()).toList();
 
-      return (data: results, error: null);
+      return Result.success(results);
     } catch (e) {
-      return (data: null, error: 'Failed to search contents: ${e.toString()}');
+      return _failure(e);
     }
   }
 
   @override
-  Future<ApiResult<List<ForSaleSearchResult>>> searchForSale({
+  Future<Result<List<ForSaleSearchResult>>> searchForSale({
     required String query,
     String? cursor,
     int limit = 20,
@@ -73,17 +100,17 @@ class SearchRepositoryImpl implements SearchRepository {
         sortBy: sortBy,
         sortDir: sortDir,
       );
-      if (bundleResult.error != null) {
-        return (data: null, error: bundleResult.error);
+      if (bundleResult.isError) {
+        return _propagate(bundleResult);
       }
-      return (data: bundleResult.data!.items, error: null);
+      return Result.success(bundleResult.data!.items);
     } catch (e) {
-      return (data: null, error: 'Failed to search for-sale: ${e.toString()}');
+      return _failure(e);
     }
   }
 
   @override
-  Future<ApiResult<List<AuctionSearchResult>>> searchAuctions({
+  Future<Result<List<AuctionSearchResult>>> searchAuctions({
     required String query,
     int page = 1,
     int pageSize = 20,
@@ -98,17 +125,17 @@ class SearchRepositoryImpl implements SearchRepository {
         sortBy: sortBy,
         sortDir: sortDir,
       );
-      if (bundleResult.error != null) {
-        return (data: null, error: bundleResult.error);
+      if (bundleResult.isError) {
+        return _propagate(bundleResult);
       }
-      return (data: bundleResult.data!.items, error: null);
+      return Result.success(bundleResult.data!.items);
     } catch (e) {
-      return (data: null, error: 'Failed to search auctions: ${e.toString()}');
+      return _failure(e);
     }
   }
 
   @override
-  Future<ApiResult<List<UserSearchResult>>> searchUsers({
+  Future<Result<List<UserSearchResult>>> searchUsers({
     required String query,
     int page = 1,
     int pageSize = 20,
@@ -123,14 +150,14 @@ class SearchRepositoryImpl implements SearchRepository {
 
       final results = response.users.map((dto) => dto.toDomain()).toList();
 
-      return (data: results, error: null);
+      return Result.success(results);
     } catch (e) {
-      return (data: null, error: 'Failed to search users: ${e.toString()}');
+      return _failure(e);
     }
   }
 
   @override
-  Future<ApiResult<UnifiedSearchResults>> searchAll({
+  Future<Result<UnifiedSearchResults>> searchAll({
     required String query,
     SearchFilters? filters,
     int limit = 20,
@@ -152,26 +179,21 @@ class SearchRepositoryImpl implements SearchRepository {
 
       stopwatch.stop();
 
-      final usersResult = results[0] as ApiResult<List<UserSearchResult>>;
+      final usersResult = results[0] as Result<List<UserSearchResult>>;
       final forSalesBundleResult =
-          results[1] as ApiResult<_SearchResultBundle<ForSaleSearchResult>>;
+          results[1] as Result<_SearchResultBundle<ForSaleSearchResult>>;
       final auctionsBundleResult =
-          results[2] as ApiResult<_SearchResultBundle<AuctionSearchResult>>;
-      final contentsResult = results[3] as ApiResult<List<ContentSearchResult>>;
+          results[2] as Result<_SearchResultBundle<AuctionSearchResult>>;
+      final contentsResult = results[3] as Result<List<ContentSearchResult>>;
 
-      // Check for errors
-      if (usersResult.error != null) {
-        return (data: null, error: usersResult.error);
+      // Any failed domain search fails the whole query, carrying its own
+      // canonical error identity forward.
+      if (usersResult.isError) return _propagate(usersResult);
+      if (forSalesBundleResult.isError) return _propagate(forSalesBundleResult);
+      if (auctionsBundleResult.isError) {
+        return _propagate(auctionsBundleResult);
       }
-      if (forSalesBundleResult.error != null) {
-        return (data: null, error: forSalesBundleResult.error);
-      }
-      if (auctionsBundleResult.error != null) {
-        return (data: null, error: auctionsBundleResult.error);
-      }
-      if (contentsResult.error != null) {
-        return (data: null, error: contentsResult.error);
-      }
+      if (contentsResult.isError) return _propagate(contentsResult);
 
       // Convert domain results to generic SearchResults, merge promoted
       // sidecar. Each collection keeps its canonical domain order.
@@ -186,27 +208,29 @@ class SearchRepositoryImpl implements SearchRepository {
       );
       final contents = _mapContentResultsToGeneric(contentsResult.data!);
 
-      return (
-        data: UnifiedSearchResults(
+      return Result.success(
+        UnifiedSearchResults(
           users: users,
           forSales: forSales,
           auctions: auctions,
           contents: contents,
           totalCount:
-              users.length + forSales.length + auctions.length + contents.length,
+              users.length +
+              forSales.length +
+              auctions.length +
+              contents.length,
           query: query,
           searchDuration: stopwatch.elapsed,
         ),
-        error: null,
       );
     } catch (e) {
-      return (data: null, error: 'Failed to perform search: ${e.toString()}');
+      return _failure(e);
     }
   }
 
   // Helper methods
 
-  Future<ApiResult<_SearchResultBundle<ForSaleSearchResult>>>
+  Future<Result<_SearchResultBundle<ForSaleSearchResult>>>
   _fetchForSaleSearchBundle({
     required String query,
     String? cursor,
@@ -222,19 +246,18 @@ class SearchRepositoryImpl implements SearchRepository {
         sortBy: sortBy,
         sortDir: sortDir,
       );
-      return (
-        data: _SearchResultBundle(
+      return Result.success(
+        _SearchResultBundle(
           items: response.forSales.map((dto) => dto.toDomain()).toList(),
           promotedItems: response.promotedItems,
         ),
-        error: null,
       );
     } catch (e) {
-      return (data: null, error: 'Failed to search for-sale: ${e.toString()}');
+      return _failure(e);
     }
   }
 
-  Future<ApiResult<_SearchResultBundle<AuctionSearchResult>>>
+  Future<Result<_SearchResultBundle<AuctionSearchResult>>>
   _fetchAuctionSearchBundle({
     required String query,
     int page = 1,
@@ -251,15 +274,14 @@ class SearchRepositoryImpl implements SearchRepository {
         sortBy: sortBy,
         sortDir: sortDir,
       );
-      return (
-        data: _SearchResultBundle(
+      return Result.success(
+        _SearchResultBundle(
           items: response.auctions.map(_mapAuctionDtoToDomain).toList(),
           promotedItems: response.promotedItems,
         ),
-        error: null,
       );
     } catch (e) {
-      return (data: null, error: 'Failed to search auctions: ${e.toString()}');
+      return _failure(e);
     }
   }
 

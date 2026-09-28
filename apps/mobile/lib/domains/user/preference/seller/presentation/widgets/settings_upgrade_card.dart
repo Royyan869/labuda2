@@ -12,20 +12,20 @@ class SettingsUpgradeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      margin: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p8, AppMetrics.p16, AppMetrics.p16),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            AppColors.primaryGreen,
-            AppColors.statusSuccess,
+            context.statusColors.success,
+            context.statusColors.success,
           ],
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppShape.r16),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primaryGreen.withValues(alpha: 0.3),
+            color: context.statusColors.success.withValues(alpha: 0.3),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -35,9 +35,9 @@ class SettingsUpgradeCard extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: onUpgrade,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(AppShape.r16),
           child: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(AppMetrics.p20),
             child: Row(
               children: [
                 Icon(
@@ -54,7 +54,7 @@ class SettingsUpgradeCard extends StatelessWidget {
                         'Become a Seller',
                         style: TextStyle(
                           color: scheme.onPrimary,
-                          fontSize: 18,
+                          fontSize: AppType.s18,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -63,7 +63,7 @@ class SettingsUpgradeCard extends StatelessWidget {
                         'Start selling your koi products',
                         style: TextStyle(
                           color: scheme.onPrimary,
-                          fontSize: 14,
+                          fontSize: AppType.s14,
                           fontWeight: FontWeight.w500,
                         ),
                       ),

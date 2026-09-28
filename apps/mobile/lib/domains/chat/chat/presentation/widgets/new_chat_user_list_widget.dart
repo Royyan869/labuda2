@@ -5,6 +5,7 @@ import 'package:labuda/shared/shared.dart';
 import 'package:labuda/shared/helpers/user_identity_formatter.dart';
 import 'package:labuda/features/search/search/domain/entities/user_search.dart';
 import 'package:labuda/domains/chat/chat/data/chat_providers.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// User List Item Widget untuk New Chat Screen.
 ///
@@ -23,7 +24,7 @@ class NewChatUserListWidget extends ConsumerWidget {
     return InkWell(
       onTap: () => _handleTap(context, ref),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p12),
         decoration: BoxDecoration(
           border: Border(
             bottom: BorderSide(color: scheme.outlineVariant, width: 0.5),
@@ -49,7 +50,7 @@ class NewChatUserListWidget extends ConsumerWidget {
               child: Text(
                 UserIdentityFormatter.formatHandle(user.username) ?? 'User',
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: AppType.s16,
                   fontWeight: FontWeight.w500,
                   color: scheme.onSurface,
                 ),

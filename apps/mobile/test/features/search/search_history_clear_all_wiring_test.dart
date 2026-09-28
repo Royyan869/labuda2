@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:labuda/core/common/result.dart';
 import 'package:labuda/features/search/search/domain/entities/search_history.dart';
 import 'package:labuda/features/search/search/domain/repositories/search_history_repository.dart';
 import 'package:labuda/features/search/search/presentation/providers/providers.dart';
@@ -14,32 +15,32 @@ class _FakeSearchHistoryRepository implements SearchHistoryRepository {
   final List<String> clearCalls = [];
 
   @override
-  Future<ApiResult<void>> clearSearchHistory(String userId) async {
+  Future<Result<void>> clearSearchHistory(String userId) async {
     clearCalls.add(userId);
     _history.removeWhere((item) => item.userId == userId);
-    return (data: null, error: null);
+    return Result.success(null);
   }
 
   @override
-  Future<ApiResult<void>> deleteSearchHistoryItem(
+  Future<Result<void>> deleteSearchHistoryItem(
     String userId,
     String historyId,
   ) async {
-    return (data: null, error: null);
+    return Result.success(null);
   }
 
   @override
-  Future<ApiResult<List<SearchHistory>>> getSearchHistory(
+  Future<Result<List<SearchHistory>>> getSearchHistory(
     String userId, {
     int limit = 10,
   }) async {
-    return (data: List<SearchHistory>.from(_history), error: null);
+    return Result.success(List<SearchHistory>.from(_history));
   }
 
   @override
-  Future<ApiResult<void>> saveSearchHistory(SearchHistory history) async {
+  Future<Result<void>> saveSearchHistory(SearchHistory history) async {
     _history.add(history);
-    return (data: null, error: null);
+    return Result.success(null);
   }
 }
 
@@ -73,9 +74,7 @@ void main() {
             currentUserIdProvider.overrideWith((ref) => userId),
             searchHistoryRepositoryProvider.overrideWithValue(repository),
           ],
-          child: const MaterialApp(
-            home: SearchScreen(),
-          ),
+          child: const MaterialApp(home: SearchScreen()),
         ),
       );
 

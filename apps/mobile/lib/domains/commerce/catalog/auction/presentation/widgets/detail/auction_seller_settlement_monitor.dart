@@ -86,11 +86,11 @@ class _AuctionSellerSettlementMonitorState
     if (widget.auction.winnerId == null) return const SizedBox.shrink();
 
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p12, AppMetrics.p16, AppMetrics.p12),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         color: _getStatusBackgroundColor(),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(color: _getStatusBorderColor(), width: 1),
       ),
       child: Column(
@@ -116,7 +116,7 @@ class _AuctionSellerSettlementMonitorState
     return Row(
       children: [
         Container(
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.all(AppMetrics.p8),
           decoration: BoxDecoration(
             color: _getStatusIconColor().withValues(alpha: 0.15),
             shape: BoxShape.circle,
@@ -128,7 +128,7 @@ class _AuctionSellerSettlementMonitorState
           child: Text(
             _getStatusTitle(),
             style: TextStyle(
-              fontSize: 15,
+              fontSize: AppType.s15,
               fontWeight: FontWeight.w600,
               color: colorScheme.onSurface,
             ),
@@ -144,10 +144,10 @@ class _AuctionSellerSettlementMonitorState
     final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppMetrics.p12),
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppShape.r8),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -155,20 +155,20 @@ class _AuctionSellerSettlementMonitorState
           Text(
             'Pemenang:',
             style: TextStyle(
-              fontSize: 12,
+              fontSize: AppType.s12,
               color: colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             winnerUsername,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            style: const TextStyle(fontSize: AppType.s16, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
           Text(
             'Bid: Rp ${formatGroupedAmount(winningBid.round())}',
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppType.s14,
               color: colorScheme.onSurfaceVariant,
               fontWeight: FontWeight.w500,
             ),
@@ -198,7 +198,7 @@ class _AuctionSellerSettlementMonitorState
       children: [
         Text(
           'Menunggu pembayaran dari pemenang',
-          style: TextStyle(fontSize: 13, color: colorScheme.onSurface),
+          style: TextStyle(fontSize: AppType.s13, color: colorScheme.onSurface),
         ),
         const SizedBox(height: 8),
         Row(
@@ -212,7 +212,7 @@ class _AuctionSellerSettlementMonitorState
             Text(
               'Selesaikan sebelum:',
               style: TextStyle(
-                fontSize: 12,
+                fontSize: AppType.s12,
                 color: colorScheme.onSurfaceVariant,
               ),
             ),
@@ -231,7 +231,7 @@ class _AuctionSellerSettlementMonitorState
       children: [
         Text(
           'Pembayaran sedang diproses',
-          style: TextStyle(fontSize: 13, color: colorScheme.onSurface),
+          style: TextStyle(fontSize: AppType.s13, color: colorScheme.onSurface),
         ),
         const SizedBox(height: 12),
         // TODO: Add link to order when order_id is available
@@ -239,10 +239,10 @@ class _AuctionSellerSettlementMonitorState
         // or a separate API to get order info for auction
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 10),
+          padding: const EdgeInsets.symmetric(vertical: AppMetrics.p10),
           decoration: BoxDecoration(
             color: _getStatusIconColor().withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: BorderRadius.circular(AppShape.r6),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -256,7 +256,7 @@ class _AuctionSellerSettlementMonitorState
               Text(
                 'Lihat Pesanan',
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: AppType.s13,
                   fontWeight: FontWeight.w500,
                   color: colorScheme.onSurface,
                 ),
@@ -280,7 +280,7 @@ class _AuctionSellerSettlementMonitorState
           return Text(
             'Waktu habis',
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppType.s14,
               fontWeight: FontWeight.w600,
               color: colorScheme.error,
             ),
@@ -308,7 +308,7 @@ class _AuctionSellerSettlementMonitorState
             Text(
               timeText,
               style: TextStyle(
-                fontSize: 13,
+                fontSize: AppType.s13,
                 fontWeight: FontWeight.w600,
                 color: timeColor,
               ),
@@ -327,27 +327,27 @@ class _AuctionSellerSettlementMonitorState
   Color _getStatusBackgroundColor() {
     switch (_settlementStatus) {
       case SellerSettlementStatus.waitingSettlement:
-        return AppColors.statusWarning.withValues(alpha: 0.12);
+        return context.statusColors.warning.withValues(alpha: 0.12);
       case SellerSettlementStatus.claimed:
-        return AppColors.statusSuccess.withValues(alpha: 0.12);
+        return context.statusColors.success.withValues(alpha: 0.12);
     }
   }
 
   Color _getStatusBorderColor() {
     switch (_settlementStatus) {
       case SellerSettlementStatus.waitingSettlement:
-        return AppColors.statusWarning.withValues(alpha: 0.3);
+        return context.statusColors.warning.withValues(alpha: 0.3);
       case SellerSettlementStatus.claimed:
-        return AppColors.statusSuccess.withValues(alpha: 0.3);
+        return context.statusColors.success.withValues(alpha: 0.3);
     }
   }
 
   Color _getStatusIconColor() {
     switch (_settlementStatus) {
       case SellerSettlementStatus.waitingSettlement:
-        return AppColors.statusWarning;
+        return context.statusColors.warning;
       case SellerSettlementStatus.claimed:
-        return AppColors.statusSuccess;
+        return context.statusColors.success;
     }
   }
 

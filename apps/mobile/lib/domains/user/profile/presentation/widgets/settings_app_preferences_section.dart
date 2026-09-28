@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/generated/app_localizations.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 class SettingsAppPreferencesSection extends StatelessWidget {
   final void Function(String route)? onNavigate;
@@ -41,7 +42,7 @@ class SettingsAppPreferencesSection extends StatelessWidget {
     ColorScheme scheme,
   ) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p16, AppMetrics.p16, AppMetrics.p8),
       child: Row(
         children: [
           Icon(
@@ -53,7 +54,7 @@ class SettingsAppPreferencesSection extends StatelessWidget {
           Text(
             title,
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppType.s14,
               fontWeight: FontWeight.w600,
 color: scheme.onSurfaceVariant,
             ),
@@ -85,7 +86,7 @@ color: scheme.onSurfaceVariant,
         subtitle,
         style: TextStyle(
           color: scheme.onSurfaceVariant,
-          fontSize: 13,
+          fontSize: AppType.s13,
         ),
       ),
       trailing: Icon(

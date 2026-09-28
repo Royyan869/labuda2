@@ -1,6 +1,7 @@
 // Content Repository Interface
 // Domain layer - pure Dart, bebas dari implementation details
 
+import 'package:labuda/core/common/result.dart';
 import 'package:labuda/domains/social/content/domain/entities/content.dart';
 
 /// Interface repository untuk content management.
@@ -16,7 +17,7 @@ abstract class ContentRepository {
   ///
   /// Returns [Content] jika berhasil, atau error message jika gagal
   /// CLEANUP V1: Removed shippingCity/shippingProvince - use location.city/province instead
-  Future<ContentRepositoryResult<Content>> createContent({
+  Future<Result<Content>> createContent({
     required String authorId,
     String? authorUsername,
     String? authorAvatarUrl,
@@ -29,10 +30,10 @@ abstract class ContentRepository {
   });
 
   /// Get content by ID
-  Future<ContentRepositoryResult<Content>> getContentById(String contentId);
+  Future<Result<Content>> getContentById(String contentId);
 
   /// Get contents by author — first page only (no offset, use getContentsByAuthorPaged for pagination)
-  Future<ContentRepositoryResult<List<Content>>> getContentsByAuthor(
+  Future<Result<List<Content>>> getContentsByAuthor(
     String authorId, {
     int? limit,
   });
@@ -43,14 +44,14 @@ abstract class ContentRepository {
   /// an opaque [ContentAuthorPage.nextCursor] for the next page, and
   /// [ContentAuthorPage.hasMore]. Pass [nextCursor] verbatim as [cursor]
   /// on subsequent calls; omit [cursor] on the initial fetch.
-  Future<ContentRepositoryResult<ContentAuthorPage>> getContentsByAuthorPaged(
+  Future<Result<ContentAuthorPage>> getContentsByAuthorPaged(
     String authorId, {
     int limit = 20,
     String? cursor,
   });
 
   /// Get all published contents with filters
-  Future<ContentRepositoryResult<List<Content>>> getContents({
+  Future<Result<List<Content>>> getContents({
     int? limit,
     int? offset,
     String? location,
@@ -58,13 +59,13 @@ abstract class ContentRepository {
   });
 
   /// Update content
-  Future<ContentRepositoryResult<Content>> updateContent(
+  Future<Result<Content>> updateContent(
     String contentId,
     Content content,
   );
 
   /// Delete content
-  Future<ContentRepositoryResult<void>> deleteContent(String contentId);
+  Future<Result<void>> deleteContent(String contentId);
 
   // ==========================================================================
   // Discovery & Search
@@ -76,7 +77,7 @@ abstract class ContentRepository {
   // This repository handles content-centric operations only.
 
   /// Search contents by text query
-  Future<ContentRepositoryResult<ContentSearchResult>> searchContents({
+  Future<Result<ContentSearchResult>> searchContents({
     required String query,
     int? limit,
     int? offset,
@@ -84,12 +85,12 @@ abstract class ContentRepository {
   });
 
   /// Get trending contents (most engagement)
-  Future<ContentRepositoryResult<List<Content>>> getTrendingContents({
+  Future<Result<List<Content>>> getTrendingContents({
     int? limit,
   });
 
   /// Get contents by location
-  Future<ContentRepositoryResult<List<Content>>> getContentsByLocation({
+  Future<Result<List<Content>>> getContentsByLocation({
     required String location,
     int? limit,
   });
@@ -100,51 +101,6 @@ abstract class ContentRepository {
 
   // Note: View tracking is handled by backend automatically via GET /content/contents/:id
   // No explicit incrementViewCount needed
-}
-
-// ============================================================================
-// Result Types
-// ============================================================================
-
-/// Result type untuk repository operations
-/// Menggunakan pattern Either (dartz) atau custom Result
-class ContentRepositoryResult<T> {
-  final T? data;
-  final String? error;
-
-  const ContentRepositoryResult._({this.data, this.error});
-
-  /// Create success result
-  factory ContentRepositoryResult.success(T data) {
-    return ContentRepositoryResult._(data: data);
-  }
-
-  /// Create error result
-  factory ContentRepositoryResult.error(String error) {
-    return ContentRepositoryResult._(error: error);
-  }
-
-  /// Check if result is success
-  bool get isSuccess => error == null;
-
-  /// Check if result is error
-  bool get isError => error != null;
-
-  /// Fold pattern - transform result based on success/error
-  R fold<R>(R Function(String error) onError, R Function(T data) onSuccess) {
-    if (isError) {
-      return onError(error!);
-    }
-    return onSuccess(data as T);
-  }
-
-  /// Get data or throw if error
-  T get dataOrThrow {
-    if (isError) {
-      throw Exception(error);
-    }
-    return data as T;
-  }
 }
 
 // ============================================================================

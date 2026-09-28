@@ -11,7 +11,6 @@ import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/a
 import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/seller_auctions_pager.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/screens/seller_auction_draft_edit_screen.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/screens/seller_auctions_screen.dart';
-import 'package:labuda/domains/commerce/transaction/order/domain/repositories/repository_result.dart';
 import 'package:labuda/generated/app_localizations.dart';
 import 'package:labuda/domains/user/identity/authentication/domain/entities/account_status.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
@@ -38,7 +37,7 @@ class _FakeLoggerService implements ILoggerService {
 class _FakeAuctionRepository implements AuctionRepository {
   _FakeAuctionRepository({required this.onGetUserAuctions});
 
-  final Future<RepositoryResult<List<Auction>>> Function(
+  final Future<Result<List<Auction>>> Function(
     String sellerId,
     AuctionStatus? status,
     int limit,
@@ -53,7 +52,7 @@ class _FakeAuctionRepository implements AuctionRepository {
   final cancelCalls = <({String auctionId, String sellerId, String reason})>[];
 
   @override
-  Future<RepositoryResult<Auction>> createAuction({
+  Future<Result<Auction>> createAuction({
     required String sellerId,
     String? sellerUsername,
     String? sellerFarmName,
@@ -77,19 +76,19 @@ class _FakeAuctionRepository implements AuctionRepository {
   }
 
   @override
-  Future<RepositoryResult<Auction>> getAuctionById(String auctionId) async {
+  Future<Result<Auction>> getAuctionById(String auctionId) async {
     throw UnimplementedError();
   }
 
   @override
-  Future<RepositoryResult<List<Auction>>> getAuctionsByIds(
+  Future<Result<List<Auction>>> getAuctionsByIds(
     List<String> auctionIds,
   ) async {
     throw UnimplementedError();
   }
 
   @override
-  Future<RepositoryResult<List<Auction>>> getActiveAuctions({
+  Future<Result<List<Auction>>> getActiveAuctions({
     String? variety,
     double? minSize,
     double? maxSize,
@@ -101,7 +100,7 @@ class _FakeAuctionRepository implements AuctionRepository {
   }
 
   @override
-  Future<RepositoryResult<List<Auction>>> getUserAuctions({
+  Future<Result<List<Auction>>> getUserAuctions({
     required String sellerId,
     AuctionStatus? status,
     int limit = 20,
@@ -115,12 +114,12 @@ class _FakeAuctionRepository implements AuctionRepository {
   }
 
   @override
-  Future<RepositoryResult<Auction>> updateAuction(
+  Future<Result<Auction>> updateAuction(
     String auctionId,
     Map<String, dynamic> updates,
   ) async {
     updateCalls.add(updates);
-    return RepositoryResult.success(
+    return Result.success(
       _auction(
         id: auctionId,
         status: AuctionStatus.draft,
@@ -133,7 +132,7 @@ class _FakeAuctionRepository implements AuctionRepository {
   }
 
   @override
-  Future<RepositoryResult<List<AuctionBid>>> getAuctionBids({
+  Future<Result<List<AuctionBid>>> getAuctionBids({
     required String auctionId,
     int limit = 50,
   }) async {
@@ -141,17 +140,17 @@ class _FakeAuctionRepository implements AuctionRepository {
   }
 
   @override
-  Future<RepositoryResult<void>> cancelAuction({
+  Future<Result<void>> cancelAuction({
     required String auctionId,
     required String sellerId,
     required String reason,
   }) async {
     cancelCalls.add((auctionId: auctionId, sellerId: sellerId, reason: reason));
-    return RepositoryResult.success(null);
+    return Result.success(null);
   }
 
   @override
-  Future<RepositoryResult<AuctionBid>> placeBid({
+  Future<Result<AuctionBid>> placeBid({
     required String auctionId,
     required String bidderId,
     required int amount,
@@ -160,7 +159,7 @@ class _FakeAuctionRepository implements AuctionRepository {
   }
 
   @override
-  Future<RepositoryResult<String>> claimAuction({
+  Future<Result<String>> claimAuction({
     required String auctionId,
     required String addressId,
     required String shippingSetupId,
@@ -272,7 +271,7 @@ void main() {
           expect(status, isNull);
           expect(limit, 20);
           expect(cursor, isNull);
-          return RepositoryResult.success([
+          return Result.success([
             _auction(id: 'a1', status: AuctionStatus.draft),
             _auction(id: 'a1', status: AuctionStatus.draft),
             _auction(id: 'a2', status: AuctionStatus.scheduled),
@@ -308,14 +307,14 @@ void main() {
       final repo = _FakeAuctionRepository(
         onGetUserAuctions: (sellerId, status, limit, cursor) async {
           if (cursor == null) {
-            return RepositoryResult.success(_auctionPage(
+            return Result.success(_auctionPage(
               start: 1,
               count: 20,
               statusForIndex: (index) =>
                   index.isEven ? AuctionStatus.active : AuctionStatus.draft,
             ));
           }
-          return RepositoryResult.success([
+          return Result.success([
             _auction(id: 'a20', status: AuctionStatus.active),
             _auction(id: 'a21', status: AuctionStatus.waitingSettlement),
             _auction(id: 'a22', status: AuctionStatus.ended),
@@ -351,12 +350,12 @@ void main() {
     });
 
     test('rapid duplicate loadMore is blocked while request is in flight', () async {
-      final page2 = Completer<RepositoryResult<List<Auction>>>();
+      final page2 = Completer<Result<List<Auction>>>();
       var page2Calls = 0;
       final repo = _FakeAuctionRepository(
         onGetUserAuctions: (sellerId, status, limit, cursor) async {
           if (cursor == null) {
-            return RepositoryResult.success(_auctionPage(
+            return Result.success(_auctionPage(
               start: 1,
               count: 20,
               statusForIndex: (index) =>
@@ -390,7 +389,7 @@ void main() {
 
       expect(page2Calls, 1, reason: 'second call blocked while loading');
       page2.complete(
-        RepositoryResult.success([
+        Result.success([
           _auction(id: 'a21', status: AuctionStatus.scheduled),
         ]),
       );
@@ -405,16 +404,16 @@ void main() {
       final repo = _FakeAuctionRepository(
         onGetUserAuctions: (sellerId, status, limit, cursor) async {
           if (cursor != null) {
-            return RepositoryResult.success(const []);
+            return Result.success(const []);
           }
           firstPageCalls += 1;
           if (firstPageCalls == 1) {
-            return RepositoryResult.success([
+            return Result.success([
               _auction(id: 'old-1', status: AuctionStatus.draft),
               _auction(id: 'old-2', status: AuctionStatus.active),
             ]);
           }
-          return RepositoryResult.success([
+          return Result.success([
             _auction(id: 'new-1', status: AuctionStatus.draft),
             _auction(id: 'new-2', status: AuctionStatus.waitingSettlement),
           ]);
@@ -447,7 +446,7 @@ void main() {
     test('filter changes are local and reset back to all', () async {
       final repo = _FakeAuctionRepository(
         onGetUserAuctions: (sellerId, status, limit, cursor) async {
-          return RepositoryResult.success([
+          return Result.success([
             _auction(id: 'a1', status: AuctionStatus.draft),
             _auction(id: 'a2', status: AuctionStatus.scheduled),
             _auction(id: 'a3', status: AuctionStatus.active),
@@ -490,7 +489,7 @@ void main() {
       final repo = _FakeAuctionRepository(
         onGetUserAuctions: (sellerId, status, limit, cursor) async {
           if (cursor == null) {
-            return RepositoryResult.success(_auctionPage(
+            return Result.success(_auctionPage(
               start: 1,
               count: 20,
               statusForIndex: (index) =>
@@ -499,9 +498,9 @@ void main() {
           }
           attempts += 1;
           if (attempts == 1) {
-            return RepositoryResult.error('load more failed');
+            return Result.error('load more failed');
           }
-          return RepositoryResult.success([
+          return Result.success([
             _auction(id: 'a21', status: AuctionStatus.ended),
           ]);
         },
@@ -539,13 +538,13 @@ void main() {
     });
 
     test('auth change discards stale publication and reloads from new seller', () async {
-      final seller1Pending = Completer<RepositoryResult<List<Auction>>>();
+      final seller1Pending = Completer<Result<List<Auction>>>();
       final repo = _FakeAuctionRepository(
         onGetUserAuctions: (sellerId, status, limit, cursor) async {
           if (sellerId == 'seller-1') {
             return seller1Pending.future;
           }
-          return RepositoryResult.success([
+          return Result.success([
             _auction(id: 'b1', status: AuctionStatus.draft),
           ]);
         },
@@ -571,7 +570,7 @@ void main() {
       );
       await _settle();
       seller1Pending.complete(
-        RepositoryResult.success([
+        Result.success([
           _auction(id: 'a1', status: AuctionStatus.active),
         ]),
       );
@@ -589,7 +588,7 @@ void main() {
         (tester) async {
       final repo = _FakeAuctionRepository(
         onGetUserAuctions: (sellerId, status, limit, cursor) async {
-          return RepositoryResult.success([
+          return Result.success([
             _auction(
               id: 'a1',
               status: AuctionStatus.waitingSettlement,
@@ -652,7 +651,7 @@ void main() {
     testWidgets('draft edit is exposed only for draft auctions', (tester) async {
       final repo = _FakeAuctionRepository(
         onGetUserAuctions: (sellerId, status, limit, cursor) async {
-          return RepositoryResult.success([
+          return Result.success([
             _auction(id: 'draft-1', status: AuctionStatus.draft),
             _auction(id: 'active-1', status: AuctionStatus.active),
           ]);
@@ -707,7 +706,7 @@ void main() {
     ) async {
       final repo = _FakeAuctionRepository(
         onGetUserAuctions: (sellerId, status, limit, cursor) async {
-          return RepositoryResult.success([
+          return Result.success([
             _auction(id: 'draft-1', status: AuctionStatus.draft),
           ]);
         },

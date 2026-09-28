@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart' as core;
-import 'package:labuda/core/src/theme/app_colors.dart';
 import 'package:labuda/core/src/router/route_paths.dart';
 import 'order_detail/order_confirmation_section.dart';
 import 'order_detail/order_refund_handler.dart';
@@ -135,7 +134,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen>
                   children: [
                     ListView(
                       // Dynamic bottom padding for action buttons
-                      padding: EdgeInsets.fromLTRB(16, 16, 16, bottomPadding),
+                      padding: EdgeInsets.fromLTRB(core.AppMetrics.p16, core.AppMetrics.p16, core.AppMetrics.p16, bottomPadding),
                       children: [
                         // Seller Action Required Banner (only for seller with pending action)
                         if (isSeller && order.isSellerActionRequired)
@@ -278,10 +277,10 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
+              Icon(
                 Icons.error_outline,
                 size: 48,
-                color: core.AppColors.statusError,
+                color: context.statusColors.error,
               ),
               const SizedBox(height: 16),
               const Text('Data belum bisa dimuat.'),
@@ -449,7 +448,7 @@ class _DecisionMissingWidget extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(core.AppMetrics.p16),
       decoration: BoxDecoration(
         color: colorScheme.surface,
         border: Border(
@@ -461,12 +460,12 @@ class _DecisionMissingWidget extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, color: core.AppColors.warning, size: 32),
+            Icon(Icons.error_outline, color: context.statusColors.warning, size: 32),
             const SizedBox(height: 12),
             Text(
               'Action Configuration Missing',
               style: TextStyle(
-                fontSize: 16,
+                fontSize: core.AppType.s16,
                 fontWeight: FontWeight.w600,
                 color: colorScheme.onSurface,
               ),
@@ -475,7 +474,7 @@ class _DecisionMissingWidget extends StatelessWidget {
             Text(
               'Order status: $orderStatus',
               style: TextStyle(
-                fontSize: 12,
+                fontSize: core.AppType.s12,
                 color: colorScheme.onSurfaceVariant,
               ),
             ),
@@ -483,7 +482,7 @@ class _DecisionMissingWidget extends StatelessWidget {
             Text(
               'Please contact support',
               style: TextStyle(
-                fontSize: 12,
+                fontSize: core.AppType.s12,
                 color: colorScheme.onSurfaceVariant,
               ),
             ),
@@ -505,11 +504,11 @@ class _SellerEarningsCTA extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 0),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(horizontal: core.AppMetrics.p0),
+      padding: const EdgeInsets.all(core.AppMetrics.p16),
       decoration: BoxDecoration(
         color: colorScheme.primaryContainer,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(core.AppShape.r12),
         border: Border.all(
           color: colorScheme.primary.withValues(alpha: 0.4),
           width: 1,
@@ -529,7 +528,7 @@ class _SellerEarningsCTA extends StatelessWidget {
               Text(
                 'Pesanan Selesai',
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: core.AppType.s14,
                   fontWeight: FontWeight.w600,
                   color: colorScheme.onSurface,
                 ),
@@ -540,7 +539,7 @@ class _SellerEarningsCTA extends StatelessWidget {
           Text(
             'Pesanan telah selesai dan diproses.',
             style: TextStyle(
-              fontSize: 12,
+              fontSize: core.AppType.s12,
               color: colorScheme.onSurfaceVariant,
             ),
           ),
@@ -556,9 +555,9 @@ class _SellerEarningsCTA extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: colorScheme.primary,
                 foregroundColor: colorScheme.onPrimary,
-                padding: const EdgeInsets.symmetric(vertical: 12),
+                padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p12),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(core.AppShape.r8),
                 ),
               ),
             ),
@@ -603,9 +602,9 @@ class _OrderPreparationSection extends StatelessWidget {
 
     // Determine colors based on overdue tier
     Color getOverdueBadgeColor() {
-      if (overdueTier == 'critical_overdue') return AppColors.statusError;
-      if (overdueTier == 'severely_overdue') return AppColors.statusError;
-      return AppColors.warning;
+      if (overdueTier == 'critical_overdue') return context.statusColors.error;
+      if (overdueTier == 'severely_overdue') return context.statusColors.error;
+      return context.statusColors.warning;
     }
 
     String getOverdueBadgeLabel() {
@@ -615,15 +614,15 @@ class _OrderPreparationSection extends StatelessWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(core.AppMetrics.p16),
       decoration: BoxDecoration(
         color: showOverdueUI
-            ? AppColors.statusError.withValues(alpha: 0.06)
+            ? context.statusColors.error.withValues(alpha: 0.06)
             : colorScheme.secondaryContainer,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(core.AppShape.r12),
         border: Border.all(
           color: showOverdueUI
-              ? AppColors.statusError.withValues(alpha: 0.4)
+              ? context.statusColors.error.withValues(alpha: 0.4)
               : colorScheme.secondary.withValues(alpha: 0.4),
         ),
       ),
@@ -634,7 +633,7 @@ class _OrderPreparationSection extends StatelessWidget {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(core.AppMetrics.p8),
                 decoration: BoxDecoration(
                   color: showOverdueUI
                       ? colorScheme.error.withValues(alpha: 0.15)
@@ -661,7 +660,7 @@ class _OrderPreparationSection extends StatelessWidget {
                           ? 'Pesanan Terlambat'
                           : 'Menunggu Penjual Menyiapkan Ikan',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: core.AppType.s16,
                         fontWeight: FontWeight.w600,
                         color: colorScheme.onSurface,
                       ),
@@ -672,7 +671,7 @@ class _OrderPreparationSection extends StatelessWidget {
                           ? 'Pesanan melewati estimasi siap kirim'
                           : 'Penjual sedang menyiapkan pesanan Anda',
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: core.AppType.s12,
                         color: colorScheme.onSurfaceVariant,
                       ),
                     ),
@@ -687,10 +686,10 @@ class _OrderPreparationSection extends StatelessWidget {
           if (showOverdueUI) ...[
             // Overdue badge
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: core.AppMetrics.p14, vertical: core.AppMetrics.p8),
               decoration: BoxDecoration(
                 color: getOverdueBadgeColor().withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(core.AppShape.r20),
                 border: Border.all(
                   color: getOverdueBadgeColor().withValues(alpha: 0.3),
                 ),
@@ -698,16 +697,16 @@ class _OrderPreparationSection extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.warning_amber_rounded,
                     size: 16,
-                    color: AppColors.statusError,
+                    color: context.statusColors.error,
                   ),
                   const SizedBox(width: 6),
                   Text(
                     getOverdueBadgeLabel(),
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: core.AppType.s13,
                       fontWeight: FontWeight.w600,
                       color: getOverdueBadgeColor(),
                     ),
@@ -719,10 +718,10 @@ class _OrderPreparationSection extends StatelessWidget {
             // Overdue warning message
             const SizedBox(height: 12),
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(core.AppMetrics.p12),
               decoration: BoxDecoration(
                 color: colorScheme.surfaceContainerHigh,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(core.AppShape.r8),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -737,7 +736,7 @@ class _OrderPreparationSection extends StatelessWidget {
                     child: Text(
                       _getOverdueWarningMessage(overdueTier),
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: core.AppType.s13,
                         color: colorScheme.onSurfaceVariant,
                       ),
                     ),
@@ -755,16 +754,16 @@ class _OrderPreparationSection extends StatelessWidget {
           if (!showOverdueUI) ...[
             // Preparation time badge
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: core.AppMetrics.p14, vertical: core.AppMetrics.p8),
               decoration: BoxDecoration(
                 color: preparationTime.isImmediate
-                    ? AppColors.successGreen.withValues(alpha: 0.1)
-                    : AppColors.warning.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(20),
+                    ? context.statusColors.success.withValues(alpha: 0.1)
+                    : context.statusColors.warning.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(core.AppShape.r20),
                 border: Border.all(
                   color: preparationTime.isImmediate
-                      ? AppColors.successGreen.withValues(alpha: 0.3)
-                      : AppColors.warning.withValues(alpha: 0.3),
+                      ? context.statusColors.success.withValues(alpha: 0.3)
+                      : context.statusColors.warning.withValues(alpha: 0.3),
                 ),
               ),
               child: Row(
@@ -776,8 +775,8 @@ class _OrderPreparationSection extends StatelessWidget {
                         : Icons.schedule,
                     size: 16,
                     color: preparationTime.isImmediate
-                        ? AppColors.successGreen
-                        : AppColors.warning,
+                        ? context.statusColors.success
+                        : context.statusColors.warning,
                   ),
                   const SizedBox(width: 6),
                   Text(
@@ -785,11 +784,11 @@ class _OrderPreparationSection extends StatelessWidget {
                         ? 'Siap dikirim segera'
                         : 'Estimasi siap kirim: ${preparationTime.displayName.toLowerCase()}',
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: core.AppType.s13,
                       fontWeight: FontWeight.w600,
                       color: preparationTime.isImmediate
-                          ? AppColors.successGreen
-                          : AppColors.warning,
+                          ? context.statusColors.success
+                          : context.statusColors.warning,
                     ),
                   ),
                 ],
@@ -802,7 +801,7 @@ class _OrderPreparationSection extends StatelessWidget {
               Text(
                 preparationTime.description,
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: core.AppType.s13,
                   color: colorScheme.onSurfaceVariant,
                 ),
               ),
@@ -813,10 +812,10 @@ class _OrderPreparationSection extends StatelessWidget {
           if (preparationNote != null && preparationNote.isNotEmpty) ...[
             const SizedBox(height: 12),
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(core.AppMetrics.p12),
               decoration: BoxDecoration(
                 color: colorScheme.surfaceContainerHigh,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(core.AppShape.r8),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -831,7 +830,7 @@ class _OrderPreparationSection extends StatelessWidget {
                     child: Text(
                       preparationNote,
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: core.AppType.s12,
                         color: colorScheme.onSurfaceVariant,
                         fontStyle: FontStyle.italic,
                       ),
@@ -846,10 +845,10 @@ class _OrderPreparationSection extends StatelessWidget {
           if (readyToShipBy != null && !preparationTime.isImmediate) ...[
             const SizedBox(height: 12),
             Container(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(core.AppMetrics.p10),
               decoration: BoxDecoration(
                 color: colorScheme.surfaceContainerHigh,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(core.AppShape.r8),
               ),
               child: Row(
                 children: [
@@ -862,7 +861,7 @@ class _OrderPreparationSection extends StatelessWidget {
                   Text(
                     'Target siap kirim: ${_formatDate(readyToShipBy)}',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: core.AppType.s12,
                     color: colorScheme.onSurfaceVariant,
                   ),
                   ),
@@ -950,12 +949,12 @@ class _OrderPreparationSection extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: core.AppMetrics.p12, vertical: core.AppMetrics.p10),
         decoration: BoxDecoration(
           color: isPrimary
-              ? AppColors.statusError
+              ? context.statusColors.error
               : colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(core.AppShape.r8),
           border: isPrimary
               ? null
               : Border.all(color: colorScheme.outlineVariant),
@@ -974,7 +973,7 @@ class _OrderPreparationSection extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                fontSize: 13,
+                fontSize: core.AppType.s13,
                 fontWeight: FontWeight.w600,
                 color: isPrimary
                     ? colorScheme.onError

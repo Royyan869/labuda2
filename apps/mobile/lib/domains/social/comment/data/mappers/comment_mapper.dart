@@ -21,8 +21,18 @@ class CommentMapper {
       type: dto.type,
       reference:
           dto.reference, // Direct assignment - ShareReference is the same shape
-      resourceProjection: dto.resourceProjection,
-      parentId: dto.parentId,
+       resourceProjection: dto.resourceProjection,
+       media: dto.media
+           .map(
+             (item) => CommentMedia(
+               id: item.id,
+               mediaUrl: item.mediaUrl,
+               mediaType: item.mediaType,
+               position: item.position,
+             ),
+           )
+           .toList(),
+       parentId: dto.parentId,
       createdAt: dto.createdAt,
       updatedAt: dto.updatedAt,
       deletedAt: dto.deletedAt,

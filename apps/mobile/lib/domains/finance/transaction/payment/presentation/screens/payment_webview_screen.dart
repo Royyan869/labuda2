@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Payment WebView — SINGLE CANONICAL PAYMENT PRESENTATION SURFACE.
 ///
@@ -202,7 +203,7 @@ class _ExternalAppGuidanceBannerState
       color: Colors.transparent,
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p8),
         color: Theme.of(context).colorScheme.secondaryContainer,
         child: Row(
           children: [
@@ -217,7 +218,7 @@ class _ExternalAppGuidanceBannerState
                 'Untuk GoPay/OVO/DANA/ShopeePay, aplikasi terkait akan dibuka. '
                 'Selesaikan pembayaran di sana, lalu kembali ke Labuda.',
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: AppType.s12,
                   color: Theme.of(context).colorScheme.onSecondaryContainer,
                 ),
               ),

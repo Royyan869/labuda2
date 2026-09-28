@@ -55,7 +55,6 @@ import 'package:labuda/domains/user/profile/domain/entities/profile_entity.dart'
 import 'package:labuda/domains/user/profile/presentation/providers/profile_view_provider.dart';
 import 'package:labuda/features/marketplace/marketplace.dart';
 import 'package:labuda/features/home/home.dart';
-import 'package:labuda/domains/commerce/transaction/order/domain/repositories/repository_result.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 
 // ============================================================================
@@ -493,22 +492,22 @@ class _FakeFollowRepository extends Fake implements IFollowRepository {
 
 class _FakeContentRepository extends Fake implements ContentRepository {
   @override
-  Future<ContentRepositoryResult<List<Content>>> getContents({
+  Future<Result<List<Content>>> getContents({
     int? limit,
     int? offset,
     String? location,
     ContentStatus? status,
-  }) async => ContentRepositoryResult.success(const <Content>[]);
+  }) async => Result.success(const <Content>[]);
 
   @override
-  Future<ContentRepositoryResult<List<Content>>> getContentsByAuthor(
+  Future<Result<List<Content>>> getContentsByAuthor(
     String authorId, {int? limit, int? offset,}
-  ) async => ContentRepositoryResult.success(const <Content>[]);
+  ) async => Result.success(const <Content>[]);
 
   @override
-  Future<ContentRepositoryResult<ContentAuthorPage>> getContentsByAuthorPaged(
+  Future<Result<ContentAuthorPage>> getContentsByAuthorPaged(
     String authorId, {int limit = 20, String? cursor,}
-  ) async => ContentRepositoryResult.success(const ContentAuthorPage(
+  ) async => Result.success(const ContentAuthorPage(
     items: <Content>[],
     nextCursor: null,
     hasMore: false,
@@ -554,7 +553,7 @@ class _FakeLikeRepository extends Fake implements LikeRepository {
 
 class _FakeAuctionRepository extends Fake implements AuctionRepository {
   @override
-  Future<RepositoryResult<List<Auction>>> getActiveAuctions({
+  Future<Result<List<Auction>>> getActiveAuctions({
     String? variety,
     double? minSize,
     double? maxSize,
@@ -562,7 +561,7 @@ class _FakeAuctionRepository extends Fake implements AuctionRepository {
     int limit = 20,
     String? lastAuctionId,
   }) async {
-    return RepositoryResult.success(const <Auction>[]);
+    return Result.success(const <Auction>[]);
   }
 }
 

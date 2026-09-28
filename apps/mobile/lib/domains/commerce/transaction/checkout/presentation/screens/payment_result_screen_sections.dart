@@ -28,10 +28,10 @@ class _NextStepsSection extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(core.AppMetrics.p20),
       decoration: BoxDecoration(
         color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(core.AppShape.r16),
         border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: Column(
@@ -41,14 +41,14 @@ class _NextStepsSection extends StatelessWidget {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(core.AppMetrics.p8),
                 decoration: BoxDecoration(
-                  color: core.AppColors.successGreen.withValues(alpha: 0.1),
+                  color: context.statusColors.success.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.info_outline,
-                  color: core.AppColors.successGreen,
+                  color: context.statusColors.success,
                   size: 20,
                 ),
               ),
@@ -56,7 +56,7 @@ class _NextStepsSection extends StatelessWidget {
               Text(
                 'Apa Selanjutnya?',
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: core.AppType.s16,
                   fontWeight: FontWeight.bold,
                   color: colorScheme.onSurface,
                 ),
@@ -112,7 +112,7 @@ class _NextStepItem extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.all(core.AppMetrics.p8),
           decoration: BoxDecoration(
             color: colorScheme.secondary.withValues(alpha: 0.1),
             shape: BoxShape.circle,
@@ -127,7 +127,7 @@ class _NextStepItem extends StatelessWidget {
               Text(
                 title,
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: core.AppType.s14,
                   fontWeight: FontWeight.w600,
                   color: colorScheme.onSurface,
                 ),
@@ -136,7 +136,7 @@ class _NextStepItem extends StatelessWidget {
               Text(
                 description,
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: core.AppType.s12,
                   color: colorScheme.onSurfaceVariant,
                   height: 1.4,
                 ),

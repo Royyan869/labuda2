@@ -332,8 +332,8 @@ Future<void> _checkoutHandleCreateOrder(_CheckoutScreenState state) async {
     );
     if (!state.mounted) return;
     final methods = methodsResult.fold<List<PaymentMethodOption>>(
-      (options) => options,
       (_) => const [],
+      (options) => options,
     );
     if (methods.isEmpty) {
       AppSnackBar.showError(

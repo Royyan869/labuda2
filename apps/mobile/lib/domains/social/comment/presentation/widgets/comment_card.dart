@@ -22,6 +22,7 @@ import 'package:labuda/shared/governance/content_lifecycle.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/domains/system/report/domain/entities/entities.dart';
 import 'package:labuda/domains/system/report/presentation/dialogs/report_submission_dialog.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Comment Card Widget
 ///
@@ -94,7 +95,7 @@ class CommentCard extends ConsumerWidget {
         : null;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p12),
       decoration: isSellerResponse
           ? BoxDecoration(
               color: scheme.primary.withValues(alpha: 0.06),
@@ -118,6 +119,10 @@ class CommentCard extends ConsumerWidget {
           // Commerce attachment — canonical viewer-aware envelope. Identity
           // comes from `reference`, display/state from `resource_projection`
           // (LIVE payload or TOMBSTONE); there is no snapshot fallback.
+          if (comment.media.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            _buildMedia(context),
+          ],
           if (comment.isCommerceReference &&
               comment.resourceProjection != null) ...[
             if (comment.body != null && comment.body!.isNotEmpty)
@@ -153,6 +158,44 @@ class CommentCard extends ConsumerWidget {
       default:
         return null;
     }
+  }
+
+  Widget _buildMedia(BuildContext context) {
+    final ordered = [...comment.media]..sort((a, b) => a.position.compareTo(b.position));
+    return SizedBox(
+      height: 96,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: ordered.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final media = ordered[index];
+          return ClipRRect(
+            borderRadius: BorderRadius.circular(AppShape.r8),
+            child: media.isVideo
+                ? Container(
+                    width: 96,
+                    height: 96,
+                    color: Theme.of(context).colorScheme.scrim,
+                    child: Icon(Icons.play_circle_outline,
+                        color: Theme.of(context).colorScheme.onPrimary,
+                        size: 36),
+                  )
+                : AppImage(
+                    imageUrl: media.mediaUrl,
+                    width: 96,
+                    height: 96,
+                    cacheWidth: 192,
+                    fit: BoxFit.cover,
+                    errorWidget: Container(
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                      child: const Icon(Icons.broken_image_outlined),
+                    ),
+                  ),
+          );
+        },
+      ),
+    );
   }
 
   Widget _buildLikeSection(
@@ -195,9 +238,9 @@ class CommentCard extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onReply,
-      borderRadius: BorderRadius.circular(4),
+      borderRadius: BorderRadius.circular(AppShape.r4),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(vertical: AppMetrics.p8),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -205,7 +248,7 @@ class CommentCard extends ConsumerWidget {
             const SizedBox(width: 4),
             Text(
               'Balas',
-              style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant),
+              style: TextStyle(fontSize: AppType.s13, color: scheme.onSurfaceVariant),
             ),
           ],
         ),
@@ -253,7 +296,7 @@ class CommentCard extends ConsumerWidget {
                       displayName,
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
-                        fontSize: 14,
+                        fontSize: AppType.s14,
                         fontStyle: authorRedacted
                             ? FontStyle.italic
                             : FontStyle.normal,
@@ -272,17 +315,17 @@ class CommentCard extends ConsumerWidget {
                     const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
+                        horizontal: AppMetrics.p6,
+                        vertical: AppMetrics.p2,
                       ),
                       decoration: BoxDecoration(
                         color: scheme.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(4),
+                        borderRadius: BorderRadius.circular(AppShape.r4),
                       ),
                       child: Text(
                         'Respons Penjual',
                         style: TextStyle(
-                          fontSize: 10,
+                          fontSize: AppType.s10,
                           fontWeight: FontWeight.w600,
                           color: scheme.primary,
                         ),
@@ -301,7 +344,7 @@ class CommentCard extends ConsumerWidget {
                 Text(
                   '@${userUsername!}',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: AppType.s12,
                     color: scheme.onSurfaceVariant,
                   ),
                   maxLines: 1,
@@ -309,7 +352,7 @@ class CommentCard extends ConsumerWidget {
                 ),
               Text(
                 _formatTimestamp(comment.createdAt),
-                style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+                style: TextStyle(fontSize: AppType.s12, color: scheme.onSurfaceVariant),
               ),
             ],
           ),
@@ -344,7 +387,7 @@ class CommentCard extends ConsumerWidget {
     if (!authorRedacted && userId != null && onAuthorTap != null) {
       return InkWell(
         onTap: () => onAuthorTap!(userId!),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppShape.r8),
         child: authorSection,
       );
     }
@@ -387,7 +430,7 @@ class CommentCard extends ConsumerWidget {
     return Text(
       comment.body ?? '',
       style: TextStyle(
-        fontSize: 14,
+        fontSize: AppType.s14,
         color: scheme.onSurface,
         height: 1.4,
       ),
@@ -429,9 +472,9 @@ class _LikeButton extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(4),
+      borderRadius: BorderRadius.circular(AppShape.r4),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(vertical: AppMetrics.p8),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -444,7 +487,7 @@ class _LikeButton extends StatelessWidget {
               const SizedBox(width: 4),
               Text(
                 likeCount! > 0 ? '$likeCount' : '',
-                style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant),
+                style: TextStyle(fontSize: AppType.s13, color: scheme.onSurfaceVariant),
               ),
             ],
           ],

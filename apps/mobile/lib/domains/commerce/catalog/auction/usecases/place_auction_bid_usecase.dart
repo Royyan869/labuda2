@@ -81,8 +81,8 @@ class PlaceAuctionBidUseCase {
       );
 
       return result.fold(
-        (bid) => Result.success(null),
         (error) => Result.error(error),
+        (bid) => Result.success(null),
       );
     } catch (e) {
       return Result.error('Failed to place bid: $e');

@@ -21,6 +21,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:labuda/shared/attachment/entities/share_reference.dart';
 import 'package:labuda/shared/widgets/app_image.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Displays the cached transport preview of a shared reference.
 ///
@@ -51,13 +52,13 @@ class ObjectPreviewCard extends StatelessWidget {
       margin: EdgeInsets.zero,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppShape.r8),
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(AppMetrics.p12),
           child: Row(
             children: [
               if (imageUrl != null) _buildThumbnail(context, imageUrl),
-              if (imageUrl != null) const SizedBox(width: 12),
+              if (imageUrl != null) const SizedBox(width: AppMetrics.p12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -66,12 +67,12 @@ class ObjectPreviewCard extends StatelessWidget {
                       Text(
                         reference.targetType.displayName,
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: AppType.s12,
                           color: scheme.primary,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: AppMetrics.p4),
                     Text(
                       reference.preview.title,
                       style: const TextStyle(fontWeight: FontWeight.w600),
@@ -92,7 +93,7 @@ class ObjectPreviewCard extends StatelessWidget {
   /// Thumbnail for the reference preview. Every target type renders the cached
   /// preview URL through [AppImage] as-is — one widget, no per-type decoder.
   Widget _buildThumbnail(BuildContext context, String imageUrl) {
-    const borderRadius = BorderRadius.all(Radius.circular(8));
+    const borderRadius = BorderRadius.all(Radius.circular(AppShape.r8));
 
     return ClipRRect(
       borderRadius: borderRadius,

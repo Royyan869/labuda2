@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/domains/user/profile/profile.dart'
     show phoneVerificationProvider, phoneVerificationServiceProvider;
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Header for phone verification dialog
 class VerificationHeader extends ConsumerWidget {
@@ -38,7 +39,7 @@ class VerificationHeader extends ConsumerWidget {
           Text(
             'Phone Number Verification',
             style: TextStyle(
-              fontSize: 18,
+              fontSize: AppType.s18,
               fontWeight: FontWeight.bold,
               color: scheme.onSurface,
             ),
@@ -50,7 +51,7 @@ class VerificationHeader extends ConsumerWidget {
                 : 'We will send a verification code via SMS',
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 13,
+              fontSize: AppType.s13,
               color: scheme.onSurfaceVariant,
             ),
         ),
@@ -60,7 +61,7 @@ class VerificationHeader extends ConsumerWidget {
             '🧪 Test mode: OTP code = 123456',
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 11,
+              fontSize: AppType.s11,
               fontWeight: FontWeight.w600,
               color: scheme.primary,
             ),

@@ -40,10 +40,10 @@ class ValiditySection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(core.AppMetrics.p16),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(core.AppShape.r12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -51,7 +51,7 @@ class ValiditySection extends StatelessWidget {
           Text(
             'Expiry Date',
             style: TextStyle(
-              fontSize: 16,
+              fontSize: core.AppType.s16,
               fontWeight: FontWeight.bold,
               color: Theme.of(context).colorScheme.onSurface,
             ),
@@ -65,7 +65,7 @@ class ValiditySection extends StatelessWidget {
               Text(
                 'Expires On *',
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: core.AppType.s14,
                   fontWeight: FontWeight.w500,
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
@@ -75,15 +75,15 @@ class ValiditySection extends StatelessWidget {
                 onTap: () {
                   _selectDate(context, validUntil, onValidUntilChanged);
                 },
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(core.AppShape.r12),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
+                    horizontal: core.AppMetrics.p16,
+                    vertical: core.AppMetrics.p14,
                   ),
                   decoration: BoxDecoration(
                     color: Theme.of(context).colorScheme.surfaceContainer,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(core.AppShape.r12),
                     border: Border.all(
                       color: Theme.of(context).colorScheme.outlineVariant,
                     ),
@@ -100,7 +100,7 @@ class ValiditySection extends StatelessWidget {
                         child: Text(
                           _formatDate(validUntil),
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: core.AppType.s14,
                             color: Theme.of(context).colorScheme.onSurface,
                           ),
                         ),
@@ -119,24 +119,24 @@ class ValiditySection extends StatelessWidget {
 
           // Info
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(core.AppMetrics.p10),
             decoration: BoxDecoration(
-              color: core.AppColors.statusInfo.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
+              color: context.statusColors.info.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(core.AppShape.r8),
             ),
             child: Row(
               children: [
                 Icon(
                   Icons.info_outline,
                   size: 16,
-                  color: core.AppColors.statusInfo,
+                  color: context.statusColors.info,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'Discount is active immediately and expires on the selected date.',
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: core.AppType.s12,
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),

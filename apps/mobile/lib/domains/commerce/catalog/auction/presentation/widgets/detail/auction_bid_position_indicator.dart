@@ -72,14 +72,14 @@ class AuctionBidPositionIndicator extends StatelessWidget {
   /// scheme has no role: success/warning). Text on tinted fills uses the
   /// display color derived from those same tokens via alpha — no light-only
   /// hex, no local brightness branch.
-  _BidPositionDisplay _display(ColorScheme scheme) {
+  _BidPositionDisplay _display(BuildContext context, ColorScheme scheme) {
     switch (_bidPosition) {
       case BidPosition.leading:
         return _BidPositionDisplay(
           label: 'Anda Memimpin',
           icon: Icons.emoji_events,
-          color: AppColors.statusSuccess,
-          backgroundColor: AppColors.statusSuccess.withValues(alpha: 0.12),
+          color: context.statusColors.success,
+          backgroundColor: context.statusColors.success.withValues(alpha: 0.12),
           message: 'Bid Anda saat ini adalah yang tertinggi',
         );
       case BidPosition.outbid:
@@ -106,8 +106,8 @@ class AuctionBidPositionIndicator extends StatelessWidget {
           return _BidPositionDisplay(
             label: 'Anda Menang! 🎉',
             icon: Icons.emoji_events,
-            color: AppColors.statusSuccess,
-            backgroundColor: AppColors.statusSuccess.withValues(alpha: 0.12),
+            color: context.statusColors.success,
+            backgroundColor: context.statusColors.success.withValues(alpha: 0.12),
             message:
                 'Bid Menang: Rp ${formatGroupedAmount(winningBid.round())}',
             deadline: _getClaimDeadline(),
@@ -164,7 +164,7 @@ class AuctionBidPositionIndicator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final display = _display(scheme);
+    final display = _display(context, scheme);
 
     // Hide indicator for scheduled auctions (not relevant yet)
     if (auction.status == AuctionStatus.scheduled) {
@@ -177,11 +177,11 @@ class AuctionBidPositionIndicator extends StatelessWidget {
     }
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.symmetric(horizontal: AppMetrics.p16),
+      padding: const EdgeInsets.all(AppMetrics.p12),
       decoration: BoxDecoration(
         color: display.backgroundColor,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppShape.r8),
         border: Border.all(
           color: display.color.withValues(alpha: 0.3),
           width: 1,
@@ -200,7 +200,7 @@ class AuctionBidPositionIndicator extends StatelessWidget {
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: display.color,
-                    fontSize: 14,
+                    fontSize: AppType.s14,
                   ),
                 ),
                 if (display.message.isNotEmpty) ...[
@@ -209,7 +209,7 @@ class AuctionBidPositionIndicator extends StatelessWidget {
                     display.message,
                     style: TextStyle(
                       color: display.color.withValues(alpha: 0.8),
-                      fontSize: 12,
+                      fontSize: AppType.s12,
                     ),
                   ),
                 ],
@@ -218,31 +218,31 @@ class AuctionBidPositionIndicator extends StatelessWidget {
                   const SizedBox(height: 6),
                   Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
+                      horizontal: AppMetrics.p8,
+                      vertical: AppMetrics.p4,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.statusWarning.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(4),
+                      color: context.statusColors.warning.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(AppShape.r4),
                       border: Border.all(
-                        color: AppColors.statusWarning.withValues(alpha: 0.3),
+                        color: context.statusColors.warning.withValues(alpha: 0.3),
                         width: 1,
                       ),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.access_time,
                           size: 12,
-                          color: AppColors.statusWarning,
+                          color: context.statusColors.warning,
                         ),
                         const SizedBox(width: 4),
                         Text(
                           'Selesaikan sebelum: ${display.deadline}',
-                          style: const TextStyle(
-                            color: AppColors.statusWarning,
-                            fontSize: 11,
+                          style: TextStyle(
+                            color: context.statusColors.warning,
+                            fontSize: AppType.s11,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -257,16 +257,16 @@ class AuctionBidPositionIndicator extends StatelessWidget {
           if (userBids.isNotEmpty && _bidPosition != BidPosition.notActive) ...[
             const SizedBox(width: 12),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
               decoration: BoxDecoration(
                 color: display.color.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(AppShape.r4),
               ),
               child: Text(
                 'Bid: Rp ${formatGroupedAmount(userBids.map((b) => b.amount).reduce((a, b) => a > b ? a : b).round())}',
                 style: TextStyle(
                   color: display.color,
-                  fontSize: 11,
+                  fontSize: AppType.s11,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -288,11 +288,11 @@ class AuctionBidPositionIndicator extends StatelessWidget {
         : 0.0;
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.symmetric(horizontal: AppMetrics.p16),
+      padding: const EdgeInsets.all(AppMetrics.p12),
       decoration: BoxDecoration(
         color: display.backgroundColor,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppShape.r8),
         border: Border.all(
           color: display.color.withValues(alpha: 0.4),
           width: 1.5,
@@ -304,7 +304,7 @@ class AuctionBidPositionIndicator extends StatelessWidget {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(4),
+                padding: const EdgeInsets.all(AppMetrics.p4),
                 decoration: BoxDecoration(
                   color: display.color.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
@@ -323,7 +323,7 @@ class AuctionBidPositionIndicator extends StatelessWidget {
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             color: display.color,
-                            fontSize: 14,
+                            fontSize: AppType.s14,
                           ),
                         ),
                         Text(
@@ -331,7 +331,7 @@ class AuctionBidPositionIndicator extends StatelessWidget {
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             color: display.color,
-                            fontSize: 14,
+                            fontSize: AppType.s14,
                           ),
                         ),
                       ],
@@ -341,7 +341,7 @@ class AuctionBidPositionIndicator extends StatelessWidget {
                       display.message,
                       style: TextStyle(
                         color: display.color.withValues(alpha: 0.9),
-                        fontSize: 13,
+                        fontSize: AppType.s13,
                       ),
                     ),
                   ],
@@ -353,16 +353,16 @@ class AuctionBidPositionIndicator extends StatelessWidget {
           if (userBids.isNotEmpty) ...[
             const SizedBox(height: 8),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p10, vertical: AppMetrics.p6),
               decoration: BoxDecoration(
                 color: display.color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(AppShape.r6),
               ),
               child: Text(
                 'Bid kamu: Rp ${formatGroupedAmount(userHighestBid.round())}',
                 style: TextStyle(
                   color: display.color.withValues(alpha: 0.8),
-                  fontSize: 12,
+                  fontSize: AppType.s12,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -377,15 +377,15 @@ class AuctionBidPositionIndicator extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: display.color,
                 foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                padding: const EdgeInsets.symmetric(vertical: 10),
+                padding: const EdgeInsets.symmetric(vertical: AppMetrics.p10),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(6),
+                  borderRadius: BorderRadius.circular(AppShape.r6),
                 ),
-                elevation: 0,
+                elevation: AppElevation.none,
               ),
               child: const Text(
                 'Pasang Bid Lagi',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: AppType.s13),
               ),
             ),
           ),

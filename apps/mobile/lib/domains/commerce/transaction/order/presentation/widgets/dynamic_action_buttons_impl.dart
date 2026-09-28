@@ -112,12 +112,12 @@ class _ActionButtonsContainer extends StatelessWidget {
     final selectedPrimaryAction = primaryAction;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(core.AppMetrics.p16),
       decoration: BoxDecoration(
         color: colorScheme.surface,
         borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(12),
-          topRight: Radius.circular(12),
+          topLeft: Radius.circular(core.AppShape.r12),
+          topRight: Radius.circular(core.AppShape.r12),
         ),
         border: Border(
           top: BorderSide(color: colorScheme.outlineVariant),
@@ -191,13 +191,13 @@ class _PrimaryActionButton extends StatelessWidget {
       style: ElevatedButton.styleFrom(
         backgroundColor: colorScheme.primary,
         foregroundColor: colorScheme.onPrimary,
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(core.AppShape.r8)),
       ),
       icon: _getIconForAction(action.type),
       label: Text(
         _getLabelForAction(action),
-        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        style: const TextStyle(fontSize: core.AppType.s16, fontWeight: FontWeight.w600),
       ),
     );
   }
@@ -291,25 +291,25 @@ class _SecondaryActionButton extends StatelessWidget {
     final isDestructive = _isDestructiveAction(action.type);
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: core.AppMetrics.p12),
       child: OutlinedButton.icon(
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
           foregroundColor: isDestructive
-              ? core.AppColors.statusError
+              ? context.statusColors.error
               : colorScheme.onSurface,
           side: BorderSide(
             color: isDestructive
-                ? core.AppColors.statusError.withValues(alpha: 0.3)
+                ? context.statusColors.error.withValues(alpha: 0.3)
                 : colorScheme.outlineVariant,
           ),
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p12),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(core.AppShape.r8)),
         ),
         icon: _getIconForAction(action.type),
         label: Text(
           _getLabelForAction(action),
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+          style: const TextStyle(fontSize: core.AppType.s14, fontWeight: FontWeight.w500),
         ),
       ),
     );
@@ -399,10 +399,10 @@ class _MinimalSupportAction extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(core.AppMetrics.p16),
       decoration: BoxDecoration(
         color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(core.AppShape.r12),
         border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: TextButton.icon(

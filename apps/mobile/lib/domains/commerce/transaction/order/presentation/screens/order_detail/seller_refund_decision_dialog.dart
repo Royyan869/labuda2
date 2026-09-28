@@ -127,15 +127,15 @@ class _SellerRefundDecisionDialogState
           Icon(
             _isApprove ? Icons.check_circle_outline : Icons.cancel_outlined,
             color: _isApprove
-                ? core.AppColors.statusSuccess
-                : core.AppColors.statusError,
+                ? context.statusColors.success
+                : context.statusColors.error,
             size: 24,
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               _isApprove ? 'Setujui Refund' : 'Tolak Refund',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+              style: const TextStyle(fontSize: core.AppType.s18, fontWeight: FontWeight.w600),
             ),
           ),
         ],
@@ -165,14 +165,14 @@ class _SellerRefundDecisionDialogState
               // Info banner
               if (_isApprove) ...[
                 _InfoBanner(
-                  color: core.AppColors.statusSuccess,
+                  color: context.statusColors.success,
                   icon: Icons.info_outline_rounded,
                   message:
                       'Jumlah refund dihitung otomatis oleh sistem berdasarkan kebijakan yang berlaku. Anda tidak perlu menentukan jumlah.',
                 ),
               ] else ...[
                 _InfoBanner(
-                  color: core.AppColors.statusError,
+                  color: context.statusColors.error,
                   icon: Icons.warning_amber_rounded,
                   message:
                       'Pembeli dapat mengajukan sengketa ke admin setelah penolakan.',
@@ -199,9 +199,9 @@ class _SellerRefundDecisionDialogState
                       ? 'Tambahkan catatan...'
                       : 'Jelaskan alasan penolakan...',
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(core.AppShape.r8),
                   ),
-                  contentPadding: const EdgeInsets.all(12),
+                  contentPadding: const EdgeInsets.all(core.AppMetrics.p12),
                 ),
                 onChanged: (_) => setState(() {}),
               ),
@@ -218,8 +218,8 @@ class _SellerRefundDecisionDialogState
           onPressed: _canSubmit ? _submit : null,
           style: ElevatedButton.styleFrom(
             backgroundColor: _isApprove
-                ? core.AppColors.statusSuccess
-                : core.AppColors.statusError,
+                ? context.statusColors.success
+                : context.statusColors.error,
             foregroundColor: colorScheme.onPrimary,
             disabledBackgroundColor: colorScheme.surfaceContainerHighest,
           ),
@@ -306,10 +306,10 @@ class _InfoBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(core.AppMetrics.p12),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(core.AppShape.r8),
         border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Row(
@@ -321,7 +321,7 @@ class _InfoBanner extends StatelessWidget {
             child: Text(
               message,
               style: TextStyle(
-                fontSize: 12,
+                fontSize: core.AppType.s12,
                 color: Theme.of(context).colorScheme.onSurface,
               ),
             ),

@@ -103,7 +103,6 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
     // explicitly at this boundary. "1000000.9" never reaches the chain as a
     // coerced 1000000; there is no round/floor/ceil and no double detour
     // anywhere below this parse.
-    final scheme = Theme.of(context).colorScheme;
     final amount = parseCanonicalBidAmount(_bidController.text);
     if (amount == null) {
       AppSnackBar.showError(
@@ -133,21 +132,21 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
             const SizedBox(height: 12),
             Text(
               'Rp ${formatGroupedAmount(amount)}',
-              style: const TextStyle(
-                fontSize: 24,
+              style: TextStyle(
+                fontSize: AppType.s24,
                 fontWeight: FontWeight.bold,
-                color: AppColors.statusSuccess,
+                color: context.statusColors.success,
               ),
             ),
             const SizedBox(height: 16),
             // TRANSACTION CLARITY: Consequence warning for auction inaction
             Container(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(AppMetrics.p10),
               decoration: BoxDecoration(
-                color: AppColors.statusWarning.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
+                color: context.statusColors.warning.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(AppShape.r8),
                 border: Border.all(
-                  color: AppColors.statusWarning.withValues(alpha: 0.3),
+                  color: context.statusColors.warning.withValues(alpha: 0.3),
                 ),
               ),
               child: Row(
@@ -156,14 +155,14 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
                   Icon(
                     Icons.info_outline,
                     size: 16,
-                    color: AppColors.statusWarning,
+                    color: context.statusColors.warning,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Jika Anda menang dan tidak membayar, akun Anda dapat dibatasi',
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: AppType.s12,
                         color: Theme.of(
                           context,
                         ).colorScheme.onSurfaceVariant,
@@ -187,7 +186,7 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
               widget.onPlaceBid(amount);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.statusSuccess,
+              backgroundColor: context.statusColors.success,
               foregroundColor: Theme.of(context).colorScheme.onPrimary,
             ),
             child: const Text('Konfirmasi'),
@@ -220,10 +219,10 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
 
     return Container(
       padding: EdgeInsets.only(
-        left: 16,
-        right: 16,
-        top: 16,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+        left: AppMetrics.p16,
+        right: AppMetrics.p16,
+        top: AppMetrics.p16,
+        bottom: MediaQuery.of(context).viewInsets.bottom + AppMetrics.p16,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -236,7 +235,7 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
               height: 4,
               decoration: BoxDecoration(
                 color: scheme.outlineVariant,
-                borderRadius: BorderRadius.circular(2),
+                borderRadius: BorderRadius.circular(AppShape.r2),
               ),
             ),
           ),
@@ -244,15 +243,15 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
           // Title
           const Text(
             'Tawar Lelang',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: AppType.s18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
           // Current bid info
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(AppMetrics.p12),
             decoration: BoxDecoration(
               color: scheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(AppShape.r8),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -260,9 +259,9 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
                 const Text('Bid Saat Ini'),
                 Text(
                   'Rp ${formatGroupedAmount(currentBid)}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: AppColors.statusSuccess,
+                    color: context.statusColors.success,
                   ),
                 ),
               ],
@@ -271,10 +270,10 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
           const SizedBox(height: 8),
           // Next bid info
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(AppMetrics.p12),
             decoration: BoxDecoration(
               color: scheme.secondary.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(AppShape.r8),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -306,7 +305,7 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
               hintText: 'Rp $_minimumBid',
               prefixText: 'Rp ',
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(AppShape.r8),
               ),
             ),
           ),
@@ -323,11 +322,11 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
           ElevatedButton(
             onPressed: sellerInactive ? null : _handlePlaceBid,
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.statusSuccess,
+              backgroundColor: context.statusColors.success,
               foregroundColor: scheme.onPrimary,
-              padding: const EdgeInsets.symmetric(vertical: 14),
+              padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(AppShape.r8),
               ),
             ),
             child: const Text(
@@ -347,9 +346,9 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
                     },
               style: OutlinedButton.styleFrom(
                 foregroundColor: scheme.secondary,
-                padding: const EdgeInsets.symmetric(vertical: 14),
+                padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(AppShape.r8),
                 ),
                 side: BorderSide(color: scheme.secondary),
               ),

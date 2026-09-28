@@ -31,7 +31,6 @@ import 'package:labuda/domains/system/report/presentation/screens/report_screen.
 import 'package:labuda/domains/user/preference/seller/seller.dart';
 import 'package:labuda/domains/social/share/share.dart';
 import 'package:labuda/domains/user/profile/presentation/screens/profile_screen/profile_share_builder.dart';
-import 'package:labuda/shared/widgets/empty_state.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/shared/governance/seller_tier_badge.dart';
 import 'package:labuda/shared/providers/block_state_provider.dart';
@@ -400,7 +399,7 @@ backgroundColor: scheme.surface,
                     unselectedLabelColor: scheme.onSurfaceVariant,
                     indicatorColor: scheme.primary,
                     indicatorWeight: 2,
-                    labelPadding: const EdgeInsets.symmetric(horizontal: 16),
+                    labelPadding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16),
                     tabs: const [
                       Tab(text: 'Dijual', height: 40),
                       Tab(text: 'Lelang', height: 40),
@@ -501,7 +500,7 @@ backgroundColor: scheme.surface,
   Widget _buildBackButton(ColorScheme scheme) {
     return IconButton(
       icon: Container(
-        padding: const EdgeInsets.all(6),
+        padding: const EdgeInsets.all(AppMetrics.p6),
         decoration: BoxDecoration(
           color: _collapseProgress < 0.5
               ? scheme.shadow.withValues(alpha: 0.3)
@@ -548,7 +547,7 @@ backgroundColor: scheme.surface,
       return [
         IconButton(
           icon: Container(
-            padding: const EdgeInsets.all(6),
+            padding: const EdgeInsets.all(AppMetrics.p6),
             decoration: BoxDecoration(color: bgColor, shape: BoxShape.circle),
             child: Icon(Icons.settings_outlined, color: iconColor, size: 20),
           ),
@@ -800,7 +799,7 @@ backgroundColor: scheme.surface,
           // Action buttons (Edit/Share for own profile, Follow/Message for others)
           // E5.2 — lifecycle gates target-user actions for non-own profiles.
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+            padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p12, AppMetrics.p16, AppMetrics.p12),
             child: ProfileActions(
               userId: userId,
               isOwnProfile: isOwnProfile,
@@ -817,7 +816,7 @@ backgroundColor: scheme.surface,
           // surface and the data was already prepared but never rendered.
           if (profileData['sellerTier'] != null) ...[
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p0, AppMetrics.p16, AppMetrics.p12),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: SellerTierBadge(
@@ -831,10 +830,10 @@ backgroundColor: scheme.surface,
           if (_hasProfileInfo(profileData, isSeller))
             Padding(
               padding: const EdgeInsets.fromLTRB(
-                16,
-                0,
-                16,
-                12,
+                AppMetrics.p16,
+                AppMetrics.p0,
+                AppMetrics.p16,
+                AppMetrics.p12,
               ), // Reduce top padding to minimize gap
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -855,7 +854,7 @@ color: scheme.onSurfaceVariant,
                           child: Text(
                             profileData['location'],
                             style: TextStyle(
-                              fontSize: 12,
+                              fontSize: AppType.s12,
 color: scheme.onSurfaceVariant,
                             ),
                             maxLines: 1,
@@ -873,7 +872,7 @@ color: scheme.onSurfaceVariant,
                     Text(
                       profileData['bio'],
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: AppType.s13,
 color: scheme.onSurfaceVariant,
                         height: 1.3,
                       ),

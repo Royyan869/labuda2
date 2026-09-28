@@ -86,7 +86,7 @@ class _SellerShippingScreenState extends ConsumerState<SellerShippingScreen> {
       }
       return ListView.separated(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+        padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p16, AppMetrics.p16, AppMetrics.p96),
         itemCount: state.options.length + 1,
         separatorBuilder: (_, _) => const SizedBox(height: 8),
         itemBuilder: (context, index) {
@@ -202,10 +202,10 @@ class _HonestyBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppMetrics.p12),
       decoration: BoxDecoration(
         color: scheme.secondary.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(
           color: scheme.secondary.withValues(alpha: 0.25),
         ),
@@ -226,7 +226,7 @@ class _HonestyBanner extends StatelessWidget {
                 Text(
                   ShippingHonestyMessages.sellerManagedShipping,
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: AppType.s13,
                     fontWeight: FontWeight.w600,
                     color: scheme.onSurface,
                   ),
@@ -237,7 +237,7 @@ class _HonestyBanner extends StatelessWidget {
                   'Anda: pilih minimal satu provinsi tujuan beserta tarifnya. '
                   'Input biaya pengiriman beserta biaya packing jika ada.',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: AppType.s12,
                     color: scheme.onSurfaceVariant,
                   ),
                 ),
@@ -259,7 +259,7 @@ class _EmptyView extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(24, 80, 24, 24),
+      padding: const EdgeInsets.fromLTRB(AppMetrics.p24, AppMetrics.p80, AppMetrics.p24, AppMetrics.p24),
       children: [
         const _HonestyBanner(),
         const SizedBox(height: 32),
@@ -272,7 +272,7 @@ class _EmptyView extends StatelessWidget {
         const Text(
           'Belum Ada Opsi Pengiriman',
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          style: TextStyle(fontSize: AppType.s18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
         Text(
@@ -281,7 +281,7 @@ class _EmptyView extends StatelessWidget {
           'pribadi untuk Anda. ForSale baru wajib memilih minimal satu opsi '
           'sebelum bisa dipublish.',
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 14, color: scheme.onSurfaceVariant),
+          style: TextStyle(fontSize: AppType.s14, color: scheme.onSurfaceVariant),
         ),
         const SizedBox(height: 24),
         ElevatedButton.icon(
@@ -289,7 +289,7 @@ class _EmptyView extends StatelessWidget {
           style: ElevatedButton.styleFrom(
             backgroundColor: scheme.primary,
             foregroundColor: scheme.onPrimary,
-            padding: const EdgeInsets.symmetric(vertical: 14),
+            padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
           ),
           icon: const Icon(Icons.add),
           label: const Text('Tambah Opsi Pengiriman'),
@@ -309,21 +309,21 @@ class _ErrorView extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(AppMetrics.p24),
       children: [
         const SizedBox(height: 80),
-        Icon(Icons.error_outline, size: 64, color: AppColors.error),
+        Icon(Icons.error_outline, size: 64, color: context.statusColors.error),
         const SizedBox(height: 16),
         const Text(
           'Gagal memuat opsi pengiriman',
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          style: TextStyle(fontSize: AppType.s18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
         Text(
           message,
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant),
+          style: TextStyle(fontSize: AppType.s13, color: scheme.onSurfaceVariant),
         ),
         const SizedBox(height: 24),
         ElevatedButton(onPressed: onRetry, child: const Text('Coba Lagi')),
@@ -356,22 +356,22 @@ class _OptionRow extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final note = option.internalNote?.trim() ?? '';
     return Card(
-      elevation: 0,
+      elevation: AppElevation.none,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         side: BorderSide(color: scheme.outlineVariant),
       ),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 12, 4, 12),
+          padding: const EdgeInsets.fromLTRB(AppMetrics.p12, AppMetrics.p12, AppMetrics.p4, AppMetrics.p12),
           child: Row(
             children: [
               CircleAvatar(
                 radius: 22,
                 backgroundColor: scheme.primary.withValues(alpha: 0.1),
-                child: Text(option.emoji, style: const TextStyle(fontSize: 22)),
+                child: Text(option.emoji, style: const TextStyle(fontSize: AppType.s22)),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -381,7 +381,7 @@ class _OptionRow extends StatelessWidget {
                     Text(
                       option.displayName,
                       style: const TextStyle(
-                        fontSize: 15,
+                        fontSize: AppType.s15,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -390,7 +390,7 @@ class _OptionRow extends StatelessWidget {
                       '${option.type.label}'
                       ' · ${option.coverageAreas.length} provinsi',
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: AppType.s12,
                         color: scheme.onSurfaceVariant,
                       ),
                     ),
@@ -400,7 +400,7 @@ class _OptionRow extends StatelessWidget {
                       Text(
                         'Catatan: $note',
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: AppType.s11,
                           fontStyle: FontStyle.italic,
                           color: scheme.onSurfaceVariant,
                         ),

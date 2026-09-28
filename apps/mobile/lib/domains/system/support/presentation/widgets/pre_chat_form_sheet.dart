@@ -10,6 +10,7 @@ import 'package:labuda/shared/widgets/app_snackbar.dart';
 import 'package:labuda/domains/system/support/domain/domain.dart';
 import 'package:labuda/domains/system/support/presentation/providers/support_providers.dart';
 import 'package:labuda/domains/system/support/presentation/screens/support_ticket_thread_screen.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 // ============================================
 // WIDGET
@@ -163,11 +164,11 @@ class _PreChatFormSheetRefactoredState
     return Container(
       decoration: BoxDecoration(
         color: theme.scaffoldBackgroundColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(AppShape.r20)),
       ),
       child: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(AppMetrics.p24),
           child: Form(
             key: _formKey,
             child: Column(
@@ -179,10 +180,10 @@ class _PreChatFormSheetRefactoredState
                   child: Container(
                     width: 40,
                     height: 4,
-                    margin: const EdgeInsets.only(bottom: 20),
+                    margin: const EdgeInsets.only(bottom: AppMetrics.p20),
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.outlineVariant,
-                      borderRadius: BorderRadius.circular(2),
+                      borderRadius: BorderRadius.circular(AppShape.r2),
                     ),
                   ),
                 ),
@@ -229,7 +230,7 @@ class _PreChatFormSheetRefactoredState
                   decoration: InputDecoration(
                     hintText: 'Briefly describe your issue...',
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(AppShape.r12),
                     ),
                     filled: true,
                     fillColor: Theme.of(context).colorScheme.surfaceContainer,
@@ -240,10 +241,10 @@ class _PreChatFormSheetRefactoredState
                 // Linked Order (if any)
                 if (_linkedOrderId != null) ...[
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(AppMetrics.p12),
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(AppShape.r12),
                       border: Border.all(color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.35)),
                     ),
                     child: Row(
@@ -278,9 +279,9 @@ class _PreChatFormSheetRefactoredState
                       ? null
                       : _submitForm,
                   style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(AppShape.r12),
                     ),
                     backgroundColor: Theme.of(context).colorScheme.primary,
                     foregroundColor: Theme.of(context).colorScheme.onPrimary,
@@ -301,7 +302,7 @@ class _PreChatFormSheetRefactoredState
                       : const Text(
                           'Create Ticket',
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: AppType.s16,
                             fontWeight: FontWeight.bold,
                           ),
                         ),

@@ -128,7 +128,7 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
             const SizedBox(height: 16),
             const Text(
               'Login Diperlukan',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: AppType.s20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             const Text('Silakan login untuk mengakses dashboard penjual'),
@@ -147,31 +147,31 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
         scrolledUnderElevation: 0,
         backgroundColor: Theme.of(context).colorScheme.surface,
         foregroundColor: Theme.of(context).colorScheme.onSurface,
-        elevation: 0,
+        elevation: AppElevation.none,
       ),
       body: Center(
         child: Padding(
-          padding: const EdgeInsets.all(32),
+          padding: const EdgeInsets.all(AppMetrics.p32),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(AppMetrics.p24),
                 decoration: BoxDecoration(
-                  color: AppColors.statusWarning.withValues(alpha: 0.1),
+                  color: context.statusColors.warning.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   Icons.store_outlined,
                   size: 64,
-                  color: AppColors.statusWarning,
+                  color: context.statusColors.warning,
                 ),
               ),
               const SizedBox(height: 32),
               Text(
                 'Profil Penjual Diperlukan',
                 style: TextStyle(
-                  fontSize: 20,
+                  fontSize: AppType.s20,
                   fontWeight: FontWeight.bold,
                   color: Theme.of(context).colorScheme.onSurface,
                 ),
@@ -180,7 +180,7 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
               Text(
                 'Anda perlu membuat profil penjual untuk mulai berjualan di Labuda.',
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: AppType.s14,
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
                 textAlign: TextAlign.center,
@@ -188,10 +188,10 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
               const SizedBox(height: 32),
               // Setup path explanation
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(AppMetrics.p16),
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.surfaceContainerLow,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(AppShape.r12),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -207,7 +207,7 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
                         Text(
                           'Langkah-langkah:',
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: AppType.s14,
                             fontWeight: FontWeight.bold,
                             color: Theme.of(context).colorScheme.onSurface,
                           ),
@@ -237,8 +237,8 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
                     label: const Text('Kembali'),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 12,
+                        horizontal: AppMetrics.p24,
+                        vertical: AppMetrics.p12,
                       ),
                     ),
                   ),
@@ -254,8 +254,8 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
                       foregroundColor:
                           Theme.of(context).colorScheme.onPrimary,
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 12,
+                        horizontal: AppMetrics.p24,
+                        vertical: AppMetrics.p12,
                       ),
                     ),
                   ),
@@ -273,7 +273,7 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
       backgroundColor: Theme.of(context).colorScheme.surface,
       body: Center(
         child: Padding(
-          padding: const EdgeInsets.all(32),
+          padding: const EdgeInsets.all(AppMetrics.p32),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -286,7 +286,7 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
               Text(
                 'Memuat status seller...',
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: AppType.s16,
                   fontWeight: FontWeight.w600,
                   color: Theme.of(context).colorScheme.onSurface,
                 ),
@@ -295,7 +295,7 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
               Text(
                 'Menunggu identitas dan kapabilitas dari backend.',
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: AppType.s13,
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
                 textAlign: TextAlign.center,
@@ -309,7 +309,7 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
 
   Widget _buildStepItem(String number, String text) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: AppMetrics.p8),
       child: Row(
         children: [
           Container(
@@ -317,13 +317,13 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
             height: 24,
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(4),
+              borderRadius: BorderRadius.circular(AppShape.r4),
             ),
             child: Center(
               child: Text(
                 number,
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: AppType.s12,
                   fontWeight: FontWeight.bold,
                   color: Theme.of(context).colorScheme.secondary,
                 ),
@@ -335,7 +335,7 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
             child: Text(
               text,
               style: TextStyle(
-                fontSize: 13,
+                fontSize: AppType.s13,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
@@ -351,7 +351,7 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
     bool isSubscriptionExpired,
   ) {
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -461,21 +461,21 @@ class _VerificationStatusSectionState
 
     switch (verificationState.status) {
       case SellerVerificationStatus.approved:
-        statusColor = AppColors.successGreen;
+        statusColor = context.statusColors.success;
         statusText = 'Terverifikasi';
         statusDescription = 'Akun penjual Anda telah diverifikasi';
         statusIcon = Icons.verified;
-        buttonColor = AppColors.successGreen;
+        buttonColor = context.statusColors.success;
         break;
       case SellerVerificationStatus.pendingReview:
-        statusColor = AppColors.statusWarning;
+        statusColor = context.statusColors.warning;
         statusText = 'Menunggu Verifikasi';
         statusDescription = 'Dokumen sedang ditinjau (1-2 hari kerja)';
         statusIcon = Icons.pending;
-        buttonColor = AppColors.statusWarning;
+        buttonColor = context.statusColors.warning;
         break;
       case SellerVerificationStatus.rejected:
-        statusColor = AppColors.error;
+        statusColor = context.statusColors.error;
         statusText = 'Verifikasi Ditolak';
         statusDescription = 'Mohon periksa dokumen dan ajukan kembali';
         statusIcon = Icons.cancel;
@@ -490,16 +490,16 @@ class _VerificationStatusSectionState
     }
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         color: statusColor.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(color: statusColor.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(AppMetrics.p10),
             decoration: BoxDecoration(
               color: statusColor.withValues(alpha: 0.2),
               shape: BoxShape.circle,
@@ -514,7 +514,7 @@ class _VerificationStatusSectionState
                 Text(
                   statusText,
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: AppType.s16,
                     fontWeight: FontWeight.bold,
                     color: statusColor,
                   ),
@@ -523,7 +523,7 @@ class _VerificationStatusSectionState
                 Text(
                   statusDescription,
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: AppType.s12,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
@@ -536,8 +536,8 @@ class _VerificationStatusSectionState
               style: TextButton.styleFrom(
                 foregroundColor: buttonColor,
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
+                  horizontal: AppMetrics.p16,
+                  vertical: AppMetrics.p8,
                 ),
               ),
               child: const Text('Verifikasi'),
@@ -551,10 +551,10 @@ class _VerificationStatusSectionState
 
   Widget _buildLoadingCard() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(
           color: Theme.of(context).colorScheme.outlineVariant,
         ),
@@ -570,7 +570,7 @@ class _VerificationStatusSectionState
           Expanded(
             child: Text(
               'Memuat status verifikasi...',
-              style: TextStyle(fontSize: 14),
+              style: TextStyle(fontSize: AppType.s14),
             ),
           ),
         ],
@@ -580,30 +580,30 @@ class _VerificationStatusSectionState
 
   Widget _buildErrorCard(String message) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
-        color: AppColors.statusError.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.statusError.withValues(alpha: 0.3)),
+        color: context.statusColors.error.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(AppShape.r12),
+        border: Border.all(color: context.statusColors.error.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.error_outline,
-                color: AppColors.statusError,
+                color: context.statusColors.error,
                 size: 24,
               ),
               const SizedBox(width: 12),
-              const Expanded(
+              Expanded(
                 child: Text(
                   'Gagal memuat status verifikasi',
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: AppType.s16,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.statusError,
+                    color: context.statusColors.error,
                   ),
                 ),
               ),
@@ -612,7 +612,7 @@ class _VerificationStatusSectionState
           const SizedBox(height: 8),
           Text(
             message,
-            style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
+            style: TextStyle(fontSize: AppType.s12, color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 12),
           TextButton(
@@ -654,19 +654,19 @@ class _SubscriptionExpiryBanner extends ConsumerWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppMetrics.p16),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                AppColors.statusWarning.withValues(alpha: 0.15),
-                AppColors.statusWarning.withValues(alpha: 0.05),
+                context.statusColors.warning.withValues(alpha: 0.15),
+                context.statusColors.warning.withValues(alpha: 0.05),
               ],
             ),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(AppShape.r16),
             border: Border.all(
-              color: AppColors.statusWarning.withValues(alpha: 0.4),
+              color: context.statusColors.warning.withValues(alpha: 0.4),
               width: 1,
             ),
           ),
@@ -676,14 +676,14 @@ class _SubscriptionExpiryBanner extends ConsumerWidget {
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.all(AppMetrics.p8),
                     decoration: BoxDecoration(
-                      color: AppColors.statusWarning.withValues(alpha: 0.2),
+                      color: context.statusColors.warning.withValues(alpha: 0.2),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.warning_amber_outlined,
-                      color: AppColors.statusWarning,
+                      color: context.statusColors.warning,
                       size: 20,
                     ),
                   ),
@@ -695,7 +695,7 @@ class _SubscriptionExpiryBanner extends ConsumerWidget {
                         Text(
                           'Langganan Kedaluwarsa',
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: AppType.s16,
                             fontWeight: FontWeight.bold,
                             color: Theme.of(context).colorScheme.onSurface,
                           ),
@@ -703,7 +703,7 @@ class _SubscriptionExpiryBanner extends ConsumerWidget {
                         Text(
                           'Langganan Anda telah berakhir. Perbarui untuk memulihkan akses pasar.',
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: AppType.s12,
                             color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ),
@@ -718,7 +718,7 @@ class _SubscriptionExpiryBanner extends ConsumerWidget {
                 icon: const Icon(Icons.refresh_outlined, size: 18),
                 label: const Text('Perpanjang Langganan'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.statusWarning,
+                  backgroundColor: context.statusColors.warning,
                   foregroundColor: Theme.of(context).colorScheme.onPrimary,
                   minimumSize: const Size(double.infinity, 44),
                 ),
@@ -754,7 +754,7 @@ class _SellerChatWorkspaceSection extends ConsumerWidget {
     final totalUnread = ref.watch(totalUnreadCountProvider);
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -764,7 +764,7 @@ class _SellerChatWorkspaceSection extends ConsumerWidget {
             Theme.of(context).colorScheme.secondary.withValues(alpha: 0.06),
           ],
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppShape.r16),
         border: Border.all(
           color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.3),
           width: 1.2,
@@ -772,14 +772,14 @@ class _SellerChatWorkspaceSection extends ConsumerWidget {
       ),
       child: InkWell(
         onTap: () => _navigateToChatList(context),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppShape.r16),
         child: Row(
           children: [
             // Chat icon with unread indicator
             Stack(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(AppMetrics.p12),
                   decoration: BoxDecoration(
                     color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.2),
                     shape: BoxShape.circle,
@@ -797,12 +797,12 @@ class _SellerChatWorkspaceSection extends ConsumerWidget {
                     right: 0,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
+                        horizontal: AppMetrics.p6,
+                        vertical: AppMetrics.p2,
                       ),
                       decoration: BoxDecoration(
                         color: Theme.of(context).colorScheme.primary,
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(AppShape.r10),
                         border: Border.all(
                           color: Theme.of(context).colorScheme.surface,
                           width: 2,
@@ -813,7 +813,7 @@ class _SellerChatWorkspaceSection extends ConsumerWidget {
                         totalUnread > 99 ? '99+' : totalUnread.toString(),
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.onPrimary,
-                          fontSize: 10,
+                          fontSize: AppType.s10,
                           fontWeight: FontWeight.bold,
                           height: 1.1,
                         ),
@@ -832,7 +832,7 @@ class _SellerChatWorkspaceSection extends ConsumerWidget {
                   Text(
                     'Pesan Pembeli',
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: AppType.s16,
                       fontWeight: FontWeight.bold,
                       color: Theme.of(context).colorScheme.onSurface,
                     ),
@@ -841,7 +841,7 @@ class _SellerChatWorkspaceSection extends ConsumerWidget {
                   Text(
                     _getChatMessage(totalUnread),
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: AppType.s13,
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
@@ -918,7 +918,7 @@ class _SellerActionRequiredCard extends ConsumerWidget {
             }
 
             return Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(AppMetrics.p16),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
@@ -928,7 +928,7 @@ class _SellerActionRequiredCard extends ConsumerWidget {
                     Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
                   ],
                 ),
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(AppShape.r16),
                 border: Border.all(
                   color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.4),
                   width: 1.5,
@@ -943,7 +943,7 @@ class _SellerActionRequiredCard extends ConsumerWidget {
                       Stack(
                         children: [
                           Container(
-                            padding: const EdgeInsets.all(10),
+                            padding: const EdgeInsets.all(AppMetrics.p10),
                             decoration: BoxDecoration(
                               color: Theme.of(context).colorScheme.primary.withValues(
                                 alpha: 0.2,
@@ -983,7 +983,7 @@ class _SellerActionRequiredCard extends ConsumerWidget {
                             Text(
                               'Pesanan Perlu Tindakan',
                               style: TextStyle(
-                                fontSize: 16,
+                                fontSize: AppType.s16,
                                 fontWeight: FontWeight.bold,
                                 color: Theme.of(context).colorScheme.onSurface,
                               ),
@@ -995,7 +995,7 @@ class _SellerActionRequiredCard extends ConsumerWidget {
                                 paidCount: paidOrders.length,
                               ),
                               style: TextStyle(
-                                fontSize: 13,
+                                fontSize: AppType.s13,
                                 color: Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
                             ),
@@ -1005,18 +1005,18 @@ class _SellerActionRequiredCard extends ConsumerWidget {
                       // Badge count
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
+                          horizontal: AppMetrics.p12,
+                          vertical: AppMetrics.p6,
                         ),
                         decoration: BoxDecoration(
                           color: Theme.of(context).colorScheme.primary,
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(AppShape.r20),
                         ),
                         child: Text(
                           actionRequiredCount.toString(),
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.onPrimary,
-                            fontSize: 14,
+                            fontSize: AppType.s14,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -1033,7 +1033,7 @@ class _SellerActionRequiredCard extends ConsumerWidget {
                           icon: Icons.pending_actions,
                           label: 'Pending',
                           count: pendingOrders.length,
-                          color: AppColors.statusWarning,
+                          color: context.statusColors.warning,
                           onTap: () => _navigateToOrderList(
                             context,
                             OrderStatus.pending,
@@ -1058,11 +1058,11 @@ class _SellerActionRequiredCard extends ConsumerWidget {
             );
           },
           loading: () => const SizedBox.shrink(),
-          error: (_, __) => const SizedBox.shrink(),
+          error: (_, _) => const SizedBox.shrink(),
         );
       },
       loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
     );
   }
 
@@ -1112,12 +1112,12 @@ class _ActionChip extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(AppShape.r12),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p10),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.8),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppShape.r12),
           border: Border.all(color: color.withValues(alpha: 0.3)),
         ),
         child: Row(
@@ -1128,22 +1128,22 @@ class _ActionChip extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                fontSize: 13,
+                fontSize: AppType.s13,
                 fontWeight: FontWeight.w600,
                 color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const SizedBox(width: 4),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p6, vertical: AppMetrics.p2),
               decoration: BoxDecoration(
                 color: color.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(AppShape.r10),
               ),
               child: Text(
                 count.toString(),
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: AppType.s11,
                   fontWeight: FontWeight.bold,
                   color: color,
                 ),
@@ -1188,7 +1188,7 @@ class _GettingStartedSection extends ConsumerWidget {
         }
 
         return Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppMetrics.p16),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
@@ -1198,7 +1198,7 @@ class _GettingStartedSection extends ConsumerWidget {
                 Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
               ],
             ),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(AppShape.r16),
             border: Border.all(
               color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
               width: 1,
@@ -1210,7 +1210,7 @@ class _GettingStartedSection extends ConsumerWidget {
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.all(AppMetrics.p8),
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
                       shape: BoxShape.circle,
@@ -1229,7 +1229,7 @@ class _GettingStartedSection extends ConsumerWidget {
                         Text(
                           'Mulai Jualan',
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: AppType.s16,
                             fontWeight: FontWeight.bold,
                             color: Theme.of(context).colorScheme.onSurface,
                           ),
@@ -1237,7 +1237,7 @@ class _GettingStartedSection extends ConsumerWidget {
                         Text(
                           '3 langkah untuk mulai mendapatkan pesanan',
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: AppType.s12,
                             color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ),
@@ -1275,7 +1275,7 @@ class _GettingStartedSection extends ConsumerWidget {
         );
       },
       loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
     );
   }
 
@@ -1284,19 +1284,19 @@ class _GettingStartedSection extends ConsumerWidget {
     WidgetRef ref,
   ) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            AppColors.statusError.withValues(alpha: 0.1),
-            AppColors.statusError.withValues(alpha: 0.05),
+            context.statusColors.error.withValues(alpha: 0.1),
+            context.statusColors.error.withValues(alpha: 0.05),
           ],
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppShape.r16),
         border: Border.all(
-          color: AppColors.statusError.withValues(alpha: 0.3),
+          color: context.statusColors.error.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -1306,14 +1306,14 @@ class _GettingStartedSection extends ConsumerWidget {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(AppMetrics.p8),
                 decoration: BoxDecoration(
-                  color: AppColors.statusError.withValues(alpha: 0.2),
+                  color: context.statusColors.error.withValues(alpha: 0.2),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.error_outline,
-                  color: AppColors.statusError,
+                  color: context.statusColors.error,
                   size: 20,
                 ),
               ),
@@ -1325,7 +1325,7 @@ class _GettingStartedSection extends ConsumerWidget {
                     Text(
                       'Langganan Berakhir',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: AppType.s16,
                         fontWeight: FontWeight.bold,
                         color: Theme.of(context).colorScheme.onSurface,
                       ),
@@ -1333,7 +1333,7 @@ class _GettingStartedSection extends ConsumerWidget {
                     Text(
                       'Perbarui langganan untuk mulai jual kembali',
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: AppType.s12,
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
@@ -1348,7 +1348,7 @@ class _GettingStartedSection extends ConsumerWidget {
             icon: const Icon(Icons.refresh_outlined, size: 18),
             label: const Text('Perpanjang Langganan'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.statusError,
+              backgroundColor: context.statusColors.error,
               foregroundColor: Theme.of(context).colorScheme.onError,
               minimumSize: const Size(double.infinity, 44),
             ),
@@ -1390,12 +1390,12 @@ class _StepItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(AppShape.r12),
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(AppMetrics.p12),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.7),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppShape.r12),
           border: Border.all(
             color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
           ),
@@ -1408,7 +1408,7 @@ class _StepItem extends StatelessWidget {
               height: 32,
               decoration: BoxDecoration(
                 color: isCompleted
-                    ? AppColors.successGreen
+                    ? context.statusColors.success
                     : Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
                 shape: BoxShape.circle,
               ),
@@ -1420,7 +1420,7 @@ class _StepItem extends StatelessWidget {
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.primary,
                           fontWeight: FontWeight.bold,
-                          fontSize: 14,
+                          fontSize: AppType.s14,
                         ),
                       ),
               ),
@@ -1435,7 +1435,7 @@ class _StepItem extends StatelessWidget {
                     title,
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
-                      fontSize: 14,
+                      fontSize: AppType.s14,
                       color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
@@ -1443,7 +1443,7 @@ class _StepItem extends StatelessWidget {
                   Text(
                     description,
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: AppType.s12,
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
@@ -1522,7 +1522,7 @@ class _OrderStatsSection extends ConsumerWidget {
                 label: 'Perlu Tindakan',
                 value: pendingCount.toString(),
                 icon: Icons.notification_important,
-                color: AppColors.statusWarning,
+                color: context.statusColors.warning,
               ),
             ),
             const SizedBox(width: 12),
@@ -1544,7 +1544,7 @@ class _OrderStatsSection extends ConsumerWidget {
                 label: 'Dikirim',
                 value: shippedCount.toString(),
                 icon: Icons.local_shipping_outlined,
-                color: AppColors.statusInfo,
+                color: context.statusColors.info,
               ),
             ),
             const SizedBox(width: 12),
@@ -1553,19 +1553,19 @@ class _OrderStatsSection extends ConsumerWidget {
                 label: 'Selesai',
                 value: completedCount.toString(),
                 icon: Icons.check_circle_outline,
-                color: AppColors.statusSuccess,
+                color: context.statusColors.success,
               ),
             ),
           ],
         ),
         if (totalOrders == 0)
           Padding(
-            padding: const EdgeInsets.only(top: 16),
+            padding: const EdgeInsets.only(top: AppMetrics.p16),
             child: Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(AppMetrics.p16),
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(AppShape.r12),
                 border: Border.all(
                   color: Theme.of(context).colorScheme.outlineVariant,
                 ),
@@ -1593,7 +1593,7 @@ class _OrderStatsSection extends ConsumerWidget {
                         Text(
                           'Pesanan masuk akan muncul di sini',
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: AppType.s12,
                             color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ),
@@ -1625,10 +1625,10 @@ class _StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(
           color: Theme.of(context).colorScheme.outlineVariant,
         ),
@@ -1699,7 +1699,7 @@ class _QuickActionsSection extends ConsumerWidget {
               child: _QuickActionCard(
                 icon: Icons.view_list_outlined,
                 label: 'ForSale Saya',
-                color: AppColors.successGreen,
+                color: context.statusColors.success,
                 onTap: () => _navigateToForSales(context),
               ),
             ),
@@ -1712,7 +1712,7 @@ class _QuickActionsSection extends ConsumerWidget {
               child: _QuickActionCard(
                 icon: Icons.local_shipping_outlined,
                 label: 'Atur Pengiriman',
-                color: AppColors.statusInfo,
+                color: context.statusColors.info,
                 onTap: () => _navigateToShipping(context),
               ),
             ),
@@ -1778,7 +1778,6 @@ class _QuickActionCard extends StatelessWidget {
   final String label;
   final Color color;
   final VoidCallback onTap;
-  final String? badgeText;
 
   const _QuickActionCard({
     super.key,
@@ -1786,51 +1785,26 @@ class _QuickActionCard extends StatelessWidget {
     required this.label,
     required this.color,
     required this.onTap,
-    this.badgeText,
   });
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(AppShape.r12),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppMetrics.p16),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppShape.r12),
           border: Border.all(
             color: Theme.of(context).colorScheme.outlineVariant,
           ),
         ),
         child: Column(
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                if (badgeText != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(99),
-                    ),
-                    child: Text(
-                      badgeText!,
-                      style: TextStyle(
-                        color: color,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(AppMetrics.p12),
               decoration: BoxDecoration(
                 color: color.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
@@ -1874,17 +1848,17 @@ class _SellerHelpSection extends ConsumerWidget {
         : null;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            AppColors.successGreen.withValues(alpha: 0.1),
-            AppColors.successGreen.withValues(alpha: 0.05),
+            context.statusColors.success.withValues(alpha: 0.1),
+            context.statusColors.success.withValues(alpha: 0.05),
           ],
         ),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(
-          color: AppColors.successGreen.withValues(alpha: 0.3),
+          color: context.statusColors.success.withValues(alpha: 0.3),
         ),
       ),
       child: Column(
@@ -1894,7 +1868,7 @@ class _SellerHelpSection extends ConsumerWidget {
             children: [
               Icon(
                 Icons.lightbulb_outline,
-                color: AppColors.successGreen,
+                color: context.statusColors.success,
                 size: 20,
               ),
               const SizedBox(width: 8),
@@ -1902,7 +1876,7 @@ class _SellerHelpSection extends ConsumerWidget {
                 child: Text(
                   'Tips & Bantuan Penjual',
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: AppType.s14,
                     fontWeight: FontWeight.w600,
                     color: Theme.of(context).colorScheme.onSurface,
                   ),
@@ -1983,22 +1957,22 @@ class _HelpTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(AppShape.r8),
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(AppMetrics.p12),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.7),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppShape.r8),
         ),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(AppMetrics.p8),
               decoration: BoxDecoration(
-                color: AppColors.successGreen.withValues(alpha: 0.15),
+                color: context.statusColors.success.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: AppColors.successGreen, size: 16),
+              child: Icon(icon, color: context.statusColors.success, size: 16),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -2008,7 +1982,7 @@ class _HelpTile extends StatelessWidget {
                   Text(
                     title,
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: AppType.s13,
                       fontWeight: FontWeight.w600,
                       color: Theme.of(context).colorScheme.onSurface,
                     ),
@@ -2016,7 +1990,7 @@ class _HelpTile extends StatelessWidget {
                   Text(
                     description,
                     style: TextStyle(
-                      fontSize: 11,
+                      fontSize: AppType.s11,
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
@@ -2093,11 +2067,11 @@ class _RecentOrdersSection extends ConsumerWidget {
           },
           loading: () => const Center(
             child: Padding(
-              padding: EdgeInsets.all(32),
+              padding: EdgeInsets.all(AppMetrics.p32),
               child: CircularProgressIndicator(),
             ),
           ),
-          error: (error, __) =>
+          error: (error, _) =>
               _buildRecentOrdersErrorState(context, ref, error.toString()),
         ),
       ],
@@ -2107,10 +2081,10 @@ class _RecentOrdersSection extends ConsumerWidget {
   Widget _buildEmptyRecentOrdersState(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(
           color: Theme.of(context).colorScheme.outlineVariant,
         ),
@@ -2120,12 +2094,12 @@ class _RecentOrdersSection extends ConsumerWidget {
         children: [
           const Text(
             'Belum ada pesanan',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: AppType.s14, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 4),
           Text(
             'Pesanan terbaru akan muncul di sini setelah ada pembelian.',
-            style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
+            style: TextStyle(fontSize: AppType.s12, color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
         ],
       ),
@@ -2139,27 +2113,27 @@ class _RecentOrdersSection extends ConsumerWidget {
   ) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
-        color: AppColors.statusError.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.statusError.withValues(alpha: 0.3)),
+        color: context.statusColors.error.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(AppShape.r12),
+        border: Border.all(color: context.statusColors.error.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Gagal memuat pesanan terbaru',
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppType.s14,
               fontWeight: FontWeight.bold,
-              color: AppColors.statusError,
+              color: context.statusColors.error,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             message,
-            style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
+            style: TextStyle(fontSize: AppType.s12, color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 12),
           TextButton(
@@ -2200,13 +2174,13 @@ class _OrderTile extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(AppShape.r12),
       child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.all(12),
+        margin: const EdgeInsets.only(bottom: AppMetrics.p8),
+        padding: const EdgeInsets.all(AppMetrics.p12),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppShape.r12),
           border: Border.all(
             color: Theme.of(context).colorScheme.outlineVariant,
           ),
@@ -2214,7 +2188,7 @@ class _OrderTile extends StatelessWidget {
         child: Row(
           children: [
             ClipRRect(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(AppShape.r8),
               child: AppImage(
                 imageUrl: firstItem?.forSaleImage,
                 width: 48,
@@ -2237,7 +2211,7 @@ class _OrderTile extends StatelessWidget {
                   Text(
                     order.id.substring(0, 8).toUpperCase(),
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: AppType.s12,
                       fontFamily: 'monospace',
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
@@ -2285,7 +2259,7 @@ class _StatusBadge extends StatelessWidget {
 
     switch (status) {
       case OrderStatus.pending:
-        color = AppColors.statusWarning;
+        color = context.statusColors.warning;
         label = 'Pending';
         break;
       case OrderStatus.paid:
@@ -2293,45 +2267,45 @@ class _StatusBadge extends StatelessWidget {
         label = 'Diproses';
         break;
       case OrderStatus.shipped:
-        color = AppColors.statusInfo;
+        color = context.statusColors.info;
         label = 'Dikirim';
         break;
       case OrderStatus.expired:
-        color = AppColors.statusError;
+        color = context.statusColors.error;
         label = 'Kedaluwarsa';
         break;
       case OrderStatus.delivered:
       case OrderStatus.completed:
-        color = AppColors.statusSuccess;
+        color = context.statusColors.success;
         label = 'Selesai';
         break;
       case OrderStatus.cancelled:
       case OrderStatus.cancelledTimeout:
       case OrderStatus.refunded:
-        color = AppColors.statusError;
+        color = context.statusColors.error;
         label = 'Batal';
         break;
       case OrderStatus.disputeOpen:
-        color = AppColors.statusWarning;
+        color = context.statusColors.warning;
         label = 'Dispute';
         break;
       case OrderStatus.partiallyRefunded:
-        color = AppColors.statusInfo;
+        color = context.statusColors.info;
         label = 'Refund Sebagian';
         break;
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppShape.r8),
       ),
       child: Text(
         label,
         style: TextStyle(
           color: color,
-          fontSize: 11,
+          fontSize: AppType.s11,
           fontWeight: FontWeight.w600,
         ),
       ),

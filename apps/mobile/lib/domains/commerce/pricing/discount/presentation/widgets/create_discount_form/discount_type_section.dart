@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:labuda/domains/commerce/pricing/discount/domain/entities/discount_entity.dart';
 import 'package:labuda/shared/widgets/app_text_field.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Section untuk tipe & nilai discount
 ///
@@ -53,10 +54,10 @@ class _DiscountTypeSectionState extends State<DiscountTypeSection> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -64,7 +65,7 @@ class _DiscountTypeSectionState extends State<DiscountTypeSection> {
           Text(
             'Type & Value',
             style: TextStyle(
-              fontSize: 16,
+              fontSize: AppType.s16,
               fontWeight: FontWeight.bold,
               color: Theme.of(context).colorScheme.onSurface,
             ),
@@ -75,7 +76,7 @@ class _DiscountTypeSectionState extends State<DiscountTypeSection> {
           Text(
             'Discount Type *',
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppType.s14,
               fontWeight: FontWeight.w500,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
@@ -85,19 +86,19 @@ class _DiscountTypeSectionState extends State<DiscountTypeSection> {
           ...DiscountType.values.map((type) {
             final isSelected = widget.type == type;
             return Padding(
-              padding: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.only(bottom: AppMetrics.p8),
               child: InkWell(
                 onTap: () => widget.onTypeChanged(type),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(AppShape.r8),
                 child: Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(AppMetrics.p12),
                   decoration: BoxDecoration(
                     color: isSelected
                         ? Theme.of(
                             context,
                           ).colorScheme.primary.withValues(alpha: 0.1)
                         : (Theme.of(context).colorScheme.surfaceContainer),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(AppShape.r8),
                     border: Border.all(
                       color: isSelected
                           ? Theme.of(context).colorScheme.primary
@@ -120,7 +121,7 @@ class _DiscountTypeSectionState extends State<DiscountTypeSection> {
                         child: Text(
                           _getTypeLabel(type),
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: AppType.s14,
                             fontWeight: isSelected
                                 ? FontWeight.w600
                                 : FontWeight.normal,

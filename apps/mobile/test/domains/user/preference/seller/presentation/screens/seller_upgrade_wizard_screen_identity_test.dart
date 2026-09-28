@@ -7,7 +7,6 @@ import 'package:labuda/core/config/seller_upgrade_config_entity.dart';
 import 'package:labuda/core/config/seller_upgrade_config_provider.dart'
     as upgrade_config;
 import 'package:labuda/core/core.dart';
-import 'package:labuda/domains/commerce/transaction/order/domain/repositories/repository_result.dart';
 import 'package:labuda/domains/user/identity/authentication/data/auth_providers.dart'
     as auth_data;
 import 'package:labuda/domains/user/identity/authentication/domain/entities/account_status.dart';
@@ -216,11 +215,11 @@ class _FakeSellerRepository implements SellerRepository {
   }
 
   @override
-  Future<RepositoryResult<SellerSubscription>> getSubscription(
+  Future<Result<SellerSubscription>> getSubscription(
     String sellerId,
   ) async {
     subscriptionCalls++;
-    return RepositoryResult.success(_subscription);
+    return Result.success(_subscription);
   }
 
   @override

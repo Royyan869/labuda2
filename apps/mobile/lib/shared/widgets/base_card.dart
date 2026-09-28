@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Base Card Widget
 ///
@@ -44,7 +45,7 @@ class BaseCard extends StatelessWidget {
       width: width,
       height: height,
       margin: margin,
-      padding: padding ?? const EdgeInsets.all(16),
+      padding: padding ?? const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         color: backgroundColor ?? scheme.surface,
         borderRadius: BorderRadius.circular(borderRadius ?? 12),
@@ -89,7 +90,7 @@ class BaseCard extends StatelessWidget {
       key: key,
       onTap: onTap,
       margin: margin,
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppMetrics.p12),
       borderRadius: 12,
       child: child,
     );
@@ -105,7 +106,7 @@ class BaseCard extends StatelessWidget {
       key: key,
       onTap: onTap,
       margin: margin,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(AppMetrics.p20),
       child: child,
     );
   }

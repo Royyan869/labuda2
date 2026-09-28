@@ -161,7 +161,7 @@ class CommerceDetailSellerCard extends ConsumerWidget {
           if (_tierBadgeVisible) ...[
             const SizedBox(height: 8),
             Padding(
-              padding: const EdgeInsets.only(left: 60),
+              padding: const EdgeInsets.only(left: AppMetrics.p60),
               child: SellerTierBadge(tier: tier),
             ),
           ],
@@ -172,7 +172,7 @@ class CommerceDetailSellerCard extends ConsumerWidget {
 
   Widget _frame({required Widget child}) {
     return CommerceDetailSectionCard(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      margin: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p0, AppMetrics.p16, AppMetrics.p16),
       child: child,
     );
   }
@@ -197,7 +197,7 @@ class CommerceDetailSellerCard extends ConsumerWidget {
               Text(
                 displayName,
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: AppType.s16,
                   fontWeight: FontWeight.bold,
                   fontStyle: italic ? FontStyle.italic : FontStyle.normal,
                   color: italic ? scheme.onSurfaceVariant : scheme.onSurface,
@@ -209,7 +209,7 @@ class CommerceDetailSellerCard extends ConsumerWidget {
                 Text(
                   usernameLine,
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: AppType.s12,
                     color: scheme.onSurfaceVariant,
                   ),
                   maxLines: 1,

@@ -191,9 +191,9 @@ class _EditDiscountScreenState extends ConsumerState<EditDiscountScreen> {
               Navigator.of(context).pop();
               Navigator.of(context).pop();
             },
-            child: const Text(
+            child: Text(
               'Discard',
-              style: TextStyle(color: core.AppColors.error),
+              style: TextStyle(color: context.statusColors.error),
             ),
           ),
         ],
@@ -205,25 +205,25 @@ class _EditDiscountScreenState extends ConsumerState<EditDiscountScreen> {
     if (!_isUsed) return const SizedBox.shrink();
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: core.AppMetrics.p12),
+      padding: const EdgeInsets.all(core.AppMetrics.p16),
       decoration: BoxDecoration(
-        color: core.AppColors.warning.withValues(alpha: 0.1),
-        border: Border.all(color: core.AppColors.warning),
-        borderRadius: BorderRadius.circular(12),
+        color: context.statusColors.warning.withValues(alpha: 0.1),
+        border: Border.all(color: context.statusColors.warning),
+        borderRadius: BorderRadius.circular(core.AppShape.r12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.info_outline, color: core.AppColors.warning, size: 20),
+              Icon(Icons.info_outline, color: context.statusColors.warning, size: 20),
               const SizedBox(width: 8),
               Text(
                 'Discount Already Used',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: core.AppColors.warning,
+                  color: context.statusColors.warning,
                 ),
               ),
             ],
@@ -232,15 +232,15 @@ class _EditDiscountScreenState extends ConsumerState<EditDiscountScreen> {
           Text(
             'This discount has been used ${_original.currentUsageCount} times. '
             'Some fields cannot be changed to maintain data consistency.',
-            style: TextStyle(fontSize: 13, color: core.AppColors.warning),
+            style: TextStyle(fontSize: core.AppType.s13, color: context.statusColors.warning),
           ),
           const SizedBox(height: 12),
           Text(
             'What can be changed:',
             style: TextStyle(
               fontWeight: FontWeight.w600,
-              fontSize: 13,
-              color: core.AppColors.warning,
+              fontSize: core.AppType.s13,
+              color: context.statusColors.warning,
             ),
           ),
           const SizedBox(height: 4),
@@ -251,10 +251,10 @@ class _EditDiscountScreenState extends ConsumerState<EditDiscountScreen> {
             '• Add usage limit',
           ].map(
             (text) => Padding(
-              padding: const EdgeInsets.only(left: 8, top: 2),
+              padding: const EdgeInsets.only(left: core.AppMetrics.p8, top: core.AppMetrics.p2),
               child: Text(
                 text,
-                style: TextStyle(fontSize: 12, color: core.AppColors.warning),
+                style: TextStyle(fontSize: core.AppType.s12, color: context.statusColors.warning),
               ),
             ),
           ),
@@ -279,7 +279,7 @@ class _EditDiscountScreenState extends ConsumerState<EditDiscountScreen> {
         backgroundColor: Theme.of(context).colorScheme.surface,
         appBar: AppBar(
           title: const Text('Edit Discount'),
-          elevation: 0,
+          elevation: core.AppElevation.none,
           surfaceTintColor: Colors.transparent,
           scrolledUnderElevation: 0,
           leading: IconButton(
@@ -296,7 +296,7 @@ class _EditDiscountScreenState extends ConsumerState<EditDiscountScreen> {
         body: Form(
           key: _formKey,
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(core.AppMetrics.p12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -410,7 +410,7 @@ class _EditDiscountScreenState extends ConsumerState<EditDiscountScreen> {
           ),
         ),
         bottomNavigationBar: Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(core.AppMetrics.p12),
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surface,
             boxShadow: [

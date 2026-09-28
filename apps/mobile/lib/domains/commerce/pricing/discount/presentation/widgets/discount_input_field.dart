@@ -132,8 +132,8 @@ class _DiscountInputFieldState extends ConsumerState<DiscountInputField> {
               onPressed: _isValidating ? null : _validateDiscount,
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 16,
+                  horizontal: AppMetrics.p24,
+                  vertical: AppMetrics.p16,
                 ),
               ),
               child: _isValidating
@@ -158,20 +158,20 @@ class _DiscountInputFieldState extends ConsumerState<DiscountInputField> {
     final result = _validationResult!;
     if (!result.isValid) {
       return Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(AppMetrics.p12),
         decoration: BoxDecoration(
-          color: AppColors.error.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: AppColors.error),
+          color: context.statusColors.error.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(AppShape.r8),
+          border: Border.all(color: context.statusColors.error),
         ),
         child: Row(
           children: [
-            const Icon(Icons.error_outline, color: AppColors.error, size: 20),
+            Icon(Icons.error_outline, color: context.statusColors.error, size: 20),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
                 result.errorMessage ?? 'Invalid discount code',
-                style: const TextStyle(color: AppColors.error, fontSize: 14),
+                style: TextStyle(color: context.statusColors.error, fontSize: AppType.s14),
               ),
             ),
           ],
@@ -181,26 +181,26 @@ class _DiscountInputFieldState extends ConsumerState<DiscountInputField> {
 
     final discount = result.discount!;
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppMetrics.p12),
       decoration: BoxDecoration(
-        color: AppColors.successGreen.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.successGreen),
+        color: context.statusColors.success.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(AppShape.r8),
+        border: Border.all(color: context.statusColors.success),
       ),
       child: Row(
         children: [
-          const Icon(
+          Icon(
             Icons.check_circle,
-            color: AppColors.successGreen,
+            color: context.statusColors.success,
             size: 20,
           ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               discount.description,
-              style: const TextStyle(
-                color: AppColors.successGreen,
-                fontSize: 14,
+              style: TextStyle(
+                color: context.statusColors.success,
+                fontSize: AppType.s14,
                 fontWeight: FontWeight.w600,
               ),
             ),

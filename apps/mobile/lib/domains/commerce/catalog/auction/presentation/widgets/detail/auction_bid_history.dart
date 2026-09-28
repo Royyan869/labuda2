@@ -25,13 +25,13 @@ class AuctionBidHistory extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     // CANONICAL SECTION FRAME — same card language as the ForSale detail.
     return CommerceDetailSectionCard(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      margin: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p0, AppMetrics.p16, AppMetrics.p16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             'Riwayat Bid (${bids.length})',
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            style: const TextStyle(fontSize: AppType.s16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
           if (bids.isEmpty)
@@ -77,9 +77,9 @@ class AuctionBidHistory extends StatelessWidget {
                       : null,
                   trailing: Text(
                     'Rp ${formatGroupedAmount(bid.amount.round())}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: AppColors.statusSuccess,
+                      color: context.statusColors.success,
                     ),
                   ),
                 );

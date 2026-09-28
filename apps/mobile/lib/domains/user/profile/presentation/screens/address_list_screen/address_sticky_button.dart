@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/domains/user/profile/domain/entities/address_entity.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Sticky add address button at the bottom of the screen
 class AddressStickyButton extends StatelessWidget {
@@ -24,7 +25,7 @@ class AddressStickyButton extends StatelessWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.only(left: 16, right: 16, top: 12, bottom: 12),
+      padding: const EdgeInsets.only(left: AppMetrics.p16, right: AppMetrics.p16, top: AppMetrics.p12, bottom: AppMetrics.p12),
       decoration: BoxDecoration(
         color: scheme.surface,
         border: Border(
@@ -42,9 +43,9 @@ class AddressStickyButton extends StatelessWidget {
           style: ElevatedButton.styleFrom(
             backgroundColor: scheme.primary,
             foregroundColor: scheme.onPrimary,
-            padding: const EdgeInsets.symmetric(vertical: 14),
+            padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppShape.r12),
             ),
           ),
         ),

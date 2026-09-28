@@ -28,7 +28,7 @@ class AddressPurposeField extends StatelessWidget {
       children: [
         _buildLabel('Address Purpose', scheme),
         const SizedBox(height: 8),
-        _buildPurposeDropdown(scheme),
+        _buildPurposeDropdown(context, scheme),
       ],
     );
   }
@@ -37,17 +37,17 @@ class AddressPurposeField extends StatelessWidget {
     return Text(
       text,
       style: TextStyle(
-        fontSize: 14,
+        fontSize: AppType.s14,
         fontWeight: FontWeight.w600,
         color: scheme.onSurfaceVariant,
       ),
     );
   }
 
-  Widget _buildPurposeDropdown(ColorScheme scheme) {
+  Widget _buildPurposeDropdown(BuildContext context, ColorScheme scheme) {
     return DropdownButtonFormField<AddressPurpose>(
       initialValue: selectedPurpose,
-      decoration: _inputDecoration(scheme, 'Select address purpose'),
+      decoration: _inputDecoration(context, scheme, 'Select address purpose'),
       dropdownColor: scheme.onSurfaceVariant,
       items: AddressPurpose.values.map((purpose) {
         return DropdownMenuItem(
@@ -75,10 +75,10 @@ class AddressPurposeField extends StatelessWidget {
     final isShipping = purpose == AddressPurpose.shipping;
 
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      padding: const EdgeInsets.symmetric(vertical: AppMetrics.p12, horizontal: AppMetrics.p16),
       decoration: BoxDecoration(
         color: scheme.onSurfaceVariant,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(
           color: scheme.outlineVariant,
         ),
@@ -102,7 +102,7 @@ class AddressPurposeField extends StatelessWidget {
                       ? 'Recipient Address (Buyer)'
                       : 'Sender Address (Seller)',
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: AppType.s14,
                     fontWeight: FontWeight.w600,
                     color: scheme.onSurfaceVariant,
                   ),
@@ -113,7 +113,7 @@ class AddressPurposeField extends StatelessWidget {
                       ? 'Destination address for shipping'
                       : 'Origin address for shipping',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: AppType.s12,
                     color: scheme.onSurfaceVariant,
                   ),
                 ),
@@ -125,30 +125,30 @@ class AddressPurposeField extends StatelessWidget {
     );
   }
 
-  InputDecoration _inputDecoration(ColorScheme scheme, String hintText) {
+  InputDecoration _inputDecoration(BuildContext context, ColorScheme scheme, String hintText) {
     return InputDecoration(
       hintText: hintText,
       filled: true,
       fillColor: scheme.onSurfaceVariant,
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         borderSide: BorderSide(
           color: scheme.outlineVariant,
         ),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         borderSide: BorderSide(
           color: scheme.outlineVariant,
         ),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         borderSide: BorderSide(color: scheme.primary, width: 2),
       ),
       errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: AppColors.error),
+        borderRadius: BorderRadius.circular(AppShape.r12),
+        borderSide: BorderSide(color: context.statusColors.error),
       ),
     );
   }

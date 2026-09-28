@@ -1,3 +1,5 @@
+import 'package:labuda/core/api/api_error_codes.dart';
+
 abstract class Failure {
   final String message;
   final String? code;
@@ -60,7 +62,7 @@ extension FailureFactory on Failure {
       UnknownFailure(message: message, code: 'UNEXPECTED_ERROR');
 
   static Failure network(String message) =>
-      NetworkFailure(message: message, code: 'NETWORK_ERROR');
+      NetworkFailure(message: message, code: networkError);
 
   static Failure validation(String message) =>
       ValidationFailure(message: message, code: 'VALIDATION_ERROR');

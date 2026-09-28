@@ -11,10 +11,10 @@ class OrderInfoCard extends StatelessWidget {
     final colorScheme = theme.colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(core.AppMetrics.p16),
       decoration: BoxDecoration(
         color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(core.AppShape.r12),
         border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: Column(
@@ -41,7 +41,7 @@ class OrderInfoCard extends StatelessWidget {
           _InfoRow(
             label: 'Status',
             value: _getStatusDisplay(order.status),
-            valueColor: _getStatusColor(order.status, colorScheme),
+            valueColor: _getStatusColor(context, order.status, colorScheme),
           ),
           if (order.notes != null && order.notes!.isNotEmpty) ...[
             const SizedBox(height: 8),
@@ -78,25 +78,25 @@ class OrderInfoCard extends StatelessWidget {
     }
   }
 
-  Color _getStatusColor(OrderStatus status, ColorScheme colorScheme) {
+  Color _getStatusColor(BuildContext context, OrderStatus status, ColorScheme colorScheme) {
     switch (status) {
       case OrderStatus.pending:
-        return core.AppColors.statusWarning;
+        return context.statusColors.warning;
       case OrderStatus.paid:
         return colorScheme.secondary;
       case OrderStatus.shipped:
-        return core.AppColors.statusInfo;
+        return context.statusColors.info;
       case OrderStatus.delivered:
       case OrderStatus.completed:
-        return core.AppColors.statusSuccess;
+        return context.statusColors.success;
       case OrderStatus.cancelled:
       case OrderStatus.cancelledTimeout:
       case OrderStatus.refunded:
-        return core.AppColors.statusError;
+        return context.statusColors.error;
       case OrderStatus.disputeOpen:
-        return core.AppColors.statusWarning;
+        return context.statusColors.warning;
       case OrderStatus.partiallyRefunded:
-        return core.AppColors.statusInfo;
+        return context.statusColors.info;
       case OrderStatus.expired:
         return colorScheme.onSurfaceVariant;
     }

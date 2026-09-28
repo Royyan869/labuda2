@@ -156,6 +156,11 @@ class ProfileCompletionOutcome {
 /// available. They will be `null` for raw Dart/Firebase-SDK exceptions
 /// caught outside of an HTTP response, in which case this falls back to
 /// free-text matching on [error].
+///
+/// Transport failures (the request never reached the backend) DO carry a
+/// structured code — the mobile API layer's own, see
+/// [isTransportFailureCode] — so they are classified structurally too, not by
+/// looking for the word "network" in copy that is free to change.
 AuthSyncErrorKind classifyAuthSyncError(
   String? error, {
   String? errorCode,
@@ -176,6 +181,13 @@ AuthSyncErrorKind classifyAuthSyncError(
     // UID. Canonical anomaly — terminal, clean sign-out, no re-bind.
     case 'IDENTITY_CONFLICT':
       return AuthSyncErrorKind.identityConflict;
+  }
+
+  // Transport failures: no HTTP response was ever produced, so there is no
+  // backend code and no status code — the only machine-readable identity is
+  // the transport code the API layer assigned.
+  if (isTransportFailureCode(errorCode)) {
+    return AuthSyncErrorKind.backendUnavailable;
   }
 
   // A 5xx with no matching structured code above is always a backend

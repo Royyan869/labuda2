@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/domains/system/report/domain/entities/entities.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Report Reason Selector Widget
 ///
@@ -26,7 +27,7 @@ class ReportReasonSelector extends StatelessWidget {
         Text(
           'Why are you reporting this?',
           style: TextStyle(
-            fontSize: 16,
+            fontSize: AppType.s16,
             fontWeight: FontWeight.w600,
             color: Theme.of(context).colorScheme.onSurface,
           ),
@@ -71,13 +72,13 @@ class _ReasonCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(AppShape.r12),
       child: Container(
         decoration: BoxDecoration(
           color: isSelected
               ? Theme.of(context).colorScheme.secondary.withValues(alpha: 0.1)
               : (Theme.of(context).colorScheme.surfaceContainer),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppShape.r12),
           border: Border.all(
             color: isSelected
                 ? Theme.of(context).colorScheme.secondary
@@ -107,11 +108,11 @@ class _ReasonCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
+              padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8),
               child: Text(
                 reason.displayName,
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: AppType.s12,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                   color: isSelected
                       ? Theme.of(context).colorScheme.secondary

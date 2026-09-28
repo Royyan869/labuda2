@@ -41,11 +41,15 @@ class SearchUseCase {
         filters: filters,
       );
 
-      if (result.data != null) {
-        return Result.success(result.data!);
-      } else {
-        return Result.error(result.error ?? 'Search failed');
+      if (result.isError) {
+        return Result.error(
+          result.error ?? 'Search failed',
+          code: result.errorCode,
+          statusCode: result.statusCode,
+          details: result.errorDetails,
+        );
       }
+      return Result.success(result.data!);
     } catch (e) {
       return Result.error('Search failed: $e');
     }

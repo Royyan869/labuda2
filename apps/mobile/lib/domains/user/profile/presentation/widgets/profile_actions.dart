@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Compact action buttons untuk Profile V2
 ///
@@ -120,12 +121,12 @@ class _CompactButton extends StatelessWidget {
       opacity: effectiveOpacity,
       child: Material(
         color: backgroundColor,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppShape.r8),
         child: InkWell(
           onTap: disabled ? null : onTap,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppShape.r8),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p8),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -134,7 +135,7 @@ class _CompactButton extends StatelessWidget {
                 Text(
                   label,
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: AppType.s13,
                     fontWeight: FontWeight.w500,
                     color: foregroundColor,
                   ),

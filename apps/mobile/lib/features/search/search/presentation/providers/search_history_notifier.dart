@@ -30,7 +30,7 @@ class SearchHistoryNotifier extends _$SearchHistoryNotifier {
 
     final result = await _repository!.getSearchHistory(userId, limit: 10);
 
-    if (result.error != null) {
+    if (result.isError) {
       state = state.copyWith(isLoading: false, error: result.error);
     } else {
       state = state.copyWith(
@@ -68,7 +68,7 @@ class SearchHistoryNotifier extends _$SearchHistoryNotifier {
 
     final result = await _repository!.clearSearchHistory(userId);
 
-    if (result.error == null) {
+    if (result.isSuccess) {
       state = state.copyWith(history: []);
     } else {
       state = state.copyWith(error: result.error);
@@ -86,7 +86,7 @@ class SearchHistoryNotifier extends _$SearchHistoryNotifier {
       historyId,
     );
 
-    if (result.error == null) {
+    if (result.isSuccess) {
       // Remove from local state
       final updatedHistory = state.history
           .where((h) => h.id != historyId)

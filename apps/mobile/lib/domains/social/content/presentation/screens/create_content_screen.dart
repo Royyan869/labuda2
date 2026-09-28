@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/domains/social/content/presentation/widgets/create_content/content_app_bar.dart';
-import 'package:labuda/domains/social/content/presentation/widgets/content_media_handler.dart';
 import 'package:labuda/domains/social/content/presentation/widgets/create_content/content_event_handlers.dart';
 import 'package:labuda/domains/social/content/presentation/widgets/create_content/content_modals.dart';
 import 'package:labuda/domains/social/content/presentation/widgets/create_content/content_scrollable_content.dart';
@@ -36,12 +35,10 @@ class _CreateContentScreenState extends ConsumerState<CreateContentScreen> {
   String _postVisibility = 'Public';
   bool _isSubmitting = false;
   bool _hasUnsavedChanges = false;
-  late final ContentMediaHandler _mediaHandler;
 
   @override
   void initState() {
     super.initState();
-    _mediaHandler = ContentMediaHandler();
     _contentController.addListener(_onContentChanged);
   }
 
@@ -114,7 +111,6 @@ class _CreateContentScreenState extends ConsumerState<CreateContentScreen> {
                 ),
               ),
               ContentToolbarSection(
-                mediaHandler: _mediaHandler,
                 selectedImages: _selectedImages,
                 selectedVideos: _selectedVideos,
                 taggedPeopleCount: _mentionedUserIds.length,

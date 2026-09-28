@@ -141,7 +141,7 @@ void main() {
       );
 
       expect(r.client.lastPostPath, '/payments');
-      expect(result.isSuccess, isTrue, reason: result.failure?.message);
+      expect(result.isSuccess, isTrue, reason: result.error);
 
       final intent = result.data!;
       expect(intent.paymentId, response['payment_id']);
@@ -217,7 +217,7 @@ void main() {
         r.client.lastGetPath,
         '/payments/9f6f0b0a-1d2e-4c3b-8a4f-2b7c1e5d6a90',
       );
-      expect(result.isSuccess, isTrue, reason: result.failure?.message);
+      expect(result.isSuccess, isTrue, reason: result.error);
 
       final payment = result.data!;
       expect(payment.id, response['id']);
@@ -264,7 +264,7 @@ void main() {
 
       expect(r.client.lastGetPath, '/payments/methods');
       expect(r.client.lastGetQuery, {'order_id': response['order_id']});
-      expect(result.isSuccess, isTrue, reason: result.failure?.message);
+      expect(result.isSuccess, isTrue, reason: result.error);
 
       final option = result.data!.single;
       final method =

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/shared/widgets/mentions/mention_text_field.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Widget for post content text input area with mention support
 ///
@@ -32,7 +33,7 @@ class ContentContentInput extends StatelessWidget {
       minLines: 5,
       hintText: hintText,
       style: TextStyle(
-        fontSize: 16,
+        fontSize: AppType.s16,
         color: scheme.onSurface,
         height: 1.5,
       ),
@@ -40,7 +41,7 @@ class ContentContentInput extends StatelessWidget {
         hintText: hintText,
         hintStyle: TextStyle(
           color: scheme.onSurfaceVariant,
-          fontSize: 16,
+          fontSize: AppType.s16,
         ),
         border: InputBorder.none,
         enabledBorder: InputBorder.none,

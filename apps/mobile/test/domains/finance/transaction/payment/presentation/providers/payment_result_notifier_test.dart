@@ -3,12 +3,12 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:labuda/core/common/result.dart';
 import 'package:labuda/core/providers/core_providers.dart';
 import 'package:labuda/domains/commerce/transaction/order/data/order_providers.dart';
 import 'package:labuda/domains/commerce/transaction/order/domain/domain.dart';
 import 'package:labuda/domains/finance/transaction/payment/domain/entities/payment.dart';
 import 'package:labuda/domains/finance/transaction/payment/domain/entities/payment_intent.dart';
-import 'package:labuda/domains/finance/transaction/payment/domain/failures/payment_failure.dart';
 import 'package:labuda/domains/finance/transaction/payment/domain/repositories/payment_repository.dart'
     as payment_repo;
 import 'package:labuda/domains/finance/transaction/payment/presentation/providers/payment_providers.dart';
@@ -19,10 +19,10 @@ import 'package:labuda/shared/services/logger_service.dart';
 class _FakeOrderRepository implements OrderRepository {
   _FakeOrderRepository(this._handler);
 
-  final FutureOr<RepositoryResult<Order>> Function(String orderId) _handler;
+  final FutureOr<Result<Order>> Function(String orderId) _handler;
 
   @override
-  Future<RepositoryResult<Order>> getOrderById(String orderId) async =>
+  Future<Result<Order>> getOrderById(String orderId) async =>
       _handler(orderId);
 
   @override
@@ -32,18 +32,18 @@ class _FakeOrderRepository implements OrderRepository {
 class _FakePaymentRepository implements payment_repo.PaymentRepository {
   _FakePaymentRepository(this._handler);
 
-  final FutureOr<payment_repo.RepositoryResult<Payment>> Function(
+  final FutureOr<Result<Payment>> Function(
     String paymentId,
   )
   _handler;
 
   @override
-  Future<payment_repo.RepositoryResult<Payment>> getPayment(
+  Future<Result<Payment>> getPayment(
     String paymentId,
   ) async => _handler(paymentId);
 
   @override
-  Future<payment_repo.RepositoryResult<PaymentIntent>> createPayment(
+  Future<Result<PaymentIntent>> createPayment(
     CreatePaymentRequest request,
   ) async {
     throw UnimplementedError();
@@ -116,7 +116,7 @@ ProviderContainer _containerWithOrder(
     overrides: [
       loggerServiceProvider.overrideWithValue(LoggerService.instance),
       orderRepositoryProvider.overrideWithValue(
-        _FakeOrderRepository((_) => RepositoryResult.success(order)),
+        _FakeOrderRepository((_) => Result.success(order)),
       ),
       if (paymentRepository != null)
         paymentRepositoryProvider.overrideWithValue(paymentRepository),
@@ -188,7 +188,7 @@ void main() {
             paymentId: 'pay-1',
           ),
           paymentRepository: _FakePaymentRepository(
-            (_) => payment_repo.RepositoryResult.success(payment),
+            (_) => Result.success(payment),
           ),
         );
         addTearDown(container.dispose);
@@ -223,7 +223,7 @@ void main() {
             paymentId: 'pay-1',
           ),
           paymentRepository: _FakePaymentRepository(
-            (_) => payment_repo.RepositoryResult.success(payment),
+            (_) => Result.success(payment),
           ),
         );
         addTearDown(container.dispose);
@@ -251,9 +251,7 @@ void main() {
             paymentId: 'pay-1',
           ),
           paymentRepository: _FakePaymentRepository(
-            (_) => payment_repo.RepositoryResult.failure(
-              const UnknownFailure('payment lookup down'),
-            ),
+            (_) => Result.error('payment lookup down'),
           ),
         );
         addTearDown(container.dispose);
@@ -285,7 +283,7 @@ void main() {
             paymentId: 'pay-1',
           ),
           paymentRepository: _FakePaymentRepository(
-            (_) => payment_repo.RepositoryResult.success(payment),
+            (_) => Result.success(payment),
           ),
         );
         addTearDown(container.dispose);
@@ -316,7 +314,7 @@ void main() {
             paymentId: 'pay-1',
           ),
           paymentRepository: _FakePaymentRepository(
-            (_) => payment_repo.RepositoryResult.success(payment),
+            (_) => Result.success(payment),
           ),
         );
         addTearDown(container.dispose);
@@ -371,7 +369,7 @@ void main() {
         overrides: [
           loggerServiceProvider.overrideWithValue(LoggerService.instance),
           orderRepositoryProvider.overrideWithValue(
-            _FakeOrderRepository((_) => RepositoryResult.error('network down')),
+            _FakeOrderRepository((_) => Result.error('network down')),
           ),
         ],
       );

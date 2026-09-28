@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:labuda/domains/commerce/pricing/pricing_preview/domain/entities/pricing_snapshot.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/shared/utils/currency_utils.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Pricing Breakdown Widget
 ///
@@ -51,10 +52,10 @@ class PricingBreakdown extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(
           color: theme.colorScheme.outline.withValues(alpha: 0.3),
         ),
@@ -141,7 +142,7 @@ class PricingBreakdown extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: AppMetrics.p4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -169,7 +170,7 @@ class PricingBreakdown extends StatelessWidget {
     final savings = originalPrice - negotiatedPrice;
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppMetrics.p12),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
@@ -179,7 +180,7 @@ class PricingBreakdown extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(
           color: theme.colorScheme.primary.withValues(alpha: 0.3),
         ),
@@ -242,7 +243,7 @@ class PricingBreakdown extends StatelessWidget {
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w700,
                       color: theme.colorScheme.primary,
-                      fontSize: 20,
+                      fontSize: AppType.s20,
                     ),
                   ),
                 ],
@@ -252,10 +253,10 @@ class PricingBreakdown extends StatelessWidget {
           if (savings > 0) ...[
             const SizedBox(height: 8),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
               decoration: BoxDecoration(
                 color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(AppShape.r6),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -286,7 +287,7 @@ class PricingBreakdown extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Padding(
-      padding: const EdgeInsets.only(left: 0, top: 4),
+      padding: const EdgeInsets.only(left: AppMetrics.p0, top: AppMetrics.p4),
       child: Row(
         children: [
           Icon(
@@ -313,10 +314,10 @@ class PricingBreakdown extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p8),
       decoration: BoxDecoration(
         color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppShape.r8),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -354,10 +355,10 @@ class PricingBreakdown extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p8),
       decoration: BoxDecoration(
         color: theme.colorScheme.tertiaryContainer.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppShape.r8),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -415,10 +416,10 @@ class PricingBreakdown extends StatelessWidget {
     final savings = snapshot.totalSavings ?? 0;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p8),
       decoration: BoxDecoration(
         color: theme.colorScheme.secondaryContainer.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppShape.r8),
         border: Border.all(
           color: theme.colorScheme.secondary.withValues(alpha: 0.3),
         ),
@@ -448,7 +449,7 @@ class PricingBreakdown extends StatelessWidget {
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.secondary,
               fontWeight: FontWeight.w700,
-              fontSize: 16,
+              fontSize: AppType.s16,
             ),
           ),
         ],
@@ -460,7 +461,7 @@ class PricingBreakdown extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Padding(
-      padding: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.only(top: AppMetrics.p8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -475,7 +476,7 @@ class PricingBreakdown extends StatelessWidget {
             style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w700,
               color: theme.colorScheme.primary,
-              fontSize: 18,
+              fontSize: AppType.s18,
             ),
           ),
         ],
@@ -544,10 +545,10 @@ class PricingTrustLabels extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p6),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppShape.r16),
         border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Row(
@@ -660,7 +661,7 @@ class _TokenExpiryWidgetState extends State<TokenExpiryWidget> {
     }
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppMetrics.p12),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isCritical
@@ -680,7 +681,7 @@ class _TokenExpiryWidgetState extends State<TokenExpiryWidget> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(
           color: getColor().withValues(alpha: isCritical ? 0.5 : 0.3),
           width: isCritical ? 1.5 : 1,
@@ -706,10 +707,10 @@ class _TokenExpiryWidgetState extends State<TokenExpiryWidget> {
                 InkWell(
                   onTap: widget.onRefresh,
                   child: Container(
-                    padding: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.all(AppMetrics.p8),
                     decoration: BoxDecoration(
                       color: getColor().withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(AppShape.r8),
                     ),
                     child: Icon(Icons.refresh, size: 16, color: getColor()),
                   ),

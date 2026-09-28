@@ -8,6 +8,7 @@ import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
 import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_common_product_detail_section.dart';
 import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_detail_primitives.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Detail info widget for auction — TWO cards:
 ///   1. auction-specific card (channel explanation + bid increment)
@@ -31,7 +32,7 @@ class AuctionDetailInfo extends StatelessWidget {
       children: [
         // 1) Channel-specific card.
         CommerceDetailSectionCard(
-          margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          margin: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p0, AppMetrics.p16, AppMetrics.p16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -45,12 +46,12 @@ class AuctionDetailInfo extends StatelessWidget {
               // AUCTION EXPLANATION - Minimal 1-line explanation
               Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
+                  horizontal: AppMetrics.p12,
+                  vertical: AppMetrics.p8,
                 ),
                 decoration: BoxDecoration(
                   color: colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(AppShape.r8),
                 ),
                 child: Row(
                   children: [
@@ -64,7 +65,7 @@ class AuctionDetailInfo extends StatelessWidget {
                       child: Text(
                         'Lelang — harga naik, penawar tertinggi menang',
                         style: TextStyle(
-                          fontSize: 13,
+                          fontSize: AppType.s13,
                           color: colorScheme.onSurfaceVariant,
                           fontStyle: FontStyle.italic,
                         ),
@@ -86,7 +87,7 @@ class AuctionDetailInfo extends StatelessWidget {
         //    Renders only the rows whose canonical value is present; when the
         //    payload carries none of them it collapses to nothing.
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p0, AppMetrics.p16, AppMetrics.p16),
           child: CommerceCommonProductDetailSection(
             title: 'Detail Produk',
             data: CommerceCommonProductDetailsData.fromAuction(auction),
@@ -99,7 +100,7 @@ class AuctionDetailInfo extends StatelessWidget {
   Widget _buildInfoRow(BuildContext context, String label, String value) {
     final colorScheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: AppMetrics.p8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [

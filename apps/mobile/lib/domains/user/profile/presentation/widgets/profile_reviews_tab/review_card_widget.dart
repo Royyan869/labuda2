@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/src/theme/app_colors.dart';
 import 'package:labuda/shared/shared.dart';
+import 'package:labuda/core/core.dart';
 
 /// Individual review card widget
 class ReviewCardWidget extends StatelessWidget {
@@ -19,12 +19,12 @@ class ReviewCardWidget extends StatelessWidget {
     final isReceived = review['isReceived'] as bool;
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.only(bottom: AppMetrics.p16),
+      elevation: AppElevation.card,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppShape.r12)),
       color: scheme.surface,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppMetrics.p16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -48,7 +48,7 @@ class ReviewCardWidget extends StatelessWidget {
                       Text(
                         '@${review['authorUsername']}',
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: AppType.s14,
                           fontWeight: FontWeight.w600,
                           color: scheme.onSurface,
                         ),
@@ -62,7 +62,7 @@ class ReviewCardWidget extends StatelessWidget {
                             Text(
                               'Kepada: ',
                               style: TextStyle(
-                                fontSize: 12,
+                                fontSize: AppType.s12,
                                 color: scheme.onSurfaceVariant,
                               ),
                             ),
@@ -70,7 +70,7 @@ class ReviewCardWidget extends StatelessWidget {
                               child: Text(
                                 '@${review['recipientUsername']}',
                                 style: TextStyle(
-                                  fontSize: 12,
+                                  fontSize: AppType.s12,
                                   color: scheme.onSurfaceVariant,
                                 ),
                                 overflow: TextOverflow.ellipsis,
@@ -92,7 +92,7 @@ class ReviewCardWidget extends StatelessWidget {
                     TimeAgoWidget.compact(
                       dateTime: review['createdAt'] as DateTime,
                       color: scheme.onSurfaceVariant,
-                      fontSize: 11,
+                      fontSize: AppType.s11,
                     ),
                   ],
                 ),
@@ -105,7 +105,7 @@ class ReviewCardWidget extends StatelessWidget {
             Text(
               review['comment'],
               style: TextStyle(
-                fontSize: 14,
+                fontSize: AppType.s14,
                 height: 1.4,
                 color: scheme.onSurface,
               ),
@@ -135,7 +135,7 @@ class ReviewCardWidget extends StatelessWidget {
                       Text(
                         'Helpful (${review['helpfulCount'] ?? 0})',
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: AppType.s12,
                           color: review['isHelpful'] ?? false
                               ? scheme.primary
                               : scheme.onSurfaceVariant,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/shared/ui/base/base_component.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Atomic component untuk visibility settings (public/private/friends)
 /// Single responsibility: Handle post visibility selection
@@ -38,7 +39,7 @@ class VisibilitySettingsComponent extends BaseComponent
       children: [
         Text(
           isRequired ? '$label *' : label,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+          style: const TextStyle(fontSize: AppType.s16, fontWeight: FontWeight.w500),
         ),
         const SizedBox(height: 8),
         RadioGroup<String>(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/shared/shared.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Reusable Action Buttons untuk Cancel & Save/Submit actions
 ///
@@ -163,14 +164,14 @@ class ActionButtons extends StatelessWidget {
             width: 1.5,
           ),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppShape.r12),
           ),
         ),
         child: Text(
           cancelText!,
           style: TextStyle(
             color: scheme.onSurface,
-            fontSize: 16,
+            fontSize: AppType.s16,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -194,7 +195,7 @@ class ActionButtons extends StatelessWidget {
             width: 1.5,
           ),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppShape.r12),
           ),
         ),
         child: isLoading
@@ -214,7 +215,7 @@ class ActionButtons extends StatelessWidget {
                   color: disabled
                       ? scheme.onSurfaceVariant
                       : scheme.primary,
-                  fontSize: 16,
+                  fontSize: AppType.s16,
                   fontWeight: FontWeight.w600,
                 ),
               ),

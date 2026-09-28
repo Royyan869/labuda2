@@ -57,9 +57,9 @@ class OrderOverdueIndicator extends StatelessWidget {
     final daysOverdue = order.overdueDays ?? 0;
 
     Color getBadgeColor() {
-      if (tier == 'critical_overdue') return core.AppColors.statusError;
-      if (tier == 'severely_overdue') return core.AppColors.statusError;
-      return core.AppColors.statusWarning;
+      if (tier == 'critical_overdue') return context.statusColors.error;
+      if (tier == 'severely_overdue') return context.statusColors.error;
+      return context.statusColors.warning;
     }
 
     String getBadgeLabel() {
@@ -69,10 +69,10 @@ class OrderOverdueIndicator extends StatelessWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: core.AppMetrics.p8, vertical: core.AppMetrics.p4),
       decoration: BoxDecoration(
         color: getBadgeColor().withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(core.AppShape.r4),
         border: Border.all(
           color: getBadgeColor().withValues(alpha: 0.3),
           width: 1,
@@ -86,7 +86,7 @@ class OrderOverdueIndicator extends StatelessWidget {
           Text(
             getBadgeLabel(),
             style: TextStyle(
-              fontSize: 11,
+              fontSize: core.AppType.s11,
               fontWeight: FontWeight.w600,
               color: getBadgeColor(),
             ),
@@ -96,7 +96,7 @@ class OrderOverdueIndicator extends StatelessWidget {
             Text(
               '($daysOverdue hari)',
               style: TextStyle(
-                fontSize: 10,
+                fontSize: core.AppType.s10,
                 color: getBadgeColor().withValues(alpha: 0.8),
               ),
             ),
@@ -134,9 +134,9 @@ class OrderOverdueInfoCard extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     Color getBadgeColor() {
-      if (tier == 'critical_overdue') return core.AppColors.statusError;
-      if (tier == 'severely_overdue') return core.AppColors.statusError;
-      return core.AppColors.statusWarning;
+      if (tier == 'critical_overdue') return context.statusColors.error;
+      if (tier == 'severely_overdue') return context.statusColors.error;
+      return context.statusColors.warning;
     }
 
     String getBadgeLabel() {
@@ -156,13 +156,13 @@ class OrderOverdueInfoCard extends StatelessWidget {
     }
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: core.AppMetrics.p16),
+      padding: const EdgeInsets.all(core.AppMetrics.p16),
       decoration: BoxDecoration(
-        color: core.AppColors.statusError.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(12),
+        color: context.statusColors.error.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(core.AppShape.r12),
         border: Border.all(
-          color: core.AppColors.statusError.withValues(alpha: 0.3),
+          color: context.statusColors.error.withValues(alpha: 0.3),
         ),
       ),
       child: Column(
@@ -172,7 +172,7 @@ class OrderOverdueInfoCard extends StatelessWidget {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(core.AppMetrics.p8),
                 decoration: BoxDecoration(
                   color: getBadgeColor().withValues(alpha: 0.15),
                   shape: BoxShape.circle,
@@ -191,7 +191,7 @@ class OrderOverdueInfoCard extends StatelessWidget {
                     Text(
                       'Pesanan Lewat Waktu',
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: core.AppType.s14,
                         fontWeight: FontWeight.w600,
                         color: colorScheme.onSurface,
                       ),
@@ -199,7 +199,7 @@ class OrderOverdueInfoCard extends StatelessWidget {
                     Text(
                       getBadgeLabel(),
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: core.AppType.s12,
                         color: getBadgeColor(),
                         fontWeight: FontWeight.w500,
                       ),
@@ -214,10 +214,10 @@ class OrderOverdueInfoCard extends StatelessWidget {
 
           // Warning message
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(core.AppMetrics.p12),
             decoration: BoxDecoration(
               color: colorScheme.surfaceContainerHigh,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(core.AppShape.r8),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -228,7 +228,7 @@ class OrderOverdueInfoCard extends StatelessWidget {
                   child: Text(
                     getWarningMessage(),
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: core.AppType.s12,
                       color: colorScheme.onSurfaceVariant,
                     ),
                   ),
@@ -251,7 +251,7 @@ class OrderOverdueInfoCard extends StatelessWidget {
                 Text(
                   'Target siap kirim: ${_formatDate(order.readyToShipBy!)}',
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: core.AppType.s11,
                     color: colorScheme.onSurfaceVariant,
                   ),
                 ),
@@ -260,7 +260,7 @@ class OrderOverdueInfoCard extends StatelessWidget {
                   Text(
                     'Telat $daysOverdue hari',
                     style: TextStyle(
-                      fontSize: 11,
+                      fontSize: core.AppType.s11,
                       fontWeight: FontWeight.w600,
                       color: getBadgeColor(),
                     ),

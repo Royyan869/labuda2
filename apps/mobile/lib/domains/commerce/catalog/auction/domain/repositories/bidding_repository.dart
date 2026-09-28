@@ -2,8 +2,8 @@
 /// Pure Dart interface - no implementation details
 library;
 
+import 'package:labuda/core/common/result.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/bidding_item.dart';
-import 'package:labuda/domains/commerce/transaction/order/domain/repositories/repository_result.dart';
 
 /// Bidding Repository Interface
 ///
@@ -14,5 +14,5 @@ abstract class BiddingRepository {
   ///
   /// Returns all auctions where the user has placed bids,
   /// aggregated with user's bid information and derived status.
-  Future<RepositoryResult<BiddingResult>> getMyBidding();
+  Future<Result<BiddingResult>> getMyBidding();
 }

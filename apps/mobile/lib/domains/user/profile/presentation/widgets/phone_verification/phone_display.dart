@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Displays the phone number being verified
 class PhoneDisplay extends StatelessWidget {
@@ -13,10 +14,10 @@ class PhoneDisplay extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p14, vertical: AppMetrics.p10),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(AppShape.r10),
         border: Border.all(color: scheme.outlineVariant),
       ),
       child: Row(
@@ -31,7 +32,7 @@ class PhoneDisplay extends StatelessWidget {
           Text(
             phoneNumber,
             style: TextStyle(
-              fontSize: 15,
+              fontSize: AppType.s15,
               fontWeight: FontWeight.w600,
               color: scheme.onSurface,
             ),

@@ -105,12 +105,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Search'),
-        elevation: 0,
+        elevation: AppElevation.none,
       ),
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppMetrics.p16),
             child: GlobalSearchBar(
               initialQuery: _query,
               onSearch: _onSearch,

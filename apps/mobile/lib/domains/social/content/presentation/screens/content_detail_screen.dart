@@ -182,7 +182,7 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
             SliverToBoxAdapter(child: _buildUnavailableBanner(context)),
           // Content section — avatar/username/time + text first (canonical)
           SliverPadding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppMetrics.p16),
             sliver: SliverToBoxAdapter(
               child: _buildContentSection(context, content),
             ),
@@ -193,14 +193,14 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
           // Linked items (canonical resource projection only)
           if (content.resourceProjection != null)
             SliverPadding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(AppMetrics.p16),
               sliver: SliverToBoxAdapter(
                 child: _buildResourceProjection(context, content),
               ),
             ),
           // Engagement — icon+count only (canonical, no labels)
           SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p12),
             sliver: SliverToBoxAdapter(
               child: _buildEngagementSection(
                 context,
@@ -247,16 +247,16 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
             top: 16,
             right: 16,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p6),
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.scrim.withValues(alpha: 0.6),
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(AppShape.r16),
               ),
               child: Text(
                 '${_currentMediaIndex + 1} / ${content.media.length}',
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.onPrimary,
-                  fontSize: 12,
+                  fontSize: AppType.s12,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -323,7 +323,7 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
           content.content,
           style: Theme.of(
             context,
-          ).textTheme.bodyLarge?.copyWith(fontSize: 16, height: 1.5),
+          ).textTheme.bodyLarge?.copyWith(fontSize: AppType.s16, height: 1.5),
         ),
 
         // Tags
@@ -335,7 +335,7 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
             children: content.tags.map((tag) {
               return Chip(
                 label: Text('#$tag'),
-                labelStyle: const TextStyle(fontSize: 12),
+                labelStyle: const TextStyle(fontSize: AppType.s12),
                 padding: EdgeInsets.zero,
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               );
@@ -372,7 +372,7 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
             onTap: authorDegraded
                 ? null
                 : () => _navigateToAuthorProfile(context, content),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(AppShape.r8),
             child: Row(
               children: [
                 ProfileAvatar(
@@ -390,7 +390,7 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
                             authorPlaceholder,
                             style: TextStyle(
                               fontWeight: FontWeight.w600,
-                              fontSize: 14,
+                              fontSize: AppType.s14,
                               fontStyle: FontStyle.italic,
                               color: scheme.onSurfaceVariant,
                             ),
@@ -402,7 +402,7 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
                             '@${content.authorUsername}',
                             style: const TextStyle(
                               fontWeight: FontWeight.w600,
-                              fontSize: 14,
+                              fontSize: AppType.s14,
                             ),
                           ),
                         ),
@@ -428,7 +428,7 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
         const SizedBox(width: 8),
         Text(
           _formatTime(content.createdAt),
-          style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+          style: TextStyle(fontSize: AppType.s12, color: scheme.onSurfaceVariant),
         ),
       ],
     );
@@ -471,7 +471,7 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
             const SizedBox(width: 4),
             Text(
               location.displayLocation,
-              style: TextStyle(fontSize: 14, color: scheme.onSurfaceVariant),
+              style: TextStyle(fontSize: AppType.s14, color: scheme.onSurfaceVariant),
             ),
           ],
         );
@@ -510,9 +510,9 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
         const SizedBox(width: 16),
         InkWell(
           onTap: () => _navigateToComments(context),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppShape.r8),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p4, vertical: AppMetrics.p6),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -526,7 +526,7 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
                   Text(
                     '${content.engagement.commentCount}',
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: AppType.s12,
                       color: Theme.of(context).colorScheme.primary,
                       fontWeight: FontWeight.w600,
                     ),
@@ -539,9 +539,9 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
         const SizedBox(width: 16),
         InkWell(
           onTap: () => _handleShareContent(context, content),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppShape.r8),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p4, vertical: AppMetrics.p6),
             child: Icon(
               Icons.share_outlined,
               size: 16,
@@ -572,9 +572,9 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
           : (onTap != null ? scheme.primary : scheme.onSurfaceVariant);
       return InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppShape.r8),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p4, vertical: AppMetrics.p6),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -584,7 +584,7 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
                 Text(
                   '$count',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: AppType.s12,
                     color: color,
                     fontWeight: FontWeight.w600,
                   ),
@@ -710,7 +710,7 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
     final scheme = Theme.of(context).colorScheme;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p12),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHigh,
         border: Border(
@@ -722,7 +722,7 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(6),
+            padding: const EdgeInsets.all(AppMetrics.p6),
             decoration: BoxDecoration(
               color: scheme.onSurfaceVariant.withValues(alpha: 0.2),
               shape: BoxShape.circle,
@@ -737,7 +737,7 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
           Text(
             'Tidak tersedia',
             style: TextStyle(
-              fontSize: 13,
+              fontSize: AppType.s13,
               fontWeight: FontWeight.w600,
               color: scheme.onSurface,
             ),
@@ -756,7 +756,7 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
     final scheme = Theme.of(context).colorScheme;
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppMetrics.p24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -768,12 +768,12 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
             const SizedBox(height: 16),
             const Text(
               'Konten dihapus',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+              style: TextStyle(fontSize: AppType.s18, fontWeight: FontWeight.w500),
             ),
             const SizedBox(height: 8),
             Text(
               'Konten ini sudah tidak tersedia.',
-              style: TextStyle(fontSize: 14, color: scheme.onSurfaceVariant),
+              style: TextStyle(fontSize: AppType.s14, color: scheme.onSurfaceVariant),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
@@ -801,13 +801,13 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
           const SizedBox(height: 16),
           const Text(
             'Failed to load content',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+            style: TextStyle(fontSize: AppType.s18, fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 8),
           Text(
             message,
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppType.s14,
               color: scheme.onSurfaceVariant,
             ),
             textAlign: TextAlign.center,
@@ -866,9 +866,9 @@ class _ContentAuthorVerificationBadge extends ConsumerWidget {
             (user.isIdVerified ?? false) ||
             (user.isFarmVerified ?? false);
         if (!isVerified) return const SizedBox.shrink();
-        return const Padding(
-          padding: EdgeInsets.only(left: 6),
-          child: Icon(Icons.verified, size: 16, color: AppColors.statusInfo),
+        return Padding(
+          padding: EdgeInsets.only(left: AppMetrics.p6),
+          child: Icon(Icons.verified, size: 16, color: context.statusColors.info),
         );
       },
       loading: () => const SizedBox.shrink(),

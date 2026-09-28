@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_marketplace_primitives.dart';
 import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/shared/widgets/carousel_video_player.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 class ChatResourceProjectionCard extends StatelessWidget {
   final ResourceProjection resourceProjection;
@@ -39,7 +40,7 @@ class ChatResourceProjectionCard extends StatelessWidget {
       metadata: _buildMetadata(context),
       footer: _buildFooter(context),
       badges: _buildBadges(context),
-      contentPadding: const EdgeInsets.all(12),
+      contentPadding: const EdgeInsets.all(AppMetrics.p12),
     );
   }
 
@@ -52,8 +53,8 @@ class ChatResourceProjectionCard extends StatelessWidget {
           fallback: _placeholderMedia(context, Icons.person_outline_rounded),
           aspectRatio: 1,
           borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(16),
-            topRight: Radius.circular(16),
+            topLeft: Radius.circular(AppShape.r16),
+            topRight: Radius.circular(AppShape.r16),
           ),
         );
       case ContentLivePayload():
@@ -64,8 +65,8 @@ class ChatResourceProjectionCard extends StatelessWidget {
           fallback: _placeholderMedia(context, Icons.storefront_outlined),
           aspectRatio: 4 / 3,
           borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(16),
-            topRight: Radius.circular(16),
+            topLeft: Radius.circular(AppShape.r16),
+            topRight: Radius.circular(AppShape.r16),
           ),
         );
       case AuctionLivePayload():
@@ -74,8 +75,8 @@ class ChatResourceProjectionCard extends StatelessWidget {
           fallback: _placeholderMedia(context, Icons.gavel_rounded),
           aspectRatio: 4 / 3,
           borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(16),
-            topRight: Radius.circular(16),
+            topLeft: Radius.circular(AppShape.r16),
+            topRight: Radius.circular(AppShape.r16),
           ),
           showVideoBadge: false,
         );
@@ -97,8 +98,8 @@ class ChatResourceProjectionCard extends StatelessWidget {
     ContentLivePayload payload,
   ) {
     const borderRadius = BorderRadius.only(
-      topLeft: Radius.circular(16),
-      topRight: Radius.circular(16),
+      topLeft: Radius.circular(AppShape.r16),
+      topRight: Radius.circular(AppShape.r16),
     );
 
     if (payload.media.isEmpty) {
@@ -179,7 +180,7 @@ class ChatResourceProjectionCard extends StatelessWidget {
     if (buttons.isEmpty) return null;
 
     return Padding(
-      padding: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.only(top: AppMetrics.p10),
       child: Wrap(spacing: 8, runSpacing: 8, children: buttons),
     );
   }
@@ -205,12 +206,12 @@ class ChatResourceProjectionCard extends StatelessWidget {
       style: FilledButton.styleFrom(
         visualDensity: VisualDensity.compact,
         minimumSize: const Size(0, 34),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p4),
         backgroundColor: emphasis
             ? scheme.primary
             : scheme.surfaceContainerHighest,
         foregroundColor: emphasis ? scheme.onPrimary : scheme.onSurface,
-        textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+        textStyle: const TextStyle(fontSize: AppType.s13, fontWeight: FontWeight.w700),
       ),
     );
   }

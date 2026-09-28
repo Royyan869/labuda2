@@ -82,7 +82,7 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
 
   Widget _buildSearchBar(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       child: TextField(
         controller: _searchController,
         onChanged: (value) {
@@ -107,12 +107,12 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
           filled: true,
           fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppShape.r12),
             borderSide: BorderSide.none,
           ),
           contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 12,
+            horizontal: AppMetrics.p16,
+            vertical: AppMetrics.p12,
           ),
         ),
       ),
@@ -133,13 +133,13 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
           const SizedBox(height: 16),
           Text(
             'Search user to start a chat',
-            style: TextStyle(fontSize: 16, color: scheme.onSurface),
+            style: TextStyle(fontSize: AppType.s16, color: scheme.onSurface),
           ),
           const SizedBox(height: 8),
           Text(
             'Type a name or username',
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppType.s14,
               color: scheme.onSurfaceVariant,
             ),
           ),
@@ -163,7 +163,7 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
         }
 
         return ListView.builder(
-          padding: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.only(bottom: AppMetrics.p16),
           itemCount: users.length,
           itemBuilder: (context, index) {
             final user = users[index];
@@ -186,13 +186,13 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
           const SizedBox(height: 16),
           Text(
             'Failed to search users',
-            style: TextStyle(fontSize: 16, color: scheme.onSurface),
+            style: TextStyle(fontSize: AppType.s16, color: scheme.onSurface),
           ),
           const SizedBox(height: 8),
           Text(
             error.toString(),
             style: TextStyle(
-              fontSize: 12,
+              fontSize: AppType.s12,
               color: scheme.onSurfaceVariant,
             ),
             textAlign: TextAlign.center,
@@ -216,13 +216,13 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
           const SizedBox(height: 16),
           Text(
             'User not found',
-            style: TextStyle(fontSize: 16, color: scheme.onSurface),
+            style: TextStyle(fontSize: AppType.s16, color: scheme.onSurface),
           ),
           const SizedBox(height: 8),
           Text(
             'Try a different keyword',
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppType.s14,
               color: scheme.onSurfaceVariant,
             ),
           ),

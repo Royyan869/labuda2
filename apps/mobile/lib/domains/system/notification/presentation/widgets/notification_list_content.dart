@@ -14,6 +14,7 @@ import 'package:labuda/domains/system/notification/presentation/widgets/notifica
 import 'package:labuda/domains/system/notification/presentation/widgets/notification_empty_state_widget.dart';
 
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 class NotificationListContent extends ConsumerWidget {
   final String userId;
@@ -41,10 +42,10 @@ class NotificationListContent extends ConsumerWidget {
     return RefreshIndicator(
       onRefresh: () async {
         ref.invalidate(notificationListProvider(userId));
-        await Future.delayed(const Duration(milliseconds: 500));
+        await Future.delayed(AppMotion.slow);
       },
       child: ListView.builder(
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: const EdgeInsets.symmetric(vertical: AppMetrics.p12),
         itemCount: groupedNotifications.length,
         itemBuilder: (context, index) {
           final group = groupedNotifications[index];
@@ -109,11 +110,11 @@ class NotificationListContent extends ConsumerWidget {
       children: [
         // Date header
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p16, AppMetrics.p16, AppMetrics.p8),
           child: Text(
             group.dateLabel,
             style: TextStyle(
-              fontSize: 13,
+              fontSize: AppType.s13,
               fontWeight: FontWeight.w600,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
               letterSpacing: 0.5,

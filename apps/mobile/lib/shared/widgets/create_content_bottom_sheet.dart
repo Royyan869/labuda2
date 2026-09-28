@@ -88,7 +88,7 @@ class CreateContentBottomSheet extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: scheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(AppShape.r20)),
       ),
       child: SafeArea(
         child: Column(
@@ -98,20 +98,20 @@ class CreateContentBottomSheet extends StatelessWidget {
             Container(
               width: 40,
               height: 4,
-              margin: const EdgeInsets.only(top: 12, bottom: 8),
+              margin: const EdgeInsets.only(top: AppMetrics.p12, bottom: AppMetrics.p8),
               decoration: BoxDecoration(
                 color: scheme.onSurfaceVariant,
-                borderRadius: BorderRadius.circular(2),
+                borderRadius: BorderRadius.circular(AppShape.r2),
               ),
             ),
 
             // Header
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+              padding: const EdgeInsets.fromLTRB(AppMetrics.p20, AppMetrics.p8, AppMetrics.p20, AppMetrics.p16),
               child: Text(
                 'Create',
                 style: TextStyle(
-                  fontSize: 20,
+                  fontSize: AppType.s20,
                   fontWeight: FontWeight.w600,
                   color: scheme.onSurfaceVariant,
                 ),
@@ -174,7 +174,7 @@ class CreateContentBottomSheet extends StatelessWidget {
           icon: Icons.store_outlined,
           label: 'Mulai Jualan',
           description: 'Mulai jualan koi di LABUDA',
-          color: AppColors.primaryGreen,
+          color: context.statusColors.success,
           onTap: () {
             Navigator.pop(context);
             onStartSelling!();
@@ -187,7 +187,7 @@ class CreateContentBottomSheet extends StatelessWidget {
           icon: Icons.store_outlined,
           label: 'Jual Koi (For Sale)',
           description: 'Jual koi langsung atau tawar harga',
-          color: AppColors.primaryGreen,
+          color: context.statusColors.success,
           onTap: onCreateForSale != null
               ? () {
                   Navigator.pop(context);
@@ -199,7 +199,7 @@ class CreateContentBottomSheet extends StatelessWidget {
           icon: Icons.gavel_outlined,
           label: 'Lelang (Auction)',
           description: 'Buat lelang dari mobile',
-          color: AppColors.statusWarning,
+          color: context.statusColors.warning,
           onTap: onCreateAuction != null
               ? () {
                   Navigator.pop(context);
@@ -251,7 +251,7 @@ class CreateContentBottomSheet extends StatelessWidget {
     return ListView.separated(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      padding: const EdgeInsets.symmetric(horizontal: 8),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8),
       itemCount: options.length,
       separatorBuilder: (context, index) => const SizedBox(height: 4),
       itemBuilder: (context, index) {
@@ -268,9 +268,9 @@ class CreateContentBottomSheet extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: option.onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p12),
           child: Row(
             children: [
               // Icon with colored background
@@ -281,7 +281,7 @@ class CreateContentBottomSheet extends StatelessWidget {
                   color: isEnabled
                       ? option.color.withValues(alpha: 0.1)
                       : (scheme.onSurfaceVariant),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(AppShape.r12),
                 ),
                 child: Icon(
                   option.icon,
@@ -302,7 +302,7 @@ class CreateContentBottomSheet extends StatelessWidget {
                     Text(
                       option.label,
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: AppType.s16,
                         fontWeight: FontWeight.w600,
                         color: isEnabled
                             ? (scheme.onSurfaceVariant)
@@ -313,7 +313,7 @@ class CreateContentBottomSheet extends StatelessWidget {
                     Text(
                       option.description,
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: AppType.s13,
                         color: scheme.onSurfaceVariant,
                       ),
                     ),

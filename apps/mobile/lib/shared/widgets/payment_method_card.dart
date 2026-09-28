@@ -29,7 +29,7 @@ class PaymentMethodCard extends StatelessWidget {
 
     return BaseCard(
       onTap: onTap,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       showBorder: isSelected,
       borderColor: isSelected ? scheme.primary : null,
       child: Row(
@@ -42,7 +42,7 @@ class PaymentMethodCard extends StatelessWidget {
               color: isSelected
                   ? scheme.primary.withValues(alpha: 0.1)
                   : scheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppShape.r12),
             ),
             child: Icon(
               icon,
@@ -75,12 +75,12 @@ class PaymentMethodCard extends StatelessWidget {
                       const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
+                          horizontal: AppMetrics.p8,
+                          vertical: AppMetrics.p4,
                         ),
                         decoration: BoxDecoration(
                           color: scheme.primary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(999),
+                          borderRadius: BorderRadius.circular(AppShape.pill),
                         ),
                         child: Text(
                           badge!,

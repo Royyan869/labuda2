@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Filter section for reviews
 class ReviewFilterSection extends StatelessWidget {
@@ -18,7 +19,7 @@ class ReviewFilterSection extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p12),
       decoration: BoxDecoration(
         color: scheme.surface,
         border: Border(
@@ -32,7 +33,7 @@ class ReviewFilterSection extends StatelessWidget {
           Text(
             'Filter by:',
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppType.s14,
               fontWeight: FontWeight.w500,
               color: scheme.onSurface,
             ),
@@ -45,7 +46,7 @@ class ReviewFilterSection extends StatelessWidget {
                 children: filterOptions.map((filter) {
                   final isSelected = selectedFilter == filter;
                   return Padding(
-                    padding: const EdgeInsets.only(right: 8),
+                    padding: const EdgeInsets.only(right: AppMetrics.p8),
                     child: FilterChip(
                       label: Text(filter),
                       selected: isSelected,
@@ -55,7 +56,7 @@ class ReviewFilterSection extends StatelessWidget {
                       ),
                       checkmarkColor: scheme.primary,
                       labelStyle: TextStyle(
-                        fontSize: 12,
+                        fontSize: AppType.s12,
                         fontWeight: FontWeight.w500,
                         color: isSelected
                             ? scheme.primary

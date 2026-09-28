@@ -91,7 +91,7 @@ class _BankAccountScreenState extends ConsumerState<BankAccountScreen> {
           if (bankAccounts.isNotEmpty) ...[
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(AppMetrics.p24),
                 children: [
                   _buildSectionHeader('Your Bank Accounts'),
                   const SizedBox(height: 16),
@@ -113,7 +113,7 @@ class _BankAccountScreenState extends ConsumerState<BankAccountScreen> {
             // Empty state
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(AppMetrics.p24),
                  child: BankAccountEmptyStateWidget(
                    onAddAccount: () => _showAddAccountDialog(userId),
                  ),
@@ -129,7 +129,7 @@ class _BankAccountScreenState extends ConsumerState<BankAccountScreen> {
     return Text(
       title,
       style: TextStyle(
-        fontSize: 18,
+        fontSize: AppType.s18,
         fontWeight: FontWeight.bold,
         color: Theme.of(context).colorScheme.onSurface,
       ),
@@ -177,7 +177,7 @@ class _BankAccountScreenState extends ConsumerState<BankAccountScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            style: TextButton.styleFrom(foregroundColor: context.statusColors.error),
             child: const Text('Delete'),
           ),
         ],

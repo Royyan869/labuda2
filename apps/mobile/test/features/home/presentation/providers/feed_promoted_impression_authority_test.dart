@@ -42,7 +42,6 @@ import 'package:labuda/domains/social/like/presentation/providers/like_notifier.
 import 'package:labuda/features/home/home.dart';
 import 'package:labuda/features/home/presentation/providers/feed_renderers.dart';
 import 'package:labuda/shared/services/logger_service.dart';
-import 'package:labuda/domains/commerce/transaction/order/domain/repositories/repository_result.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
 // ============================================================================
@@ -299,7 +298,7 @@ class _FakeAuthedAuthController extends AuthController {
 
 class _FakeAuctionRepository implements AuctionRepository {
   @override
-  Future<RepositoryResult<List<Auction>>> getActiveAuctions({
+  Future<Result<List<Auction>>> getActiveAuctions({
     String? variety,
     double? minSize,
     double? maxSize,
@@ -307,7 +306,7 @@ class _FakeAuctionRepository implements AuctionRepository {
     int limit = 20,
     String? lastAuctionId,
   }) async {
-    return RepositoryResult.success(const <Auction>[]);
+    return Result.success(const <Auction>[]);
   }
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);

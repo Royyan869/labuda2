@@ -42,9 +42,9 @@ class ReportConfirmationDialog extends StatelessWidget {
 
     return Dialog(
       backgroundColor: Theme.of(context).colorScheme.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppShape.r16)),
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppMetrics.p24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -53,12 +53,12 @@ class ReportConfirmationDialog extends StatelessWidget {
               width: 56,
               height: 56,
               decoration: BoxDecoration(
-                color: AppColors.success.withValues(alpha: 0.1),
+                color: context.statusColors.success.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.check_circle_outline,
-                color: AppColors.success,
+                color: context.statusColors.success,
                 size: 32,
               ),
             ),
@@ -68,7 +68,7 @@ class ReportConfirmationDialog extends StatelessWidget {
             Text(
               'Report Submitted',
               style: TextStyle(
-                fontSize: 20,
+                fontSize: AppType.s20,
                 fontWeight: FontWeight.w600,
                 color: Theme.of(context).colorScheme.onSurface,
               ),
@@ -78,17 +78,17 @@ class ReportConfirmationDialog extends StatelessWidget {
             // Message
             Text(
               'Thank you for helping keep our community safe.',
-              style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
+              style: TextStyle(fontSize: AppType.s14, color: Theme.of(context).colorScheme.onSurfaceVariant),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
 
             // What happens next
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(AppMetrics.p16),
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.surfaceContainer,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(AppShape.r12),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -96,7 +96,7 @@ class ReportConfirmationDialog extends StatelessWidget {
                   Text(
                     'What happens next:',
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: AppType.s14,
                       fontWeight: FontWeight.w600,
                       color: Theme.of(context).colorScheme.onSurface,
                     ),
@@ -125,10 +125,10 @@ class ReportConfirmationDialog extends StatelessWidget {
             if (isHarassment) ...[
               const SizedBox(height: 16),
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(AppMetrics.p12),
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(AppShape.r8),
                   border: Border.all(
                     color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
                   ),
@@ -145,7 +145,7 @@ class ReportConfirmationDialog extends StatelessWidget {
                       child: Text(
                         'Want to block this user to prevent further contact?',
                         style: TextStyle(
-                          fontSize: 13,
+                          fontSize: AppType.s13,
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
@@ -165,9 +165,9 @@ class ReportConfirmationDialog extends StatelessWidget {
                 style: FilledButton.styleFrom(
                   backgroundColor: Theme.of(context).colorScheme.secondary,
                   foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(AppShape.r10),
                   ),
                 ),
                 child: const Text('Got it'),
@@ -193,7 +193,7 @@ class ReportConfirmationDialog extends StatelessWidget {
           child: Text(
             text,
             style: TextStyle(
-              fontSize: 13,
+              fontSize: AppType.s13,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),

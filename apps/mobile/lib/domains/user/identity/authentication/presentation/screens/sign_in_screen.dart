@@ -78,7 +78,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen>
 
   void _setupAnimations() {
     _animationController = AnimationController(
-      duration: const Duration(milliseconds: 1200),
+      duration: AppMotion.ambient,
       vsync: this,
     );
 
@@ -226,7 +226,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen>
             listenable: _controller,
             builder: (context, child) {
               return SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
+                padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -319,10 +319,10 @@ class _SignInScreenState extends ConsumerState<SignInScreen>
                     if (backendErrorMessage != null) ...[
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.all(AppMetrics.p12),
                         decoration: BoxDecoration(
                           color: scheme.error.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(AppShape.r12),
                           border: Border.all(
                             color: scheme.error,
                             width: 1,

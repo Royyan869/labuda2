@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Info row widget for profile about tab
 /// Displays label-value pairs in a consistent format
@@ -13,7 +14,7 @@ class ProfileInfoRow extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: AppMetrics.p8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -22,7 +23,7 @@ class ProfileInfoRow extends StatelessWidget {
             child: Text(
               label,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: AppType.s14,
                 color: scheme.onSurfaceVariant,
               ),
             ),
@@ -31,7 +32,7 @@ class ProfileInfoRow extends StatelessWidget {
             child: Text(
               value,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: AppType.s14,
                 fontWeight: FontWeight.w500,
                 color: scheme.onSurface,
               ),

@@ -63,7 +63,7 @@ class ProfileAboutTab extends ConsumerWidget {
     return CustomScrollView(
       slivers: [
         SliverPadding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppMetrics.p16),
           sliver: SliverList(
             delegate: SliverChildListDelegate([
               // Section 0: Seller Status Badge (for own profile or seller profiles)
@@ -156,11 +156,11 @@ class ProfileAboutTab extends ConsumerWidget {
     final textPrimary = scheme.onSurfaceVariant;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: AppMetrics.p16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         color: background,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppShape.r16),
         border: Border.all(color: border),
       ),
       child: Row(
@@ -175,7 +175,7 @@ class ProfileAboutTab extends ConsumerWidget {
             child: Text(
               'Checking seller status...',
               style: TextStyle(
-                fontSize: 14,
+                fontSize: AppType.s14,
                 fontWeight: FontWeight.w600,
                 color: textPrimary,
               ),
@@ -196,7 +196,7 @@ class ProfileAboutTab extends ConsumerWidget {
           Text(
             data.bio,
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppType.s14,
               height: 1.5,
               color: scheme.onSurfaceVariant,
             ),
@@ -217,7 +217,7 @@ class ProfileAboutTab extends ConsumerWidget {
               Text(
                 data.location!,
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: AppType.s14,
                   color: scheme.onSurfaceVariant,
                 ),
               ),
@@ -238,7 +238,7 @@ class ProfileAboutTab extends ConsumerWidget {
             Text(
               _formatJoinDate(data.joinedAt),
               style: TextStyle(
-                fontSize: 14,
+                fontSize: AppType.s14,
                 color: scheme.onSurfaceVariant,
               ),
             ),
@@ -259,7 +259,7 @@ class ProfileAboutTab extends ConsumerWidget {
               Text(
                 _formatLastActive(data.lastActiveAt!),
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: AppType.s14,
                   color: scheme.onSurfaceVariant,
                 ),
               ),
@@ -298,7 +298,7 @@ class ProfileAboutTab extends ConsumerWidget {
           Text(
             'Description',
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppType.s14,
               fontWeight: FontWeight.w600,
               color: scheme.onSurfaceVariant,
             ),
@@ -307,7 +307,7 @@ class ProfileAboutTab extends ConsumerWidget {
           Text(
             data.bio,
             style: TextStyle(
-              fontSize: 13,
+              fontSize: AppType.s13,
               height: 1.5,
               color: scheme.onSurfaceVariant,
             ),
@@ -328,7 +328,7 @@ class ProfileAboutTab extends ConsumerWidget {
                   child: Text(
                     farmInfo.farmWebsite!,
 style: TextStyle(
-                       fontSize: 14,
+                       fontSize: AppType.s14,
                        color: scheme.primary,
                       decoration: TextDecoration.underline,
                     ),
@@ -478,7 +478,7 @@ style: TextStyle(
                   child: Text(
                     data.maskedEmail!,
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: AppType.s14,
                       color: scheme.onSurfaceVariant,
                     ),
                   ),
@@ -504,7 +504,7 @@ style: TextStyle(
                   child: Text(
                     data.maskedPhone!,
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: AppType.s14,
                       color: scheme.onSurfaceVariant,
                     ),
                   ),
@@ -525,7 +525,7 @@ style: TextStyle(
           Text(
             'Social Media',
             style: TextStyle(
-              fontSize: 13,
+              fontSize: AppType.s13,
               fontWeight: FontWeight.w600,
               color: scheme.onSurfaceVariant,
             ),
@@ -577,7 +577,7 @@ style: TextStyle(
     final label = lifecycle.publicRedactionLabel;
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(AppMetrics.p32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -590,7 +590,7 @@ style: TextStyle(
             Text(
               label,
               style: TextStyle(
-                fontSize: 16,
+                fontSize: AppType.s16,
                 fontWeight: FontWeight.w600,
                 color: scheme.onSurfaceVariant,
               ),
@@ -606,7 +606,7 @@ style: TextStyle(
   Widget _buildLoading() {
     return const Center(
       child: Padding(
-        padding: EdgeInsets.all(32),
+        padding: EdgeInsets.all(AppMetrics.p32),
         child: CircularProgressIndicator(),
       ),
     );
@@ -616,7 +616,7 @@ style: TextStyle(
   Widget _buildError(BuildContext context, String error, ColorScheme scheme) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(AppMetrics.p32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -629,7 +629,7 @@ style: TextStyle(
             Text(
               'Failed to load profile',
               style: TextStyle(
-                fontSize: 16,
+                fontSize: AppType.s16,
                 fontWeight: FontWeight.w600,
                 color: scheme.onSurfaceVariant,
               ),
@@ -638,7 +638,7 @@ style: TextStyle(
             Text(
               error,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: AppType.s14,
                 color: scheme.onSurfaceVariant,
               ),
               textAlign: TextAlign.center,
@@ -764,9 +764,9 @@ class _ProfileSectionCard extends StatelessWidget {
     return Card(
       margin: EdgeInsets.zero,
       color: scheme.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppShape.r12)),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppMetrics.p16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -777,7 +777,7 @@ class _ProfileSectionCard extends StatelessWidget {
                 Text(
                   title,
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: AppType.s16,
                     fontWeight: FontWeight.w600,
 color: scheme.onSurface,
                   ),
@@ -805,7 +805,7 @@ class _ProfileInfoRow extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: AppMetrics.p8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -814,7 +814,7 @@ class _ProfileInfoRow extends StatelessWidget {
             child: Text(
               label,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: AppType.s14,
                 color: scheme.onSurfaceVariant,
               ),
             ),
@@ -823,7 +823,7 @@ class _ProfileInfoRow extends StatelessWidget {
             child: Text(
               value,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: AppType.s14,
                 fontWeight: FontWeight.w500,
                 color: scheme.onSurfaceVariant,
               ),
@@ -847,10 +847,10 @@ class _VerificationBadge extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p6),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppShape.r16),
         border: Border.all(
           color: scheme.outlineVariant,
         ),
@@ -858,7 +858,7 @@ class _VerificationBadge extends StatelessWidget {
       child: Text(
         text,
         style: TextStyle(
-          fontSize: 12,
+          fontSize: AppType.s12,
           fontWeight: FontWeight.w500,
           color: scheme.onSurfaceVariant,
         ),
@@ -884,10 +884,10 @@ class _StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppMetrics.p12),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppShape.r8),
         border: Border.all(
           color: scheme.outlineVariant,
         ),
@@ -895,12 +895,12 @@ class _StatCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 20, color: AppColors.primary),
+          Icon(icon, size: 20, color: scheme.primary),
           const SizedBox(height: 8),
           Text(
             value,
             style: TextStyle(
-              fontSize: 18,
+              fontSize: AppType.s18,
               fontWeight: FontWeight.bold,
               color: scheme.onSurface,
             ),
@@ -909,7 +909,7 @@ class _StatCard extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              fontSize: 11,
+              fontSize: AppType.s11,
               color: scheme.onSurfaceVariant,
             ),
             maxLines: 2,
@@ -948,12 +948,12 @@ class _SocialMediaChip extends StatelessWidget {
           }
         }
       },
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(AppShape.r8),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p8),
         decoration: BoxDecoration(
 color: scheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppShape.r8),
           border: Border.all(
 color: scheme.outlineVariant,
           ),
@@ -961,12 +961,12 @@ color: scheme.outlineVariant,
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 16, color: AppColors.primary),
+            Icon(icon, size: 16, color: scheme.primary),
             const SizedBox(width: 8),
             Text(
               label,
               style: TextStyle(
-                fontSize: 13,
+                fontSize: AppType.s13,
                 color: scheme.onSurfaceVariant,
               ),
             ),
@@ -994,10 +994,10 @@ class _SellerStatusBadge extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         color: scheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(
           color: _getStatusColor().withValues(alpha: 0.3),
           width: 1,
@@ -1013,7 +1013,7 @@ class _SellerStatusBadge extends ConsumerWidget {
               Text(
                 'Status Penjual',
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: AppType.s14,
                   fontWeight: FontWeight.w500,
                   color: scheme.onSurfaceVariant,
                 ),
@@ -1025,19 +1025,19 @@ class _SellerStatusBadge extends ConsumerWidget {
           if (sellerState.isExpired && sellerState.bannerMessage != null) ...[
             const SizedBox(height: 12),
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(AppMetrics.p12),
               decoration: BoxDecoration(
-                color: AppColors.statusError.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
+                color: context.statusColors.error.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(AppShape.r8),
                 border: Border.all(
-                  color: AppColors.statusError.withValues(alpha: 0.3),
+                  color: context.statusColors.error.withValues(alpha: 0.3),
                 ),
               ),
               child: Row(
                 children: [
                   Icon(
                     Icons.warning_amber_rounded,
-                    color: AppColors.statusError,
+                    color: context.statusColors.error,
                     size: 18,
                   ),
                   const SizedBox(width: 8),
@@ -1045,7 +1045,7 @@ class _SellerStatusBadge extends ConsumerWidget {
                     child: Text(
                       sellerState.bannerMessage!,
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: AppType.s13,
                         color: scheme.onSurfaceVariant,
                       ),
                     ),
@@ -1061,15 +1061,15 @@ class _SellerStatusBadge extends ConsumerWidget {
 
   Widget _buildStatusBadge() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p4),
       decoration: BoxDecoration(
         color: _getStatusColor().withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
       ),
       child: Text(
         sellerState.displayLabel,
         style: TextStyle(
-          fontSize: 12,
+          fontSize: AppType.s12,
           fontWeight: FontWeight.w600,
           color: _getStatusColor(),
         ),

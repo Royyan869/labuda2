@@ -19,7 +19,7 @@ class RatingOverviewSection extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(AppMetrics.p14),
       decoration: BoxDecoration(
         color: scheme.surface,
         border: Border(
@@ -38,7 +38,7 @@ class RatingOverviewSection extends StatelessWidget {
                 Text(
                   averageRating.toStringAsFixed(1),
                   style: TextStyle(
-                    fontSize: 36,
+                    fontSize: AppType.s36,
                     fontWeight: FontWeight.bold,
                     color: scheme.onSurface,
                   ),
@@ -48,7 +48,7 @@ class RatingOverviewSection extends StatelessWidget {
                 Text(
                   '$totalReviews reviews',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: AppType.s12,
                     color: scheme.onSurfaceVariant,
                   ),
                 ),
@@ -70,13 +70,13 @@ class RatingOverviewSection extends StatelessWidget {
                     : 0.0;
 
                 return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 1.5),
+                  padding: const EdgeInsets.symmetric(vertical: AppMetrics.p1_5),
                   child: Row(
                     children: [
                       Text(
                         '$starCount',
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: AppType.s11,
                           color: scheme.onSurfaceVariant,
                         ),
                       ),
@@ -97,7 +97,7 @@ class RatingOverviewSection extends StatelessWidget {
                         child: Text(
                           '$count',
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: AppType.s11,
                             color: scheme.onSurfaceVariant,
                           ),
                           textAlign: TextAlign.end,

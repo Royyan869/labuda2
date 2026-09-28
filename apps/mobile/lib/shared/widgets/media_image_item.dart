@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 class MediaImageItem extends StatelessWidget {
   final File image;
@@ -26,13 +27,13 @@ class MediaImageItem extends StatelessWidget {
     return Container(
       width: width,
       height: height,
-      margin: const EdgeInsets.only(right: 8),
+      margin: const EdgeInsets.only(right: AppMetrics.p8),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         color: scheme.surfaceContainerHighest,
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         child: Stack(
           children: [
             // Image
@@ -63,16 +64,16 @@ class MediaImageItem extends StatelessWidget {
       top: 8,
       left: 8,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
         decoration: BoxDecoration(
           color: scheme.primary,
-          borderRadius: BorderRadius.circular(4),
+          borderRadius: BorderRadius.circular(AppShape.r4),
         ),
         child: Text(
           'Cover',
           style: TextStyle(
             color: scheme.onPrimary,
-            fontSize: 10,
+            fontSize: AppType.s10,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -105,7 +106,7 @@ class MediaImageItem extends StatelessWidget {
       height: double.infinity,
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
       ),
       child: Icon(
         Icons.broken_image_outlined,

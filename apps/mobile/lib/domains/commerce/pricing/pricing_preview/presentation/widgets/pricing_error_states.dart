@@ -7,6 +7,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Pricing Error Type
 ///
@@ -68,7 +69,7 @@ class PricingErrorStateWidget extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(AppMetrics.p24),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -222,7 +223,7 @@ class PricingErrorStateWidget extends StatelessWidget {
             icon: const Icon(Icons.refresh),
             label: Text(_getRetryLabel()),
             style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p24, vertical: AppMetrics.p12),
               minimumSize: const Size(200, 48),
             ),
           ),
@@ -272,7 +273,7 @@ class PricingErrorDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      contentPadding: const EdgeInsets.all(24),
+      contentPadding: const EdgeInsets.all(AppMetrics.p24),
       content: PricingErrorStateWidget(
         errorType: errorType,
         customMessage: customMessage,
@@ -324,11 +325,11 @@ class PricingErrorBanner extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.all(AppMetrics.p16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         color: theme.colorScheme.errorContainer.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(
           color: theme.colorScheme.error.withValues(alpha: 0.3),
         ),
@@ -363,7 +364,7 @@ class PricingErrorBanner extends StatelessWidget {
                     icon: const Icon(Icons.refresh, size: 16),
                     label: const Text('Coba Lagi'),
                     style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8),
                       minimumSize: const Size(0, 32),
                     ),
                   ),

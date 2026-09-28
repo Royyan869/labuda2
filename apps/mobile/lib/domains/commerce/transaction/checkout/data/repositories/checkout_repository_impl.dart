@@ -4,6 +4,7 @@ library;
 import 'package:dio/dio.dart';
 import 'package:labuda/core/api/api_client.dart';
 import 'package:labuda/core/api/api_error_codes.dart' as api_codes;
+import 'package:labuda/core/api/exceptions/api_exception.dart';
 import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
 import 'package:labuda/domains/commerce/transaction/checkout/domain/entities/checkout_request.dart';
 import 'package:labuda/domains/commerce/transaction/checkout/domain/entities/checkout_response.dart';
@@ -181,11 +182,28 @@ class CheckoutRepositoryImpl implements CheckoutRepository {
         );
       }
 
+      // Transport failure: no usable HTTP envelope was produced. Its
+      // machine-readable identity comes from the API layer's own
+      // classification of the Dio failure type — this repository does not
+      // invent one by inspecting the message.
+      final transport = ApiExceptionFactory.fromTransport(e);
+      if (transport != null) {
+        throw CheckoutException(
+          message: transport.message,
+          userFriendlyMessage:
+              'Terjadi kesalahan jaringan. Silakan periksa koneksi dan coba lagi.',
+          code: transport.code,
+        );
+      }
+
+      // Non-transport Dio failure (an HTTP status this repository does not
+      // map above): report the status, invent nothing.
       throw CheckoutException(
-        message: 'Network error: ${e.message}',
+        message:
+            'Checkout failed with HTTP ${e.response?.statusCode}: ${e.message}',
         userFriendlyMessage:
-            'Terjadi kesalahan jaringan. Silakan periksa koneksi dan coba lagi.',
-        code: 'NETWORK_ERROR',
+            'Terjadi kesalahan pada server. Silakan coba lagi nanti.',
+        code: null,
       );
     } on CheckoutException {
       rethrow;
@@ -200,7 +218,7 @@ class CheckoutRepositoryImpl implements CheckoutRepository {
         message: e.toString(),
         userFriendlyMessage:
             'Terjadi kesalahan tidak terduga. Silakan coba lagi.',
-        code: 'UNKNOWN_ERROR',
+        code: api_codes.unknownError,
       );
     }
   }

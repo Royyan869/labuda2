@@ -145,7 +145,7 @@ class _SellerAuctionDraftEditScreenState
             ? Form(
                 key: _formKey,
                 child: ListView(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(AppMetrics.p16),
                   children: [
                     Text(
                       'Hanya draft milik Anda yang bisa diedit.',
@@ -257,7 +257,7 @@ class _SellerAuctionDraftEditScreenState
               )
             : Center(
                 child: Padding(
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.all(AppMetrics.p24),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [

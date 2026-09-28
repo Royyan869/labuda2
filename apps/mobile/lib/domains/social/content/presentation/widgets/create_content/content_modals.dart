@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/shared/widgets/app_bottom_sheet.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Collection of modal dialogs used in create post screen
 class ContentModals {
@@ -28,10 +29,10 @@ class ContentModals {
         onChanged: (value) => inputText = value,
         decoration: InputDecoration(
           hintText: hintText,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppShape.r12)),
           contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 12,
+            horizontal: AppMetrics.p16,
+            vertical: AppMetrics.p12,
           ),
         ),
       ),

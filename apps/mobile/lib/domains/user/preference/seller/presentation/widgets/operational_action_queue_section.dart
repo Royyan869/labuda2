@@ -92,7 +92,7 @@ class OperationalActionQueueSection extends ConsumerWidget {
         _ActionQueueItem(
           itemKey: const Key('seller-action-queue-verification'),
           icon: Icons.badge_outlined,
-          color: AppColors.statusInfo,
+          color: context.statusColors.info,
           title: 'Verifikasi seller menunggu tindakan',
           route: RoutePaths.sellerVerification,
         ),
@@ -103,7 +103,7 @@ class OperationalActionQueueSection extends ConsumerWidget {
         _ActionQueueItem(
           itemKey: const Key('seller-action-queue-sender-address'),
           icon: Icons.location_on_outlined,
-          color: AppColors.primaryGreen,
+          color: context.statusColors.success,
           title: 'Lengkapi alamat pengirim',
           route: '${RoutePaths.addresses}?initialTab=sender',
         ),
@@ -112,7 +112,7 @@ class OperationalActionQueueSection extends ConsumerWidget {
         _ActionQueueItem(
           itemKey: const Key('seller-action-queue-shipping-option'),
           icon: Icons.local_shipping_outlined,
-          color: AppColors.primaryGreen,
+          color: context.statusColors.success,
           title: 'Atur opsi pengiriman toko',
           route: RoutePaths.sellerShipping,
         ),
@@ -123,7 +123,7 @@ class OperationalActionQueueSection extends ConsumerWidget {
         _ActionQueueItem(
           itemKey: const Key('seller-action-queue-subscription-expired'),
           icon: Icons.autorenew_outlined,
-          color: AppColors.statusWarning,
+          color: context.statusColors.warning,
           title: 'Langganan berakhir — perpanjang untuk berjualan kembali',
           route: RoutePaths.sellerUpgrade,
         ),
@@ -142,7 +142,7 @@ class OperationalActionQueueSection extends ConsumerWidget {
             _ActionQueueItem(
               itemKey: const Key('seller-action-queue-subscription-expiring'),
               icon: Icons.timer_outlined,
-              color: AppColors.statusWarning,
+              color: context.statusColors.warning,
               title: 'Subscription Segera Berakhir',
               subtitle: 'Berakhir dalam $daysLeft hari',
               route: RoutePaths.sellerRenewal,
@@ -155,10 +155,10 @@ class OperationalActionQueueSection extends ConsumerWidget {
     if (items.isEmpty) {
       return Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppMetrics.p16),
         decoration: BoxDecoration(
           color: scheme.surface,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(AppShape.r16),
           border: Border.all(color: scheme.outlineVariant),
         ),
         child: Column(
@@ -167,7 +167,7 @@ class OperationalActionQueueSection extends ConsumerWidget {
             Text(
               'Operasional toko siap',
               style: TextStyle(
-                fontSize: 16,
+                fontSize: AppType.s16,
                 fontWeight: FontWeight.bold,
                 color: scheme.onSurface,
               ),
@@ -175,7 +175,7 @@ class OperationalActionQueueSection extends ConsumerWidget {
             const SizedBox(height: 4),
             Text(
               'Tidak ada tindakan yang menunggu saat ini.',
-              style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+              style: TextStyle(fontSize: AppType.s12, color: scheme.onSurfaceVariant),
             ),
           ],
         ),
@@ -184,10 +184,10 @@ class OperationalActionQueueSection extends ConsumerWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         color: scheme.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppShape.r16),
         border: Border.all(color: scheme.outlineVariant),
       ),
       child: Column(
@@ -196,7 +196,7 @@ class OperationalActionQueueSection extends ConsumerWidget {
           Text(
             'Antrian Tindakan Operasional',
             style: TextStyle(
-              fontSize: 16,
+              fontSize: AppType.s16,
               fontWeight: FontWeight.bold,
               color: scheme.onSurface,
             ),
@@ -241,17 +241,17 @@ class _ActionQueueTile extends StatelessWidget {
     return InkWell(
       key: item.itemKey,
       onTap: () => context.push(item.route),
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(AppShape.r12),
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(AppMetrics.p12),
         decoration: BoxDecoration(
           color: scheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppShape.r12),
         ),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(AppMetrics.p8),
               decoration: BoxDecoration(
                 color: item.color.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
@@ -266,7 +266,7 @@ class _ActionQueueTile extends StatelessWidget {
                   Text(
                     item.title,
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: AppType.s14,
                       fontWeight: FontWeight.w600,
                       color: scheme.onSurface,
                     ),
@@ -276,7 +276,7 @@ class _ActionQueueTile extends StatelessWidget {
                     Text(
                       item.subtitle!,
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: AppType.s12,
                         color: scheme.onSurfaceVariant,
                       ),
                     ),

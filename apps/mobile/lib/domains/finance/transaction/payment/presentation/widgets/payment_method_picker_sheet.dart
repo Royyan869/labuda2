@@ -10,6 +10,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:labuda/shared/shared.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 import '../../domain/entities/payment.dart';
 
 /// Shows the payment method picker and returns the selected method_code, or
@@ -42,26 +43,26 @@ class PaymentMethodPickerSheet extends StatelessWidget {
         ),
         decoration: BoxDecoration(
           color: colorScheme.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(AppShape.r20)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              margin: const EdgeInsets.only(top: 12),
+              margin: const EdgeInsets.only(top: AppMetrics.p12),
               width: 40,
               height: 4,
               decoration: BoxDecoration(
                 color: colorScheme.outlineVariant,
-                borderRadius: BorderRadius.circular(2),
+                borderRadius: BorderRadius.circular(AppShape.r2),
               ),
             ),
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(AppMetrics.p16),
               child: Text(
                 'Pilih Metode Pembayaran',
                 style: TextStyle(
-                  fontSize: 18,
+                  fontSize: AppType.s18,
                   fontWeight: FontWeight.bold,
                   color: colorScheme.onSurface,
                 ),
@@ -71,11 +72,11 @@ class PaymentMethodPickerSheet extends StatelessWidget {
             Flexible(
               child: methods.isEmpty
                   ? const Padding(
-                      padding: EdgeInsets.all(24),
+                      padding: EdgeInsets.all(AppMetrics.p24),
                       child: Text('Tidak ada metode pembayaran tersedia'),
                     )
                   : ListView.separated(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      padding: const EdgeInsets.symmetric(vertical: AppMetrics.p8),
                       itemCount: methods.length,
                       separatorBuilder: (_, _) => const Divider(height: 1),
                       itemBuilder: (context, index) {

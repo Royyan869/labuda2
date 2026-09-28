@@ -4,6 +4,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Helper class untuk decoration dropdown
 class DropdownDecorationHelper {
@@ -21,7 +22,7 @@ class DropdownDecorationHelper {
           ? Icon(prefixIcon, color: scheme.onSurfaceVariant)
           : null,
       border: InputBorder.none,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      contentPadding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p14),
       hintStyle: TextStyle(color: scheme.onSurfaceVariant),
     );
   }
@@ -33,7 +34,7 @@ class DropdownDecorationHelper {
 
   /// Get text style untuk dropdown
   static TextStyle getTextStyle(ColorScheme scheme) {
-    return TextStyle(color: scheme.onSurface, fontSize: 16);
+    return TextStyle(color: scheme.onSurface, fontSize: AppType.s16);
   }
 
   /// Create selected item builder untuk dropdown

@@ -3,22 +3,37 @@ import 'package:labuda/core/common/types/payment_types.dart';
 
 void main() {
   group('PaymentStatus.fromString', () {
-    test('maps challenge to processing', () {
-      expect(PaymentStatus.fromString('challenge'), PaymentStatus.processing);
+    test('parses every canonical enum name, case-insensitively', () {
+      for (final status in PaymentStatus.values) {
+        expect(PaymentStatus.fromString(status.name), status);
+        expect(PaymentStatus.fromString(status.name.toUpperCase()), status);
+        expect(PaymentStatus.fromString('  ${status.name}  '), status);
+      }
     });
 
-    test('maps deny and cancel to failed', () {
-      expect(PaymentStatus.fromString('deny'), PaymentStatus.failed);
-      expect(PaymentStatus.fromString('cancel'), PaymentStatus.failed);
-    });
-
-    test('maps expire to expired', () {
-      expect(PaymentStatus.fromString('expire'), PaymentStatus.expired);
-    });
-
-    test('keeps direct enum names intact', () {
-      expect(PaymentStatus.fromString('paid'), PaymentStatus.paid);
-      expect(PaymentStatus.fromString('processing'), PaymentStatus.processing);
+    test('rejects gateway vocabulary instead of coercing it', () {
+      // Backend adalah authority status payment dan tidak pernah mengirim
+      // kosakata Midtrans/gateway ke wire ini (`midtrans_status` termasuk
+      // forbidden response key pada kontrak payment). Nilai-nilai itu dulu
+      // dipetakan diam-diam; sekarang ditolak, karena nilai gateway yang
+      // terbaca sebagai status lain adalah kebohongan di jalur uang.
+      for (final legacy in [
+        'settlement',
+        'capture',
+        'completed',
+        'challenge',
+        'deny',
+        'cancel',
+        'cancelled',
+        'expire',
+        'process',
+      ]) {
+        expect(
+          () => PaymentStatus.fromString(legacy),
+          throwsA(isA<FormatException>()),
+          reason: 'nilai legacy/gateway tidak boleh dikoersi: $legacy',
+        );
+      }
     });
   });
 }

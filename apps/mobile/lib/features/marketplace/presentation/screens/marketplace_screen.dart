@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/features/home/home.dart';
 import 'package:labuda/features/marketplace/marketplace.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Marketplace Screen - Central hub untuk Product dan Auction
 ///
@@ -84,11 +85,11 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen>
               labelColor: scheme.primary,
               unselectedLabelColor: scheme.onSurfaceVariant,
               labelStyle: const TextStyle(
-                fontSize: 14,
+                fontSize: AppType.s14,
                 fontWeight: FontWeight.w600,
               ),
               unselectedLabelStyle: const TextStyle(
-                fontSize: 14,
+                fontSize: AppType.s14,
                 fontWeight: FontWeight.w400,
               ),
               tabs: const [

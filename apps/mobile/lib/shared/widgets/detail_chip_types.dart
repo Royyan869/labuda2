@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Size options untuk DetailChipWidget
 enum DetailChipSize { small, medium, large }
+
+/// Theme role that supplies a chip's default tint when the caller does not
+/// bind one — resolved in build, so the widget never owns a colour decision.
+enum DetailChipTone { primary, success, warning }
 
 /// Style options untuk DetailChipWidget
 enum DetailChipStyle {
@@ -20,11 +25,11 @@ class DetailChipStyleUtils {
   static EdgeInsets getPadding(DetailChipSize size) {
     switch (size) {
       case DetailChipSize.small:
-        return const EdgeInsets.symmetric(horizontal: 8, vertical: 4);
+        return const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4);
       case DetailChipSize.medium:
-        return const EdgeInsets.symmetric(horizontal: 10, vertical: 6);
+        return const EdgeInsets.symmetric(horizontal: AppMetrics.p10, vertical: AppMetrics.p6);
       case DetailChipSize.large:
-        return const EdgeInsets.symmetric(horizontal: 12, vertical: 8);
+        return const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p8);
     }
   }
 

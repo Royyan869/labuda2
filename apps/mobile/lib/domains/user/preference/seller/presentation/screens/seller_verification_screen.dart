@@ -76,7 +76,7 @@ class _SellerVerificationScreenState
         foregroundColor: scheme.onPrimary,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppMetrics.p16),
         child: Form(
           key: _formKey,
           child: Column(
@@ -135,7 +135,7 @@ class _SellerVerificationScreenState
             const SizedBox(height: 16),
             const Text(
               'Login Diperlukan',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: AppType.s20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             const Text('Silakan login untuk verifikasi penjual'),
@@ -157,32 +157,32 @@ class _SellerVerificationScreenState
 
     switch (state.status) {
       case SellerVerificationStatus.approved:
-        bgColor = AppColors.successGreen.withValues(alpha: 0.1);
-        textColor = AppColors.successGreen;
+        bgColor = context.statusColors.success.withValues(alpha: 0.1);
+        textColor = context.statusColors.success;
         icon = Icons.verified;
         title = 'Terverifikasi';
         message =
             'Akun penjual Anda telah diverifikasi. Anda dapat melakukan penarikan dana.';
         break;
       case SellerVerificationStatus.pendingReview:
-        bgColor = AppColors.statusWarning.withValues(alpha: 0.1);
-        textColor = AppColors.statusWarning;
+        bgColor = context.statusColors.warning.withValues(alpha: 0.1);
+        textColor = context.statusColors.warning;
         icon = Icons.pending;
         title = 'Menunggu Verifikasi';
         message =
             'Dokumen Anda sedang ditinjau oleh tim kami. Proses ini biasanya memakan waktu 1-2 hari kerja.';
         break;
       case SellerVerificationStatus.needsResubmission:
-        bgColor = AppColors.statusWarning.withValues(alpha: 0.1);
-        textColor = AppColors.statusWarning;
+        bgColor = context.statusColors.warning.withValues(alpha: 0.1);
+        textColor = context.statusColors.warning;
         icon = Icons.edit_document;
         title = 'Perlu Pengajuan Ulang';
         message =
             'Admin meminta penyesuaian dokumen. Periksa catatan dan ajukan kembali.';
         break;
       case SellerVerificationStatus.rejected:
-        bgColor = AppColors.error.withValues(alpha: 0.1);
-        textColor = AppColors.error;
+        bgColor = context.statusColors.error.withValues(alpha: 0.1);
+        textColor = context.statusColors.error;
         icon = Icons.cancel;
         title = 'Verifikasi Ditolak';
         message =
@@ -197,16 +197,16 @@ class _SellerVerificationScreenState
             'Verifikasi Anda sedang dalam proses investigasi. Penjualan tetap aktif, namun penarikan dana ditangguhkan sementara.';
         break;
       case SellerVerificationStatus.suspended:
-        bgColor = AppColors.error.withValues(alpha: 0.1);
-        textColor = AppColors.error;
+        bgColor = context.statusColors.error.withValues(alpha: 0.1);
+        textColor = context.statusColors.error;
         icon = Icons.block;
         title = 'Verifikasi Ditangguhkan';
         message =
             'Verifikasi penjual Anda ditangguhkan oleh admin. Penjualan dan penarikan dana tidak tersedia. Hubungi dukungan untuk informasi lebih lanjut.';
         break;
       case SellerVerificationStatus.revoked:
-        bgColor = AppColors.error.withValues(alpha: 0.1);
-        textColor = AppColors.error;
+        bgColor = context.statusColors.error.withValues(alpha: 0.1);
+        textColor = context.statusColors.error;
         icon = Icons.gpp_bad;
         title = 'Verifikasi Dicabut';
         message =
@@ -229,10 +229,10 @@ class _SellerVerificationScreenState
         state.status == SellerVerificationStatus.revoked;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(color: textColor.withValues(alpha: 0.3)),
       ),
       child: Row(
@@ -246,7 +246,7 @@ class _SellerVerificationScreenState
                 Text(
                   title,
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: AppType.s16,
                     fontWeight: FontWeight.bold,
                     color: textColor,
                   ),
@@ -255,7 +255,7 @@ class _SellerVerificationScreenState
                 Text(
                   message,
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: AppType.s13,
                     color: textColor.withValues(alpha: 0.8),
                   ),
                 ),
@@ -267,7 +267,7 @@ class _SellerVerificationScreenState
                   Text(
                     'Alasan: ${state.rejectionReason}',
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: AppType.s12,
                       color: textColor.withValues(alpha: 0.85),
                       fontStyle: FontStyle.italic,
                     ),
@@ -282,8 +282,8 @@ class _SellerVerificationScreenState
                     style: TextButton.styleFrom(
                       foregroundColor: textColor,
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
+                        horizontal: AppMetrics.p8,
+                        vertical: AppMetrics.p4,
                       ),
                       minimumSize: const Size(60, 32),
                     ),
@@ -300,7 +300,7 @@ class _SellerVerificationScreenState
   Widget _buildInstructionsSection() {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppMetrics.p16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -314,7 +314,7 @@ class _SellerVerificationScreenState
                 Text(
                   'Dokumen yang Diperlukan',
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: AppType.s16,
                     fontWeight: FontWeight.bold,
                     color: Theme.of(context).colorScheme.onSurface,
                   ),
@@ -359,7 +359,7 @@ class _SellerVerificationScreenState
     return Row(
       children: [
         Container(
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.all(AppMetrics.p8),
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
             shape: BoxShape.circle,
@@ -385,7 +385,7 @@ class _SellerVerificationScreenState
               Text(
                 description,
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: AppType.s12,
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
@@ -403,7 +403,7 @@ class _SellerVerificationScreenState
         Text(
           'Informasi Pribadi',
           style: TextStyle(
-            fontSize: 18,
+            fontSize: AppType.s18,
             fontWeight: FontWeight.bold,
             color: Theme.of(context).colorScheme.onSurface,
           ),
@@ -459,7 +459,7 @@ class _SellerVerificationScreenState
         Text(
           'Foto KTP',
           style: TextStyle(
-            fontSize: 16,
+            fontSize: AppType.s16,
             fontWeight: FontWeight.bold,
             color: Theme.of(context).colorScheme.onSurface,
           ),
@@ -467,12 +467,12 @@ class _SellerVerificationScreenState
         const SizedBox(height: 8),
         InkWell(
           onTap: () => _captureKtp(),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppShape.r12),
           child: Container(
             height: 200,
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.surfaceContainer,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppShape.r12),
               border: Border.all(
                 color: Theme.of(context).colorScheme.outlineVariant,
                 width: _ktpImage != null ? 2 : 1,
@@ -482,7 +482,7 @@ class _SellerVerificationScreenState
                 ? Stack(
                     children: [
                       ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(AppShape.r10),
                         child: Image.file(
                           _ktpImage!,
                           width: double.infinity,
@@ -532,7 +532,7 @@ class _SellerVerificationScreenState
                       Text(
                         'Pastikan terbaca dengan jelas',
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: AppType.s12,
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
@@ -551,7 +551,7 @@ class _SellerVerificationScreenState
         Text(
           'Foto Selfie dengan KTP',
           style: TextStyle(
-            fontSize: 16,
+            fontSize: AppType.s16,
             fontWeight: FontWeight.bold,
             color: Theme.of(context).colorScheme.onSurface,
           ),
@@ -560,19 +560,19 @@ class _SellerVerificationScreenState
         Text(
           'Pegang KTP di depan wajah, pastikan wajah dan KTP terlihat jelas',
           style: TextStyle(
-            fontSize: 12,
+            fontSize: AppType.s12,
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
         const SizedBox(height: 8),
         InkWell(
           onTap: () => _captureSelfie(),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppShape.r12),
           child: Container(
             height: 200,
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.surfaceContainer,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppShape.r12),
               border: Border.all(
                 color: Theme.of(context).colorScheme.outlineVariant,
                 width: _selfieImage != null ? 2 : 1,
@@ -582,7 +582,7 @@ class _SellerVerificationScreenState
                 ? Stack(
                     children: [
                       ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(AppShape.r10),
                         child: Image.file(
                           _selfieImage!,
                           width: double.infinity,
@@ -632,7 +632,7 @@ class _SellerVerificationScreenState
                       Text(
                         'Selfie memegang KTP di depan wajah',
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: AppType.s12,
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
@@ -660,8 +660,8 @@ class _SellerVerificationScreenState
               ? scheme.primary
               : scheme.surfaceContainerHighest,
           foregroundColor: scheme.onPrimary,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppShape.r8)),
         ),
         child: _isUploading || state.isLoading
             ? Row(
@@ -681,7 +681,7 @@ class _SellerVerificationScreenState
               )
             : const Text(
                 'Ajukan Verifikasi',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: AppType.s16, fontWeight: FontWeight.bold),
               ),
       ),
     );
@@ -694,7 +694,7 @@ class _SellerVerificationScreenState
         Text(
           'Dokumen Terupload',
           style: TextStyle(
-            fontSize: 16,
+            fontSize: AppType.s16,
             fontWeight: FontWeight.bold,
             color: Theme.of(context).colorScheme.onSurface,
           ),
@@ -706,10 +706,10 @@ class _SellerVerificationScreenState
               leading: Icon(
                 Icons.description,
                 color: doc['status'] == 'approved'
-                    ? AppColors.successGreen
+                    ? context.statusColors.success
                     : doc['status'] == 'rejected'
-                    ? AppColors.error
-                    : AppColors.statusWarning,
+                    ? context.statusColors.error
+                    : context.statusColors.warning,
               ),
               title: Text(_getDocumentTypeLabel(doc['document_type'])),
               subtitle: Text(_getDocumentStatusLabel(doc['status'])),
@@ -952,18 +952,18 @@ class _SellerVerificationScreenState
           children: [
             Text(
               'Verifikasi Anda ditolak. Pilih opsi di bawah:',
-              style: TextStyle(fontSize: 14),
+              style: TextStyle(fontSize: AppType.s14),
             ),
             SizedBox(height: 16),
             Text(
               '• Pastikan KTP terbaca jelas',
-              style: TextStyle(fontSize: 13),
+              style: TextStyle(fontSize: AppType.s13),
             ),
             Text(
               '• Nama harus sesuai dengan KTP',
-              style: TextStyle(fontSize: 13),
+              style: TextStyle(fontSize: AppType.s13),
             ),
-            Text('• NIK harus 16 digit', style: TextStyle(fontSize: 13)),
+            Text('• NIK harus 16 digit', style: TextStyle(fontSize: AppType.s13)),
           ],
         ),
         actions: [

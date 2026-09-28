@@ -602,7 +602,7 @@ class ChatDetail extends _$ChatDetail {
       request: request,
     );
 
-    if (result.isFailure) {
+    if (result.isError) {
       state = state.copyWith(error: result.error);
       throw Exception(result.error ?? 'Failed to create shipping quote');
     }

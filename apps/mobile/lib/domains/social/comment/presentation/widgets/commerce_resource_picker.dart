@@ -17,6 +17,7 @@ import 'package:labuda/domains/commerce/catalog/for_sale/domain/domain.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/seller_fps_pager.dart';
 import 'package:labuda/domains/social/comment/presentation/widgets/resource_identity.dart';
 import 'package:labuda/shared/utils/media_extensions.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 class CommerceResourceSelection {
   final ResourceIdentity resource;
@@ -56,7 +57,7 @@ class CommerceResourcePicker extends ConsumerStatefulWidget {
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppShape.r16)),
       ),
       builder: (_) => CommerceResourcePicker(
         sellerId: sellerId,
@@ -88,21 +89,21 @@ class _CommerceResourcePickerState extends ConsumerState<CommerceResourcePicker>
     final scheme = Theme.of(context).colorScheme;
     return Container(
       height: MediaQuery.of(context).size.height * 0.7,
-      padding: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.only(top: AppMetrics.p8),
       child: Column(
         children: [
           Container(
             width: 40,
             height: 4,
-            margin: const EdgeInsets.only(bottom: 8),
+            margin: const EdgeInsets.only(bottom: AppMetrics.p8),
             decoration: BoxDecoration(
               color: scheme.outlineVariant,
-              borderRadius: BorderRadius.circular(2),
+              borderRadius: BorderRadius.circular(AppShape.r2),
             ),
           ),
           Text(
             'Pilih Produk',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            style: TextStyle(fontSize: AppType.s16, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
           TabBar(
@@ -213,7 +214,7 @@ class _FPSTab extends ConsumerWidget {
         if (forSaleIndex >= active.length) {
           return const Center(
             child: Padding(
-              padding: EdgeInsets.all(16),
+              padding: EdgeInsets.all(AppMetrics.p16),
               child: CircularProgressIndicator(),
             ),
           );
@@ -372,7 +373,7 @@ class _Tile extends StatelessWidget {
       selected: isSelected,
       selectedTileColor: scheme.primary.withValues(alpha: 0.05),
       leading: ClipRRect(
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(AppShape.r6),
         child: imageUrl != null
             ? AppImage(
                 imageUrl: imageUrl,

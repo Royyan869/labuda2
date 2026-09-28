@@ -219,7 +219,7 @@ class NotificationNavigationHandler {
       appRouter.navigateToHome(); // Step 1: Ensure home in stack
 
       // Step 2: Wait for home to load, then push target
-      Timer(const Duration(milliseconds: 600), () {
+      Timer(AppMotion.slower, () {
         appRouter.navigateToChatConversation(chatId);
       });
 
@@ -278,7 +278,7 @@ class NotificationNavigationHandler {
       final appRouter = AppRouter();
 
       appRouter.navigateToHome();
-      Timer(const Duration(milliseconds: 600), () {
+      Timer(AppMotion.slower, () {
         appRouter.navigateToChatConversation(chatRoomId);
       });
 
@@ -305,7 +305,7 @@ class NotificationNavigationHandler {
       final appRouter = AppRouter();
 
       appRouter.navigateToHome();
-      Timer(const Duration(milliseconds: 600), () {
+      Timer(AppMotion.slower, () {
         appRouter.navigateToUserProfile(userId);
       });
 
@@ -346,7 +346,7 @@ class NotificationNavigationHandler {
       final appRouter = AppRouter();
 
       appRouter.navigateToHome();
-      Timer(const Duration(milliseconds: 600), () {
+      Timer(AppMotion.slower, () {
         switch (rawTargetType) {
           case 'content':
             if (targetId != null && targetId.isNotEmpty) {
@@ -392,7 +392,7 @@ class NotificationNavigationHandler {
       final appRouter = AppRouter();
 
       appRouter.navigateToHome();
-      Timer(const Duration(milliseconds: 600), () {
+      Timer(AppMotion.slower, () {
         final targetType = data['targetType'] as String?;
         final targetId = data['targetId'] as String?;
 
@@ -430,7 +430,7 @@ class NotificationNavigationHandler {
       final appRouter = AppRouter();
 
       appRouter.navigateToHome();
-      Timer(const Duration(milliseconds: 600), () {
+      Timer(AppMotion.slower, () {
         appRouter.navigateToContentDetail(contentId);
       });
 
@@ -563,7 +563,7 @@ class NotificationNavigationHandler {
       final appRouter = AppRouter();
 
       appRouter.navigateToHome();
-      Timer(const Duration(milliseconds: 600), () {
+      Timer(AppMotion.slower, () {
         appRouter.navigateToOrderDetail(orderId);
       });
 

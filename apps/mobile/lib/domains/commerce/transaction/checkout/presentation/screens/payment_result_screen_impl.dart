@@ -12,6 +12,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart' as core;
@@ -160,7 +161,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(core.AppMetrics.p24),
             child: _buildContent(state),
           ),
         ),
@@ -210,7 +211,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
         Text(
           'Menunggu Konfirmasi Pembayaran',
           style: TextStyle(
-            fontSize: 24,
+            fontSize: core.AppType.s24,
             fontWeight: FontWeight.bold,
             color: colorScheme.onSurface,
           ),
@@ -222,7 +223,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
           'Mohon tunggu, kami sedang mengecek status pembayaran Anda...\nOrder: ${widget.orderNumber ?? widget.orderId}',
           textAlign: TextAlign.center,
           style: TextStyle(
-            fontSize: 16,
+            fontSize: core.AppType.s16,
             color: colorScheme.onSurfaceVariant,
           ),
         ),
@@ -232,7 +233,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
         Text(
           'Pengecekan ke ${state.pollAttempts + 1}/${state.maxPollAttempts}',
           style: TextStyle(
-            fontSize: 14,                color: colorScheme.onSurfaceVariant,
+            fontSize: core.AppType.s14,                color: colorScheme.onSurfaceVariant,
           ),
         ),
 
@@ -240,12 +241,12 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
         if (elapsedMessage.isNotEmpty) ...[
           const SizedBox(height: 16),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: core.AppMetrics.p16, vertical: core.AppMetrics.p12),
             decoration: BoxDecoration(
-              color: core.AppColors.statusWarning.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
+              color: context.statusColors.warning.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(core.AppShape.r8),
               border: Border.all(
-                color: core.AppColors.statusWarning.withValues(alpha: 0.3),
+                color: context.statusColors.warning.withValues(alpha: 0.3),
               ),
             ),
             child: Row(
@@ -254,7 +255,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
                 Icon(
                   Icons.info_outline,
                   size: 18,
-                  color: core.AppColors.statusWarning,
+                  color: context.statusColors.warning,
                 ),
                 const SizedBox(width: 8),
                 Flexible(
@@ -262,7 +263,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
                     elapsedMessage,
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: core.AppType.s14,
                       color: colorScheme.onSurfaceVariant,
                     ),
                   ),
@@ -282,13 +283,13 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
             icon: const Icon(Icons.refresh, size: 20),
             label: const Text(
               'Coba Lagi',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              style: TextStyle(fontSize: core.AppType.s16, fontWeight: FontWeight.w600),
             ),
             style: OutlinedButton.styleFrom(
               foregroundColor: colorScheme.onSurface,
-              padding: const EdgeInsets.symmetric(vertical: 16),
+              padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p16),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(core.AppShape.r8),
               ),
               side: BorderSide(color: colorScheme.outlineVariant),
             ),
@@ -306,14 +307,14 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
               icon: const Icon(Icons.open_in_browser, size: 20),
               label: const Text(
                 'Lanjutkan Pembayaran',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                style: TextStyle(fontSize: core.AppType.s16, fontWeight: FontWeight.w600),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: colorScheme.primary,
                 foregroundColor: colorScheme.onPrimary,
-                padding: const EdgeInsets.symmetric(vertical: 16),
+                padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p16),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(core.AppShape.r8),
                 ),
               ),
             ),
@@ -328,7 +329,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
           child: Text(
             'Lihat Detail Pesanan',
             style: TextStyle(
-              fontSize: 14,
+              fontSize: core.AppType.s14,
               color: colorScheme.onSurfaceVariant,
             ),
           ),
@@ -352,13 +353,13 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
           width: 100,
           height: 100,
           decoration: BoxDecoration(
-            color: core.AppColors.successGreen.withValues(alpha: 0.1),
+            color: context.statusColors.success.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
-          child: const Icon(
+          child: Icon(
             Icons.check_circle,
             size: 64,
-            color: core.AppColors.successGreen,
+            color: context.statusColors.success,
           ),
         ),
         const SizedBox(height: 32),
@@ -367,7 +368,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
         Text(
           'Pembayaran Berhasil',
           style: TextStyle(
-            fontSize: 24,
+            fontSize: core.AppType.s24,
             fontWeight: FontWeight.bold,
             color: colorScheme.onSurface,
           ),
@@ -379,7 +380,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
           'Pesanan Anda telah dibayar.\nOrder: ${widget.orderNumber ?? widget.orderId}',
           textAlign: TextAlign.center,
           style: TextStyle(
-            fontSize: 16,
+            fontSize: core.AppType.s16,
             color: colorScheme.onSurfaceVariant,
           ),
         ),
@@ -398,14 +399,14 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
             style: ElevatedButton.styleFrom(
               backgroundColor: colorScheme.primary,
               foregroundColor: colorScheme.onPrimary,
-              padding: const EdgeInsets.symmetric(vertical: 16),
+              padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p16),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(core.AppShape.r8),
               ),
             ),
             child: const Text(
               'Lihat Pesanan',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              style: TextStyle(fontSize: core.AppType.s16, fontWeight: FontWeight.w600),
             ),
           ),
         ),
@@ -420,13 +421,13 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
               icon: const Icon(Icons.chat_bubble_outline, size: 20),
               label: const Text(
                 'Kembali ke Chat',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                style: TextStyle(fontSize: core.AppType.s16, fontWeight: FontWeight.w600),
               ),
               style: OutlinedButton.styleFrom(
                 foregroundColor: colorScheme.primary,
-                padding: const EdgeInsets.symmetric(vertical: 16),
+                padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p16),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(core.AppShape.r8),
                 ),
                 side: BorderSide(
                   color: colorScheme.primary.withValues(alpha: 0.5),
@@ -440,15 +441,15 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
             onPressed: _goToHome,
             style: OutlinedButton.styleFrom(
               foregroundColor: colorScheme.onSurface,
-              padding: const EdgeInsets.symmetric(vertical: 16),
+              padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p16),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(core.AppShape.r8),
               ),
               side: BorderSide(color: colorScheme.outlineVariant),
             ),
             child: const Text(
               'Kembali ke Beranda',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              style: TextStyle(fontSize: core.AppType.s16, fontWeight: FontWeight.w600),
             ),
           ),
         ),
@@ -483,13 +484,13 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
           width: 100,
           height: 100,
           decoration: BoxDecoration(
-            color: core.AppColors.statusError.withValues(alpha: 0.1),
+            color: context.statusColors.error.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
-          child: const Icon(
+          child: Icon(
             Icons.cancel,
             size: 64,
-            color: core.AppColors.statusError,
+            color: context.statusColors.error,
           ),
         ),
         const SizedBox(height: 32),
@@ -498,7 +499,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
         Text(
           'Pembayaran Gagal',
           style: TextStyle(
-            fontSize: 24,
+            fontSize: core.AppType.s24,
             fontWeight: FontWeight.bold,
             color: colorScheme.onSurface,
           ),
@@ -510,7 +511,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
           '$reason\nOrder: ${widget.orderNumber ?? widget.orderId}',
           textAlign: TextAlign.center,
           style: TextStyle(
-            fontSize: 16,
+            fontSize: core.AppType.s16,
             color: colorScheme.onSurfaceVariant,
           ),
         ),
@@ -518,12 +519,12 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
 
         // PHASE 3 HARDENING: Help section for payment failure
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(core.AppMetrics.p16),
           decoration: BoxDecoration(
-            color: core.AppColors.warning.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(12),
+            color: context.statusColors.warning.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(core.AppShape.r12),
             border: Border.all(
-              color: core.AppColors.warning.withValues(alpha: 0.3),
+              color: context.statusColors.warning.withValues(alpha: 0.3),
             ),
           ),
           child: Column(
@@ -533,14 +534,14 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
                 children: [
                   Icon(
                     Icons.help_outline,
-                    color: core.AppColors.warning,
+                    color: context.statusColors.warning,
                     size: 18,
                   ),
                   const SizedBox(width: 8),
                   Text(
                     'Butuh bantuan pembayaran?',
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: core.AppType.s14,
                       fontWeight: FontWeight.w600,
                       color: colorScheme.onSurface,
                     ),
@@ -551,7 +552,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
               Text(
                 'Cek panduan pembayaran atau hubungi support untuk bantuan langsung.',
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: core.AppType.s12,
                   color: colorScheme.onSurfaceVariant,
                 ),
               ),
@@ -574,11 +575,11 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
                       icon: const Icon(Icons.article_outlined, size: 16),
                       label: const Text('Panduan'),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: core.AppColors.warning,
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        textStyle: const TextStyle(fontSize: 12),
+                        foregroundColor: context.statusColors.warning,
+                        padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p8),
+                        textStyle: const TextStyle(fontSize: core.AppType.s12),
                         side: BorderSide(
-                          color: core.AppColors.warning.withValues(alpha: 0.5),
+                          color: context.statusColors.warning.withValues(alpha: 0.5),
                         ),
                       ),
                     ),
@@ -600,10 +601,10 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
                       icon: const Icon(Icons.support_agent, size: 16),
                       label: const Text('Support'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: core.AppColors.warning,
+                        backgroundColor: context.statusColors.warning,
                         foregroundColor: colorScheme.onPrimary,
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        textStyle: const TextStyle(fontSize: 12),
+                        padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p8),
+                        textStyle: const TextStyle(fontSize: core.AppType.s12),
                       ),
                     ),
                   ),
@@ -622,14 +623,14 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
             style: ElevatedButton.styleFrom(
               backgroundColor: colorScheme.primary,
               foregroundColor: colorScheme.onPrimary,
-              padding: const EdgeInsets.symmetric(vertical: 16),
+              padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p16),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(core.AppShape.r8),
               ),
             ),
             child: const Text(
               'Lihat Detail Pesanan',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              style: TextStyle(fontSize: core.AppType.s16, fontWeight: FontWeight.w600),
             ),
           ),
         ),
@@ -640,15 +641,15 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
             onPressed: _goToHome,
             style: OutlinedButton.styleFrom(
               foregroundColor: colorScheme.onSurface,
-              padding: const EdgeInsets.symmetric(vertical: 16),
+              padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p16),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(core.AppShape.r8),
               ),
               side: BorderSide(color: colorScheme.outlineVariant),
             ),
             child: const Text(
               'Kembali ke Beranda',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              style: TextStyle(fontSize: core.AppType.s16, fontWeight: FontWeight.w600),
             ),
           ),
         ),
@@ -668,13 +669,13 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
           width: 100,
           height: 100,
           decoration: BoxDecoration(
-            color: core.AppColors.statusWarning.withValues(alpha: 0.1),
+            color: context.statusColors.warning.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
-          child: const Icon(
+          child: Icon(
             Icons.pending_outlined,
             size: 64,
-            color: core.AppColors.statusWarning,
+            color: context.statusColors.warning,
           ),
         ),
         const SizedBox(height: 32),
@@ -683,7 +684,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
         Text(
           'Status Pembayaran Belum Diketahui',
           style: TextStyle(
-            fontSize: 24,
+            fontSize: core.AppType.s24,
             fontWeight: FontWeight.bold,
             color: colorScheme.onSurface,
           ),
@@ -695,7 +696,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
           'Kami tidak dapat memverifikasi status pembayaran Anda setelah ${state.maxPollAttempts}x pengecekan.\nOrder: ${widget.orderNumber ?? widget.orderId}',
           textAlign: TextAlign.center,
           style: TextStyle(
-            fontSize: 16,
+            fontSize: core.AppType.s16,
             color: colorScheme.onSurfaceVariant,
           ),
         ),
@@ -703,11 +704,11 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
 
         // Info message
         Container(
-          padding: const EdgeInsets.all(12),
-          margin: const EdgeInsets.symmetric(vertical: 16),
+          padding: const EdgeInsets.all(core.AppMetrics.p12),
+          margin: const EdgeInsets.symmetric(vertical: core.AppMetrics.p16),
           decoration: BoxDecoration(
             color: colorScheme.surfaceContainer,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(core.AppShape.r8),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -722,7 +723,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
                 child: Text(
                   'Jika sudah membayar, status pembayaran akan diperbarui dalam beberapa menit. Silakan cek halaman pesanan Anda.',
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: core.AppType.s13,
                     color: colorScheme.onSurfaceVariant,
                   ),
                 ),
@@ -740,14 +741,14 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
             style: ElevatedButton.styleFrom(
               backgroundColor: colorScheme.primary,
               foregroundColor: colorScheme.onPrimary,
-              padding: const EdgeInsets.symmetric(vertical: 16),
+              padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p16),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(core.AppShape.r8),
               ),
             ),
             child: const Text(
               'Cek Status Lagi',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              style: TextStyle(fontSize: core.AppType.s16, fontWeight: FontWeight.w600),
             ),
           ),
         ),
@@ -763,13 +764,13 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
               icon: const Icon(Icons.open_in_browser, size: 20),
               label: const Text(
                 'Lanjutkan Pembayaran',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                style: TextStyle(fontSize: core.AppType.s16, fontWeight: FontWeight.w600),
               ),
               style: OutlinedButton.styleFrom(
                 foregroundColor: colorScheme.primary,
-                padding: const EdgeInsets.symmetric(vertical: 16),
+                padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p16),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(core.AppShape.r8),
                 ),
                 side: BorderSide(
                   color: colorScheme.primary.withValues(alpha: 0.5),
@@ -786,15 +787,15 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
             onPressed: _goToOrderDetail,
             style: OutlinedButton.styleFrom(
               foregroundColor: colorScheme.onSurface,
-              padding: const EdgeInsets.symmetric(vertical: 16),
+              padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p16),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(core.AppShape.r8),
               ),
               side: BorderSide(color: colorScheme.outlineVariant),
             ),
             child: const Text(
               'Lihat Detail Pesanan',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              style: TextStyle(fontSize: core.AppType.s16, fontWeight: FontWeight.w600),
             ),
           ),
         ),
@@ -806,7 +807,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
             child: Text(
               'Kembali ke Beranda',
               style: TextStyle(
-                fontSize: 16,
+                fontSize: core.AppType.s16,
                 color: colorScheme.onSurfaceVariant,
               ),
             ),
@@ -831,13 +832,13 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
           width: 100,
           height: 100,
           decoration: BoxDecoration(
-            color: core.AppColors.statusError.withValues(alpha: 0.1),
+            color: context.statusColors.error.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
-          child: const Icon(
+          child: Icon(
             Icons.wifi_off,
             size: 64,
-            color: core.AppColors.statusError,
+            color: context.statusColors.error,
           ),
         ),
         const SizedBox(height: 32),
@@ -846,7 +847,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
         Text(
           'Gagal Terhubung ke Server',
           style: TextStyle(
-            fontSize: 24,
+            fontSize: core.AppType.s24,
             fontWeight: FontWeight.bold,
             color: colorScheme.onSurface,
           ),
@@ -858,7 +859,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
           errorMessage,
           textAlign: TextAlign.center,
           style: TextStyle(
-            fontSize: 16,
+            fontSize: core.AppType.s16,
             color: colorScheme.onSurfaceVariant,
           ),
         ),
@@ -872,14 +873,14 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
             style: ElevatedButton.styleFrom(
               backgroundColor: colorScheme.primary,
               foregroundColor: colorScheme.onPrimary,
-              padding: const EdgeInsets.symmetric(vertical: 16),
+              padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p16),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(core.AppShape.r8),
               ),
             ),
             child: const Text(
               'Coba Lagi',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              style: TextStyle(fontSize: core.AppType.s16, fontWeight: FontWeight.w600),
             ),
           ),
         ),
@@ -895,13 +896,13 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
               icon: const Icon(Icons.open_in_browser, size: 20),
               label: const Text(
                 'Lanjutkan Pembayaran',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                style: TextStyle(fontSize: core.AppType.s16, fontWeight: FontWeight.w600),
               ),
               style: OutlinedButton.styleFrom(
                 foregroundColor: colorScheme.primary,
-                padding: const EdgeInsets.symmetric(vertical: 16),
+                padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p16),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(core.AppShape.r8),
                 ),
                 side: BorderSide(
                   color: colorScheme.primary.withValues(alpha: 0.5),
@@ -918,15 +919,15 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
             onPressed: _goToOrderDetail,
             style: OutlinedButton.styleFrom(
               foregroundColor: colorScheme.onSurface,
-              padding: const EdgeInsets.symmetric(vertical: 16),
+              padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p16),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(core.AppShape.r8),
               ),
               side: BorderSide(color: colorScheme.outlineVariant),
             ),
             child: const Text(
               'Lihat Detail Pesanan',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              style: TextStyle(fontSize: core.AppType.s16, fontWeight: FontWeight.w600),
             ),
           ),
         ),
@@ -938,7 +939,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
             child: Text(
               'Kembali ke Beranda',
               style: TextStyle(
-                fontSize: 16,
+                fontSize: core.AppType.s16,
                 color: colorScheme.onSurfaceVariant,
               ),
             ),

@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:labuda/core/core.dart' as core;
+import 'package:labuda/core/media/media_upload_orchestrator.dart';
 import 'package:labuda/core/providers/core_providers.dart';
 import 'package:labuda/domains/commerce/transaction/order/data/dto/dispute_dto.dart';
 import 'package:labuda/domains/commerce/transaction/order/data/order_providers.dart';
@@ -61,7 +62,6 @@ class DirectDisputeDialog extends ConsumerStatefulWidget {
 
 class _DirectDisputeDialogState extends ConsumerState<DirectDisputeDialog> {
   final _descriptionController = TextEditingController();
-  final _picker = ImagePicker();
   DisputeReasonCode? _selectedReason;
   XFile? _videoFile;
   final List<XFile> _photoFiles = [];
@@ -74,39 +74,27 @@ class _DirectDisputeDialogState extends ConsumerState<DirectDisputeDialog> {
   }
 
   Future<void> _pickVideo() async {
-    try {
-      final video = await _picker.pickVideo(
-        source: ImageSource.gallery,
-        maxDuration: const Duration(minutes: 2),
-      );
-      if (video != null) {
-        setState(() {
-          _videoFile = video;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        AppSnackBar.showError(context, 'Gagal memilih video. Coba lagi.');
-      }
+    final video = await MediaUploadOrchestrator.pickGalleryVideo(
+      context: context,
+    );
+    if (video != null && mounted) {
+      setState(() {
+        _videoFile = video;
+      });
     }
   }
 
   Future<void> _pickPhotos() async {
-    try {
-      final photos = await _picker.pickMultiImage(
-        imageQuality: 80,
-        maxWidth: 1920,
-        maxHeight: 1920,
-      );
-      if (photos.isNotEmpty && _photoFiles.length + photos.length <= 5) {
-        setState(() {
-          _photoFiles.addAll(photos);
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        AppSnackBar.showError(context, 'Gagal memilih foto. Coba lagi.');
-      }
+    final photos = await MediaUploadOrchestrator.pickGalleryImages(
+      context: context,
+      maxAssets: 5,
+    );
+    if (photos.isNotEmpty &&
+        mounted &&
+        _photoFiles.length + photos.length <= 5) {
+      setState(() {
+        _photoFiles.addAll(photos);
+      });
     }
   }
 
@@ -206,14 +194,14 @@ class _DirectDisputeDialogState extends ConsumerState<DirectDisputeDialog> {
         children: [
           Icon(
             Icons.report_problem_rounded,
-            color: core.AppColors.statusWarning,
+            color: context.statusColors.warning,
             size: 24,
           ),
           const SizedBox(width: 12),
           const Expanded(
             child: Text(
               'Buka Dispute',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+              style: TextStyle(fontSize: core.AppType.s18, fontWeight: FontWeight.w600),
             ),
           ),
         ],
@@ -227,10 +215,10 @@ class _DirectDisputeDialogState extends ConsumerState<DirectDisputeDialog> {
             children: [
               // Info message
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(core.AppMetrics.p12),
                 decoration: BoxDecoration(
                   color: colorScheme.secondary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(core.AppShape.r8),
                   border: Border.all(
                     color: colorScheme.secondary.withValues(alpha: 0.3),
                   ),
@@ -248,7 +236,7 @@ class _DirectDisputeDialogState extends ConsumerState<DirectDisputeDialog> {
                       child: Text(
                         'Admin akan meninjau kasus ini secara adil berdasarkan bukti dari kedua pihak.',
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: core.AppType.s12,
                           color: colorScheme.onSurface,
                         ),
                       ),
@@ -271,11 +259,11 @@ class _DirectDisputeDialogState extends ConsumerState<DirectDisputeDialog> {
                 decoration: InputDecoration(
                   hintText: 'Pilih alasan...',
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(core.AppShape.r8),
                   ),
                   contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 12,
+                    horizontal: core.AppMetrics.p12,
+                    vertical: core.AppMetrics.p12,
                   ),
                 ),
                 items: DisputeReasonCode.values
@@ -284,7 +272,7 @@ class _DirectDisputeDialogState extends ConsumerState<DirectDisputeDialog> {
                         value: reason,
                         child: Text(
                           reason.displayName,
-                          style: const TextStyle(fontSize: 14),
+                          style: const TextStyle(fontSize: core.AppType.s14),
                         ),
                       ),
                     )
@@ -312,7 +300,7 @@ class _DirectDisputeDialogState extends ConsumerState<DirectDisputeDialog> {
                 decoration: InputDecoration(
                   hintText: 'Jelaskan secara detail masalah yang Anda alami...',
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(core.AppShape.r8),
                   ),
                   filled: true,
                   fillColor: colorScheme.surfaceContainerHigh,
@@ -330,24 +318,24 @@ class _DirectDisputeDialogState extends ConsumerState<DirectDisputeDialog> {
               const SizedBox(height: 8),
               if (_videoFile != null)
                 Container(
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(core.AppMetrics.p8),
                   decoration: BoxDecoration(
                     color: colorScheme.surfaceContainerHigh,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(core.AppShape.r8),
                     border: Border.all(color: colorScheme.outlineVariant),
                   ),
                   child: Row(
                     children: [
                       Icon(
                         Icons.videocam_rounded,
-                        color: core.AppColors.primaryGreen,
+                        color: context.statusColors.success,
                         size: 20,
                       ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           _videoFile!.name,
-                          style: const TextStyle(fontSize: 12),
+                          style: const TextStyle(fontSize: core.AppType.s12),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -377,7 +365,7 @@ class _DirectDisputeDialogState extends ConsumerState<DirectDisputeDialog> {
               Text(
                 'Rekam video unboxing atau bukti masalah (maks. 2 menit)',
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: core.AppType.s11,
                   color: colorScheme.onSurfaceVariant,
                 ),
               ),
@@ -400,7 +388,7 @@ class _DirectDisputeDialogState extends ConsumerState<DirectDisputeDialog> {
                       (entry) => Stack(
                         children: [
                           ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(core.AppShape.r8),
                             child: Image.file(
                               File(entry.value.path),
                               width: 60,
@@ -418,7 +406,7 @@ class _DirectDisputeDialogState extends ConsumerState<DirectDisputeDialog> {
                                 });
                               },
                               child: Container(
-                                padding: const EdgeInsets.all(2),
+                                padding: const EdgeInsets.all(core.AppMetrics.p2),
                                 decoration: BoxDecoration(
                                   color: colorScheme.error,
                                   shape: BoxShape.circle,
@@ -441,7 +429,7 @@ class _DirectDisputeDialogState extends ConsumerState<DirectDisputeDialog> {
                           width: 60,
                           height: 60,
                           decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(core.AppShape.r8),
                             border: Border.all(color: colorScheme.outlineVariant),
                           ),
                           child: Icon(
@@ -465,17 +453,17 @@ class _DirectDisputeDialogState extends ConsumerState<DirectDisputeDialog> {
 
               // Escrow freeze warning
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(core.AppMetrics.p12),
                 decoration: BoxDecoration(
-                  color: core.AppColors.statusWarning.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  color: context.statusColors.warning.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(core.AppShape.r8),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Icon(
                       Icons.lock_clock,
-                      color: core.AppColors.statusWarning,
+                      color: context.statusColors.warning,
                       size: 16,
                     ),
                     const SizedBox(width: 8),
@@ -483,8 +471,8 @@ class _DirectDisputeDialogState extends ConsumerState<DirectDisputeDialog> {
                       child: Text(
                         'Dana akan dibekukan selama proses peninjauan admin.',
                         style: TextStyle(
-                          fontSize: 11,
-                          color: core.AppColors.statusWarning,
+                          fontSize: core.AppType.s11,
+                          color: context.statusColors.warning,
                         ),
                       ),
                     ),
@@ -503,7 +491,7 @@ class _DirectDisputeDialogState extends ConsumerState<DirectDisputeDialog> {
         ElevatedButton(
           onPressed: _isSubmitting ? null : _submitDispute,
           style: ElevatedButton.styleFrom(
-            backgroundColor: core.AppColors.statusWarning,
+            backgroundColor: context.statusColors.warning,
             foregroundColor: colorScheme.onPrimary,
             disabledBackgroundColor: colorScheme.surfaceContainerHighest,
           ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Loading state while sending OTP
 class OTPLoadingState extends StatelessWidget {
@@ -21,7 +22,7 @@ class OTPLoadingState extends StatelessWidget {
         Text(
           'Sending OTP code...',
           style: TextStyle(
-            fontSize: 13,
+            fontSize: AppType.s13,
             color: scheme.onSurfaceVariant,
           ),
         ),

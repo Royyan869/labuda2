@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Authentication divider with "or" text
 ///
@@ -11,7 +12,7 @@ import 'package:flutter/material.dart';
 ///
 /// AuthDivider(text: 'OR')  // Custom text
 ///
-/// AuthDivider(text: 'Continue with', margin: EdgeInsets.only(top: 16))
+/// AuthDivider(text: 'Continue with', margin: EdgeInsets.only(top: AppMetrics.p16))
 /// ```
 class AuthDivider extends StatelessWidget {
   final String text;
@@ -24,7 +25,7 @@ class AuthDivider extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
 
     return Padding(
-      padding: margin ?? const EdgeInsets.symmetric(vertical: 24),
+      padding: margin ?? const EdgeInsets.symmetric(vertical: AppMetrics.p24),
       child: Row(
         children: [
           Expanded(
@@ -34,7 +35,7 @@ class AuthDivider extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16),
             child: Text(
               text,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(

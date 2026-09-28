@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Page indicators dan counter untuk media carousel
 ///
@@ -41,7 +42,7 @@ class CarouselIndicators extends StatelessWidget {
       children: List.generate(
         totalItems,
         (index) => Container(
-          margin: const EdgeInsets.symmetric(horizontal: 3),
+          margin: const EdgeInsets.symmetric(horizontal: AppMetrics.p3),
           width: 6,
           height: 6,
           decoration: BoxDecoration(
@@ -75,7 +76,7 @@ class MediaPageIndicators extends StatelessWidget {
       children: List.generate(
         totalItems,
         (index) => Container(
-          margin: const EdgeInsets.symmetric(horizontal: 3),
+          margin: const EdgeInsets.symmetric(horizontal: AppMetrics.p3),
           width: 6,
           height: 6,
           decoration: BoxDecoration(
@@ -105,16 +106,16 @@ class MediaCounter extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
       decoration: BoxDecoration(
         color: scheme.scrim.withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
       ),
       child: Text(
         '${currentIndex + 1}/$totalItems',
         style: TextStyle(
           color: scheme.onPrimary,
-          fontSize: 12,
+          fontSize: AppType.s12,
           fontWeight: FontWeight.w500,
         ),
       ),

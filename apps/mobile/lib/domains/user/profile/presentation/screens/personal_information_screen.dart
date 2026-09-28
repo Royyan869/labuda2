@@ -211,7 +211,7 @@ class _PersonalInformationScreenState
       _controller.showSuccess('Personal information saved successfully');
 
       // Wait for animation then navigate back
-      await Future.delayed(const Duration(milliseconds: 500));
+      await Future.delayed(AppMotion.slow);
       if (mounted) {
         Navigator.of(context).pop();
       }
@@ -240,7 +240,7 @@ class _PersonalInformationScreenState
         content: Form(
           key: _formKey,
           child: ListView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppMetrics.p16),
             children: [
               // Contact Information Section
               PersonalInformationSection(

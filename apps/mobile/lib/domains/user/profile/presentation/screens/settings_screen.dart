@@ -42,7 +42,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       appBar: AppBarCustom(title: l10n.settings),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.only(top: 8, bottom: 8),
+          padding: const EdgeInsets.only(top: AppMetrics.p8, bottom: AppMetrics.p8),
           children: [
             // ========================================
             // ROLE-BASED CARDS
@@ -256,20 +256,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget _buildSellerDashboardCard(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      margin: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p8, AppMetrics.p16, AppMetrics.p16),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            AppColors.primaryGreen,
-            AppColors.statusSuccess,
+            context.statusColors.success,
+            context.statusColors.success,
           ],
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppShape.r16),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primaryGreen.withValues(alpha: 0.3),
+            color: context.statusColors.success.withValues(alpha: 0.3),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -279,16 +279,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         color: Colors.transparent,
         child: InkWell(
           onTap: () => _navigateToSellerDashboard(context),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(AppShape.r16),
           child: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(AppMetrics.p20),
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(AppMetrics.p12),
                   decoration: BoxDecoration(
                     color: scheme.onPrimary.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(AppShape.r12),
                   ),
                   child: Icon(
                     Icons.dashboard,
@@ -305,7 +305,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         'Seller Dashboard',
                         style: TextStyle(
                           color: scheme.onPrimary,
-                          fontSize: 18,
+                          fontSize: AppType.s18,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -314,7 +314,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         'Manage your store and sales',
                         style: TextStyle(
                           color: scheme.onPrimary,
-                          fontSize: 14,
+                          fontSize: AppType.s14,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -338,30 +338,30 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget _buildSellerShippingTile(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      margin: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p0, AppMetrics.p16, AppMetrics.p12),
       decoration: BoxDecoration(
         color: scheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(color: scheme.outlineVariant),
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: () => context.push(RoutePaths.sellerShipping),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppShape.r12),
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppMetrics.p16),
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(AppMetrics.p10),
                   decoration: BoxDecoration(
-                    color: AppColors.statusInfo.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(10),
+                    color: context.statusColors.info.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(AppShape.r10),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.local_shipping_outlined,
-                    color: AppColors.statusInfo,
+                    color: context.statusColors.info,
                     size: 22,
                   ),
                 ),
@@ -373,7 +373,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       Text(
                         'Shipping',
                         style: TextStyle(
-                          fontSize: 15,
+                          fontSize: AppType.s15,
                           fontWeight: FontWeight.w600,
                           color: scheme.onSurface,
                         ),
@@ -382,7 +382,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       Text(
                         'Manage shipping options & rates for your products',
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: AppType.s12,
                           color: scheme.onSurfaceVariant,
                         ),
                       ),
@@ -419,7 +419,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             const SizedBox(height: 8),
             Text(l10n.copyrightLabudaTeam(currentYear)),
             const SizedBox(height: 16),
-            Text(l10n.labudaDescription, style: const TextStyle(fontSize: 14)),
+            Text(l10n.labudaDescription, style: const TextStyle(fontSize: AppType.s14)),
           ],
         ),
         actions: [
@@ -457,7 +457,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     child: Center(
                       child: Card(
                         child: Padding(
-                          padding: const EdgeInsets.all(24),
+                          padding: const EdgeInsets.all(AppMetrics.p24),
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [

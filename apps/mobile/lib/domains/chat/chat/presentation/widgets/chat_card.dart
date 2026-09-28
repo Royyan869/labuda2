@@ -58,7 +58,7 @@ class ChatCard extends ConsumerWidget {
       onTap: onTap,
       onLongPress: onLongPress,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p12),
         decoration: BoxDecoration(
           border: Border(
             bottom: BorderSide(color: colorScheme.outlineVariant, width: 0.5),
@@ -103,7 +103,7 @@ class ChatCard extends ConsumerWidget {
       onTap: onTap,
       onLongPress: onLongPress,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p12),
         decoration: BoxDecoration(
           color: chat.supportStatus == SupportStatus.open
               ? colorScheme.secondary.withValues(alpha: 0.08)
@@ -180,7 +180,7 @@ class ChatCard extends ConsumerWidget {
             userName,
             style: TextStyle(
               fontWeight: FontWeight.w600,
-              fontSize: 16,
+              fontSize: AppType.s16,
               // E4.3 — Degraded identity: italic + muted color so the
               // redaction placeholder is visually distinct from a real
               // username. Matches the E3.1 comment-author treatment.
@@ -208,13 +208,13 @@ class ChatCard extends ConsumerWidget {
                 'Support',
                 style: const TextStyle(
                   fontWeight: FontWeight.w600,
-                  fontSize: 16,
+                  fontSize: AppType.s16,
                 ),
               ),
               if (chat.assignedAdminName != null)
                 Text(
                   'Agent: ${chat.assignedAdminName}',
-                  style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
+                  style: TextStyle(fontSize: AppType.s12, color: colorScheme.onSurfaceVariant),
                 ),
             ],
           ),
@@ -232,7 +232,7 @@ class ChatCard extends ConsumerWidget {
 
     return Text(
       timeStr,
-      style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
+      style: TextStyle(fontSize: AppType.s12, color: colorScheme.onSurfaceVariant),
     );
   }
 
@@ -241,7 +241,7 @@ class ChatCard extends ConsumerWidget {
     if (chat.lastMessage == null) {
       return Text(
         'No messages yet',
-        style: TextStyle(fontSize: 14, color: colorScheme.onSurfaceVariant),
+        style: TextStyle(fontSize: AppType.s14, color: colorScheme.onSurfaceVariant),
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
       );
@@ -251,7 +251,7 @@ class ChatCard extends ConsumerWidget {
     if (message.isHidden) {
       return Text(
         context.l10n.hiddenMessageByModerator,
-        style: TextStyle(fontSize: 14, color: colorScheme.onSurfaceVariant),
+        style: TextStyle(fontSize: AppType.s14, color: colorScheme.onSurfaceVariant),
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
       );
@@ -261,7 +261,7 @@ class ChatCard extends ConsumerWidget {
 
     return Text(
       '$prefix${_getMessagePreview(message)}',
-      style: TextStyle(fontSize: 14, color: colorScheme.onSurface),
+      style: TextStyle(fontSize: AppType.s14, color: colorScheme.onSurface),
       maxLines: 2,
       overflow: TextOverflow.ellipsis,
     );
@@ -292,10 +292,10 @@ class ChatCard extends ConsumerWidget {
     if (chat.supportCategory == null) return const SizedBox.shrink();
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
       decoration: BoxDecoration(
         color: _getSupportCategoryColor(context).withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(AppShape.r4),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -308,7 +308,7 @@ class ChatCard extends ConsumerWidget {
           const SizedBox(width: 4),
           Text(
             _getSupportCategoryLabel(),
-            style: TextStyle(fontSize: 12, color: _getSupportCategoryColor(context)),
+            style: TextStyle(fontSize: AppType.s12, color: _getSupportCategoryColor(context)),
           ),
         ],
       ),
@@ -322,7 +322,7 @@ class ChatCard extends ConsumerWidget {
       children: [
         if (unreadCount > 0)
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.primary,
               shape: BoxShape.circle,
@@ -333,7 +333,7 @@ class ChatCard extends ConsumerWidget {
                 unreadCount > 99 ? '99+' : unreadCount.toString(),
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.onPrimary,
-                  fontSize: 11,
+                  fontSize: AppType.s11,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -353,14 +353,14 @@ class ChatCard extends ConsumerWidget {
 
   Color _getSupportCategoryColor(BuildContext context) {
     return switch (chat.supportCategory) {
-      SupportCategory.paymentIssue => AppColors.statusSuccess,
-      SupportCategory.refundRequest => AppColors.statusSuccess,
-      SupportCategory.orderIssue => AppColors.statusWarning,
-      SupportCategory.shippingIssue => AppColors.statusWarning,
+      SupportCategory.paymentIssue => context.statusColors.success,
+      SupportCategory.refundRequest => context.statusColors.success,
+      SupportCategory.orderIssue => context.statusColors.warning,
+      SupportCategory.shippingIssue => context.statusColors.warning,
       SupportCategory.accountIssue => AppColors.primaryPurple,
-      SupportCategory.listingIssue => AppColors.primaryGreen,
-      SupportCategory.dispute => AppColors.statusError,
-      SupportCategory.technicalIssue => AppColors.statusInfo,
+      SupportCategory.listingIssue => context.statusColors.success,
+      SupportCategory.dispute => context.statusColors.error,
+      SupportCategory.technicalIssue => context.statusColors.info,
       SupportCategory.other || null =>
         Theme.of(context).colorScheme.onSurfaceVariant,
     };

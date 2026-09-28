@@ -5,14 +5,15 @@
 /// - AppBottomSheetBase: Standard bottom sheet with custom content
 /// - AppBottomSheetActions: Action-based bottom sheets
 /// - AppBottomSheetSettings: Settings bottom sheets
-/// - AppBottomSheetMediaPicker: Media picker bottom sheets
 /// - AppBottomSheetListSelection: List selection bottom sheets
+///
+/// Media picking lives ONLY in MediaUploadOrchestrator — the legacy
+/// AppBottomSheetMediaPicker was purged as a competing picker authority.
 library;
 
 export 'app_bottom_sheet_base.dart';
 export 'app_bottom_sheet_actions.dart';
 export 'app_bottom_sheet_settings.dart';
-export 'app_bottom_sheet_media_picker.dart';
 export 'app_bottom_sheet_list_selection.dart';
 
 /// Compatibility layer - maintains original API
@@ -20,7 +21,6 @@ import 'package:flutter/material.dart';
 import 'app_bottom_sheet_base.dart';
 import 'app_bottom_sheet_actions.dart';
 import 'app_bottom_sheet_settings.dart';
-import 'app_bottom_sheet_media_picker.dart';
 import 'app_bottom_sheet_list_selection.dart';
 
 class AppBottomSheet {
@@ -87,17 +87,6 @@ class AppBottomSheet {
     context: context,
     title: title,
     customSettings: customSettings,
-  );
-
-  /// Show quick media picker
-  static Future<String?> showQuickMediaPicker({
-    required BuildContext context,
-    String title = 'Select Media',
-    bool allowVideo = true,
-  }) => AppBottomSheetMediaPicker.showQuickMediaPicker(
-    context: context,
-    title: title,
-    allowVideo: allowVideo,
   );
 
   /// Show list selection bottom sheet

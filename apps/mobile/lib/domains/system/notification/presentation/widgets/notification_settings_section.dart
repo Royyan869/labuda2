@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Notification Settings Section
 ///
@@ -23,10 +24,10 @@ class NotificationSettingsSection extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 24),
+      margin: const EdgeInsets.only(bottom: AppMetrics.p24),
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppShape.r16),
         boxShadow: [
           BoxShadow(
             color: colorScheme.shadow.withValues(alpha: 0.03),
@@ -40,14 +41,14 @@ class NotificationSettingsSection extends StatelessWidget {
         children: [
           // Section header
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+            padding: const EdgeInsets.fromLTRB(AppMetrics.p20, AppMetrics.p20, AppMetrics.p20, AppMetrics.p12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: AppType.s16,
                     fontWeight: FontWeight.w600,
                     color: colorScheme.onSurface,
                   ),
@@ -57,7 +58,7 @@ class NotificationSettingsSection extends StatelessWidget {
                   Text(
                     subtitle!,
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: AppType.s13,
                       color: colorScheme.onSurfaceVariant,
                     ),
                   ),

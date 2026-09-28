@@ -1,7 +1,5 @@
 // API Configuration for different environments
 
-import 'package:flutter/foundation.dart' show kIsWeb;
-
 /// Environment types
 enum ApiEnvironment {
   /// Local development (localhost)

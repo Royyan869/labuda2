@@ -3,6 +3,7 @@ import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/domains/user/preference/saved_item/models/saved_item_model.dart';
 import 'package:labuda/domains/user/preference/saved_item/data/services/saved_item_service.dart';
 import 'package:labuda/domains/user/preference/saved_item/data/repositories/saved_item_repository.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 class SavedItemScreen extends StatefulWidget {
   const SavedItemScreen({super.key});
@@ -89,11 +90,11 @@ class _SavedItemScreenState extends State<SavedItemScreen> {
 
   Widget _buildSavedItemCard(SavedItemModel item) {
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p8),
       child: ListTile(
         leading: Icon(
           item.isForSale ? Icons.list_alt : Icons.gavel,
-          color: Theme.of(context).primaryColor,
+          color: Theme.of(context).colorScheme.primary,
         ),
         title: Text(
           item.isForSale

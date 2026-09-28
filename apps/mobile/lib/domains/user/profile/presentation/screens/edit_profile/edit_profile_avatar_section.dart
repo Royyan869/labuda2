@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Avatar Section Widget for Edit Profile
 /// Shows single avatar for buyers, dual avatars (personal + farm) for sellers
@@ -133,7 +134,7 @@ class _AvatarItem extends StatelessWidget {
         Text(
           label,
           style: TextStyle(
-            fontSize: 12,
+            fontSize: AppType.s12,
             color: scheme.onSurfaceVariant,
           ),
         ),
@@ -142,7 +143,7 @@ class _AvatarItem extends StatelessWidget {
             onPressed: onRemove,
             child: Text(
               'Remove',
-              style: TextStyle(color: scheme.primary, fontSize: 12),
+              style: TextStyle(color: scheme.primary, fontSize: AppType.s12),
             ),
           ),
       ],

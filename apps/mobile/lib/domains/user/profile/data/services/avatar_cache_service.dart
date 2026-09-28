@@ -21,6 +21,9 @@ class AvatarCacheService {
   // Memory cache for avatar URLs
   static final Map<String, String?> _avatarCache = {};
   static final Map<String, DateTime> _cacheTimestamps = {};
+  // In-flight dedup: N cards for the same cold user share one request
+  // instead of firing N identical GET /users/{id}.
+  static final Map<String, Future<String?>> _inflight = {};
 
   // Cache TTL: 5 minutes
   static const Duration _cacheTTL = Duration(minutes: 5);
@@ -39,17 +42,36 @@ class AvatarCacheService {
   /// - Cached avatar if still valid
   /// - Fresh avatar from API if cache expired
   /// - null if user not found or error
-  Future<String?> getUserAvatarUrl(String userId) async {
+  Future<String?> getUserAvatarUrl(String userId) {
     try {
       // Check cache first
       if (_isCacheValid(userId)) {
         _logger?.info('📸 Avatar cache hit for user: $userId');
-        return _avatarCache[userId];
+        return Future.value(_avatarCache[userId]);
       }
+
+      // Join the in-flight request when N cards race for one cold user.
+      final pending = _inflight[userId];
+      if (pending != null) return pending;
 
       // Fetch fresh from API
       _logger?.info('🔄 Fetching fresh avatar for user: $userId');
 
+      final future = _fetchAndCache(userId);
+      _inflight[userId] = future;
+      future.whenComplete(() => _inflight.remove(userId));
+      return future;
+    } catch (e) {
+      _logger?.error(
+        'Failed to fetch avatar for user: $userId',
+        extra: {'error': e.toString()},
+      );
+      return Future.value();
+    }
+  }
+
+  Future<String?> _fetchAndCache(String userId) async {
+    try {
       final result = await _datasource.getUserById(userId);
 
       return result.fold(

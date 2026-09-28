@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Fullscreen Video Player Widget untuk Media Viewer
 ///
@@ -158,7 +159,7 @@ class _MediaViewerVideoPlayerState extends State<MediaViewerVideoPlayer> {
                 'Loading Video...',
                 style: TextStyle(
                   color: scheme.onPrimary,
-                  fontSize: 18,
+                  fontSize: AppType.s18,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -199,7 +200,7 @@ class _MediaViewerVideoPlayerState extends State<MediaViewerVideoPlayer> {
               'Video Failed to Load',
               style: TextStyle(
                 color: scheme.onPrimary,
-                fontSize: 18,
+                fontSize: AppType.s18,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -208,7 +209,7 @@ class _MediaViewerVideoPlayerState extends State<MediaViewerVideoPlayer> {
               'Unable to play this video',
               style: TextStyle(
                 color: scheme.onPrimary.withValues(alpha: 0.7),
-                fontSize: 14,
+                fontSize: AppType.s14,
               ),
             ),
             const SizedBox(height: 24),
@@ -226,8 +227,8 @@ class _MediaViewerVideoPlayerState extends State<MediaViewerVideoPlayer> {
                 backgroundColor: scheme.primary,
                 foregroundColor: scheme.onPrimary,
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 12,
+                  horizontal: AppMetrics.p24,
+                  vertical: AppMetrics.p12,
                 ),
               ),
             ),
@@ -324,7 +325,7 @@ class _CustomMaterialControlsState extends State<_CustomMaterialControls> {
       builder: (context, child) {
         return AnimatedOpacity(
           opacity: _controller!.value.isPlaying ? 0.0 : 1.0,
-          duration: const Duration(milliseconds: 300),
+          duration: AppMotion.settled,
           child: Container(
             decoration: BoxDecoration(
               color: Theme.of(
@@ -369,7 +370,7 @@ class _CustomMaterialControlsState extends State<_CustomMaterialControls> {
                 .onSurfaceVariant
                 .withValues(alpha: 0.3),
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p8),
         );
       },
     );
@@ -385,7 +386,7 @@ class _CustomMaterialControlsState extends State<_CustomMaterialControls> {
         final position = _controller!.value.position;
 
         return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p8),
           child: Row(
             children: [
               // Time display
@@ -393,7 +394,7 @@ class _CustomMaterialControlsState extends State<_CustomMaterialControls> {
                 '${_formatDuration(position)} / ${_formatDuration(duration)}',
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.onPrimary,
-                  fontSize: 12,
+                  fontSize: AppType.s12,
                 ),
               ),
               const Spacer(),
@@ -460,7 +461,7 @@ class _CustomMaterialControlsState extends State<_CustomMaterialControls> {
       context: context,
       backgroundColor: Theme.of(context).colorScheme.scrim,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppShape.r16)),
       ),
       builder: (context) {
         return SafeArea(
@@ -468,12 +469,12 @@ class _CustomMaterialControlsState extends State<_CustomMaterialControls> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(AppMetrics.p16),
                 child: Text(
                   'Playback Speed',
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.onPrimary,
-                    fontSize: 16,
+                    fontSize: AppType.s16,
                     fontWeight: FontWeight.bold,
                   ),
                 ),

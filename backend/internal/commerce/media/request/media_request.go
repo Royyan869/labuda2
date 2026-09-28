@@ -40,8 +40,8 @@ type MediaRequest struct {
 }
 
 // NormalizeSelection validates and canonicalizes a typed-media selection.
-// Typed media is ordered as images first, then videos, preserving the input
-// order inside each bucket.
+// Typed media preserves caller order exactly; position 0 is canonical cover
+// media, regardless of image/video type.
 //
 // Legacy media_urls are still accepted for compatibility, but they are always
 // converted into typed image rows.
@@ -73,25 +73,17 @@ func NormalizeSelection(media []MediaRequest, mediaURLs []string) ([]mediaentity
 
 func normalizeTyped(media []MediaRequest) ([]mediaentity.Media, error) {
 	now := time.Now().UTC()
-	images := make([]mediaentity.Media, 0, len(media))
-	videos := make([]mediaentity.Media, 0, len(media))
+	out := make([]mediaentity.Media, 0, len(media))
 
 	for i, item := range media {
 		normalized, err := normalizeTypedItem(item, now)
 		if err != nil {
 			return nil, fmt.Errorf("media[%d]: %w", i, err)
 		}
-		switch normalized.Type {
-		case mediaentity.MediaTypeVideo:
-			videos = append(videos, *normalized)
-		default:
-			images = append(images, *normalized)
-		}
-	}
-
-	out := append(images, videos...)
-	for i := range out {
-		out[i].Position = i
+		// Preserve client order exactly. Position 0 is canonical cover media;
+		// media type never outranks the owner's explicit arrangement.
+		normalized.Position = i
+		out = append(out, *normalized)
 	}
 	return out, nil
 }

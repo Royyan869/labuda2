@@ -33,14 +33,14 @@ class LinkListItem extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         child: Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(AppMetrics.p12),
           decoration: BoxDecoration(
             color: isSelected
                 ? scheme.primary.withValues(alpha: 0.1)
                 : scheme.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppShape.r12),
             border: Border.all(
               color: isSelected
                   ? scheme.primary
@@ -53,7 +53,7 @@ class LinkListItem extends StatelessWidget {
               // Image
               if (imageUrl != null) ...[
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(AppShape.r8),
                   child: AppImage(
                     imageUrl: imageUrl,
                     width: 60,
@@ -95,18 +95,18 @@ class LinkListItem extends StatelessWidget {
                         if (badge != null) ...[
                           Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
+                              horizontal: AppMetrics.p6,
+                              vertical: AppMetrics.p2,
                             ),
                             decoration: BoxDecoration(
                               color: (badgeColor ?? scheme.primary)
                                   .withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(4),
+                              borderRadius: BorderRadius.circular(AppShape.r4),
                             ),
                             child: Text(
                               badge!,
                               style: TextStyle(
-                                fontSize: 10,
+                                fontSize: AppType.s10,
                                 fontWeight: FontWeight.w600,
                                 color: badgeColor ?? scheme.primary,
                               ),
@@ -118,7 +118,7 @@ class LinkListItem extends StatelessWidget {
                           child: Text(
                             title,
                             style: TextStyle(
-                              fontSize: 14,
+                              fontSize: AppType.s14,
                               fontWeight: FontWeight.w600,
                               color: scheme.onSurface,
                             ),
@@ -136,7 +136,7 @@ class LinkListItem extends StatelessWidget {
                           child: Text(
                             subtitle,
                             style: TextStyle(
-                              fontSize: 12,
+                              fontSize: AppType.s12,
                               color: scheme.onSurfaceVariant,
                             ),
                             maxLines: 1,
@@ -148,9 +148,9 @@ class LinkListItem extends StatelessWidget {
                           Text(
                             price!,
                             style: TextStyle(
-                              fontSize: 13,
+                              fontSize: AppType.s13,
                               fontWeight: FontWeight.w600,
-                              color: AppColors.primaryGreen,
+                              color: context.statusColors.success,
                             ),
                           ),
                         ],
@@ -163,7 +163,7 @@ class LinkListItem extends StatelessWidget {
               // Selection indicator
               if (isSelected)
                 Container(
-                  padding: const EdgeInsets.all(4),
+                  padding: const EdgeInsets.all(AppMetrics.p4),
                   decoration: BoxDecoration(
                     color: scheme.primary,
                     shape: BoxShape.circle,

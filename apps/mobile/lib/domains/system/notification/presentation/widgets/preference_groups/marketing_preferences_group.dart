@@ -34,7 +34,7 @@ class MarketingPreferencesGroup extends StatelessWidget {
       children: [
         PreferenceToggleWidget(
           icon: Icons.campaign_outlined,
-          iconColor: AppColors.statusInfo,
+          iconColor: context.statusColors.info,
           title: 'Promotions & Announcements',
           subtitle: 'Special offers and latest news',
           value: preferences.marketingNotifications,

@@ -6,7 +6,6 @@ import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/commerce/catalog/auction/data/mappers/bidding_mapper.dart';
 import 'package:labuda/domains/commerce/catalog/auction/data/remote/bidding_remote_datasource.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/domain.dart';
-import 'package:labuda/domains/commerce/transaction/order/domain/repositories/repository_result.dart';
 
 /// Bidding Repository Implementation
 ///
@@ -23,14 +22,14 @@ class BiddingRepositoryImpl implements BiddingRepository {
        _logger = logger;
 
   @override
-  Future<RepositoryResult<BiddingResult>> getMyBidding() async {
+  Future<Result<BiddingResult>> getMyBidding() async {
     try {
       final dto = await _datasource.getMyBidding();
       final entity = BiddingMapper.toResultEntity(dto);
-      return RepositoryResult.success(entity);
+      return Result.success(entity);
     } catch (e) {
       _logger.error('Failed to get my bidding: $e');
-      return RepositoryResult.error(e.toString());
+      return Result.error(e.toString());
     }
   }
 }

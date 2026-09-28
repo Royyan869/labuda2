@@ -314,8 +314,8 @@ mixin OrderDetailHandlersMixin on ConsumerState<OrderDetailScreen> {
     final methodsResult = await paymentRepo.getPaymentMethodOptions(order.id);
     if (!mounted) return;
     final methods = methodsResult.fold<List<PaymentMethodOption>>(
-      (options) => options,
       (_) => const [],
+      (options) => options,
     );
     if (methods.isEmpty) {
       if (mounted) {
@@ -391,7 +391,7 @@ mixin OrderDetailHandlersMixin on ConsumerState<OrderDetailScreen> {
       builder: (context) => AlertDialog(
         icon: Icon(
           Icons.error_outline,
-          color: core.AppColors.statusError,
+          color: context.statusColors.error,
           size: 48,
         ),
         title: Text(title),

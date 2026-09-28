@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/shared/utils/mention_parser.dart';
 import 'package:labuda/shared/widgets/mentions/mention_suggestion_overlay.dart';
 import 'package:labuda/features/search/search/search.dart'; // **R2.2 MIGRATED**: Import from search domain
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// TextField dengan mention support (@username autocomplete)
 ///
@@ -191,7 +192,7 @@ class _MentionTextFieldState extends ConsumerState<MentionTextField> {
             bottom: keyboardHeight + 8,
             child: Container(
               height: 250,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16),
               child: Material(
                 color: Colors.transparent,
                 child: MentionSuggestionOverlay(
@@ -228,7 +229,7 @@ class _MentionTextFieldState extends ConsumerState<MentionTextField> {
             bottom: overlayBottom,
             child: Container(
               height: overlayHeight,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16),
               child: Material(
                 color: Colors.transparent,
                 child: MentionSuggestionOverlay(
@@ -250,7 +251,7 @@ class _MentionTextFieldState extends ConsumerState<MentionTextField> {
             bottom: keyboardHeight + 8,
             child: Container(
               height: overlayHeight,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16),
               child: Material(
                 color: Colors.transparent,
                 child: MentionSuggestionOverlay(
@@ -302,10 +303,10 @@ class _MentionTextFieldState extends ConsumerState<MentionTextField> {
           widget.decoration ??
           InputDecoration(
             hintText: widget.hintText,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(24)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppShape.r24)),
             contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 12,
+              horizontal: AppMetrics.p16,
+              vertical: AppMetrics.p12,
             ),
           ),
       maxLines: widget.maxLines,

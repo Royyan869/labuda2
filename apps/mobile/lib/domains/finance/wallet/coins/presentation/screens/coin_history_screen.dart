@@ -110,7 +110,7 @@ class _TransactionList extends StatelessWidget {
           if (index == transactions.length) {
             // Load more indicator
             return Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(AppMetrics.p16),
               child: Center(
                 child: TextButton(
                   onPressed: onLoadMore,
@@ -151,7 +151,7 @@ class _TransactionTile extends StatelessWidget {
         _formatDate(transaction.createdAt),
         style: TextStyle(
           color: Theme.of(context).colorScheme.onSurfaceVariant,
-          fontSize: 12,
+          fontSize: AppType.s12,
         ),
       ),
       trailing: Column(
@@ -163,14 +163,14 @@ class _TransactionTile extends StatelessWidget {
             style: TextStyle(
               color: iconColor,
               fontWeight: FontWeight.bold,
-              fontSize: 16,
+              fontSize: AppType.s16,
             ),
           ),
           Text(
             'Balance: ${transaction.balanceAfter}',
             style: TextStyle(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
-              fontSize: 11,
+              fontSize: AppType.s11,
             ),
           ),
         ],
@@ -221,7 +221,7 @@ class _EmptyState extends StatelessWidget {
           Text(
             'No Transactions',
             style: TextStyle(
-              fontSize: 18,
+              fontSize: AppType.s18,
               fontWeight: FontWeight.bold,
               color: Theme.of(context).colorScheme.onSurface,
             ),
@@ -230,7 +230,7 @@ class _EmptyState extends StatelessWidget {
           Text(
             message,
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppType.s14,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
@@ -250,7 +250,7 @@ class _ErrorState extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppMetrics.p24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -263,7 +263,7 @@ class _ErrorState extends StatelessWidget {
             Text(
               'Failed to Load',
               style: TextStyle(
-                fontSize: 18,
+                fontSize: AppType.s18,
                 fontWeight: FontWeight.bold,
                 color: Theme.of(context).colorScheme.onSurface,
               ),
@@ -272,7 +272,7 @@ class _ErrorState extends StatelessWidget {
             Text(
               message,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: AppType.s14,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               textAlign: TextAlign.center,

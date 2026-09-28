@@ -136,7 +136,7 @@ class FeedCard extends ConsumerWidget {
         horizontal: CommerceMarketplaceMetrics.gridEdgePadding,
         vertical: CommerceMarketplaceMetrics.stackedCardMargin,
       ),
-      elevation: 0,
+      elevation: AppElevation.none,
       color: scheme.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(
@@ -186,7 +186,7 @@ class FeedCard extends ConsumerWidget {
                   CommerceMarketplaceMetrics.contentPadding,
                   CommerceMarketplaceMetrics.contentPadding,
                   CommerceMarketplaceMetrics.contentPadding,
-                  0,
+                  AppMetrics.p0,
                 ),
                 child: ContentResourceProjectionCard(
                   resourceProjection: resourceProjection,
@@ -254,6 +254,7 @@ class FeedCard extends ConsumerWidget {
           : AppImage(
               imageUrl: media.originalUrl,
               fit: BoxFit.cover,
+              cacheWidth: 800,
               backgroundColor: Theme.of(
                 context,
               ).colorScheme.surfaceContainerHighest,
@@ -285,7 +286,7 @@ class FeedCard extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p8),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHigh,
         border: Border(bottom: BorderSide(color: scheme.outlineVariant)),
@@ -293,7 +294,7 @@ class FeedCard extends ConsumerWidget {
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(6),
+            padding: const EdgeInsets.all(AppMetrics.p6),
             decoration: BoxDecoration(
               color: scheme.onSurfaceVariant.withValues(alpha: 0.2),
               shape: BoxShape.circle,
@@ -308,7 +309,7 @@ class FeedCard extends ConsumerWidget {
           Text(
             'Tidak tersedia',
             style: TextStyle(
-              fontSize: 13,
+              fontSize: AppType.s13,
               fontWeight: FontWeight.w600,
               color: scheme.onSurface,
             ),
@@ -340,7 +341,7 @@ class FeedCard extends ConsumerWidget {
           onTap: authorRedacted
               ? null
               : () => _navigateToAuthorProfile(context),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppShape.r8),
           child: Row(
             children: [
               ProfileAvatar(
@@ -363,7 +364,7 @@ class FeedCard extends ConsumerWidget {
                                   : ''),
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
-                          fontSize: 14,
+                          fontSize: AppType.s14,
                           fontStyle: authorRedacted
                               ? FontStyle.italic
                               : FontStyle.normal,
@@ -388,7 +389,7 @@ class FeedCard extends ConsumerWidget {
               ),
               Text(
                 _formatTime(item.createdAt),
-                style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+                style: TextStyle(fontSize: AppType.s12, color: scheme.onSurfaceVariant),
               ),
             ],
           ),
@@ -430,7 +431,7 @@ class FeedCard extends ConsumerWidget {
       item.content,
       maxLines: 3,
       overflow: TextOverflow.ellipsis,
-      style: TextStyle(fontSize: 14, color: scheme.onSurface),
+      style: TextStyle(fontSize: AppType.s14, color: scheme.onSurface),
     );
   }
 
@@ -472,9 +473,9 @@ class FeedCard extends ConsumerWidget {
           onTap: isAuthenticated
               ? () => _handleLike(context, ref, currentUserId, currentUserName)
               : null,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppShape.r8),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p4, vertical: AppMetrics.p6),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -492,7 +493,7 @@ class FeedCard extends ConsumerWidget {
                   Text(
                     '$likeCount',
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: AppType.s12,
                       color: isLiked
                           ? scheme.primary
                           : (isAuthenticated
@@ -510,9 +511,9 @@ class FeedCard extends ConsumerWidget {
         // Comment — icon + count if available via additionalData, else icon only (no "Komentar" label)
         InkWell(
           onTap: () => _navigateToComments(context),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppShape.r8),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p4, vertical: AppMetrics.p6),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -526,7 +527,7 @@ class FeedCard extends ConsumerWidget {
                   Text(
                     '${item.additionalData['commentCount']}',
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: AppType.s12,
                       color: scheme.primary,
                       fontWeight: FontWeight.w600,
                     ),
@@ -540,9 +541,9 @@ class FeedCard extends ConsumerWidget {
         // Share — icon only (no label, no Spacer)
         InkWell(
           onTap: () => _handleShareContent(context),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppShape.r8),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p4, vertical: AppMetrics.p6),
             child: Icon(
               Icons.share_outlined,
               size: 16,
@@ -788,10 +789,10 @@ class _PromotedBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p3),
       decoration: BoxDecoration(
         color: scheme.primary.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(AppShape.r4),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -802,7 +803,7 @@ class _PromotedBadge extends StatelessWidget {
             'Dipromosikan',
             style: TextStyle(
               color: scheme.primary,
-              fontSize: 11,
+              fontSize: AppType.s11,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -858,7 +859,7 @@ class PromotedForSaleCard extends ConsumerWidget {
           horizontal: CommerceMarketplaceMetrics.gridEdgePadding,
           vertical: CommerceMarketplaceMetrics.stackedCardMargin,
         ),
-        elevation: 0,
+        elevation: AppElevation.none,
         color: scheme.surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(
@@ -928,7 +929,7 @@ class PromotedForSaleCard extends ConsumerWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: 15,
+                        fontSize: AppType.s15,
                         fontWeight: FontWeight.w600,
                         color: scheme.onSurface,
                       ),
@@ -939,7 +940,7 @@ class PromotedForSaleCard extends ConsumerWidget {
                     Text(
                       _formatPrice(pricePerUnit),
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: AppType.s16,
                         fontWeight: FontWeight.w700,
                         color: scheme.primary,
                       ),
@@ -958,7 +959,7 @@ class PromotedForSaleCard extends ConsumerWidget {
                         Text(
                           sellerLabel,
                           style: TextStyle(
-                            fontSize: 13,
+                            fontSize: AppType.s13,
                             color: scheme.onSurfaceVariant,
                           ),
                         ),
@@ -1034,7 +1035,7 @@ class PromotedAuctionCard extends ConsumerWidget {
           horizontal: CommerceMarketplaceMetrics.gridEdgePadding,
           vertical: CommerceMarketplaceMetrics.stackedCardMargin,
         ),
-        elevation: 0,
+        elevation: AppElevation.none,
         color: scheme.surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(
@@ -1097,20 +1098,20 @@ class PromotedAuctionCard extends ConsumerWidget {
                         if (timeRemaining.isNotEmpty)
                           Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 3,
+                              horizontal: AppMetrics.p8,
+                              vertical: AppMetrics.p3,
                             ),
                             decoration: BoxDecoration(
-                              color: AppColors.statusWarning.withValues(
+                              color: context.statusColors.warning.withValues(
                                 alpha: 0.1,
                               ),
-                              borderRadius: BorderRadius.circular(4),
+                              borderRadius: BorderRadius.circular(AppShape.r4),
                             ),
                             child: Text(
                               timeRemaining,
-                              style: const TextStyle(
-                                color: AppColors.statusWarning,
-                                fontSize: 11,
+                              style: TextStyle(
+                                color: context.statusColors.warning,
+                                fontSize: AppType.s11,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -1125,7 +1126,7 @@ class PromotedAuctionCard extends ConsumerWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: 15,
+                        fontSize: AppType.s15,
                         fontWeight: FontWeight.w600,
                         color: scheme.onSurface,
                       ),
@@ -1136,14 +1137,14 @@ class PromotedAuctionCard extends ConsumerWidget {
                     Text(
                       priceLabel,
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: AppType.s12,
                         color: scheme.onSurfaceVariant,
                       ),
                     ),
                     Text(
                       _formatPrice(displayPrice),
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: AppType.s16,
                         fontWeight: FontWeight.w700,
                         color: scheme.primary,
                       ),
@@ -1163,7 +1164,7 @@ class PromotedAuctionCard extends ConsumerWidget {
                           child: Text(
                             sellerLabel,
                             style: TextStyle(
-                              fontSize: 13,
+                              fontSize: AppType.s13,
                               color: scheme.onSurfaceVariant,
                             ),
                           ),
@@ -1172,7 +1173,7 @@ class PromotedAuctionCard extends ConsumerWidget {
                           Text(
                             '$bidCount bid',
                             style: TextStyle(
-                              fontSize: 12,
+                              fontSize: AppType.s12,
                               color: scheme.onSurfaceVariant,
                             ),
                           ),
@@ -1233,7 +1234,7 @@ class PromotedExternalCard extends ConsumerWidget {
           horizontal: CommerceMarketplaceMetrics.gridEdgePadding,
           vertical: CommerceMarketplaceMetrics.stackedCardMargin,
         ),
-        elevation: 0,
+        elevation: AppElevation.none,
         color: scheme.surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(
@@ -1289,7 +1290,7 @@ class PromotedExternalCard extends ConsumerWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: 15,
+                        fontSize: AppType.s15,
                         fontWeight: FontWeight.w600,
                         color: scheme.onSurface,
                       ),
@@ -1312,7 +1313,7 @@ class PromotedExternalCard extends ConsumerWidget {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                fontSize: 12,
+                                fontSize: AppType.s12,
                                 color: scheme.onSurfaceVariant,
                               ),
                             ),

@@ -11,7 +11,8 @@ library;
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:labuda/core/core.dart' show AppColors;
+import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:labuda/core/media/media_upload_orchestrator.dart';
 import 'package:labuda/domains/commerce/transaction/order/domain/entities/refund_request.dart';
 
 class RefundRequestDialog extends StatefulWidget {
@@ -39,7 +40,6 @@ class RefundRequestDialog extends StatefulWidget {
 class _RefundRequestDialogState extends State<RefundRequestDialog> {
   RefundReason? _selectedReason;
   final _descController = TextEditingController();
-  final ImagePicker _picker = ImagePicker();
 
   XFile? _unboxingVideo;
   List<XFile> _evidencePhotos = [];
@@ -56,44 +56,24 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
   }
 
   Future<void> _pickVideo() async {
-    try {
-      final video = await _picker.pickVideo(
-        source: ImageSource.gallery,
-        maxDuration: const Duration(minutes: 2),
-      );
-
-      if (video != null && mounted) {
-        setState(() => _unboxingVideo = video);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Gagal memilih video: $e')));
-      }
+    final video = await MediaUploadOrchestrator.pickGalleryVideo(
+      context: context,
+    );
+    if (video != null && mounted) {
+      setState(() => _unboxingVideo = video);
     }
   }
 
   Future<void> _pickPhotos() async {
-    try {
-      final photos = await _picker.pickMultiImage(
-        imageQuality: 80,
-        maxWidth: 1920,
-        maxHeight: 1920,
-      );
-
-      if (photos.isNotEmpty && mounted) {
-        setState(() {
-          // Limit to 5 photos max
-          _evidencePhotos = [..._evidencePhotos, ...photos].take(5).toList();
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Gagal memilih foto: $e')));
-      }
+    final photos = await MediaUploadOrchestrator.pickGalleryImages(
+      context: context,
+      maxAssets: 5,
+    );
+    if (photos.isNotEmpty && mounted) {
+      setState(() {
+        // Limit to 5 photos max
+        _evidencePhotos = [..._evidencePhotos, ...photos].take(5).toList();
+      });
     }
   }
 
@@ -121,12 +101,12 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppShape.r16)),
       child: Container(
         constraints: const BoxConstraints(maxWidth: 500, maxHeight: 700),
         decoration: BoxDecoration(
           color: colorScheme.surface,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(AppShape.r16),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -137,7 +117,7 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
             // Content
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(AppMetrics.p20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -171,12 +151,12 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
 
   Widget _buildHeader(ColorScheme colorScheme) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(AppMetrics.p20),
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHigh,
         borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(16),
-          topRight: Radius.circular(16),
+          topLeft: Radius.circular(AppShape.r16),
+          topRight: Radius.circular(AppShape.r16),
         ),
       ),
       child: Row(
@@ -188,7 +168,7 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
                 Text(
                   'Ajukan Refund',
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: AppType.s18,
                     fontWeight: FontWeight.bold,
                     color: colorScheme.onSurface,
                   ),
@@ -196,7 +176,7 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
                 Text(
                   'Order #${widget.orderId.substring(0, 8)}...',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: AppType.s12,
                     color: colorScheme.onSurfaceVariant,
                   ),
                 ),
@@ -222,14 +202,14 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
             Text(
               'Alasan Refund',
               style: TextStyle(
-                fontSize: 16,
+                fontSize: AppType.s16,
                 fontWeight: FontWeight.w600,
                 color: colorScheme.onSurface,
               ),
             ),
             Text(
               ' *',
-              style: TextStyle(color: colorScheme.error, fontSize: 16),
+              style: TextStyle(color: colorScheme.error, fontSize: AppType.s16),
             ),
           ],
         ),
@@ -272,7 +252,7 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
         Text(
           'Deskripsi Tambahan',
           style: TextStyle(
-            fontSize: 16,
+            fontSize: AppType.s16,
             fontWeight: FontWeight.w600,
             color: colorScheme.onSurface,
           ),
@@ -286,7 +266,7 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
           decoration: InputDecoration(
             hintText: 'Jelaskan detail masalah Anda...',
             hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppShape.r12)),
             filled: true,
             fillColor: colorScheme.surfaceContainerHigh,
           ),
@@ -304,14 +284,14 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
             Text(
               'Video Unboxing',
               style: TextStyle(
-                fontSize: 16,
+                fontSize: AppType.s16,
                 fontWeight: FontWeight.w600,
                 color: colorScheme.onSurface,
               ),
             ),
             Text(
               ' *',
-              style: TextStyle(color: colorScheme.error, fontSize: 16),
+              style: TextStyle(color: colorScheme.error, fontSize: AppType.s16),
             ),
             const SizedBox(width: 8),
             Icon(
@@ -324,7 +304,7 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
         const SizedBox(height: 4),
         Text(
           'Wajib unggah video unboxing untuk bukti',
-          style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
+          style: TextStyle(fontSize: AppType.s12, color: colorScheme.onSurfaceVariant),
         ),
         const SizedBox(height: 12),
 
@@ -343,10 +323,10 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
 
   Widget _buildVideoPreview(ColorScheme colorScheme) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppMetrics.p12),
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(
           color: colorScheme.secondary.withValues(alpha: 0.3),
         ),
@@ -358,7 +338,7 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
             height: 48,
             decoration: BoxDecoration(
               color: colorScheme.secondary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(AppShape.r8),
             ),
             child: Icon(Icons.play_arrow, color: colorScheme.secondary),
           ),
@@ -370,7 +350,7 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
                 Text(
                   _unboxingVideo!.name.split('/').last,
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: AppType.s14,
                     fontWeight: FontWeight.w500,
                     color: colorScheme.onSurface,
                   ),
@@ -380,7 +360,7 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
                 Text(
                   'Video unboxing',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: AppType.s12,
                     color: colorScheme.onSurfaceVariant,
                   ),
                 ),
@@ -405,7 +385,7 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
             Text(
               'Foto Bukti',
               style: TextStyle(
-                fontSize: 16,
+                fontSize: AppType.s16,
                 fontWeight: FontWeight.w600,
                 color: colorScheme.onSurface,
               ),
@@ -414,7 +394,7 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
             Text(
               '(Opsional)',
               style: TextStyle(
-                fontSize: 12,
+                fontSize: AppType.s12,
                 color: colorScheme.onSurfaceVariant,
               ),
             ),
@@ -435,7 +415,7 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
             _buildUploadButton(
               label: 'Tambah Foto',
               icon: Icons.add_photo_alternate_outlined,
-              color: AppColors.statusSuccess,
+              color: context.statusColors.success,
               onTap: _pickPhotos,
             ),
           ],
@@ -443,7 +423,7 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
           _buildUploadButton(
             label: 'Pilih Foto',
             icon: Icons.photo_library_outlined,
-            color: AppColors.statusSuccess,
+            color: context.statusColors.success,
             onTap: _pickPhotos,
           ),
       ],
@@ -454,7 +434,7 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
     return Stack(
       children: [
         ClipRRect(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppShape.r8),
           child: Image.file(
             File(_evidencePhotos[index].path),
             width: 80,
@@ -468,7 +448,7 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
           child: GestureDetector(
             onTap: () => _removePhoto(index),
             child: Container(
-              padding: const EdgeInsets.all(4),
+              padding: const EdgeInsets.all(AppMetrics.p4),
               decoration: BoxDecoration(
                 color: colorScheme.error,
                 shape: BoxShape.circle,
@@ -493,12 +473,12 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(AppShape.r12),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppMetrics.p16),
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppShape.r12),
           border: Border.all(
             color: color.withValues(alpha: 0.3),
             style: BorderStyle.solid,
@@ -521,12 +501,12 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
 
   Widget _buildFooter(ColorScheme colorScheme) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(AppMetrics.p20),
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHigh,
         borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(16),
-          bottomRight: Radius.circular(16),
+          bottomLeft: Radius.circular(AppShape.r16),
+          bottomRight: Radius.circular(AppShape.r16),
         ),
       ),
       child: SafeArea(
@@ -539,9 +519,9 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
                 style: OutlinedButton.styleFrom(
                   foregroundColor: colorScheme.onSurfaceVariant,
                   side: BorderSide(color: colorScheme.outlineVariant),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(AppShape.r10),
                   ),
                 ),
                 child: const Text(
@@ -560,9 +540,9 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
                   foregroundColor: colorScheme.onPrimary,
                   disabledBackgroundColor:
                       colorScheme.surfaceContainerHighest,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(AppShape.r10),
                   ),
                 ),
                 child: _isSubmitting

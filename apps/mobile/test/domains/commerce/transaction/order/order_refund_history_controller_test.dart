@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:labuda/core/common/result.dart';
 import 'package:labuda/domains/commerce/transaction/order/data/order_providers.dart';
 import 'package:labuda/domains/commerce/transaction/order/domain/domain.dart';
 import 'package:labuda/domains/commerce/transaction/order/presentation/providers/order_refund_history_controller.dart';
@@ -9,7 +10,7 @@ import 'package:labuda/domains/commerce/transaction/order/presentation/providers
 class _FakeRefundRepository extends Fake implements RefundRepository {
   _FakeRefundRepository(this._handler);
 
-  final Future<RepositoryResult<RefundHistoryPageResult>> Function(
+  final Future<Result<RefundHistoryPageResult>> Function(
     ListOrderRefundHistoryParams params,
   )
   _handler;
@@ -17,7 +18,7 @@ class _FakeRefundRepository extends Fake implements RefundRepository {
   final calls = <ListOrderRefundHistoryParams>[];
 
   @override
-  Future<RepositoryResult<RefundHistoryPageResult>> listOrderRefundHistory(
+  Future<Result<RefundHistoryPageResult>> listOrderRefundHistory(
     ListOrderRefundHistoryParams params,
   ) {
     calls.add(params);
@@ -29,7 +30,7 @@ class _FakeRefundRepository extends Fake implements RefundRepository {
       const Stream.empty();
 
   @override
-  Future<RepositoryResult<RefundRequest>> approveRefund(
+  Future<Result<RefundRequest>> approveRefund(
     String refundId, {
     String? notes,
   }) async {
@@ -37,47 +38,47 @@ class _FakeRefundRepository extends Fake implements RefundRepository {
   }
 
   @override
-  Future<RepositoryResult<RefundRequest>> createRefund(
+  Future<Result<RefundRequest>> createRefund(
     CreateRefundParams params,
   ) async {
     throw UnimplementedError();
   }
 
   @override
-  Future<RepositoryResult<Map<String, dynamic>>> escalateRefund(
+  Future<Result<Map<String, dynamic>>> escalateRefund(
     String refundId,
   ) async {
     throw UnimplementedError();
   }
 
   @override
-  Future<RepositoryResult<RefundRequest>> getRefund(String refundId) async {
+  Future<Result<RefundRequest>> getRefund(String refundId) async {
     throw UnimplementedError();
   }
 
   @override
-  Future<RepositoryResult<RefundRequest?>> getRefundByOrderId(
+  Future<Result<RefundRequest?>> getRefundByOrderId(
     String orderId,
   ) async {
     throw UnimplementedError();
   }
 
   @override
-  Future<RepositoryResult<List<RefundRequest>>> listBuyerRefunds(
+  Future<Result<List<RefundRequest>>> listBuyerRefunds(
     ListRefundsParams params,
   ) async {
     throw UnimplementedError();
   }
 
   @override
-  Future<RepositoryResult<List<RefundRequest>>> listSellerRefunds(
+  Future<Result<List<RefundRequest>>> listSellerRefunds(
     ListRefundsParams params,
   ) async {
     throw UnimplementedError();
   }
 
   @override
-  Future<RepositoryResult<RefundRequest>> rejectRefund(
+  Future<Result<RefundRequest>> rejectRefund(
     String refundId, {
     String? notes,
   }) async {
@@ -130,7 +131,7 @@ void main() {
         if (params.cursor == null) {
           expect(params.orderId, 'order-1');
           expect(params.pageSize, 2);
-          return RepositoryResult.success(
+          return Result.success(
             RefundHistoryPageResult(
               refunds: [newest, middle],
               nextCursor: 'cursor-2',
@@ -141,7 +142,7 @@ void main() {
         }
 
         expect(params.cursor, 'cursor-2');
-        return RepositoryResult.success(
+        return Result.success(
           RefundHistoryPageResult(
             refunds: [oldest],
             nextCursor: null,
@@ -199,7 +200,7 @@ void main() {
 
         final repo = _FakeRefundRepository((params) async {
           if (params.cursor == null) {
-            return RepositoryResult.success(
+            return Result.success(
               RefundHistoryPageResult(
                 refunds: [first],
                 nextCursor: 'cursor-2',
@@ -208,7 +209,7 @@ void main() {
               ),
             );
           }
-          return RepositoryResult.failure('load more failed');
+          return Result.error('load more failed');
         });
 
         final container = ProviderContainer(
@@ -258,7 +259,7 @@ void main() {
 
         final repo = _FakeRefundRepository((params) async {
           if (params.cursor == null) {
-            return RepositoryResult.success(
+            return Result.success(
               RefundHistoryPageResult(
                 refunds: currentPage,
                 nextCursor: 'cursor-2',
@@ -267,7 +268,7 @@ void main() {
               ),
             );
           }
-          return RepositoryResult.success(
+          return Result.success(
             RefundHistoryPageResult(
               refunds: [
                 currentPage.last,
@@ -332,7 +333,7 @@ void main() {
       () async {
         final repo = _FakeRefundRepository((params) async {
           final suffix = params.orderId!.endsWith('1') ? '1' : '2';
-          return RepositoryResult.success(
+          return Result.success(
             RefundHistoryPageResult(
               refunds: [
                 _refund(

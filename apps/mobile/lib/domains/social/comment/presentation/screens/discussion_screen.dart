@@ -165,7 +165,7 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
     return AppBar(
       title: Text(_getAppBarTitle()),
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      elevation: 0,
+      elevation: AppElevation.none,
       leading: IconButton(
         icon: const Icon(Icons.arrow_back),
         onPressed: () => context.pop(),
@@ -291,10 +291,10 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
       _replyingToComment = comment;
     });
     // Scroll to bottom to show the input
-    Future.delayed(const Duration(milliseconds: 300), () {
+    Future.delayed(AppMotion.settled, () {
       _scrollController.animateTo(
         _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 300),
+        duration: AppMotion.settled,
         curve: Curves.easeOut,
       );
     });
@@ -385,7 +385,7 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
           Text(
             'Belum ada komentar',
             style: TextStyle(
-              fontSize: 18,
+              fontSize: AppType.s18,
               fontWeight: FontWeight.w500,
               color: scheme.onSurface,
             ),
@@ -393,7 +393,7 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
           const SizedBox(height: 8),
           Text(
             'Jadilah yang pertama berkomentar!',
-            style: TextStyle(fontSize: 14, color: scheme.onSurfaceVariant),
+            style: TextStyle(fontSize: AppType.s14, color: scheme.onSurfaceVariant),
           ),
         ],
       ),
@@ -411,7 +411,7 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
           Text(
             'Gagal memuat komentar',
             style: TextStyle(
-              fontSize: 18,
+              fontSize: AppType.s18,
               fontWeight: FontWeight.w500,
               color: scheme.onSurface,
             ),
@@ -419,7 +419,7 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
           const SizedBox(height: 8),
           Text(
             error,
-            style: TextStyle(fontSize: 14, color: scheme.onSurfaceVariant),
+            style: TextStyle(fontSize: AppType.s14, color: scheme.onSurfaceVariant),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
@@ -461,7 +461,7 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
             builder: (context) {
               final scheme = Theme.of(context).colorScheme;
               return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p8),
                 decoration: BoxDecoration(
                   color: scheme.primary.withValues(alpha: 0.1),
                   border: Border(
@@ -476,7 +476,7 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
                       child: Text(
                         'Membalas @${_replyingToComment!.authorUsername}',
                         style: TextStyle(
-                          fontSize: 13,
+                          fontSize: AppType.s13,
                           color: scheme.primary,
                           fontWeight: FontWeight.w500,
                         ),
@@ -567,14 +567,14 @@ class _CommentsBatchWidget extends ConsumerWidget {
       onRefresh: onRefresh,
       child: ListView.separated(
         controller: scrollController,
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(vertical: AppMetrics.p8),
         itemCount: flatList.length + (isLoadingMore ? 1 : 0),
         separatorBuilder: (context, index) => const Divider(height: 1),
         itemBuilder: (context, index) {
           if (index >= flatList.length) {
             return const Center(
               child: Padding(
-                padding: EdgeInsets.all(16),
+                padding: EdgeInsets.all(AppMetrics.p16),
                 child: CircularProgressIndicator(),
               ),
             );
@@ -678,7 +678,7 @@ class _CommentsBatchWidget extends ConsumerWidget {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(backgroundColor: AppColors.statusError),
+            style: FilledButton.styleFrom(backgroundColor: context.statusColors.error),
             child: const Text('Hapus'),
           ),
         ],
@@ -726,7 +726,7 @@ class _CommentsBatchWidget extends ConsumerWidget {
         : null;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -742,7 +742,7 @@ class _CommentsBatchWidget extends ConsumerWidget {
                 authorLabel,
                 style: TextStyle(
                   fontWeight: FontWeight.w600,
-                  fontSize: 14,
+                  fontSize: AppType.s14,
                   fontStyle: authorRedacted
                       ? FontStyle.italic
                       : FontStyle.normal,
@@ -753,7 +753,7 @@ class _CommentsBatchWidget extends ConsumerWidget {
               Text(
                 _formatDate(comment.createdAt),
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: AppType.s12,
                   color: scheme.onSurfaceVariant,
                 ),
               ),
@@ -761,8 +761,8 @@ class _CommentsBatchWidget extends ConsumerWidget {
           ),
           if (comment.body != null && comment.body!.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.only(left: 24, top: 8),
-              child: Text(comment.body!, style: const TextStyle(fontSize: 14)),
+              padding: const EdgeInsets.only(left: AppMetrics.p24, top: AppMetrics.p8),
+              child: Text(comment.body!, style: const TextStyle(fontSize: AppType.s14)),
             ),
           // Like button for replies — same canonical Comment Like system
           if (currentUserId != null && currentUserId.isNotEmpty)
@@ -859,9 +859,9 @@ class _ReplyLikeButton extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(4),
+      borderRadius: BorderRadius.circular(AppShape.r4),
       child: Padding(
-        padding: const EdgeInsets.only(left: 24, top: 4),
+        padding: const EdgeInsets.only(left: AppMetrics.p24, top: AppMetrics.p4),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -875,7 +875,7 @@ class _ReplyLikeButton extends StatelessWidget {
               Text(
                 likeCount! > 0 ? '$likeCount' : '',
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: AppType.s12,
                   color: scheme.onSurfaceVariant,
                 ),
               ),

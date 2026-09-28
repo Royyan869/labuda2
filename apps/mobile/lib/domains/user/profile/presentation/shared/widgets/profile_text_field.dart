@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Profile text field for consistent form styling
 ///
@@ -153,7 +154,7 @@ class ProfileTextField extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final inputStyle = TextStyle(
-      fontSize: 14,
+      fontSize: AppType.s14,
       fontWeight: FontWeight.w500,
       color: scheme.onSurface,
     );

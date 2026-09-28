@@ -100,24 +100,24 @@ class _LinkPickerModalState extends ConsumerState<LinkPickerModal>
       height: MediaQuery.of(context).size.height * 0.9,
       decoration: BoxDecoration(
         color: scheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(AppShape.r20)),
       ),
       child: Column(
         children: [
           // Handle bar
           Container(
-            margin: const EdgeInsets.only(top: 12),
+            margin: const EdgeInsets.only(top: AppMetrics.p12),
             width: 40,
             height: 4,
             decoration: BoxDecoration(
               color: scheme.outlineVariant,
-              borderRadius: BorderRadius.circular(2),
+              borderRadius: BorderRadius.circular(AppShape.r2),
             ),
           ),
 
           // Header
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppMetrics.p16),
             child: Row(
               children: [
                 Expanded(
@@ -127,7 +127,7 @@ class _LinkPickerModalState extends ConsumerState<LinkPickerModal>
                       Text(
                         'Pilih Link',
                         style: TextStyle(
-                          fontSize: 20,
+                          fontSize: AppType.s20,
                           fontWeight: FontWeight.bold,
                           color: scheme.onSurface,
                         ),
@@ -138,7 +138,7 @@ class _LinkPickerModalState extends ConsumerState<LinkPickerModal>
                             ? 'Pilih item, lalu tap "Tambahkan Link"'
                             : '${_selectedItems.length} item dipilih',
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: AppType.s12,
                           color: _selectedItems.isEmpty
 ? scheme.onSurfaceVariant
                               : scheme.primary,
@@ -197,7 +197,7 @@ class _LinkPickerModalState extends ConsumerState<LinkPickerModal>
 
           // Search Bar
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p12),
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
@@ -206,7 +206,7 @@ class _LinkPickerModalState extends ConsumerState<LinkPickerModal>
                 filled: true,
                 fillColor: scheme.surfaceContainerHighest,
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(AppShape.r12),
                   borderSide: BorderSide.none,
                 ),
               ),
@@ -237,7 +237,7 @@ class _LinkPickerModalState extends ConsumerState<LinkPickerModal>
 
           // Add Button
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppMetrics.p16),
             decoration: BoxDecoration(
               color: scheme.surface,
               border: Border(
@@ -256,15 +256,15 @@ class _LinkPickerModalState extends ConsumerState<LinkPickerModal>
                   style: ElevatedButton.styleFrom(
                     backgroundColor: scheme.primary,
                     foregroundColor: scheme.onPrimary,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(AppShape.r12),
                     ),
                   ),
                   child: Text(
                     'Tambahkan Link',
                     style: const TextStyle(
-                      fontSize: 16,
+                      fontSize: AppType.s16,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -325,7 +325,7 @@ class _ForSaleTab extends ConsumerWidget {
         }
 
         return ListView.builder(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppMetrics.p16),
           itemCount: filteredForSales.length,
           itemBuilder: (context, index) {
             final forSale = filteredForSales[index];
@@ -343,7 +343,7 @@ class _ForSaleTab extends ConsumerWidget {
                   ? 'Rp ${formatGroupedAmount(forSale.price.round())}'
                   : null,
               badge: forSale.status.displayName,
-              badgeColor: AppColors.primaryGreen,
+              badgeColor: context.statusColors.success,
               isSelected: isSelected,
               onTap: () => onToggleSelection(
                 ShareReference.forSale(
@@ -404,7 +404,7 @@ class _EmptyState extends StatelessWidget {
 
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(AppMetrics.p32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -417,7 +417,7 @@ color: scheme.onSurfaceVariant,
             Text(
               message,
               style: TextStyle(
-                fontSize: 16,
+                fontSize: AppType.s16,
 color: scheme.onSurfaceVariant,
               ),
             ),

@@ -328,7 +328,7 @@ void main() {
       },
     );
 
-    test('preserves backend error code into RepositoryResult', () async {
+    test('preserves backend error code into Result', () async {
       final ds = _FakeDatasource()
         ..failWith = const OrderApiException(
           'blocked',

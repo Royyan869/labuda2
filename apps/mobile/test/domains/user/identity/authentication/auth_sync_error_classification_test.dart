@@ -13,6 +13,7 @@
 // 'user deleted'), so all three fell through to a generic, indefinitely-
 // retryable AuthSyncErrorKind.backendFailure.
 import 'package:flutter_test/flutter_test.dart';
+import 'package:labuda/core/api/api_error_codes.dart' as api_codes;
 import 'package:labuda/domains/user/identity/authentication/presentation/providers/auth_controller.dart';
 
 void main() {
@@ -89,7 +90,7 @@ void main() {
     });
   });
 
-  group('classifyAuthSyncError — backend-unreachable / network errors', () {
+  group('classifyAuthSyncError — backend unavailable', () {
     test('a bare 5xx status with no matching code is backendUnavailable', () {
       final kind = classifyAuthSyncError(
         'Internal Server Error',
@@ -99,26 +100,48 @@ void main() {
       expect(kind, AuthSyncErrorKind.backendUnavailable);
     });
 
-    test('BACKEND_UNREACHABLE code (from the mobile connectionError '
-        'interceptor) is not one of the three identity codes and falls back '
-        'to free-text matching, which classifies it as backendUnavailable', () {
+    test('every transport code classifies as backendUnavailable from the '
+        'code alone — the message is never inspected', () {
+      const transportCodes = [
+        api_codes.backendUnreachable,
+        api_codes.requestTimeout,
+        api_codes.networkError,
+        api_codes.sslError,
+      ];
+
+      for (final code in transportCodes) {
+        // Message deliberately free of every legacy keyword ('network',
+        // 'timeout', 'connection', 'socket'): only the code can produce this
+        // outcome.
+        final kind = classifyAuthSyncError('boom', errorCode: code);
+        expect(
+          kind,
+          AuthSyncErrorKind.backendUnavailable,
+          reason: 'transport code $code must classify structurally',
+        );
+      }
+    });
+
+    test('a transport failure with NO message at all is still '
+        'backendUnavailable (nothing left to match on)', () {
       final kind = classifyAuthSyncError(
-        'Cannot reach Labuda server. Check that the backend is running '
-        'and the device is on the same network.',
-        errorCode: 'BACKEND_UNREACHABLE',
+        null,
+        errorCode: api_codes.backendUnreachable,
       );
       expect(kind, AuthSyncErrorKind.backendUnavailable);
     });
+  });
 
-    test(
-      'a timeout with no structured code falls back to backendUnavailable',
-      () {
-        final kind = classifyAuthSyncError('SYNC TIMEOUT');
-        expect(kind, AuthSyncErrorKind.backendUnavailable);
-      },
-    );
+  group('classifyAuthSyncError — raw exceptions with no HTTP layer', () {
+    // These never had an `errorCode`: they are raw Dart/Firebase-SDK throws
+    // caught outside of a response. Free-text matching is the only signal
+    // available, and it stays scoped to exactly this group.
+    test('a raw timeout exception string is backendUnavailable', () {
+      final kind = classifyAuthSyncError('SYNC TIMEOUT');
+      expect(kind, AuthSyncErrorKind.backendUnavailable);
+    });
 
-    test('a socket exception string falls back to backendUnavailable', () {
+    test('a raw socket exception string is backendUnavailable', () {
       final kind = classifyAuthSyncError('SocketException: Connection refused');
       expect(kind, AuthSyncErrorKind.backendUnavailable);
     });

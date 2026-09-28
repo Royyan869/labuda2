@@ -43,7 +43,7 @@ class AuctionCard extends StatelessWidget {
       media: CommerceMarketplaceCardMedia(
         imageUrl: media?.originalUrl,
         mediaType: media?.type ?? MediaType.image,
-        overlay: _mediaOverlay(scheme),
+        overlay: _mediaOverlay(context, scheme),
         fallback: Icon(
           Icons.image_outlined,
           size: 48,
@@ -57,12 +57,12 @@ class AuctionCard extends StatelessWidget {
 
   /// Item-state chip rendered ON the media (bottom-left) instead of a row
   /// under it — keeps For Sale and Auction card rhythm identical.
-  Widget _mediaOverlay(ColorScheme scheme) {
+  Widget _mediaOverlay(BuildContext context, ColorScheme scheme) {
     if (auction.isActive) {
       final timeRemaining = auction.getTimeRemaining();
       return CommerceMarketplaceCardBadge(
         label: timeRemaining.displayText,
-        backgroundColor: _urgencyColor(scheme, timeRemaining.urgencyLevel),
+        backgroundColor: _urgencyColor(context, scheme, timeRemaining.urgencyLevel),
         foregroundColor: timeRemaining.urgencyLevel == AuctionUrgencyLevel.ended
             ? scheme.surface
             : scheme.onPrimary,
@@ -84,14 +84,14 @@ class AuctionCard extends StatelessWidget {
     return 'Mulai Rp ${formatGroupedAmount(auction.startingBid.round())}';
   }
 
-  Color _urgencyColor(ColorScheme scheme, AuctionUrgencyLevel level) {
+  Color _urgencyColor(BuildContext context, ColorScheme scheme, AuctionUrgencyLevel level) {
     switch (level) {
       case AuctionUrgencyLevel.critical:
         return scheme.error.withValues(alpha: 0.9);
       case AuctionUrgencyLevel.warning:
-        return AppColors.statusWarning.withValues(alpha: 0.9);
+        return context.statusColors.warning.withValues(alpha: 0.9);
       case AuctionUrgencyLevel.normal:
-        return AppColors.statusSuccess.withValues(alpha: 0.9);
+        return context.statusColors.success.withValues(alpha: 0.9);
       case AuctionUrgencyLevel.ended:
         return scheme.onSurfaceVariant;
     }

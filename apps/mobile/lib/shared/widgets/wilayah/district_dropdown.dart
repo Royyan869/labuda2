@@ -41,7 +41,7 @@ class DistrictDropdown extends ConsumerWidget {
           Text(
             labelText!,
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppType.s14,
               fontWeight: FontWeight.w500,
               color: scheme.onSurface,
             ),
@@ -50,7 +50,7 @@ class DistrictDropdown extends ConsumerWidget {
         ],
         Container(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppShape.r12),
             border: Border.all(color: scheme.outlineVariant),
             color: scheme.surface,
           ),
@@ -77,8 +77,8 @@ class DistrictDropdown extends ConsumerWidget {
                                 : null,
                             border: InputBorder.none,
                             contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 14,
+                              horizontal: AppMetrics.p16,
+                              vertical: AppMetrics.p14,
                             ),
                             hintStyle: TextStyle(
                               color: scheme.onSurfaceVariant,
@@ -87,7 +87,7 @@ class DistrictDropdown extends ConsumerWidget {
                           dropdownColor: scheme.surfaceContainerHigh,
                           style: TextStyle(
                             color: scheme.onSurface,
-                            fontSize: 16,
+                            fontSize: AppType.s16,
                           ),
                           selectedItemBuilder: (context) {
                             return districts.map((district) {
@@ -129,7 +129,7 @@ class DistrictDropdown extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     return Container(
       height: 50,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16),
       child: Row(
         children: [
           if (prefixIcon != null) ...[
@@ -140,7 +140,7 @@ class DistrictDropdown extends ConsumerWidget {
             text,
             style: TextStyle(
               color: scheme.onSurfaceVariant,
-              fontSize: 16,
+              fontSize: AppType.s16,
             ),
           ),
         ],
@@ -152,7 +152,7 @@ class DistrictDropdown extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     return Container(
       height: 50,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16),
       child: Row(
         children: [
           if (prefixIcon != null) ...[
@@ -163,7 +163,7 @@ class DistrictDropdown extends ConsumerWidget {
             text,
             style: TextStyle(
               color: scheme.onSurfaceVariant,
-              fontSize: 16,
+              fontSize: AppType.s16,
             ),
           ),
         ],
@@ -175,7 +175,7 @@ class DistrictDropdown extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     return Container(
       height: 50,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16),
       child: Row(
         children: [
           if (prefixIcon != null) ...[
@@ -200,16 +200,16 @@ class DistrictDropdown extends ConsumerWidget {
   Widget _buildErrorDropdown(BuildContext context, String text) {
     return Container(
       height: 50,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16),
       child: Row(
         children: [
           if (prefixIcon != null) ...[
-            Icon(prefixIcon, color: AppColors.statusError),
+            Icon(prefixIcon, color: context.statusColors.error),
             const SizedBox(width: 12),
           ],
-          Icon(Icons.error_outline, color: AppColors.statusError, size: 20),
+          Icon(Icons.error_outline, color: context.statusColors.error, size: 20),
           const SizedBox(width: 8),
-          Text(text, style: TextStyle(color: AppColors.statusError)),
+          Text(text, style: TextStyle(color: context.statusColors.error)),
         ],
       ),
     );

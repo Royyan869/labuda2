@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Dialog konfirmasi sebelum memblokir user
 ///
@@ -44,10 +45,10 @@ class BlockConfirmationDialog extends StatelessWidget {
 
     return Dialog(
       backgroundColor: scheme.surfaceContainerHigh,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppShape.r16)),
       child: Container(
         width: 340,
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(AppMetrics.p20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -71,7 +72,7 @@ class BlockConfirmationDialog extends StatelessWidget {
             Text(
               'Block $targetDisplayName?',
               style: TextStyle(
-                fontSize: 18,
+                fontSize: AppType.s18,
                 fontWeight: FontWeight.w600,
                 color: scheme.onSurface,
               ),
@@ -118,9 +119,9 @@ class BlockConfirmationDialog extends StatelessWidget {
                       side: BorderSide(
                         color: scheme.outlineVariant,
                       ),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      padding: const EdgeInsets.symmetric(vertical: AppMetrics.p12),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(AppShape.r8),
                       ),
                     ),
                     child: const Text('Cancel'),
@@ -135,9 +136,9 @@ class BlockConfirmationDialog extends StatelessWidget {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: scheme.error,
                       foregroundColor: scheme.onError,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      padding: const EdgeInsets.symmetric(vertical: AppMetrics.p12),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(AppShape.r8),
                       ),
                     ),
                     child: isLoading
@@ -179,7 +180,7 @@ class BlockConfirmationDialog extends StatelessWidget {
           child: Text(
             text,
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppType.s14,
               color: scheme.onSurface,
               height: 1.3,
             ),

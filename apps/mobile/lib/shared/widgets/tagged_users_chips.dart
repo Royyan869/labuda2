@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/features/search/search/search.dart' show UserSearch;
 import 'package:labuda/domains/user/profile/data/profile_providers.dart';
 import 'package:labuda/shared/widgets/profile_avatar.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Widget untuk menampilkan tagged users sebagai chips
 /// Digunakan di CreateContentScreen dan CreateRequestScreen
@@ -128,12 +129,12 @@ class _TaggedUsersChipsState extends ConsumerState<TaggedUsersChips> {
 
     return InkWell(
       onTap: widget.onTap,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(AppShape.r20),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p8),
         decoration: BoxDecoration(
           color: scheme.surfaceContainerHigh,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(AppShape.r20),
           border: Border.all(
             color: scheme.outlineVariant,
             style: BorderStyle.solid,
@@ -151,7 +152,7 @@ class _TaggedUsersChipsState extends ConsumerState<TaggedUsersChips> {
             Text(
               'Tag People',
               style: TextStyle(
-                fontSize: 14,
+                fontSize: AppType.s14,
                 color: scheme.onSurfaceVariant,
               ),
             ),
@@ -173,7 +174,7 @@ class _TaggedUsersChipsState extends ConsumerState<TaggedUsersChips> {
       label: Text(
         user.username,
         style: TextStyle(
-          fontSize: 13,
+          fontSize: AppType.s13,
           color: scheme.onSurface,
         ),
       ),
@@ -199,13 +200,13 @@ class _TaggedUsersChipsState extends ConsumerState<TaggedUsersChips> {
     final scheme = Theme.of(context).colorScheme;
     return InkWell(
       onTap: widget.onTap,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(AppShape.r20),
       child: Container(
         height: 32,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
+        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12),
         decoration: BoxDecoration(
           color: scheme.surfaceContainerHigh,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(AppShape.r20),
           border: Border.all(
             color: scheme.outlineVariant,
             style: BorderStyle.solid,
@@ -223,7 +224,7 @@ class _TaggedUsersChipsState extends ConsumerState<TaggedUsersChips> {
             Text(
               'Add',
               style: TextStyle(
-                fontSize: 13,
+                fontSize: AppType.s13,
                 color: scheme.secondary,
                 fontWeight: FontWeight.w500,
               ),

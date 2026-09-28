@@ -71,7 +71,7 @@ class _BiddingScreenState extends ConsumerState<BiddingScreen> {
           // Bidding list
           Expanded(
             child: ListView.builder(
-              padding: const EdgeInsets.symmetric(vertical: 8),
+              padding: const EdgeInsets.symmetric(vertical: AppMetrics.p8),
               itemCount: result.items.length,
               itemBuilder: (context, index) {
                 final item = result.items[index];
@@ -89,7 +89,7 @@ class _BiddingScreenState extends ConsumerState<BiddingScreen> {
   Widget _buildSummaryStats(BiddingResult result) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         color: scheme.surface,
         border: Border(
@@ -102,7 +102,7 @@ class _BiddingScreenState extends ConsumerState<BiddingScreen> {
           _StatItem(
             label: 'Active',
             value: result.activeCount.toString(),
-            color: AppColors.statusSuccess,
+            color: context.statusColors.success,
           ),
           _StatItem(
             label: 'Won',
@@ -198,7 +198,7 @@ class _StatItem extends StatelessWidget {
         Text(
           value,
           style: TextStyle(
-            fontSize: 24,
+            fontSize: AppType.s24,
             fontWeight: FontWeight.bold,
             color: color,
           ),
@@ -228,19 +228,19 @@ class BiddingItemCard extends ConsumerWidget {
     return InkWell(
       onTap: () => _navigateToAuction(context),
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        margin: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p6),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppShape.r12),
           border: Border.all(
-            color: _getStatusColor(
+            color: _getStatusColor(context, 
               Theme.of(context).colorScheme,
             ).withValues(alpha: 0.3),
             width: 1,
           ),
         ),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppMetrics.p16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -308,31 +308,31 @@ class BiddingItemCard extends ConsumerWidget {
                 const SizedBox(height: 10),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 8,
+                    horizontal: AppMetrics.p10,
+                    vertical: AppMetrics.p8,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.statusWarning.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(6),
+                    color: context.statusColors.warning.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(AppShape.r6),
                     border: Border.all(
-                      color: AppColors.statusWarning.withValues(alpha: 0.3),
+                      color: context.statusColors.warning.withValues(alpha: 0.3),
                       width: 1,
                     ),
                   ),
                   child: Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(4),
+                        padding: const EdgeInsets.all(AppMetrics.p4),
                         decoration: BoxDecoration(
-                          color: AppColors.statusWarning.withValues(
+                          color: context.statusColors.warning.withValues(
                             alpha: 0.15,
                           ),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.warning_amber_rounded,
                           size: 14,
-                          color: AppColors.statusWarning,
+                          color: context.statusColors.warning,
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -358,7 +358,7 @@ class BiddingItemCard extends ConsumerWidget {
                                     color: Theme.of(
                                       context,
                                     ).colorScheme.onSurfaceVariant,
-                                    fontSize: 10,
+                                    fontSize: AppType.s10,
                                   ),
                             ),
                           ],
@@ -375,11 +375,11 @@ class BiddingItemCard extends ConsumerWidget {
     );
   }
 
-  Color _getStatusColor(ColorScheme scheme) {
+  Color _getStatusColor(BuildContext context, ColorScheme scheme) {
     switch (item.status) {
       case BiddingStatus.leading:
       case BiddingStatus.waitingClaim:
-        return AppColors.statusSuccess;
+        return context.statusColors.success;
       case BiddingStatus.outbid:
         return scheme.error;
       case BiddingStatus.won:
@@ -445,15 +445,15 @@ class _StatusChip extends StatelessWidget {
     final info = _getStatusInfo(context);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p10, vertical: AppMetrics.p4),
       decoration: BoxDecoration(
         color: info.backgroundColor,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
       ),
       child: Text(
         info.label,
         style: TextStyle(
-          fontSize: 12,
+          fontSize: AppType.s12,
           fontWeight: FontWeight.w600,
           color: info.color,
         ),
@@ -467,8 +467,8 @@ class _StatusChip extends StatelessWidget {
       case BiddingStatus.leading:
         return _StatusInfo(
           'Leading',
-          AppColors.statusSuccess,
-          AppColors.statusSuccess.withValues(alpha: 0.12),
+          context.statusColors.success,
+          context.statusColors.success.withValues(alpha: 0.12),
         );
       case BiddingStatus.outbid:
         return _StatusInfo(
@@ -479,8 +479,8 @@ class _StatusChip extends StatelessWidget {
       case BiddingStatus.waitingClaim:
         return _StatusInfo(
           'Claim',
-          AppColors.statusWarning,
-          AppColors.statusWarning.withValues(alpha: 0.12),
+          context.statusColors.warning,
+          context.statusColors.warning.withValues(alpha: 0.12),
         );
       case BiddingStatus.won:
         return _StatusInfo(

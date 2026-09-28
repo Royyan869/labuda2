@@ -4,6 +4,7 @@ import 'package:labuda/shared/entities/post_location.dart' as loc;
 import 'package:labuda/domains/social/content/presentation/widgets/content_metadata_sections.dart';
 import 'package:labuda/domains/social/content/presentation/widgets/create_content/content_content_input.dart';
 import 'package:labuda/domains/social/content/presentation/widgets/create_content/content_media_section.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Scrollable content section for create post screen
 class ContentScrollableContent extends StatelessWidget {
@@ -43,7 +44,7 @@ class ContentScrollableContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

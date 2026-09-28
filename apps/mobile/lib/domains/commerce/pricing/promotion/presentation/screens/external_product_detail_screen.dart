@@ -12,7 +12,7 @@ import 'package:labuda/domains/commerce/pricing/promotion/domain/entities/extern
 import 'package:labuda/domains/commerce/pricing/promotion/domain/entities/external_product_media.dart';
 import 'package:labuda/domains/commerce/pricing/promotion/domain/entities/external_product_review_status.dart';
 import 'package:labuda/domains/commerce/pricing/promotion/presentation/providers/canonical_external_product_providers.dart';
-import 'package:labuda/shared/ui/src/helpers/media_picker_helper.dart';
+import 'package:labuda/core/media/media_upload_orchestrator.dart';
 
 class ExternalProductDetailScreen extends ConsumerStatefulWidget {
   final String productId;
@@ -58,7 +58,7 @@ class _ExternalProductDetailScreenState
 
   Widget _buildContent(BuildContext context, ExternalProduct product) {
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       children: [
         // Product info section
         _SectionCard(
@@ -93,7 +93,7 @@ class _ExternalProductDetailScreenState
           children: [
             if (product.media.isEmpty)
               const Padding(
-                padding: EdgeInsets.symmetric(vertical: 8),
+                padding: EdgeInsets.symmetric(vertical: AppMetrics.p8),
                 child: Text('No media attached'),
               ),
             ...product.media.map(
@@ -121,7 +121,7 @@ class _ExternalProductDetailScreenState
         if (product.canEdit)
           _actionButton(
             label: 'Edit',
-            color: AppColors.statusInfo,
+            color: context.statusColors.info,
             onPressed: () => _showEditDialog(context, product),
           ),
 
@@ -129,7 +129,7 @@ class _ExternalProductDetailScreenState
           const SizedBox(height: 10),
           _actionButton(
             label: 'Submit for Review',
-            color: AppColors.successGreen,
+            color: context.statusColors.success,
             onPressed: () => _submit(product.id),
           ),
         ],
@@ -138,7 +138,7 @@ class _ExternalProductDetailScreenState
           const SizedBox(height: 10),
           _actionButton(
             label: 'Resubmit for Review',
-            color: AppColors.warning,
+            color: context.statusColors.warning,
             onPressed: () => _resubmit(product.id),
           ),
         ],
@@ -169,19 +169,19 @@ class _ExternalProductDetailScreenState
         product.reviewStatus == ExternalProductReviewStatus.requestChanges;
     final titleText = isRequestChanges ? 'Perlu Perbaikan' : 'Alasan Penolakan';
     final borderColor = isRequestChanges
-        ? AppColors.warning
+        ? context.statusColors.warning
         : Theme.of(context).colorScheme.primary;
     final bgColor = isRequestChanges
-        ? AppColors.warning.withValues(alpha: 0.05)
+        ? context.statusColors.warning.withValues(alpha: 0.05)
         : Theme.of(context).colorScheme.primary.withValues(alpha: 0.05);
     final textColor = isRequestChanges
-        ? AppColors.warning
+        ? context.statusColors.warning
         : Theme.of(context).colorScheme.primary;
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(AppMetrics.p14),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(color: borderColor.withValues(alpha: 0.3)),
         color: bgColor,
       ),
@@ -191,7 +191,7 @@ class _ExternalProductDetailScreenState
           Text(
             titleText,
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppType.s14,
               fontWeight: FontWeight.w700,
               color: textColor,
             ),
@@ -283,11 +283,11 @@ class _ExternalProductDetailScreenState
                 maxLines: 2,
               ),
               if (product.reviewStatus == ExternalProductReviewStatus.approved)
-                const Padding(
-                  padding: EdgeInsets.only(top: 8),
+                Padding(
+                  padding: EdgeInsets.only(top: AppMetrics.p8),
                   child: Text(
                     'Editing an approved product will return it to pending review.',
-                    style: TextStyle(fontSize: 12, color: AppColors.warning),
+                    style: TextStyle(fontSize: AppType.s12, color: context.statusColors.warning),
                   ),
                 ),
             ],
@@ -338,9 +338,9 @@ class _ExternalProductDetailScreenState
         context: context,
         builder: (ctx) => AlertDialog(
           title: const Text('Add Media to Approved Product'),
-          content: const Text(
+          content: Text(
             'Adding media to an approved product will return it to pending review.',
-            style: TextStyle(fontSize: 13, color: AppColors.warning),
+            style: TextStyle(fontSize: AppType.s13, color: context.statusColors.warning),
           ),
           actions: [
             TextButton(
@@ -380,25 +380,27 @@ class _ExternalProductDetailScreenState
     );
     if (mediaType == null || !context.mounted) return;
 
-    // File picker
-    final List<String>? paths;
+    // File picker — same engine as every surface (typed single attach is
+    // the legitimate variant here; picking mechanics + MB caps are shared).
+    File? file;
     if (mediaType == 'image') {
-      paths = await MediaPickerHelper.pickPhotos(
+      final photos = await MediaUploadOrchestrator.pickGalleryImages(
         context: context,
         maxAssets: 1,
       );
+      if (photos.isEmpty || !context.mounted) return;
+      file = File(photos.first.path);
     } else {
-      paths = await MediaPickerHelper.pickVideos(
+      final video = await MediaUploadOrchestrator.pickGalleryVideo(
         context: context,
-        maxAssets: 1,
       );
+      if (video == null || !context.mounted) return;
+      file = File(video.path);
     }
-    if (paths == null || paths.isEmpty || !context.mounted) return;
 
     // S3 upload — returns both object key and CDN URL
     setState(() => _isSubmitting = true);
     final s3 = ref.read(s3ServiceProvider);
-    final file = File(paths.first);
     final Result<S3UploadResult> uploadResult;
     if (mediaType == 'image') {
       uploadResult = await s3.uploadImageWithMeta(file);
@@ -451,7 +453,7 @@ class _ExternalProductDetailScreenState
 
   static Widget _kv(String key, String value) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: AppMetrics.p8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -481,9 +483,9 @@ class _SectionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(AppMetrics.p14),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: Column(
@@ -491,7 +493,7 @@ class _SectionCard extends StatelessWidget {
         children: [
           Text(
             title,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+            style: const TextStyle(fontSize: AppType.s16, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 10),
           ...children,
@@ -510,10 +512,10 @@ class _MediaRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(10),
+      margin: const EdgeInsets.only(bottom: AppMetrics.p8),
+      padding: const EdgeInsets.all(AppMetrics.p10),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppShape.r8),
         color: Theme.of(context).colorScheme.surfaceContainer,
       ),
       child: Row(
@@ -522,7 +524,7 @@ class _MediaRow extends StatelessWidget {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(6),
+              borderRadius: BorderRadius.circular(AppShape.r6),
               color: Theme.of(context).colorScheme.surfaceContainer,
             ),
             clipBehavior: Clip.antiAlias,
@@ -546,7 +548,7 @@ class _MediaRow extends StatelessWidget {
                 Text(
                   media.url,
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: AppType.s11,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                   maxLines: 1,

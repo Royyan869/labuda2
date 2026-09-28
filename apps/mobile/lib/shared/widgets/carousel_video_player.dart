@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Video Player Widget untuk Media Carousel
 ///
@@ -38,6 +39,7 @@ class _CarouselVideoPlayerState extends State<CarouselVideoPlayer> {
   ChewieController? _chewieController;
   bool _isInitialized = false;
   bool _hasError = false;
+  int _loadGeneration = 0;
 
   @override
   void initState() {
@@ -56,6 +58,7 @@ class _CarouselVideoPlayerState extends State<CarouselVideoPlayer> {
   }
 
   Future<void> _initializeVideo() async {
+    final generation = ++_loadGeneration;
     try {
       // Validate URL before initializing
       if (widget.videoUrl.isEmpty) {
@@ -67,6 +70,11 @@ class _CarouselVideoPlayerState extends State<CarouselVideoPlayer> {
         Uri.parse(widget.videoUrl),
       );
       await _videoPlayerController!.initialize();
+
+      if (!mounted || generation != _loadGeneration) {
+        _videoPlayerController?.dispose();
+        return;
+      }
 
       if (mounted) {
         setState(() {
@@ -122,6 +130,7 @@ class _CarouselVideoPlayerState extends State<CarouselVideoPlayer> {
   }
 
   void _disposeControllers() {
+    _loadGeneration++;
     _chewieController?.dispose();
     _chewieController = null;
     _videoPlayerController?.dispose();
@@ -178,7 +187,7 @@ class _CarouselVideoPlayerState extends State<CarouselVideoPlayer> {
               SizedBox(height: 8),
               Text(
                 'Loading Video...',
-                style: TextStyle(color: scheme.onPrimary, fontSize: 14),
+                style: TextStyle(color: scheme.onPrimary, fontSize: AppType.s14),
               ),
             ],
           ),
@@ -205,7 +214,7 @@ class _CarouselVideoPlayerState extends State<CarouselVideoPlayer> {
             const SizedBox(height: 8),
             Text(
               'Video Error',
-              style: TextStyle(color: scheme.onPrimary, fontSize: 14),
+              style: TextStyle(color: scheme.onPrimary, fontSize: AppType.s14),
             ),
             const SizedBox(height: 16),
             ElevatedButton.icon(
@@ -222,8 +231,8 @@ class _CarouselVideoPlayerState extends State<CarouselVideoPlayer> {
                 backgroundColor: scheme.primary,
                 foregroundColor: scheme.onPrimary,
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
+                  horizontal: AppMetrics.p16,
+                  vertical: AppMetrics.p8,
                 ),
               ),
             ),
@@ -320,7 +329,7 @@ class _CustomMaterialControlsState extends State<_CustomMaterialControls> {
       builder: (context, child) {
         return AnimatedOpacity(
           opacity: _controller!.value.isPlaying ? 0.0 : 1.0,
-          duration: const Duration(milliseconds: 300),
+          duration: AppMotion.settled,
           child: Container(
             decoration: BoxDecoration(
               color: Theme.of(
@@ -365,7 +374,7 @@ class _CustomMaterialControlsState extends State<_CustomMaterialControls> {
                 .onSurfaceVariant
                 .withValues(alpha: 0.3),
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p8),
         );
       },
     );
@@ -381,7 +390,7 @@ class _CustomMaterialControlsState extends State<_CustomMaterialControls> {
         final position = _controller!.value.position;
 
         return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p8),
           child: Row(
             children: [
               // Time display
@@ -389,7 +398,7 @@ class _CustomMaterialControlsState extends State<_CustomMaterialControls> {
                 '${_formatDuration(position)} / ${_formatDuration(duration)}',
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.onPrimary,
-                  fontSize: 12,
+                  fontSize: AppType.s12,
                 ),
               ),
               const Spacer(),
@@ -456,7 +465,7 @@ class _CustomMaterialControlsState extends State<_CustomMaterialControls> {
       context: context,
       backgroundColor: Theme.of(context).colorScheme.scrim,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppShape.r16)),
       ),
       builder: (context) {
         return SafeArea(
@@ -464,12 +473,12 @@ class _CustomMaterialControlsState extends State<_CustomMaterialControls> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(AppMetrics.p16),
                 child: Text(
                   'Playback Speed',
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.onPrimary,
-                    fontSize: 16,
+                    fontSize: AppType.s16,
                     fontWeight: FontWeight.bold,
                   ),
                 ),

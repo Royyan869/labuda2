@@ -500,7 +500,7 @@ class _ShippingSetupScreenState
         ),
         body: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(AppMetrics.p24),
           children: [
             const SizedBox(height: 80),
             Icon(Icons.error_outline, size: 64, color: colorScheme.error),
@@ -508,14 +508,14 @@ class _ShippingSetupScreenState
             const Text(
               'Gagal memuat detail opsi pengiriman',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: AppType.s18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
               _detailError!,
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 13,
+                fontSize: AppType.s13,
                 color: colorScheme.onSurfaceVariant,
               ),
             ),
@@ -562,7 +562,7 @@ class _ShippingSetupScreenState
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (error, stack) => ListView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(AppMetrics.p24),
             children: [
               const SizedBox(height: 80),
               Icon(Icons.error_outline, size: 64, color: colorScheme.error),
@@ -570,14 +570,14 @@ class _ShippingSetupScreenState
               const Text(
                 'Gagal memuat provinsi',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: AppType.s18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               Text(
                 '$error',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                fontSize: 13,
+                fontSize: AppType.s13,
                 color: colorScheme.onSurfaceVariant,
               ),
               ),
@@ -590,7 +590,7 @@ class _ShippingSetupScreenState
           ),
           data: (provinces) => SingleChildScrollView(
             keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+            padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p16, AppMetrics.p16, AppMetrics.p96),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -598,12 +598,12 @@ class _ShippingSetupScreenState
                   _isEditMode
                       ? 'Edit lengkap opsi pengiriman termasuk cakupan, tarif, dan aturan kota.'
                       : 'Lengkapi satu opsi pengiriman, lalu simpan seluruh coverage sekaligus.',
-                  style: const TextStyle(fontSize: 13),
+                  style: const TextStyle(fontSize: AppType.s13),
                 ),
                 const SizedBox(height: 16),
                 const Text(
                   'Jenis transportasi',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                  style: TextStyle(fontSize: AppType.s13, fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 8),
                 Wrap(
@@ -657,17 +657,17 @@ class _ShippingSetupScreenState
                 const SizedBox(height: 20),
                 const Text(
                   'Tujuan dan tarif',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                  style: TextStyle(fontSize: AppType.s16, fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 8),
                 // BUSINESS TRUTH: the tariff is ALL-IN (shipping + packing).
                 // There is no separate packing field by design — this hint is
                 // the only packing-related surface.
                 Container(
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(AppMetrics.p10),
                   decoration: BoxDecoration(
                     color: colorScheme.secondaryContainer,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(AppShape.r8),
                     border: Border.all(
                       color: colorScheme.secondary.withValues(alpha: 0.4),
                     ),
@@ -686,7 +686,7 @@ class _ShippingSetupScreenState
                           'Input biaya pengiriman beserta biaya packing jika ada. '
                           'Di sisi pembeli, tarif ini tampil sebagai "Ongkir + Packing".',
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: AppType.s12,
                             color: colorScheme.onSurfaceVariant,
                           ),
                         ),
@@ -697,7 +697,7 @@ class _ShippingSetupScreenState
                 const SizedBox(height: 12),
                 ...List.generate(_coverages.length, (index) {
                   return Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.only(bottom: AppMetrics.p12),
                     child: _CoverageCard(
                       coverage: _coverages[index],
                       provinces: provinces,
@@ -739,7 +739,7 @@ class _ShippingSetupScreenState
     final colorScheme = Theme.of(context).colorScheme;
 
     return SafeArea(
-      minimum: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      minimum: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p8, AppMetrics.p16, AppMetrics.p16),
       child: Row(
         children: [
           Expanded(
@@ -852,13 +852,13 @@ class _ShippingCityRulesScreenState
     return Scaffold(
       appBar: AppBar(title: const Text('Atur Kota/Kabupaten')),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+        padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p16, AppMetrics.p16, AppMetrics.p24),
         children: [
           Container(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(AppMetrics.p14),
             decoration: BoxDecoration(
               color: colorScheme.primaryContainer,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppShape.r12),
               border: Border.all(
                 color: colorScheme.primary.withValues(alpha: 0.4),
               ),
@@ -869,7 +869,7 @@ class _ShippingCityRulesScreenState
                 Text(
                   province.name,
                   style: const TextStyle(
-                    fontSize: 18,
+                    fontSize: AppType.s18,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -888,7 +888,7 @@ class _ShippingCityRulesScreenState
               const Expanded(
                 child: Text(
                   'Aturan khusus',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                  style: TextStyle(fontSize: AppType.s16, fontWeight: FontWeight.w700),
                 ),
               ),
               TextButton.icon(
@@ -901,10 +901,10 @@ class _ShippingCityRulesScreenState
           const SizedBox(height: 8),
           if (_rules.isEmpty)
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(AppMetrics.p16),
               decoration: BoxDecoration(
                 border: Border.all(color: colorScheme.outlineVariant),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(AppShape.r12),
               ),
               child: const Text(
                 'Belum ada aturan khusus. Semua kota/kabupaten otomatis memakai tarif provinsi.',
@@ -914,11 +914,11 @@ class _ShippingCityRulesScreenState
             ...List.generate(_rules.length, (index) {
               final rule = _rules[index];
               return Padding(
-                padding: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.only(bottom: AppMetrics.p8),
                 child: Card(
-                  elevation: 0,
+                  elevation: AppElevation.none,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(AppShape.r12),
                     side: BorderSide(color: colorScheme.outlineVariant),
                   ),
                   child: ListTile(
@@ -952,12 +952,12 @@ class _ShippingCityRulesScreenState
           const SizedBox(height: 12),
           Text(
             _summaryText(),
-            style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant),
+            style: TextStyle(fontSize: AppType.s13, color: colorScheme.onSurfaceVariant),
           ),
         ],
       ),
       bottomNavigationBar: SafeArea(
-        minimum: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        minimum: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p8, AppMetrics.p16, AppMetrics.p16),
         child: ElevatedButton(
           onPressed: _save,
           style: ElevatedButton.styleFrom(
@@ -1050,10 +1050,10 @@ class _CoverageCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(AppMetrics.p14),
       decoration: BoxDecoration(
         border: Border.all(color: colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppShape.r16),
         color: colorScheme.surface,
       ),
       child: Column(
@@ -1105,7 +1105,7 @@ class _CoverageCard extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             _summaryText(),
-            style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant),
+            style: TextStyle(fontSize: AppType.s13, color: colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 8),
           Align(

@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:labuda/domains/social/content/domain/entities/content.dart';
+import 'package:labuda/core/core.dart';
 import 'app_image.dart';
 import 'media_viewer_video_player.dart';
 
@@ -67,14 +68,14 @@ class _MediaViewerWidgetState extends State<MediaViewerWidget> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         foregroundColor: scheme.onPrimary,
-        elevation: 0,
+        elevation: AppElevation.none,
         surfaceTintColor: Colors.transparent,
         scrolledUnderElevation: 0,
         title: Text(
           widget.title ?? '${_currentIndex + 1} / ${widget.media.length}',
           style: TextStyle(
             color: scheme.onPrimary,
-            fontSize: 16,
+            fontSize: AppType.s16,
             fontWeight: FontWeight.w500,
           ),
         ),

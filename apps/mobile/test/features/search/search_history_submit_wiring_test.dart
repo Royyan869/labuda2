@@ -15,31 +15,31 @@ class _FakeSearchHistoryRepository implements SearchHistoryRepository {
   final List<SearchHistory> savedItems = [];
 
   @override
-  Future<ApiResult<void>> clearSearchHistory(String userId) async {
-    return (data: null, error: null);
+  Future<Result<void>> clearSearchHistory(String userId) async {
+    return Result.success(null);
   }
 
   @override
-  Future<ApiResult<void>> deleteSearchHistoryItem(
+  Future<Result<void>> deleteSearchHistoryItem(
     String userId,
     String historyId,
   ) async {
-    return (data: null, error: null);
+    return Result.success(null);
   }
 
   @override
-  Future<ApiResult<List<SearchHistory>>> getSearchHistory(
+  Future<Result<List<SearchHistory>>> getSearchHistory(
     String userId, {
     int limit = 10,
   }) async {
-    return (data: List<SearchHistory>.from(_history), error: null);
+    return Result.success(List<SearchHistory>.from(_history));
   }
 
   @override
-  Future<ApiResult<void>> saveSearchHistory(SearchHistory history) async {
+  Future<Result<void>> saveSearchHistory(SearchHistory history) async {
     savedItems.add(history);
     _history.add(history);
-    return (data: null, error: null);
+    return Result.success(null);
   }
 }
 
@@ -67,9 +67,7 @@ void main() {
           searchHistoryRepositoryProvider.overrideWithValue(repository),
           navigationHandlerProvider.overrideWithValue(navigationHandler),
         ],
-        child: const MaterialApp(
-          home: SearchScreen(),
-        ),
+        child: const MaterialApp(home: SearchScreen()),
       ),
     );
 

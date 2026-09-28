@@ -21,12 +21,12 @@ class GetAuctionUseCase {
     try {
       final result = await _auctionRepository.getAuctionById(auctionId);
 
-      return result.fold((auction) {
+      return result.fold((error) => Result.error(error), (auction) {
         // **BUSINESS LOGIC HERE - NOT IN UI**
         // Additional business rules can be added here
         // For example: Validate auction is visible, not deleted, etc.
         return Result.success(auction);
-      }, (error) => Result.error(error));
+      });
     } catch (e) {
       return Result.error('Failed to get auction: $e');
     }
@@ -50,8 +50,8 @@ class GetAuctionUseCase {
       );
 
       return result.fold(
-        (auctions) => Result.success(auctions),
         (error) => Result.error(error),
+        (auctions) => Result.success(auctions),
       );
     } catch (e) {
       return Result.error('Failed to get active auctions: $e');
@@ -72,8 +72,8 @@ class GetAuctionUseCase {
       );
 
       return result.fold(
-        (auctions) => Result.success(auctions),
         (error) => Result.error(error),
+        (auctions) => Result.success(auctions),
       );
     } catch (e) {
       return Result.error('Failed to get user auctions: $e');

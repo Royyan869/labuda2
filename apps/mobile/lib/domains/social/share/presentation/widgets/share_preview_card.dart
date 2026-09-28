@@ -23,11 +23,11 @@ class SharePreviewCard extends StatelessWidget {
     final placeholderColor = scheme.surfaceContainerHighest;
 
     return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.all(AppMetrics.p16),
+      padding: const EdgeInsets.all(AppMetrics.p12),
       decoration: BoxDecoration(
         color: cardColor,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(color: borderColor, width: 1),
       ),
       child: Column(
@@ -37,7 +37,7 @@ class SharePreviewCard extends StatelessWidget {
           // Image preview - SQUARE (if exists)
           if (target.imageUrl != null) ...[
             ClipRRect(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(AppShape.r8),
               child: AspectRatio(
                 aspectRatio: 1.0, // Square image
                 child: AppImage(
@@ -267,13 +267,13 @@ class SharePreviewCard extends StatelessWidget {
               Icon(
                 Icons.access_time,
                 size: 14,
-                color: isUrgent ? AppColors.statusError : secondaryTextColor,
+                color: isUrgent ? context.statusColors.error : secondaryTextColor,
               ),
               const SizedBox(width: 4),
               Text(
                 timeRemaining,
                 style: AppTypography.caption.copyWith(
-                  color: isUrgent ? AppColors.statusError : secondaryTextColor,
+                  color: isUrgent ? context.statusColors.error : secondaryTextColor,
                   fontWeight: isUrgent ? FontWeight.w600 : FontWeight.normal,
                 ),
               ),

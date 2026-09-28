@@ -76,13 +76,13 @@ class SellerAuctionsScreen extends ConsumerWidget {
               )
             else
               SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p8, AppMetrics.p16, AppMetrics.p16),
                 sliver: SliverList(
                   delegate: SliverChildBuilderDelegate((context, index) {
                     final auction = visibleAuctions[index];
                     return Padding(
                       padding: EdgeInsets.only(
-                        bottom: index == visibleAuctions.length - 1 ? 0 : 12,
+                        bottom: index == visibleAuctions.length - AppMetrics.p1 ? AppMetrics.p0 : AppMetrics.p12,
                       ),
                       child: _SellerAuctionCard(
                         auction: auction,
@@ -185,7 +185,7 @@ class SellerAuctionsScreen extends ConsumerWidget {
   ) {
     final pager = ref.read(sellerAuctionsPagerProvider.notifier);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p12, AppMetrics.p16, AppMetrics.p8),
       child: Wrap(
         spacing: 8,
         runSpacing: 8,
@@ -212,14 +212,14 @@ class SellerAuctionsScreen extends ConsumerWidget {
 
     if (state.isLoadMoreLoading) {
       return const Padding(
-        padding: EdgeInsets.only(bottom: 24),
+        padding: EdgeInsets.only(bottom: AppMetrics.p24),
         child: Center(child: CircularProgressIndicator()),
       );
     }
 
     if (state.loadMoreError != null) {
       return Padding(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p8, AppMetrics.p16, AppMetrics.p24),
         child: _ErrorState(
           title: 'Gagal memuat halaman berikutnya',
           message: state.loadMoreError!,
@@ -234,7 +234,7 @@ class SellerAuctionsScreen extends ConsumerWidget {
     }
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p8, AppMetrics.p16, AppMetrics.p24),
       child: OutlinedButton.icon(
         onPressed: pager.loadMore,
         icon: const Icon(Icons.expand_more),
@@ -273,12 +273,12 @@ class _SellerAuctionCard extends StatelessWidget {
 
     return Card(
       key: ValueKey('seller-auction-card-${auction.id}'),
-      elevation: 0,
+      elevation: AppElevation.none,
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onOpenDetail,
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(AppMetrics.p12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -464,7 +464,7 @@ class _AuctionThumbnail extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(AppShape.r12),
       child: Container(
         width: 88,
         height: 88,
@@ -588,7 +588,7 @@ class _EmptyState extends StatelessWidget {
     final theme = Theme.of(context);
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppMetrics.p24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [

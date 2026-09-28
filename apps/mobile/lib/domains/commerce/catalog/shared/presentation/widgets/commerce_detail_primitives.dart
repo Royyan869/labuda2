@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 enum CommerceDetailValueLayout { auto, horizontal, vertical }
 
@@ -13,9 +14,9 @@ class CommerceDetailSectionCard extends StatelessWidget {
   const CommerceDetailSectionCard({
     super.key,
     required this.child,
-    this.padding = const EdgeInsets.all(16),
+    this.padding = const EdgeInsets.all(AppMetrics.p16),
     this.margin = EdgeInsets.zero,
-    this.borderRadius = const BorderRadius.all(Radius.circular(16)),
+    this.borderRadius = const BorderRadius.all(Radius.circular(AppShape.r16)),
     this.backgroundColor,
     this.borderSide,
   });
@@ -136,7 +137,7 @@ class CommerceDetailLabelValue extends StatelessWidget {
     required this.label,
     required this.value,
     this.layout = CommerceDetailValueLayout.auto,
-    this.padding = const EdgeInsets.only(bottom: 8),
+    this.padding = const EdgeInsets.only(bottom: AppMetrics.p8),
     this.labelStyle,
     this.valueStyle,
   });

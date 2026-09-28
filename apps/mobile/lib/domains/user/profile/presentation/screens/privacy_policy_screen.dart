@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/shared/shared.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Privacy Policy Screen
 /// Displays the privacy policy for LABUDA platform
@@ -14,7 +15,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
       appBar: const AppBarCustom(title: 'Privacy Policy'),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppMetrics.p16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -106,13 +107,13 @@ class PrivacyPolicyScreen extends StatelessWidget {
       children: [
         const Text(
           'Privacy Policy',
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          style: TextStyle(fontSize: AppType.s24, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
         Text(
           'Last updated: January 5, 2026',
           style: TextStyle(
-            fontSize: 14,
+            fontSize: AppType.s14,
             color: Theme.of(
               context,
             ).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
@@ -121,7 +122,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
         const SizedBox(height: 16),
         const Text(
           'LABUDA respects your privacy and is committed to protecting your personal data. This policy explains how we collect, use, and safeguard your information.',
-          style: TextStyle(fontSize: 14),
+          style: TextStyle(fontSize: AppType.s14),
         ),
       ],
     );
@@ -129,16 +130,16 @@ class PrivacyPolicyScreen extends StatelessWidget {
 
   Widget _buildSection(String title, String content) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.only(bottom: AppMetrics.p20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            style: const TextStyle(fontSize: AppType.s16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
-          Text(content, style: const TextStyle(fontSize: 14, height: 1.5)),
+          Text(content, style: const TextStyle(fontSize: AppType.s14, height: 1.5)),
         ],
       ),
     );
@@ -146,22 +147,22 @@ class PrivacyPolicyScreen extends StatelessWidget {
 
   Widget _buildFooter(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppShape.r8),
       ),
       child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             'Your Privacy Matters',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: AppType.s14, fontWeight: FontWeight.bold),
           ),
           SizedBox(height: 8),
           Text(
             'We are committed to maintaining the trust and confidence of our users. If you have any concerns about your privacy, please don\'t hesitate to contact us.',
-            style: TextStyle(fontSize: 13, height: 1.5),
+            style: TextStyle(fontSize: AppType.s13, height: 1.5),
           ),
         ],
       ),

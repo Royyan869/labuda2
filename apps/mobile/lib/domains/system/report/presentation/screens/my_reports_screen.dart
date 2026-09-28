@@ -86,7 +86,7 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
     return RefreshIndicator(
       onRefresh: _refresh,
       child: ListView.separated(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppMetrics.p16),
         itemCount: filteredReports.length,
         separatorBuilder: (_, _) => const SizedBox(height: 12),
         itemBuilder: (context, index) {
@@ -101,7 +101,7 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.error_outline, size: 64, color: AppColors.error),
+          Icon(Icons.error_outline, size: 64, color: context.statusColors.error),
           const SizedBox(height: 16),
           Text(
             'Failed to load reports',
@@ -163,10 +163,10 @@ class ReportCard extends StatelessWidget {
   Widget build(BuildContext context) {
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(
           color: Theme.of(context).colorScheme.outlineVariant,
         ),
@@ -188,7 +188,7 @@ class ReportCard extends StatelessWidget {
                   Text(
                     report.subjectType.displayName,
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: AppType.s13,
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontWeight: FontWeight.w500,
                     ),
@@ -202,7 +202,7 @@ class ReportCard extends StatelessWidget {
           Text(
             report.targetTitle,
             style: TextStyle(
-              fontSize: 15,
+              fontSize: AppType.s15,
               fontWeight: FontWeight.w600,
               color: Theme.of(context).colorScheme.onSurface,
             ),
@@ -218,7 +218,7 @@ class ReportCard extends StatelessWidget {
                 child: Text(
                   report.reason.displayName,
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: AppType.s13,
                     color: Theme.of(context).colorScheme.primary,
                     fontWeight: FontWeight.w500,
                   ),
@@ -231,7 +231,7 @@ class ReportCard extends StatelessWidget {
             Text(
               report.description!,
               style: TextStyle(
-                fontSize: 13,
+                fontSize: AppType.s13,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               maxLines: 2,
@@ -241,7 +241,7 @@ class ReportCard extends StatelessWidget {
           ],
           Text(
             _formatDate(report.createdAt),
-            style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
+            style: TextStyle(fontSize: AppType.s12, color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
         ],
       ),
@@ -255,8 +255,8 @@ class ReportCard extends StatelessWidget {
 
     switch (state) {
       case ReportDisplayState.submitted:
-        bgColor = AppColors.warning.withValues(alpha: 0.15);
-        textColor = AppColors.warning;
+        bgColor = context.statusColors.warning.withValues(alpha: 0.15);
+        textColor = context.statusColors.warning;
         icon = Icons.schedule;
         break;
       case ReportDisplayState.underReview:
@@ -273,17 +273,17 @@ class ReportCard extends StatelessWidget {
         icon = Icons.check_circle_outline;
         break;
       case ReportDisplayState.reviewedViolation:
-        bgColor = AppColors.successGreen.withValues(alpha: 0.15);
-        textColor = AppColors.successGreen;
+        bgColor = context.statusColors.success.withValues(alpha: 0.15);
+        textColor = context.statusColors.success;
         icon = Icons.done_all;
         break;
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -293,7 +293,7 @@ class ReportCard extends StatelessWidget {
           Text(
             state.displayName,
             style: TextStyle(
-              fontSize: 11,
+              fontSize: AppType.s11,
               color: textColor,
               fontWeight: FontWeight.w600,
             ),

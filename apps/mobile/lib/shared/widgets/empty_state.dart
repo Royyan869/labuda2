@@ -46,7 +46,7 @@ class EmptyState extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
 
     return Padding(
-      padding: const EdgeInsets.all(48),
+      padding: const EdgeInsets.all(AppMetrics.p48),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [

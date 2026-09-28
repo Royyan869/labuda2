@@ -17,7 +17,7 @@ class NotificationSettingsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Notification Settings')),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppMetrics.p16),
         children: [
           const _StatusBanner(),
           const SizedBox(height: 16),
@@ -73,18 +73,18 @@ class _StatusBanner extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppShape.r16),
         border: Border.all(
-          color: AppColors.statusWarning.withValues(alpha: 0.25),
+          color: context.statusColors.warning.withValues(alpha: 0.25),
         ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.info_outline, color: AppColors.statusWarning),
+          Icon(Icons.info_outline, color: context.statusColors.warning),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -94,7 +94,7 @@ class _StatusBanner extends StatelessWidget {
                   'Notification settings are under development',
                   style: TextStyle(
                     color: colorScheme.onSurface,
-                    fontSize: 16,
+                    fontSize: AppType.s16,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -129,17 +129,17 @@ class _SectionCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppShape.r16),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppMetrics.p16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               title,
               style: TextStyle(
-                fontSize: 16,
+                fontSize: AppType.s16,
                 fontWeight: FontWeight.w600,
                 color: colorScheme.onSurface,
               ),
@@ -168,7 +168,7 @@ class _ReadOnlyRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: AppMetrics.p12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -182,14 +182,14 @@ class _ReadOnlyRow extends StatelessWidget {
                   title,
                   style: const TextStyle(
                     fontWeight: FontWeight.w600,
-                    fontSize: 14,
+                    fontSize: AppType.s14,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   subtitle,
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: AppType.s13,
                     color: colorScheme.onSurfaceVariant,
                     height: 1.4,
                   ),

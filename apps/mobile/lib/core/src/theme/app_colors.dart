@@ -40,9 +40,19 @@ class AppColors {
   static const Color statusError = Color(0xFFDC2626);
   static const Color statusInfo = Color(0xFF0284C7);
 
-  // Aliases untuk product status (sesuai naming convention)
-  static const Color successGreen = statusSuccess;
-  static const Color warningYellow = statusWarning;
+  // Dark-mode status tones.
+  //
+  // SAME doctrine as Tahap 0: no new hex — each dark tone reuses an existing
+  // palette token. Measured against the dark surface (`darkGray800` #161B22),
+  // the light tokens fail WCAG AA (4.5:1) for normal text: error #DC2626 = 3.6:1
+  // and info #0284C7 = 4.3:1 (success 4.6:1 and warning 5.5:1 pass). Retuned:
+  // error 4.6:1, success 6.8:1, warning 7.9:1, info 4.7:1 — all >= 4.5.
+  // Consumed ONLY by AppStatusColors.dark; widgets read them through the
+  // theme, never bind them (gate: theme_authority_contract_test).
+  static const Color darkStatusSuccess = primaryGreen;
+  static const Color darkStatusWarning = primaryYellow;
+  static const Color darkStatusError = primaryRed;
+  static const Color darkStatusInfo = primaryBlue;
 
   // Social media specific colors
   static const Color koiOrange = Color(0xFFFF6B35);
@@ -52,12 +62,6 @@ class AppColors {
   // LABUDA Coins colors
   static const Color coinPrimary = Color(0xFFFFA726); // Amber
   static const Color coinSecondary = Color(0xFFFF9800); // Orange
-
-  // Semantic aliases (canonical, in active use)
-  static const Color primary = primaryRed;
-  static const Color success = statusSuccess;
-  static const Color warning = statusWarning;
-  static const Color error = statusError;
 
   // Gradients
   static const LinearGradient primaryGradient = LinearGradient(
@@ -90,6 +94,12 @@ class AppColors {
   // token — no new hex. Container roles step darker away from the surface
   // (M3 direction); secondary text and borders use gray tones instead of the
   // previous flat pure-black outline default.
+  //
+  // EVERY M3 role is defined here. A role left out silently falls back to
+  // Flutter's baseline Material palette — that leak is why the snackbar used an
+  // unbranded `inverseSurface` and why `tertiary` was Material purple. Roles
+  // added below reuse the palette ramp/brand accents (no new hex); retuning a
+  // hue is a follow-up, a missing role never is.
   static const ColorScheme lightColorScheme = ColorScheme.light(
     primary: primaryRed,
     secondary: primaryBlue,
@@ -107,6 +117,24 @@ class AppColors {
     surfaceContainer: neutralGray100,
     surfaceContainerHigh: neutralGray200,
     surfaceContainerHighest: neutralGray300,
+    surfaceDim: neutralGray200,
+    surfaceBright: neutralWhite,
+    inverseSurface: neutralGray900,
+    onInverseSurface: neutralWhite,
+    inversePrimary: neutralGray100,
+    scrim: neutralBlack,
+    shadow: neutralBlack,
+    surfaceTint: primaryRed,
+    primaryContainer: neutralGray200,
+    onPrimaryContainer: neutralGray900,
+    secondaryContainer: neutralGray100,
+    onSecondaryContainer: neutralGray900,
+    tertiary: primaryPurple,
+    onTertiary: neutralWhite,
+    tertiaryContainer: neutralGray100,
+    onTertiaryContainer: neutralGray900,
+    errorContainer: neutralGray200,
+    onErrorContainer: neutralGray900,
     brightness: Brightness.light,
   );
 
@@ -115,11 +143,14 @@ class AppColors {
   // Same doctrine: container roles step lighter away from the surface
   // (M3 direction); secondary text and borders use gray tones instead of
   // the previous flat pure-white outline default.
+  //
+  // Same rule as light: every role defined, none left to the Material
+  // baseline.
   static const ColorScheme darkColorScheme = ColorScheme.dark(
     primary: primaryRed,
     secondary: primaryBlue,
     surface: darkGray800,
-    error: statusError,
+    error: darkStatusError,
     onPrimary: neutralWhite,
     onSecondary: neutralWhite,
     onSurface: neutralGray100,
@@ -132,6 +163,24 @@ class AppColors {
     surfaceContainer: darkGray700,
     surfaceContainerHigh: darkGray600,
     surfaceContainerHighest: darkGray500,
+    surfaceDim: darkGray900,
+    surfaceBright: darkGray700,
+    inverseSurface: neutralGray100,
+    onInverseSurface: neutralGray900,
+    inversePrimary: darkGray900,
+    scrim: neutralBlack,
+    shadow: neutralBlack,
+    surfaceTint: primaryRed,
+    primaryContainer: darkGray700,
+    onPrimaryContainer: neutralGray100,
+    secondaryContainer: darkGray700,
+    onSecondaryContainer: neutralGray100,
+    tertiary: primaryPurple,
+    onTertiary: neutralWhite,
+    tertiaryContainer: darkGray700,
+    onTertiaryContainer: neutralGray100,
+    errorContainer: darkGray700,
+    onErrorContainer: neutralGray100,
     brightness: Brightness.dark,
   );
 }

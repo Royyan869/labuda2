@@ -10,7 +10,6 @@ import 'package:labuda/domains/commerce/catalog/auction/data/dto/auction_dto.dar
 import 'package:labuda/domains/commerce/catalog/auction/data/mappers/auction_mapper.dart';
 import 'package:labuda/domains/commerce/catalog/auction/data/remote/auction_remote_datasource.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/domain.dart';
-import 'package:labuda/domains/commerce/transaction/order/domain/repositories/repository_result.dart';
 
 /// Auction Repository Implementation
 ///
@@ -44,7 +43,7 @@ class AuctionRepositoryImpl implements AuctionRepository {
   // ========== Auction CRUD Operations ==========
 
   @override
-  Future<RepositoryResult<Auction>> createAuction({
+  Future<Result<Auction>> createAuction({
     required String sellerId,
     String? sellerUsername,
     String? sellerFarmName,
@@ -90,52 +89,52 @@ class AuctionRepositoryImpl implements AuctionRepository {
       final result = await _datasource.createAuction(dto);
       final entity = AuctionMapper.toEntity(result);
 
-      return RepositoryResult.success(entity);
+      return Result.success(entity);
     } on StructuredApiException catch (e) {
       _logger.error('Failed to create auction: ${e.message}');
-      return RepositoryResult.error(
+      return Result.error(
         e.message,
         code: e.code,
         details: e.details,
       );
     } catch (e) {
       _logger.error('Failed to create auction: $e');
-      return RepositoryResult.error(e.toString());
+      return Result.error(e.toString());
     }
   }
 
   @override
-  Future<RepositoryResult<Auction>> getAuctionById(String auctionId) async {
+  Future<Result<Auction>> getAuctionById(String auctionId) async {
     try {
       final dto = await _datasource.getAuctionById(auctionId);
       final entity = AuctionMapper.toEntity(dto);
-      return RepositoryResult.success(entity);
+      return Result.success(entity);
     } catch (e) {
       _logger.error('Failed to get auction: $e');
-      return RepositoryResult.error(e.toString());
+      return Result.error(e.toString());
     }
   }
 
   @override
-  Future<RepositoryResult<List<Auction>>> getAuctionsByIds(
+  Future<Result<List<Auction>>> getAuctionsByIds(
     List<String> auctionIds,
   ) async {
     try {
       if (auctionIds.isEmpty) {
-        return RepositoryResult.success([]);
+        return Result.success([]);
       }
 
       final dtos = await _datasource.getAuctionsByIds(auctionIds);
       final entities = dtos.map(AuctionMapper.toEntity).toList();
-      return RepositoryResult.success(entities);
+      return Result.success(entities);
     } catch (e) {
       _logger.error('Failed to get auctions by IDs: $e');
-      return RepositoryResult.error(e.toString());
+      return Result.error(e.toString());
     }
   }
 
   @override
-  Future<RepositoryResult<List<Auction>>> getActiveAuctions({
+  Future<Result<List<Auction>>> getActiveAuctions({
     String? variety,
     double? minSize,
     double? maxSize,
@@ -159,15 +158,15 @@ class AuctionRepositoryImpl implements AuctionRepository {
               a.status == AuctionStatus.scheduled ||
               a.status == AuctionStatus.active)
           .toList();
-      return RepositoryResult.success(discoverable);
+      return Result.success(discoverable);
     } catch (e) {
       _logger.error('Failed to get active auctions: $e');
-      return RepositoryResult.error(e.toString());
+      return Result.error(e.toString());
     }
   }
 
   @override
-  Future<RepositoryResult<List<Auction>>> getUserAuctions({
+  Future<Result<List<Auction>>> getUserAuctions({
     required String sellerId,
     AuctionStatus? status,
     int limit = 20,
@@ -182,15 +181,15 @@ class AuctionRepositoryImpl implements AuctionRepository {
       );
 
       final entities = dtos.map(AuctionMapper.toEntity).toList();
-      return RepositoryResult.success(entities);
+      return Result.success(entities);
     } catch (e) {
       _logger.error('Failed to get user auctions: $e');
-      return RepositoryResult.error(e.toString());
+      return Result.error(e.toString());
     }
   }
 
   @override
-  Future<RepositoryResult<Auction>> updateAuction(
+  Future<Result<Auction>> updateAuction(
     String auctionId,
     Map<String, dynamic> updates,
   ) async {
@@ -198,15 +197,15 @@ class AuctionRepositoryImpl implements AuctionRepository {
       final dto = AuctionMapper.toUpdateDto(updates);
       final result = await _datasource.updateAuction(auctionId, dto);
       final entity = AuctionMapper.toEntity(result);
-      return RepositoryResult.success(entity);
+      return Result.success(entity);
     } catch (e) {
       _logger.error('Failed to update auction: $e');
-      return RepositoryResult.error(e.toString());
+      return Result.error(e.toString());
     }
   }
 
   @override
-  Future<RepositoryResult<void>> cancelAuction({
+  Future<Result<void>> cancelAuction({
     required String auctionId,
     required String sellerId,
     required String reason,
@@ -214,10 +213,10 @@ class AuctionRepositoryImpl implements AuctionRepository {
     try {
       final dto = CancelAuctionDto(reason: reason);
       await _datasource.cancelAuction(auctionId, dto);
-      return RepositoryResult.success(null);
+      return Result.success(null);
     } catch (e) {
       _logger.error('Failed to cancel auction: $e');
-      return RepositoryResult.error(e.toString());
+      return Result.error(e.toString());
     }
   }
 
@@ -227,7 +226,7 @@ class AuctionRepositoryImpl implements AuctionRepository {
   // ========== Bidding Operations ==========
 
   @override
-  Future<RepositoryResult<AuctionBid>> placeBid({
+  Future<Result<AuctionBid>> placeBid({
     required String auctionId,
     required String bidderId,
     required int amount,
@@ -239,37 +238,37 @@ class AuctionRepositoryImpl implements AuctionRepository {
         // Propagate the API code (e.g. EMAIL_VERIFICATION_REQUIRED,
         // BNR_AUCTION_RESTRICTED) so the notifier/screen can react via
         // state.errorCode and state.errorDetails.
-        return RepositoryResult.error(
+        return Result.error(
           result.error ?? 'Unknown error',
           code: result.errorCode,
           details: result.errorDetails,
         );
       }
       final entity = AuctionMapper.toBidEntity(result.data!);
-      return RepositoryResult.success(entity);
+      return Result.success(entity);
     } catch (e) {
       _logger.error('Failed to place bid: $e');
-      return RepositoryResult.error(e.toString());
+      return Result.error(e.toString());
     }
   }
 
   @override
-  Future<RepositoryResult<List<AuctionBid>>> getAuctionBids({
+  Future<Result<List<AuctionBid>>> getAuctionBids({
     required String auctionId,
     int limit = 50,
   }) async {
     try {
       final dtos = await _datasource.getBidHistory(auctionId, pageSize: limit);
       final entities = dtos.map(AuctionMapper.toBidEntity).toList();
-      return RepositoryResult.success(entities);
+      return Result.success(entities);
     } catch (e) {
       _logger.error('Failed to get auction bids: $e');
-      return RepositoryResult.error(e.toString());
+      return Result.error(e.toString());
     }
   }
 
   @override
-  Future<RepositoryResult<String>> claimAuction({
+  Future<Result<String>> claimAuction({
     required String auctionId,
     required String addressId,
     required String shippingSetupId,
@@ -284,17 +283,17 @@ class AuctionRepositoryImpl implements AuctionRepository {
         discountCode: discountCode,
         useCoins: useCoins,
       );
-      return RepositoryResult.success(orderId);
+      return Result.success(orderId);
     } on StructuredApiException catch (e) {
       _logger.error('Failed to claim auction: ${e.message}');
-      return RepositoryResult.error(
+      return Result.error(
         e.message,
         code: e.code,
         details: e.details,
       );
     } catch (e) {
       _logger.error('Failed to claim auction: $e');
-      return RepositoryResult.error(e.toString());
+      return Result.error(e.toString());
     }
   }
 
@@ -317,8 +316,8 @@ class AuctionRepositoryImpl implements AuctionRepository {
       // first poll tick cannot re-emit the same snapshot.
       getAuctionById(auctionId).then((result) {
         result.fold(
-          (auction) => _emitAuction(auctionId, auction),
           (_) => null,
+          (auction) => _emitAuction(auctionId, auction),
         );
       });
     }
@@ -341,7 +340,7 @@ class AuctionRepositoryImpl implements AuctionRepository {
 
       // Fetch initial data — shared dedup emitter (see _emitBids).
       getAuctionBids(auctionId: auctionId, limit: limit).then((result) {
-        result.fold((bids) => _emitBids(auctionId, bids), (_) => null);
+        result.fold((_) => null, (bids) => _emitBids(auctionId, bids));
       });
     }
 
@@ -467,8 +466,8 @@ class AuctionRepositoryImpl implements AuctionRepository {
         }
       }
       result.fold(
-        (auction) => _emitAuction(auctionId, auction),
         (_) => null,
+        (auction) => _emitAuction(auctionId, auction),
       );
     } catch (_) {
       // Detail surface failure must not kill the bids surface.
@@ -478,7 +477,7 @@ class AuctionRepositoryImpl implements AuctionRepository {
       final bidController = _bidStreamControllers[auctionId];
       if (bidController == null || !bidController.hasListener) return;
       final bidsResult = await getAuctionBids(auctionId: auctionId);
-      bidsResult.fold((bids) => _emitBids(auctionId, bids), (_) => null);
+      bidsResult.fold((_) => null, (bids) => _emitBids(auctionId, bids));
     } catch (_) {
       // Transient failure — retain last data, retry next tick.
     }

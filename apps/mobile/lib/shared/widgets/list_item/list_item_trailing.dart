@@ -278,10 +278,10 @@ Widget? buildListItemTrailing(ListItemTrailing config, ColorScheme scheme) {
 
     case TrailingType.badge:
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
         decoration: BoxDecoration(
           color: config.badgeColor ?? scheme.primary,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppShape.r12),
         ),
         child: Text(
           config.badgeText ?? '',
@@ -307,11 +307,11 @@ Widget? buildListItemTrailing(ListItemTrailing config, ColorScheme scheme) {
         child: TextButton(
           onPressed: config.onButtonPressed,
           style: TextButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+            padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12),
             backgroundColor: scheme.primary,
             foregroundColor: scheme.onPrimary,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(6),
+              borderRadius: BorderRadius.circular(AppShape.r6),
             ),
           ),
           child: Text(

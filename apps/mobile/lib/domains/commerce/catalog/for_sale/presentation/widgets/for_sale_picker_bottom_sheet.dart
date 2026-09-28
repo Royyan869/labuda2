@@ -173,7 +173,7 @@ class _ForSalePickerBottomSheetState
       height: MediaQuery.of(context).size.height * 0.7,
       decoration: BoxDecoration(
         color: scheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(AppShape.r20)),
       ),
       child: Column(
         children: [
@@ -215,7 +215,7 @@ class _ForSalePickerBottomSheetState
                     Text(
                       'Error loading forSales',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: AppType.s16,
                         color: scheme.onSurfaceVariant,
                       ),
                     ),
@@ -235,7 +235,7 @@ class _ForSalePickerBottomSheetState
       height: 300,
       decoration: BoxDecoration(
         color: scheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(AppShape.r20)),
       ),
       child: Center(
         child: Column(
@@ -253,7 +253,7 @@ class _ForSalePickerBottomSheetState
   Widget _buildHeader(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p20, vertical: AppMetrics.p16),
       decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(color: scheme.outlineVariant),
@@ -263,7 +263,7 @@ class _ForSalePickerBottomSheetState
         children: [
           const Text(
             'Pilih ForSale',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: AppType.s18, fontWeight: FontWeight.bold),
           ),
           const Spacer(),
           IconButton(
@@ -278,7 +278,7 @@ class _ForSalePickerBottomSheetState
   Widget _buildSearchBar(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       child: TextField(
         controller: _searchController,
         decoration: InputDecoration(
@@ -296,7 +296,7 @@ class _ForSalePickerBottomSheetState
           filled: true,
           fillColor: scheme.surfaceContainerHighest,
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppShape.r12),
             borderSide: BorderSide.none,
           ),
         ),
@@ -308,7 +308,7 @@ class _ForSalePickerBottomSheetState
   Widget _buildCreateNewForSaleButton(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16),
       child: SizedBox(
         width: double.infinity,
         child: OutlinedButton.icon(
@@ -321,9 +321,9 @@ class _ForSalePickerBottomSheetState
           style: OutlinedButton.styleFrom(
             foregroundColor: scheme.primary,
             side: BorderSide(color: scheme.primary),
-            padding: const EdgeInsets.symmetric(vertical: 12),
+            padding: const EdgeInsets.symmetric(vertical: AppMetrics.p12),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppShape.r12),
             ),
           ),
         ),
@@ -345,13 +345,13 @@ class _ForSalePickerBottomSheetState
           const SizedBox(height: 16),
           const Text(
             'Tidak Ada ForSale Aktif',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: AppType.s18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           Text(
             'Buat forSale baru untuk mulai menjual',
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppType.s14,
               color: scheme.onSurfaceVariant,
             ),
           ),
@@ -365,7 +365,7 @@ class _ForSalePickerBottomSheetState
     List<ForSale> forSales,
   ) {
     return ListView.separated(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       itemCount: forSales.length,
       separatorBuilder: (_, _) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
@@ -408,14 +408,14 @@ class _ForSaleTile extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(AppShape.r12),
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(AppMetrics.p12),
         decoration: BoxDecoration(
           color: isSelected
               ? scheme.primary.withValues(alpha: 0.12)
               : scheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppShape.r12),
           border: Border.all(
             color: isSelected ? scheme.primary : Colors.transparent,
             width: 2,
@@ -425,7 +425,7 @@ class _ForSaleTile extends StatelessWidget {
           children: [
             // Thumbnail
             ClipRRect(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(AppShape.r8),
               child: forSale.media.isNotEmptyUrls
           ? AppImage(
               imageUrl: forSale.media.firstUrl,
@@ -446,7 +446,7 @@ class _ForSaleTile extends StatelessWidget {
                     forSale.title,
                     style: const TextStyle(
                       fontWeight: FontWeight.w600,
-                      fontSize: 15,
+                      fontSize: AppType.s15,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -457,14 +457,14 @@ class _ForSaleTile extends StatelessWidget {
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.primary,
                       fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                      fontSize: AppType.s16,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     'Stok: ${forSale.stock}',
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: AppType.s12,
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
@@ -491,7 +491,7 @@ class _ForSaleTile extends StatelessWidget {
       height: 70,
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppShape.r8),
       ),
       child: Icon(
         Icons.image_not_supported,

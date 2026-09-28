@@ -32,7 +32,7 @@ class FirebaseAnalyticsRepositoryImpl implements IAnalyticsRepository {
       // Set user ID if provided
       if (userId != null) {
         final userIdResult = await _analyticsService.setUserId(userId);
-        if (userIdResult.isFailure) {
+        if (userIdResult.isError) {
           return userIdResult;
         }
       }
@@ -97,7 +97,7 @@ class FirebaseAnalyticsRepositoryImpl implements IAnalyticsRepository {
           value: entry.value?.toString(),
         );
 
-        if (result.isFailure) {
+        if (result.isError) {
           return result;
         }
       }

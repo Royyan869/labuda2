@@ -11,10 +11,10 @@ class OrderPaymentInfoCard extends StatelessWidget {
     final colorScheme = theme.colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(core.AppMetrics.p16),
       decoration: BoxDecoration(
         color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(core.AppShape.r12),
         border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: Column(
@@ -25,7 +25,7 @@ class OrderPaymentInfoCard extends StatelessWidget {
               Icon(
                 Icons.payment_outlined,
                 size: 20,
-                color: _getPaymentStatusColor(colorScheme),
+                color: _getPaymentStatusColor(context, colorScheme),
               ),
               const SizedBox(width: 8),
               Text(
@@ -70,16 +70,16 @@ class OrderPaymentInfoCard extends StatelessWidget {
     );
   }
 
-  Color _getPaymentStatusColor(ColorScheme colorScheme) {
+  Color _getPaymentStatusColor(BuildContext context, ColorScheme colorScheme) {
     switch (order.paymentStatus) {
       case PaymentStatus.paid:
-        return core.AppColors.statusSuccess;
+        return context.statusColors.success;
       case PaymentStatus.pending:
-        return core.AppColors.statusWarning;
+        return context.statusColors.warning;
       case PaymentStatus.processing:
         return colorScheme.secondary;
       case PaymentStatus.failed:
-        return core.AppColors.statusError;
+        return context.statusColors.error;
       case PaymentStatus.expired:
         return colorScheme.onSurfaceVariant;
       case PaymentStatus.refunded:
@@ -147,33 +147,33 @@ class _PaymentStatusBadge extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: core.AppMetrics.p12, vertical: core.AppMetrics.p4),
       decoration: BoxDecoration(
-        color: _getBadgeColor().withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _getBadgeColor().withValues(alpha: 0.3)),
+        color: _getBadgeColor(context, ).withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(core.AppShape.r12),
+        border: Border.all(color: _getBadgeColor(context, ).withValues(alpha: 0.3)),
       ),
       child: Text(
         _getBadgeLabel(),
         style: theme.textTheme.bodySmall?.copyWith(
-          color: _getBadgeColor(),
+          color: _getBadgeColor(context, ),
           fontWeight: FontWeight.w600,
-          fontSize: 11,
+          fontSize: core.AppType.s11,
         ),
       ),
     );
   }
 
-  Color _getBadgeColor() {
+  Color _getBadgeColor(BuildContext context) {
     switch (status) {
       case PaymentStatus.paid:
-        return core.AppColors.statusSuccess;
+        return context.statusColors.success;
       case PaymentStatus.pending:
-        return core.AppColors.statusWarning;
+        return context.statusColors.warning;
       case PaymentStatus.processing:
         return colorScheme.secondary;
       case PaymentStatus.failed:
-        return core.AppColors.statusError;
+        return context.statusColors.error;
       case PaymentStatus.expired:
         return colorScheme.onSurfaceVariant;
       case PaymentStatus.refunded:

@@ -8,7 +8,6 @@ import 'package:labuda/core/config/seller_upgrade_config_entity.dart';
 import 'package:labuda/core/config/seller_upgrade_config_provider.dart';
 import 'package:labuda/domains/commerce/transaction/order/order.dart';
 import 'package:labuda/domains/user/identity/verification/verification.dart';
-import 'package:labuda/domains/commerce/transaction/order/domain/repositories/repository_result.dart';
 import 'package:labuda/domains/commerce/transaction/shipping/domain/domain.dart';
 import 'package:labuda/domains/commerce/transaction/shipping/presentation/providers/providers.dart'
     show shippingNotifierProvider;
@@ -75,14 +74,14 @@ class _ReadyShippingNotifier extends ShippingNotifier {
 
 class _FailingSellerRepository implements SellerRepository {
   @override
-  Future<RepositoryResult<SellerDashboardStats>> getDashboardStats(
+  Future<Result<SellerDashboardStats>> getDashboardStats(
     String sellerId,
   ) async {
     throw UnimplementedError();
   }
 
   @override
-  Future<RepositoryResult<SellerAnalytics>> getAnalytics({
+  Future<Result<SellerAnalytics>> getAnalytics({
     required String sellerId,
     required AnalyticsPeriod period,
     required DateTime startDate,
@@ -92,14 +91,14 @@ class _FailingSellerRepository implements SellerRepository {
   }
 
   @override
-  Future<RepositoryResult<SellerPerformance>> getPerformance(
+  Future<Result<SellerPerformance>> getPerformance(
     String sellerId,
   ) async {
     throw UnimplementedError();
   }
 
   @override
-  Future<RepositoryResult<List<SalesDataPoint>>> getSalesTrendData({
+  Future<Result<List<SalesDataPoint>>> getSalesTrendData({
     required String sellerId,
     int days = 30,
   }) async {
@@ -107,12 +106,12 @@ class _FailingSellerRepository implements SellerRepository {
   }
 
   @override
-  Future<RepositoryResult<SellerEarnings>> getEarnings(String sellerId) async {
+  Future<Result<SellerEarnings>> getEarnings(String sellerId) async {
     throw Exception('boom');
   }
 
   @override
-  Future<RepositoryResult<SellerEarnings>> getEarningsBreakdown({
+  Future<Result<SellerEarnings>> getEarningsBreakdown({
     required String sellerId,
     required DateTime startDate,
     required DateTime endDate,
@@ -121,7 +120,7 @@ class _FailingSellerRepository implements SellerRepository {
   }
 
   @override
-  Future<RepositoryResult<List<WithdrawalRecord>>> getWithdrawalHistory({
+  Future<Result<List<WithdrawalRecord>>> getWithdrawalHistory({
     required String sellerId,
     int limit = 20,
     int offset = 0,
@@ -130,7 +129,7 @@ class _FailingSellerRepository implements SellerRepository {
   }
 
   @override
-  Future<RepositoryResult<List<RecentActivityItem>>> getRecentActivity(
+  Future<Result<List<RecentActivityItem>>> getRecentActivity(
     String sellerId, {
     int limit = 10,
   }) async {
@@ -138,7 +137,7 @@ class _FailingSellerRepository implements SellerRepository {
   }
 
   @override
-  Future<RepositoryResult<List<RecentActivityItem>>> getActivityHistory(
+  Future<Result<List<RecentActivityItem>>> getActivityHistory(
     ActivityHistoryParams params, {
     int limit = 100,
   }) async {
@@ -146,7 +145,7 @@ class _FailingSellerRepository implements SellerRepository {
   }
 
   @override
-  Future<RepositoryResult<SellerSubscription>> getSubscription(
+  Future<Result<SellerSubscription>> getSubscription(
     String sellerId,
   ) async {
     throw UnimplementedError();
@@ -158,7 +157,7 @@ class _FailingSellerRepository implements SellerRepository {
   }
 
   @override
-  Future<RepositoryResult<WithdrawResult>> requestWithdraw(
+  Future<Result<WithdrawResult>> requestWithdraw(
     WithdrawRequest request, {
     String? idempotencyKey,
   }) async {
@@ -166,7 +165,7 @@ class _FailingSellerRepository implements SellerRepository {
   }
 
   @override
-  Future<RepositoryResult<List<Withdrawal>>> getWithdrawHistory({
+  Future<Result<List<Withdrawal>>> getWithdrawHistory({
     int limit = 100,
     int offset = 0,
   }) async {

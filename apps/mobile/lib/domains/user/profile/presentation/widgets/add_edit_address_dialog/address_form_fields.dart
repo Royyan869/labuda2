@@ -74,7 +74,7 @@ class AddressFormFields extends StatelessWidget {
         else ...[
           _buildLabel('Address Purpose', scheme),
           const SizedBox(height: 8),
-          _buildPurposeDropdown(scheme),
+          _buildPurposeDropdown(context, scheme),
         ],
         const SizedBox(height: 16),
 
@@ -225,7 +225,7 @@ class AddressFormFields extends StatelessWidget {
         Text(
           'Add notes to help delivery find your location',
           style: TextStyle(
-            fontSize: 12,
+            fontSize: AppType.s12,
             color: scheme.onSurfaceVariant,
           ),
         ),
@@ -237,45 +237,45 @@ class AddressFormFields extends StatelessWidget {
     return Text(
       text,
       style: TextStyle(
-        fontSize: 14,
+        fontSize: AppType.s14,
         fontWeight: FontWeight.w600,
         color: scheme.onSurfaceVariant,
       ),
     );
   }
 
-  InputDecoration _inputDecoration(ColorScheme scheme, String hintText) {
+  InputDecoration _inputDecoration(BuildContext context, ColorScheme scheme, String hintText) {
     return InputDecoration(
       hintText: hintText,
       filled: true,
       fillColor: scheme.onSurfaceVariant,
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         borderSide: BorderSide(
           color: scheme.outlineVariant,
         ),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         borderSide: BorderSide(
           color: scheme.outlineVariant,
         ),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         borderSide: BorderSide(color: scheme.primary, width: 2),
       ),
       errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: AppColors.error),
+        borderRadius: BorderRadius.circular(AppShape.r12),
+        borderSide: BorderSide(color: context.statusColors.error),
       ),
     );
   }
 
-  Widget _buildPurposeDropdown(ColorScheme scheme) {
+  Widget _buildPurposeDropdown(BuildContext context, ColorScheme scheme) {
     return DropdownButtonFormField<AddressPurpose>(
       initialValue: selectedPurpose,
-      decoration: _inputDecoration(scheme, 'Select address purpose'),
+      decoration: _inputDecoration(context, scheme, 'Select address purpose'),
       dropdownColor: scheme.onSurfaceVariant,
       items: AddressPurpose.values.map((purpose) {
         return DropdownMenuItem(
@@ -304,10 +304,10 @@ class AddressFormFields extends StatelessWidget {
     final isShipping = purpose == AddressPurpose.shipping;
 
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      padding: const EdgeInsets.symmetric(vertical: AppMetrics.p12, horizontal: AppMetrics.p16),
       decoration: BoxDecoration(
         color: scheme.onSurfaceVariant,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(
           color: scheme.outlineVariant,
         ),
@@ -331,7 +331,7 @@ class AddressFormFields extends StatelessWidget {
                       ? 'Recipient Address (Buyer)'
                       : 'Sender Address (Seller)',
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: AppType.s14,
                     fontWeight: FontWeight.w600,
                     color: scheme.onSurfaceVariant,
                   ),
@@ -342,7 +342,7 @@ class AddressFormFields extends StatelessWidget {
                       ? 'Destination address for shipping'
                       : 'Origin address for shipping',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: AppType.s12,
                     color: scheme.onSurfaceVariant,
                   ),
                 ),
@@ -362,15 +362,15 @@ class AddressFormFields extends StatelessWidget {
         // Map Picker Button
         InkWell(
           onTap: () => _showLocationPicker(context),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppShape.r12),
           child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            padding: const EdgeInsets.symmetric(vertical: AppMetrics.p12, horizontal: AppMetrics.p16),
             decoration: BoxDecoration(
               color: scheme.onSurfaceVariant,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppShape.r12),
               border: Border.all(
                 color: hasCoordinates
-                    ? AppColors.success
+                    ? context.statusColors.success
                     : scheme.onSurfaceVariant,
                 width: hasCoordinates ? 2 : 1,
               ),
@@ -381,7 +381,7 @@ class AddressFormFields extends StatelessWidget {
                   hasCoordinates ? Icons.check_circle : Icons.map_outlined,
                   size: 20,
                   color: hasCoordinates
-                      ? AppColors.success
+                      ? context.statusColors.success
                       : scheme.onSurfaceVariant,
                 ),
                 const SizedBox(width: 12),
@@ -394,10 +394,10 @@ class AddressFormFields extends StatelessWidget {
                             ? 'Pinpoint Location Saved'
                             : 'Select Location on Map',
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: AppType.s14,
                           fontWeight: FontWeight.w500,
                           color: hasCoordinates
-                              ? AppColors.success
+                              ? context.statusColors.success
                               : scheme.onSurfaceVariant,
                         ),
                       ),
@@ -405,7 +405,7 @@ class AddressFormFields extends StatelessWidget {
                         Text(
                           '${latitude!.toStringAsFixed(6)}, ${longitude!.toStringAsFixed(6)}',
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: AppType.s11,
                             fontFamily: 'monospace',
                             color: scheme.onSurfaceVariant,
                           ),
@@ -426,7 +426,7 @@ class AddressFormFields extends StatelessWidget {
         Text(
           'Pinpoint location to facilitate delivery',
           style: TextStyle(
-            fontSize: 11,
+            fontSize: AppType.s11,
             color: scheme.onSurfaceVariant,
           ),
         ),

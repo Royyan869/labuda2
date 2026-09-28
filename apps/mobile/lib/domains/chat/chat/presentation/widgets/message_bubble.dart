@@ -4,7 +4,7 @@ import 'package:labuda/core/src/localization/l10n_extension.dart';
 // E4.3 — import AppColors directly (not via core/core.dart) to keep the
 // dependency surface explicit. The chat-entities `MessageStatus` consumed by
 // this widget must stay the single MessageStatus in scope.
-import 'package:labuda/core/src/theme/app_colors.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart';
 import 'package:labuda/domains/chat/chat/presentation/utils/chat_identity_display.dart';
 import 'package:labuda/domains/chat/chat/presentation/utils/chat_lifecycle_redaction.dart';
@@ -54,10 +54,10 @@ class MessageBubble extends ConsumerWidget {
       alignment: isFromUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         margin: EdgeInsets.only(
-          left: isFromUser ? 48 : 8,
-          right: isFromUser ? 8 : 48,
-          bottom: 4,
-          top: 4,
+          left: isFromUser ? AppMetrics.p48 : AppMetrics.p8,
+          right: isFromUser ? AppMetrics.p8 : AppMetrics.p48,
+          bottom: AppMetrics.p4,
+          top: AppMetrics.p4,
         ),
         child: Column(
           crossAxisAlignment: isFromUser
@@ -86,10 +86,10 @@ class MessageBubble extends ConsumerWidget {
         : colorScheme.onSurface;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p10),
       decoration: BoxDecoration(
         color: backgroundColor,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(AppShape.r18),
       ),
       constraints: BoxConstraints(
         maxWidth: MediaQuery.of(context).size.width * 0.75,
@@ -144,7 +144,7 @@ class MessageBubble extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ClipRRect(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppShape.r12),
             child: AppImage(
               imageUrl: message.mediaUrls.first,
               width: double.maxFinite,
@@ -175,7 +175,7 @@ class MessageBubble extends ConsumerWidget {
       height: 200,
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.scrim,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
       ),
       child: Center(
         child: Icon(
@@ -200,13 +200,13 @@ class MessageBubble extends ConsumerWidget {
             color: Theme.of(
               context,
             ).colorScheme.onPrimary.withValues(alpha: 0.3),
-            borderRadius: BorderRadius.circular(2),
+            borderRadius: BorderRadius.circular(AppShape.r2),
           ),
         ),
         const SizedBox(width: 8),
         Text(
           '0:${message.content.length % 60}',
-          style: const TextStyle(fontSize: 12),
+          style: const TextStyle(fontSize: AppType.s12),
         ),
       ],
     );
@@ -222,7 +222,7 @@ class MessageBubble extends ConsumerWidget {
       children: [
         const Icon(Icons.attach_file, size: 20),
         const SizedBox(width: 8),
-        Flexible(child: Text(fileName, style: const TextStyle(fontSize: 14))),
+        Flexible(child: Text(fileName, style: const TextStyle(fontSize: AppType.s14))),
         const SizedBox(width: 8),
         const Icon(Icons.download, size: 20),
       ],
@@ -232,15 +232,15 @@ class MessageBubble extends ConsumerWidget {
   Widget _buildSystemMessage(BuildContext context) {
     return Center(
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p6),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppShape.r12),
         ),
         child: Text(
           message.content,
           style: TextStyle(
-            fontSize: 12,
+            fontSize: AppType.s12,
             color: Theme.of(context).colorScheme.onSurfaceVariant,
             fontStyle: FontStyle.italic,
           ),
@@ -255,11 +255,11 @@ class MessageBubble extends ConsumerWidget {
         ? colorScheme.onPrimary.withValues(alpha: 0.7)
         : colorScheme.onSurfaceVariant;
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(8),
+      margin: const EdgeInsets.only(bottom: AppMetrics.p8),
+      padding: const EdgeInsets.all(AppMetrics.p8),
       decoration: BoxDecoration(
         color: colorScheme.onSurface.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppShape.r8),
       ),
       child: Row(
         children: [
@@ -270,7 +270,7 @@ class MessageBubble extends ConsumerWidget {
               color: isFromUser
                   ? colorScheme.onPrimary.withValues(alpha: 0.5)
                   : colorScheme.onSurface.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(2),
+              borderRadius: BorderRadius.circular(AppShape.r2),
             ),
           ),
           const SizedBox(width: 8),
@@ -281,7 +281,7 @@ class MessageBubble extends ConsumerWidget {
                 Text(
                   _senderLabelForReplyPreview(),
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: AppType.s11,
                     color: replyInk,
                     fontWeight: FontWeight.bold,
                   ),
@@ -290,7 +290,7 @@ class MessageBubble extends ConsumerWidget {
                 Text(
                   message.content,
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: AppType.s12,
                     color: replyInk,
                   ),
                   maxLines: 2,
@@ -324,7 +324,7 @@ class MessageBubble extends ConsumerWidget {
       // existed): render the transport snapshot the message already carries.
       // Display-only — no resolver call, no derived status, no money.
       return Padding(
-        padding: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.only(bottom: AppMetrics.p8),
         child: ObjectPreviewCard(
           reference: message.objectReference!,
           onTap: onTap,
@@ -345,7 +345,7 @@ class MessageBubble extends ConsumerWidget {
     // negotiation_result are forbidden legacy types with no producer.
     if (message.negotiationProposal != null) {
       return Padding(
-        padding: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.only(bottom: AppMetrics.p8),
         child: widget_lib.AttachmentWidget(
           attachment: message.negotiationProposal!,
           isFromCurrentUser: isFromUser,
@@ -358,7 +358,7 @@ class MessageBubble extends ConsumerWidget {
     // Handle Shipping Quote attachment
     if (message.shippingQuote != null) {
       return Padding(
-        padding: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.only(bottom: AppMetrics.p8),
         child: widget_lib.AttachmentWidget(
           attachment: message.shippingQuote!,
           isFromCurrentUser: isFromUser,
@@ -373,7 +373,7 @@ class MessageBubble extends ConsumerWidget {
     // Handle Location attachment
     if (message.location != null) {
       return Padding(
-        padding: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.only(bottom: AppMetrics.p8),
         child: widget_lib.AttachmentWidget(
           attachment: message.location!,
           isFromCurrentUser: isFromUser,
@@ -392,7 +392,7 @@ class MessageBubble extends ConsumerWidget {
   /// message is about. Display + navigation only; no Commerce business logic.
   Widget _buildResourceProjection(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: AppMetrics.p8),
       child: ChatResourceProjectionCard(
         resourceProjection: message.resourceProjection!,
         onBuy: onProjectionBuy,
@@ -407,7 +407,7 @@ class MessageBubble extends ConsumerWidget {
         Text(
           _formatTime(message.createdAt),
           style: TextStyle(
-            fontSize: 10,
+            fontSize: AppType.s10,
             color: textColor.withValues(alpha: 0.7),
           ),
         ),
@@ -434,11 +434,11 @@ class MessageBubble extends ConsumerWidget {
         break;
       case MessageStatus.read:
         icon = Icons.done_all;
-        iconColor = AppColors.statusInfo;
+        iconColor = context.statusColors.info;
         break;
       case MessageStatus.failed:
         icon = Icons.error;
-        iconColor = AppColors.statusError;
+        iconColor = context.statusColors.error;
         break;
     }
 
@@ -459,11 +459,11 @@ class MessageBubble extends ConsumerWidget {
         : _senderLabel();
 
     return Padding(
-      padding: const EdgeInsets.only(left: 4, top: 2),
+      padding: const EdgeInsets.only(left: AppMetrics.p4, top: AppMetrics.p2),
       child: Text(
         displayName,
         style: TextStyle(
-          fontSize: 11,
+          fontSize: AppType.s11,
           color: Theme.of(context).colorScheme.onSurfaceVariant,
           fontStyle: senderDegraded ? FontStyle.italic : FontStyle.normal,
         ),

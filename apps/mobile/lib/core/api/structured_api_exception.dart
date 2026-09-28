@@ -3,7 +3,7 @@
 ///
 /// When a datasource uses `Result.fold((error) => throw ..., ...)`, wrapping
 /// the error in this exception preserves the machine-readable code so the
-/// repository layer can propagate it via `RepositoryResult.error(..., code:)`.
+/// repository layer can propagate it via `Result.error(..., code:)`.
 class StructuredApiException implements Exception {
   final String message;
   final String? code;

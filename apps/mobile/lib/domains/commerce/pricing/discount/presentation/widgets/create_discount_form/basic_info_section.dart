@@ -44,10 +44,10 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(core.AppMetrics.p16),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(core.AppShape.r12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -55,7 +55,7 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
           Text(
             'Basic Information',
             style: TextStyle(
-              fontSize: 16,
+              fontSize: core.AppType.s16,
               fontWeight: FontWeight.bold,
               color: Theme.of(context).colorScheme.onSurface,
             ),
@@ -106,25 +106,25 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
           if (widget.isEditMode) ...[
             const SizedBox(height: 8),
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(core.AppMetrics.p8),
               decoration: BoxDecoration(
-                color: core.AppColors.statusInfo.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
+                color: context.statusColors.info.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(core.AppShape.r8),
               ),
               child: Row(
                 children: [
                   Icon(
                     Icons.info_outline,
                     size: 16,
-                    color: core.AppColors.statusInfo,
+                    color: context.statusColors.info,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Discount code cannot be changed after creation',
                       style: TextStyle(
-                        fontSize: 12,
-                        color: core.AppColors.statusInfo,
+                        fontSize: core.AppType.s12,
+                        color: context.statusColors.info,
                       ),
                     ),
                   ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/shared/services/location_service.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Widget untuk menampilkan accuracy indicator di map
 /// Menampilkan circle radius sesuai GPS accuracy
@@ -47,10 +48,10 @@ class _AccuracyBadge extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p8),
       decoration: BoxDecoration(
         color: scheme.surface.withValues(alpha: 0.9),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(AppShape.r20),
         border: Border.all(
           color: level.resolve(context).withValues(alpha: 0.5),
           width: 1.5,
@@ -80,7 +81,7 @@ class _AccuracyBadge extends StatelessWidget {
           Text(
             level.label,
             style: TextStyle(
-              fontSize: 12,
+              fontSize: AppType.s12,
               fontWeight: FontWeight.w600,
               color: scheme.onSurface,
             ),
@@ -90,7 +91,7 @@ class _AccuracyBadge extends StatelessWidget {
           Text(
             '(${accuracy.toStringAsFixed(0)}m)',
             style: TextStyle(
-              fontSize: 11,
+              fontSize: AppType.s11,
               fontWeight: FontWeight.w500,
               color: scheme.onSurfaceVariant,
             ),
@@ -112,11 +113,11 @@ class DefaultLocationWarning extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
 
     return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.all(AppMetrics.p16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         color: scheme.error.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(
           color: scheme.error.withValues(alpha: 0.5),
           width: 1,
@@ -137,7 +138,7 @@ class DefaultLocationWarning extends StatelessWidget {
                 child: Text(
                   'Tidak Mendapatkan Lokasi GPS',
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: AppType.s14,
                     fontWeight: FontWeight.w600,
                     color: scheme.onSurface,
                   ),
@@ -149,7 +150,7 @@ class DefaultLocationWarning extends StatelessWidget {
           Text(
             'Menggunakan lokasi default (Jakarta). Pastikan GPS aktif dan coba lagi.',
             style: TextStyle(
-              fontSize: 12,
+              fontSize: AppType.s12,
               color: scheme.onSurfaceVariant,
             ),
           ),
@@ -163,12 +164,12 @@ class DefaultLocationWarning extends StatelessWidget {
                     side: BorderSide(
                       color: scheme.outline,
                     ),
-                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    padding: const EdgeInsets.symmetric(vertical: AppMetrics.p10),
                   ),
                   child: Text(
                     'Tutup',
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: AppType.s14,
                       color: scheme.onSurface,
                     ),
                   ),
@@ -180,11 +181,11 @@ class DefaultLocationWarning extends StatelessWidget {
                   onPressed: onRetry,
                   style: FilledButton.styleFrom(
                     backgroundColor: scheme.error,
-                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    padding: const EdgeInsets.symmetric(vertical: AppMetrics.p10),
                   ),
                   child: const Text(
                     'Coba Lagi',
-                    style: TextStyle(fontSize: 14),
+                    style: TextStyle(fontSize: AppType.s14),
                   ),
                 ),
               ),
@@ -218,12 +219,12 @@ class LocationAccuracyIndicator extends StatelessWidget {
     // Special case untuk default/last known
     if (isDefault || isLastKnown) {
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p10, vertical: AppMetrics.p4),
         decoration: BoxDecoration(
           color: isDefault
               ? scheme.error.withValues(alpha: 0.12)
               : scheme.onSurfaceVariant.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(AppShape.r6),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -237,7 +238,7 @@ class LocationAccuracyIndicator extends StatelessWidget {
             Text(
               accuracyLabel,
               style: TextStyle(
-                fontSize: 10,
+                fontSize: AppType.s10,
                 fontWeight: FontWeight.w500,
                 color: isDefault ? scheme.error : scheme.onSurfaceVariant,
               ),
@@ -249,10 +250,10 @@ class LocationAccuracyIndicator extends StatelessWidget {
 
     // Normal accuracy indicator
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p10, vertical: AppMetrics.p4),
       decoration: BoxDecoration(
         color: level.resolve(context).withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(AppShape.r6),
         border: Border.all(color: level.resolve(context).withValues(alpha: 0.4), width: 1),
       ),
       child: Row(
@@ -270,7 +271,7 @@ class LocationAccuracyIndicator extends StatelessWidget {
           Text(
             accuracyLabel,
             style: TextStyle(
-              fontSize: 10,
+              fontSize: AppType.s10,
               fontWeight: FontWeight.w500,
               color: scheme.onSurfaceVariant,
             ),

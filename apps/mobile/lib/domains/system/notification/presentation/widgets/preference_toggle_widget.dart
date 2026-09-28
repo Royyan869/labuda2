@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Preference Toggle Widget
 ///
@@ -37,7 +38,7 @@ class PreferenceToggleWidget extends StatelessWidget {
       child: InkWell(
         onTap: effectiveEnabled ? () => onChanged(!value) : null,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p12),
           child: Row(
             children: [
               // Icon
@@ -48,7 +49,7 @@ class PreferenceToggleWidget extends StatelessWidget {
                   color: effectiveEnabled
                       ? iconColor.withValues(alpha: 0.1)
                       : scheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(AppShape.r10),
                 ),
                 child: Icon(
                   icon,
@@ -68,7 +69,7 @@ class PreferenceToggleWidget extends StatelessWidget {
                     Text(
                       title,
                       style: TextStyle(
-                        fontSize: 15,
+                        fontSize: AppType.s15,
                         fontWeight: FontWeight.w500,
                         color: effectiveEnabled
                             ? scheme.onSurface
@@ -79,7 +80,7 @@ class PreferenceToggleWidget extends StatelessWidget {
                     Text(
                       subtitle,
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: AppType.s13,
                         color: effectiveEnabled
                             ? scheme.onSurfaceVariant
                             : scheme.onSurfaceVariant,

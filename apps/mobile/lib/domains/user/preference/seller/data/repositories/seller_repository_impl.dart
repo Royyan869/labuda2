@@ -4,7 +4,7 @@
 /// NO FALLBACK LOGIC - all data comes from backend API.
 library;
 
-import 'package:labuda/domains/commerce/transaction/order/domain/repositories/repository_result.dart';
+import 'package:labuda/core/common/result.dart';
 import 'package:labuda/shared/domain/entities/resource_projection.dart';
 
 import '../../domain/entities/seller_dashboard.dart';
@@ -33,14 +33,14 @@ class SellerRepositoryImpl implements SellerRepository {
   // ============================================
 
   @override
-  Future<RepositoryResult<SellerDashboardStats>> getDashboardStats(
+  Future<Result<SellerDashboardStats>> getDashboardStats(
     String sellerId,
   ) async {
     try {
       final dto = await _remoteDatasource.getDashboardStats(sellerId);
-      return RepositoryResult.success(DashboardStatsMapper.toEntity(dto));
+      return Result.success(DashboardStatsMapper.toEntity(dto));
     } catch (e) {
-      return RepositoryResult.error('Failed to get dashboard stats: $e');
+      return Result.error('Failed to get dashboard stats: $e');
     }
   }
 
@@ -49,7 +49,7 @@ class SellerRepositoryImpl implements SellerRepository {
   // ============================================
 
   @override
-  Future<RepositoryResult<SellerAnalytics>> getAnalytics({
+  Future<Result<SellerAnalytics>> getAnalytics({
     required String sellerId,
     required AnalyticsPeriod period,
     required DateTime startDate,
@@ -64,7 +64,7 @@ class SellerRepositoryImpl implements SellerRepository {
         days: endDate.difference(startDate).inDays,
       );
 
-      return RepositoryResult.success(
+      return Result.success(
         SellerAnalyticsMapper.toEntity(
           sellerId: sellerId,
           period: period,
@@ -82,26 +82,26 @@ class SellerRepositoryImpl implements SellerRepository {
         ),
       );
     } catch (e) {
-      return RepositoryResult.error('Failed to get analytics: $e');
+      return Result.error('Failed to get analytics: $e');
     }
   }
 
   @override
-  Future<RepositoryResult<SellerPerformance>> getPerformance(
+  Future<Result<SellerPerformance>> getPerformance(
     String sellerId,
   ) async {
     try {
       final perfJson = await _remoteDatasource.getPerformance(sellerId);
-      return RepositoryResult.success(
+      return Result.success(
         SellerPerformanceMapper.toEntity(sellerId: sellerId, json: perfJson),
       );
     } catch (e) {
-      return RepositoryResult.error('Failed to get performance: $e');
+      return Result.error('Failed to get performance: $e');
     }
   }
 
   @override
-  Future<RepositoryResult<List<SalesDataPoint>>> getSalesTrendData({
+  Future<Result<List<SalesDataPoint>>> getSalesTrendData({
     required String sellerId,
     int days = 30,
   }) async {
@@ -115,9 +115,9 @@ class SellerRepositoryImpl implements SellerRepository {
           .map((json) => SalesDataPointMapper.toEntity(json))
           .toList();
 
-      return RepositoryResult.success(dataPoints);
+      return Result.success(dataPoints);
     } catch (e) {
-      return RepositoryResult.error('Failed to get sales trend: $e');
+      return Result.error('Failed to get sales trend: $e');
     }
   }
 
@@ -126,21 +126,21 @@ class SellerRepositoryImpl implements SellerRepository {
   // ============================================
 
   @override
-  Future<RepositoryResult<SellerEarnings>> getEarnings(String sellerId) async {
+  Future<Result<SellerEarnings>> getEarnings(String sellerId) async {
     try {
       final apiModel = await _remoteDatasource.getEarnings(sellerId);
       final earnings = SellerEarningsMapper.fromApiModel(
         sellerId: sellerId,
         apiModel: apiModel,
       );
-      return RepositoryResult.success(earnings);
+      return Result.success(earnings);
     } catch (e) {
-      return RepositoryResult.error('Failed to get earnings: $e');
+      return Result.error('Failed to get earnings: $e');
     }
   }
 
   @override
-  Future<RepositoryResult<SellerEarnings>> getEarningsBreakdown({
+  Future<Result<SellerEarnings>> getEarningsBreakdown({
     required String sellerId,
     required DateTime startDate,
     required DateTime endDate,
@@ -151,7 +151,7 @@ class SellerRepositoryImpl implements SellerRepository {
   }
 
   @override
-  Future<RepositoryResult<List<WithdrawalRecord>>> getWithdrawalHistory({
+  Future<Result<List<WithdrawalRecord>>> getWithdrawalHistory({
     required String sellerId,
     int limit = 20,
     int offset = 0,
@@ -185,9 +185,9 @@ class SellerRepositoryImpl implements SellerRepository {
         );
       }).toList();
 
-      return RepositoryResult.success(withdrawals);
+      return Result.success(withdrawals);
     } catch (e) {
-      return RepositoryResult.error('Failed to get withdrawal history: $e');
+      return Result.error('Failed to get withdrawal history: $e');
     }
   }
 
@@ -210,7 +210,7 @@ class SellerRepositoryImpl implements SellerRepository {
   // ============================================
 
   @override
-  Future<RepositoryResult<List<RecentActivityItem>>> getRecentActivity(
+  Future<Result<List<RecentActivityItem>>> getRecentActivity(
     String sellerId, {
     int limit = 10,
   }) async {
@@ -219,16 +219,16 @@ class SellerRepositoryImpl implements SellerRepository {
         sellerId,
         limit: limit,
       );
-      return RepositoryResult.success(
+      return Result.success(
         dtos.map(ActivityItemMapper.toEntity).toList(),
       );
     } catch (e) {
-      return RepositoryResult.error('Failed to get recent activity: $e');
+      return Result.error('Failed to get recent activity: $e');
     }
   }
 
   @override
-  Future<RepositoryResult<List<RecentActivityItem>>> getActivityHistory(
+  Future<Result<List<RecentActivityItem>>> getActivityHistory(
     ActivityHistoryParams params, {
     int limit = 100,
   }) async {
@@ -238,11 +238,11 @@ class SellerRepositoryImpl implements SellerRepository {
         filterType: params.filterType,
         limit: limit,
       );
-      return RepositoryResult.success(
+      return Result.success(
         dtos.map(ActivityItemMapper.toEntity).toList(),
       );
     } catch (e) {
-      return RepositoryResult.error('Failed to get activity history: $e');
+      return Result.error('Failed to get activity history: $e');
     }
   }
 
@@ -251,7 +251,7 @@ class SellerRepositoryImpl implements SellerRepository {
   // ============================================
 
   @override
-  Future<RepositoryResult<SellerSubscription>> getSubscription(
+  Future<Result<SellerSubscription>> getSubscription(
     String sellerId,
   ) async {
     try {
@@ -281,7 +281,7 @@ class SellerRepositoryImpl implements SellerRepository {
           json['last_renewal_date'] as String? ??
           json['lastRenewalDate'] as String?;
 
-      return RepositoryResult.success(
+      return Result.success(
         SellerSubscription(
           isActive: isActive,
           yearlyFee: yearlyFee,
@@ -296,7 +296,7 @@ class SellerRepositoryImpl implements SellerRepository {
         ),
       );
     } catch (e) {
-      return RepositoryResult.error('Failed to get subscription: $e');
+      return Result.error('Failed to get subscription: $e');
     }
   }
 
@@ -353,7 +353,7 @@ class SellerRepositoryImpl implements SellerRepository {
   // ============================================
 
   @override
-  Future<RepositoryResult<WithdrawResult>> requestWithdraw(
+  Future<Result<WithdrawResult>> requestWithdraw(
     WithdrawRequest request,
   ) async {
     try {
@@ -368,7 +368,7 @@ class SellerRepositoryImpl implements SellerRepository {
         } else {
           error = 'Invalid withdrawal amount';
         }
-        return RepositoryResult.error(error);
+        return Result.error(error);
       }
 
       // Convert request to DTO
@@ -385,7 +385,7 @@ class SellerRepositoryImpl implements SellerRepository {
       // Convert to result
       final result = WithdrawalMapper.responseToResult(responseDto);
 
-      return RepositoryResult.success(result);
+      return Result.success(result);
     } catch (e) {
       // Parse error for common cases
       final errorStr = e.toString().toLowerCase();
@@ -410,12 +410,12 @@ class SellerRepositoryImpl implements SellerRepository {
             'Maximum withdrawal amount is Rp ${formatGroupedAmount(WithdrawRequest.maxAmount.round())}';
       }
 
-      return RepositoryResult.error(errorMessage);
+      return Result.error(errorMessage);
     }
   }
 
   @override
-  Future<RepositoryResult<List<Withdrawal>>> getWithdrawHistory({
+  Future<Result<List<Withdrawal>>> getWithdrawHistory({
     int limit = 100,
     int offset = 0,
   }) async {
@@ -429,9 +429,9 @@ class SellerRepositoryImpl implements SellerRepository {
 
       final withdrawals = WithdrawalMapper.fromDtoList(historyDto.withdrawals);
 
-      return RepositoryResult.success(withdrawals);
+      return Result.success(withdrawals);
     } catch (e) {
-      return RepositoryResult.error('Failed to get withdrawal history: $e');
+      return Result.error('Failed to get withdrawal history: $e');
     }
   }
 }

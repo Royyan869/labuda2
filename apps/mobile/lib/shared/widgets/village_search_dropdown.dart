@@ -86,7 +86,7 @@ class _VillageSearchDropdownState extends ConsumerState<VillageSearchDropdown> {
           Text(
             widget.labelText!,
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppType.s14,
               fontWeight: FontWeight.w500,
               color: scheme.onSurface,
             ),
@@ -109,9 +109,9 @@ class _VillageSearchDropdownState extends ConsumerState<VillageSearchDropdown> {
     final scheme = Theme.of(context).colorScheme;
     return Container(
       height: 50,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(color: scheme.outlineVariant),
         color: scheme.surfaceContainerHighest,
       ),
@@ -125,7 +125,7 @@ class _VillageSearchDropdownState extends ConsumerState<VillageSearchDropdown> {
             'Pilih kecamatan dulu',
             style: TextStyle(
               color: scheme.onSurfaceVariant,
-              fontSize: 16,
+              fontSize: AppType.s16,
             ),
           ),
         ],
@@ -137,9 +137,9 @@ class _VillageSearchDropdownState extends ConsumerState<VillageSearchDropdown> {
     final scheme = Theme.of(context).colorScheme;
     return Container(
       height: 50,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(color: scheme.outlineVariant),
         color: scheme.surface,
       ),
@@ -168,19 +168,19 @@ class _VillageSearchDropdownState extends ConsumerState<VillageSearchDropdown> {
     final scheme = Theme.of(context).colorScheme;
     return Container(
       height: 50,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.statusError),
+        borderRadius: BorderRadius.circular(AppShape.r12),
+        border: Border.all(color: context.statusColors.error),
         color: scheme.surface,
       ),
       child: Row(
         children: [
-          Icon(Icons.error_outline, color: AppColors.statusError, size: 20),
+          Icon(Icons.error_outline, color: context.statusColors.error, size: 20),
           const SizedBox(width: 8),
           Text(
             'Error loading desa',
-            style: TextStyle(color: AppColors.statusError),
+            style: TextStyle(color: context.statusColors.error),
           ),
         ],
       ),
@@ -234,27 +234,27 @@ class _VillageSearchDropdownState extends ConsumerState<VillageSearchDropdown> {
                 ),
               ),
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(AppShape.r12),
                 borderSide: BorderSide(color: scheme.outlineVariant),
               ),
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(AppShape.r12),
                 borderSide: BorderSide(color: scheme.outlineVariant),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(AppShape.r12),
                 borderSide: BorderSide(color: scheme.primary),
               ),
               filled: true,
               fillColor: scheme.surface,
               contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 14,
+                horizontal: AppMetrics.p16,
+                vertical: AppMetrics.p14,
               ),
             ),
             style: TextStyle(
               color: scheme.onSurface,
-              fontSize: 16,
+              fontSize: AppType.s16,
             ),
             onChanged: (query) {
               setState(() {
@@ -287,7 +287,7 @@ class _VillageSearchDropdownState extends ConsumerState<VillageSearchDropdown> {
             Container(
               constraints: const BoxConstraints(maxHeight: 200),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(AppShape.r12),
                 border: Border.all(color: scheme.outlineVariant),
                 color: scheme.surfaceContainerHigh,
                 boxShadow: [
@@ -318,7 +318,7 @@ class _VillageSearchDropdownState extends ConsumerState<VillageSearchDropdown> {
                           color: isSelected
                               ? scheme.primary
                               : scheme.onSurface,
-                          fontSize: 14,
+                          fontSize: AppType.s14,
                           fontWeight: isSelected
                               ? FontWeight.w600
                               : FontWeight.normal,
@@ -343,9 +343,9 @@ class _VillageSearchDropdownState extends ConsumerState<VillageSearchDropdown> {
             const SizedBox(height: 4),
             Container(
               height: 50,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(AppShape.r12),
                 border: Border.all(color: scheme.outlineVariant),
                 color: scheme.surface,
               ),
@@ -361,7 +361,7 @@ class _VillageSearchDropdownState extends ConsumerState<VillageSearchDropdown> {
                     'Tidak ditemukan hasil pencarian',
                     style: TextStyle(
                       color: scheme.onSurfaceVariant,
-                      fontSize: 14,
+                      fontSize: AppType.s14,
                     ),
                   ),
                 ],

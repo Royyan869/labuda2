@@ -15,7 +15,6 @@ import 'package:labuda/domains/commerce/catalog/for_sale/domain/repositories/for
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart'
     show forSaleRepositoryProvider;
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/widgets/for_sale_card.dart';
-import 'package:labuda/domains/commerce/transaction/order/domain/repositories/repository_result.dart';
 import 'package:labuda/features/marketplace/marketplace.dart';
 import 'package:labuda/shared/services/logger_service.dart';
 
@@ -91,7 +90,7 @@ class _FakeAuctionRepository implements AuctionRepository {
   _FakeAuctionRepository(this.auctions);
 
   @override
-  Future<RepositoryResult<List<Auction>>> getActiveAuctions({
+  Future<Result<List<Auction>>> getActiveAuctions({
     String? variety,
     double? minSize,
     double? maxSize,
@@ -99,31 +98,31 @@ class _FakeAuctionRepository implements AuctionRepository {
     int limit = 20,
     String? lastAuctionId,
   }) async {
-    return RepositoryResult.success(auctions);
+    return Result.success(auctions);
   }
 
   @override
-  Future<RepositoryResult<List<Auction>>> getUserAuctions({
+  Future<Result<List<Auction>>> getUserAuctions({
     required String sellerId,
     AuctionStatus? status,
     int limit = 20,
     String? lastAuctionId,
   }) async {
-    return RepositoryResult.success(const []);
+    return Result.success(const []);
   }
 
   @override
-  Future<RepositoryResult<Auction>> getAuctionById(String auctionId) async {
-    return RepositoryResult.success(
+  Future<Result<Auction>> getAuctionById(String auctionId) async {
+    return Result.success(
       auctions.firstWhere((auction) => auction.id == auctionId),
     );
   }
 
   @override
-  Future<RepositoryResult<List<Auction>>> getAuctionsByIds(
+  Future<Result<List<Auction>>> getAuctionsByIds(
     List<String> auctionIds,
   ) async {
-    return RepositoryResult.success(
+    return Result.success(
       auctions.where((auction) => auctionIds.contains(auction.id)).toList(),
     );
   }

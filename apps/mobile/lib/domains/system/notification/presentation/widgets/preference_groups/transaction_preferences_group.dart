@@ -28,7 +28,7 @@ class TransactionPreferencesGroup extends StatelessWidget {
   Widget build(BuildContext context) {
     return PreferenceToggleWidget(
       icon: Icons.shopping_bag_outlined,
-      iconColor: AppColors.statusSuccess,
+      iconColor: context.statusColors.success,
       title: 'Order Notifications',
       subtitle: 'Your order status updates',
       value: preferences.orderNotifications,

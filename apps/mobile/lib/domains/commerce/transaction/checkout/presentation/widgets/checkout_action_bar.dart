@@ -52,7 +52,7 @@ class _CheckoutBottomBar extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         color: colorScheme.surface,
         boxShadow: [
@@ -71,21 +71,21 @@ class _CheckoutBottomBar extends StatelessWidget {
             // Show pricing summary if available
             if (previewResult != null) ...[
               Padding(
-                padding: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.only(bottom: AppMetrics.p8),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text(
                       'Total Pembayaran',
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: AppType.s14,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     Text(
                       'Rp ${formatGroupedAmount((previewResult!.totalPayableAmount ?? 0).round())}',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: AppType.s16,
                         fontWeight: FontWeight.bold,
                         color: colorScheme.primary,
                       ),
@@ -96,7 +96,7 @@ class _CheckoutBottomBar extends StatelessWidget {
             ],
             if (!isCreatingOrder && disabledReason.isNotEmpty)
               Padding(
-                padding: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.only(bottom: AppMetrics.p8),
                 child: Row(
                   children: [
                     Icon(
@@ -109,7 +109,7 @@ class _CheckoutBottomBar extends StatelessWidget {
                       child: Text(
                         disabledReason,
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: AppType.s12,
                           color: colorScheme.onSurfaceVariant,
                         ),
                       ),
@@ -129,7 +129,7 @@ class _CheckoutBottomBar extends StatelessWidget {
                     alpha: 0.12,
                   ),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(AppShape.r8),
                   ),
                 ),
                 child: isCreatingOrder
@@ -146,7 +146,7 @@ class _CheckoutBottomBar extends StatelessWidget {
                     : Text(
                         _buildButtonText(context),
                         style: const TextStyle(
-                          fontSize: 16,
+                          fontSize: AppType.s16,
                           fontWeight: FontWeight.w600,
                         ),
                       ),

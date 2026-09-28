@@ -113,10 +113,10 @@ class _SellerShippingSetupsSelectorState
       children: [
         if (widget.helperText != null)
           Padding(
-            padding: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.only(bottom: AppMetrics.p12),
             child: Text(
               widget.helperText!,
-              style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant),
+              style: TextStyle(fontSize: AppType.s13, color: colorScheme.onSurfaceVariant),
             ),
           ),
         Wrap(
@@ -138,8 +138,8 @@ class _SellerShippingSetupsSelectorState
           Text(
             'Pilih minimal 1 opsi pengiriman agar forSale bisa dipublish.',
             style: TextStyle(
-              fontSize: 12,
-              color: AppColors.statusWarning,
+              fontSize: AppType.s12,
+              color: context.statusColors.warning,
               fontStyle: FontStyle.italic,
             ),
           ),
@@ -160,10 +160,10 @@ class _LoadingPlaceholder extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+      padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16, horizontal: AppMetrics.p12),
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppShape.r8),
       ),
       child: Row(
         children: [
@@ -175,7 +175,7 @@ class _LoadingPlaceholder extends StatelessWidget {
           const SizedBox(width: 12),
           Text(
             'Memuat opsi pengiriman...',
-            style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant),
+            style: TextStyle(fontSize: AppType.s13, color: colorScheme.onSurfaceVariant),
           ),
         ],
       ),
@@ -192,10 +192,10 @@ class _ErrorPlaceholder extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppMetrics.p12),
       decoration: BoxDecoration(
         color: colorScheme.error.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppShape.r8),
         border: Border.all(color: colorScheme.error.withValues(alpha: 0.25)),
       ),
       child: Column(
@@ -204,7 +204,7 @@ class _ErrorPlaceholder extends StatelessWidget {
           Text(
             'Gagal memuat opsi pengiriman.',
             style: TextStyle(
-              fontSize: 13,
+              fontSize: AppType.s13,
               fontWeight: FontWeight.w600,
               color: colorScheme.error,
             ),
@@ -212,7 +212,7 @@ class _ErrorPlaceholder extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             message,
-            style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
+            style: TextStyle(fontSize: AppType.s12, color: colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 8),
           Align(
@@ -235,12 +235,12 @@ class _EmptyOptionsBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppMetrics.p12),
       decoration: BoxDecoration(
-        color: AppColors.statusWarning.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
+        color: context.statusColors.warning.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(AppShape.r8),
         border: Border.all(
-          color: AppColors.statusWarning.withValues(alpha: 0.4),
+          color: context.statusColors.warning.withValues(alpha: 0.4),
         ),
       ),
       child: Column(
@@ -248,19 +248,19 @@ class _EmptyOptionsBanner extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.local_shipping_outlined,
                 size: 18,
-                color: AppColors.statusWarning,
+                color: context.statusColors.warning,
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   'Belum Ada Opsi Pengiriman Aktif',
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: AppType.s13,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.statusWarning,
+                    color: context.statusColors.warning,
                   ),
                 ),
               ),
@@ -269,7 +269,7 @@ class _EmptyOptionsBanner extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             'Belum ada opsi pengiriman aktif. Buat opsi pengiriman dulu sebelum publish forSale.',
-            style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
+            style: TextStyle(fontSize: AppType.s12, color: colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 10),
           Align(

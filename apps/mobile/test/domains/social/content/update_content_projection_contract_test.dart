@@ -155,7 +155,8 @@ void main() {
         expect(requestJson.containsKey('targetId'), isFalse);
         expect(requestJson.containsKey('preview'), isFalse);
 
-        final updated = result.dataOrThrow;
+        expect(result.isSuccess, isTrue);
+        final updated = result.data!;
         expect(updated.resourceProjection, isNotNull);
         expect(
           updated.resourceProjection!.resourceType,

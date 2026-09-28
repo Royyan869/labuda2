@@ -95,14 +95,14 @@ class MainDrawer extends ConsumerWidget {
 
                   const ThemeSelectorTile(
                     contentPadding: EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 4,
+                      horizontal: AppMetrics.p16,
+                      vertical: AppMetrics.p4,
                     ),
                   ),
                   const LanguageSelectorTile(
                     contentPadding: EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 4,
+                      horizontal: AppMetrics.p16,
+                      vertical: AppMetrics.p4,
                     ),
                   ),
                   MainDrawerItem(

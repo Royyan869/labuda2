@@ -44,16 +44,16 @@ class NotificationBadgeWidget extends ConsumerWidget {
               top: -6,
               child: Container(
                 padding: EdgeInsets.symmetric(
-                  horizontal: count > 99
-                      ? 3
-                      : count > 9
-                      ? 4
-                      : 4,
-                  vertical: 2,
+                  horizontal: count > AppMetrics.p99
+                      ? AppMetrics.p3
+                      : count > AppMetrics.p9
+                      ? AppMetrics.p4
+                      : AppMetrics.p4,
+                  vertical: AppMetrics.p2,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.statusError,
-                  borderRadius: BorderRadius.circular(10),
+                  color: context.statusColors.error,
+                  borderRadius: BorderRadius.circular(AppShape.r10),
                   boxShadow: [
                     BoxShadow(
                       color: colorScheme.shadow.withValues(alpha: 0.2),
@@ -70,7 +70,7 @@ class NotificationBadgeWidget extends ConsumerWidget {
                   count > 99 ? '99+' : count.toString(),
                   style: TextStyle(
                     color: colorScheme.onError,
-                    fontSize: 9,
+                    fontSize: AppType.s9,
                     fontWeight: FontWeight.w600,
                     height: 1.1,
                   ),

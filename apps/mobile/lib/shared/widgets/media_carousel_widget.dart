@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:labuda/core/media/media_upload_orchestrator.dart';
 import 'package:labuda/domains/social/content/domain/entities/content.dart';
 import 'package:labuda/shared/utils/media_extensions.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 import 'app_image.dart';
 import 'carousel_video_player.dart';
 import 'carousel_indicators.dart';
@@ -88,23 +90,9 @@ class _MediaCarouselWidgetState extends State<MediaCarouselWidget> {
       return widget.hasVideo!;
     }
     // Auto-detect: check if any URL is a video
-    return widget.displayUrls.any((url) => _isVideoUrl(url));
-  }
-
-  /// Deteksi media type berdasarkan URL extension
-  bool _isVideoUrl(String url) {
-    final videoExtensions = [
-      '.mp4',
-      '.mov',
-      '.avi',
-      '.mkv',
-      '.wmv',
-      '.flv',
-      '.webm',
-      '.m4v',
-    ];
-    final lowerUrl = url.toLowerCase();
-    return videoExtensions.any((ext) => lowerUrl.contains(ext));
+    return widget.displayUrls.any(
+      (url) => MediaUploadOrchestrator.isVideoUrl(url),
+    );
   }
 
   @override
@@ -122,14 +110,14 @@ class _MediaCarouselWidgetState extends State<MediaCarouselWidget> {
 
   Widget _buildSingleImage() {
     final mediaUrl = widget.displayUrls.first;
-    final isVideo = _isVideoUrl(mediaUrl);
+    final isVideo = MediaUploadOrchestrator.isVideoUrl(mediaUrl);
     final showVideoBadge = _shouldShowVideoBadge();
 
     // Wrap dengan AspectRatio untuk portrait frame 4:5
     return AspectRatio(
       aspectRatio: widget.aspectRatio,
       child: ClipRRect(
-        borderRadius: widget.borderRadius ?? BorderRadius.circular(12),
+        borderRadius: widget.borderRadius ?? BorderRadius.circular(AppShape.r12),
         child: Stack(
           children: [
             isVideo
@@ -142,12 +130,12 @@ class _MediaCarouselWidgetState extends State<MediaCarouselWidget> {
                 top: 8,
                 right: 8,
                 child: Container(
-                  padding: const EdgeInsets.all(6),
+                  padding: const EdgeInsets.all(AppMetrics.p6),
                   decoration: BoxDecoration(
                     color: Theme.of(
                       context,
                     ).colorScheme.scrim.withValues(alpha: 0.7),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(AppShape.r8),
                   ),
                   child: Icon(
                     Icons.play_circle_filled,
@@ -181,7 +169,7 @@ class _MediaCarouselWidgetState extends State<MediaCarouselWidget> {
     return AspectRatio(
       aspectRatio: widget.aspectRatio,
       child: ClipRRect(
-        borderRadius: widget.borderRadius ?? BorderRadius.circular(12),
+        borderRadius: widget.borderRadius ?? BorderRadius.circular(AppShape.r12),
         child: Stack(
           children: [
             // PageView carousel
@@ -195,7 +183,8 @@ class _MediaCarouselWidgetState extends State<MediaCarouselWidget> {
               },
               itemBuilder: (context, index) {
                 final mediaUrl = widget.displayUrls[index];
-                final isVideo = _isVideoUrl(mediaUrl);
+                final isVideo =
+                    MediaUploadOrchestrator.isVideoUrl(mediaUrl);
 
                 // Only build video widget for current and adjacent pages
                 // This prevents creating too many video players at once which causes buffer overflow
@@ -219,12 +208,12 @@ class _MediaCarouselWidgetState extends State<MediaCarouselWidget> {
                 top: 8,
                 right: 8,
                 child: Container(
-                  padding: const EdgeInsets.all(6),
+                  padding: const EdgeInsets.all(AppMetrics.p6),
                   decoration: BoxDecoration(
                     color: Theme.of(
                       context,
                     ).colorScheme.scrim.withValues(alpha: 0.7),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(AppShape.r8),
                   ),
                   child: Icon(
                     Icons.play_circle_filled,

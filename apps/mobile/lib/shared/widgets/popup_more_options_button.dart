@@ -1,4 +1,3 @@
-import 'package:labuda/core/src/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/shared.dart';
@@ -67,8 +66,8 @@ class PopupMoreOptionsButton extends StatelessWidget {
       onSelected: (value) => _handleMenuSelection(context, value),
       itemBuilder: (context) => _buildMenuItems(context),
       offset: const Offset(0, 8), // Offset popup slightly below icon
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      elevation: 8,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppShape.r8)),
+      elevation: AppElevation.overlay,
       shadowColor: scheme.shadow.withValues(alpha: 0.3),
     );
   }

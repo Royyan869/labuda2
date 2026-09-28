@@ -5,6 +5,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Polling status for UI indication
 enum PollingStatus {
@@ -174,7 +175,7 @@ class PollingStatusIndicator extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p8),
           child: Row(
             children: [
               if (status.icon != null) ...[
@@ -184,7 +185,7 @@ class PollingStatusIndicator extends StatelessWidget {
               Expanded(
                 child: Text(
                   message,
-                  style: TextStyle(color: status.textColor(context), fontSize: 12),
+                  style: TextStyle(color: status.textColor(context), fontSize: AppType.s12),
                 ),
               ),
             ],
@@ -230,11 +231,11 @@ class PollingStatusBadge extends StatelessWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p6, vertical: AppMetrics.p2),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
         border: Border.all(color: color, width: 1),
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(AppShape.r4),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -246,7 +247,7 @@ class PollingStatusBadge extends StatelessWidget {
               'Offline',
               style: TextStyle(
                 color: color,
-                fontSize: 10,
+                fontSize: AppType.s10,
                 fontWeight: FontWeight.w500,
               ),
             ),

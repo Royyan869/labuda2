@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:labuda/core/common/result.dart';
 import 'package:labuda/features/search/search/domain/entities/search_history.dart';
 import 'package:labuda/features/search/search/domain/repositories/search_history_repository.dart';
 import 'package:labuda/features/search/search/presentation/providers/providers.dart';
@@ -15,12 +16,12 @@ class _FakeSearchHistoryRepository implements SearchHistoryRepository {
   final List<({String userId, String historyId})> deleteCalls = [];
 
   @override
-  Future<ApiResult<void>> clearSearchHistory(String userId) async {
-    return (data: null, error: null);
+  Future<Result<void>> clearSearchHistory(String userId) async {
+    return Result.success(null);
   }
 
   @override
-  Future<ApiResult<void>> deleteSearchHistoryItem(
+  Future<Result<void>> deleteSearchHistoryItem(
     String userId,
     String historyId,
   ) async {
@@ -28,21 +29,21 @@ class _FakeSearchHistoryRepository implements SearchHistoryRepository {
     _history.removeWhere(
       (item) => item.userId == userId && item.id == historyId,
     );
-    return (data: null, error: null);
+    return Result.success(null);
   }
 
   @override
-  Future<ApiResult<List<SearchHistory>>> getSearchHistory(
+  Future<Result<List<SearchHistory>>> getSearchHistory(
     String userId, {
     int limit = 10,
   }) async {
-    return (data: List<SearchHistory>.from(_history), error: null);
+    return Result.success(List<SearchHistory>.from(_history));
   }
 
   @override
-  Future<ApiResult<void>> saveSearchHistory(SearchHistory history) async {
+  Future<Result<void>> saveSearchHistory(SearchHistory history) async {
     _history.add(history);
-    return (data: null, error: null);
+    return Result.success(null);
   }
 }
 
@@ -60,54 +61,45 @@ SearchHistory _searchHistoryFixture({
 }
 
 void main() {
-  testWidgets(
-    'tapping delete on a search history row deletes that row by id',
-    (tester) async {
-      const userId = 'user-1';
-      const historyId = 'history-1';
-      const query = 'Kohaku';
+  testWidgets('tapping delete on a search history row deletes that row by id', (
+    tester,
+  ) async {
+    const userId = 'user-1';
+    const historyId = 'history-1';
+    const query = 'Kohaku';
 
-      final repository = _FakeSearchHistoryRepository([
-        _searchHistoryFixture(id: historyId, userId: userId, query: query),
-      ]);
+    final repository = _FakeSearchHistoryRepository([
+      _searchHistoryFixture(id: historyId, userId: userId, query: query),
+    ]);
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            currentUserIdProvider.overrideWith((ref) => userId),
-            searchHistoryRepositoryProvider.overrideWithValue(repository),
-          ],
-          child: const MaterialApp(
-            home: SearchScreen(),
-          ),
-        ),
-      );
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          currentUserIdProvider.overrideWith((ref) => userId),
+          searchHistoryRepositoryProvider.overrideWithValue(repository),
+        ],
+        child: const MaterialApp(home: SearchScreen()),
+      ),
+    );
 
-      await tester.pumpAndSettle();
+    await tester.pumpAndSettle();
 
-      final historyListFinder = find.byType(SearchHistoryList);
-      final historyTitleFinder = find.descendant(
-        of: historyListFinder,
-        matching: find.text(query),
-      );
-      final deleteButtonFinder = find.descendant(
-        of: historyListFinder,
-        matching: find.byIcon(Icons.close),
-      );
+    final historyListFinder = find.byType(SearchHistoryList);
+    final historyTitleFinder = find.descendant(
+      of: historyListFinder,
+      matching: find.text(query),
+    );
+    final deleteButtonFinder = find.descendant(
+      of: historyListFinder,
+      matching: find.byIcon(Icons.close),
+    );
 
-      expect(historyTitleFinder, findsOneWidget);
+    expect(historyTitleFinder, findsOneWidget);
 
-      await tester.tap(deleteButtonFinder);
-      await tester.pumpAndSettle();
+    await tester.tap(deleteButtonFinder);
+    await tester.pumpAndSettle();
 
-      expect(
-        repository.deleteCalls,
-        [(
-          userId: userId,
-          historyId: historyId,
-        )],
-      );
-      expect(historyTitleFinder, findsNothing);
-    },
-  );
+    expect(repository.deleteCalls, [(userId: userId, historyId: historyId)]);
+    expect(historyTitleFinder, findsNothing);
+  });
 }

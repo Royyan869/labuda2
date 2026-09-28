@@ -6,7 +6,6 @@ import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/commerce/catalog/auction/data/auction_providers.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/domain.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/auction_notifier.dart';
-import 'package:labuda/domains/commerce/transaction/order/domain/repositories/repository_result.dart';
 import 'package:labuda/domains/user/identity/authentication/domain/entities/account_status.dart';
 import 'package:labuda/domains/user/identity/authentication/domain/entities/seller_tier.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
@@ -45,10 +44,10 @@ class _FakeAuctionRepository implements AuctionRepository {
   String? lastSellerFarmName;
   int? lastActiveLimit;
   int? lastUserLimit;
-  Completer<RepositoryResult<Auction>>? pendingCreate;
+  Completer<Result<Auction>>? pendingCreate;
 
   @override
-  Future<RepositoryResult<Auction>> createAuction({
+  Future<Result<Auction>> createAuction({
     required String sellerId,
     String? sellerUsername,
     String? sellerFarmName,
@@ -73,7 +72,7 @@ class _FakeAuctionRepository implements AuctionRepository {
     lastSellerUsername = sellerUsername;
     lastSellerFarmName = sellerFarmName;
     lastSellerAvatar = sellerAvatar;
-    pendingCreate = Completer<RepositoryResult<Auction>>();
+    pendingCreate = Completer<Result<Auction>>();
     return pendingCreate!.future;
   }
 
@@ -83,7 +82,7 @@ class _FakeAuctionRepository implements AuctionRepository {
     String? sellerAvatar,
   }) {
     pendingCreate?.complete(
-      RepositoryResult.success(
+      Result.success(
         Auction(
           id: 'auction-1',
           sellerId: sellerId,
@@ -112,7 +111,7 @@ class _FakeAuctionRepository implements AuctionRepository {
   }
 
   @override
-  Future<RepositoryResult<List<Auction>>> getActiveAuctions({
+  Future<Result<List<Auction>>> getActiveAuctions({
     String? variety,
     double? minSize,
     double? maxSize,
@@ -121,57 +120,57 @@ class _FakeAuctionRepository implements AuctionRepository {
     String? lastAuctionId,
   }) async {
     lastActiveLimit = limit;
-    return RepositoryResult.success(<Auction>[]);
+    return Result.success(<Auction>[]);
   }
 
   @override
-  Future<RepositoryResult<Auction>> getAuctionById(String auctionId) async =>
+  Future<Result<Auction>> getAuctionById(String auctionId) async =>
       throw UnimplementedError();
 
   @override
-  Future<RepositoryResult<List<AuctionBid>>> getAuctionBids({
+  Future<Result<List<AuctionBid>>> getAuctionBids({
     required String auctionId,
     int limit = 50,
   }) async => throw UnimplementedError();
 
   @override
-  Future<RepositoryResult<List<Auction>>> getAuctionsByIds(
+  Future<Result<List<Auction>>> getAuctionsByIds(
     List<String> auctionIds,
   ) async => throw UnimplementedError();
 
   @override
-  Future<RepositoryResult<List<Auction>>> getUserAuctions({
+  Future<Result<List<Auction>>> getUserAuctions({
     required String sellerId,
     AuctionStatus? status,
     int limit = 20,
     String? lastAuctionId,
   }) async {
     lastUserLimit = limit;
-    return RepositoryResult.success(<Auction>[]);
+    return Result.success(<Auction>[]);
   }
 
   @override
-  Future<RepositoryResult<Auction>> updateAuction(
+  Future<Result<Auction>> updateAuction(
     String auctionId,
     Map<String, dynamic> updates,
   ) async => throw UnimplementedError();
 
   @override
-  Future<RepositoryResult<void>> cancelAuction({
+  Future<Result<void>> cancelAuction({
     required String auctionId,
     required String sellerId,
     required String reason,
   }) async => throw UnimplementedError();
 
   @override
-  Future<RepositoryResult<AuctionBid>> placeBid({
+  Future<Result<AuctionBid>> placeBid({
     required String auctionId,
     required String bidderId,
     required int amount,
   }) async => throw UnimplementedError();
 
   @override
-  Future<RepositoryResult<String>> claimAuction({
+  Future<Result<String>> claimAuction({
     required String auctionId,
     required String addressId,
     required String shippingSetupId,
@@ -324,7 +323,7 @@ void main() {
 
       // Complete with failure
       repo.pendingCreate?.complete(
-        RepositoryResult.error('Backend rejected the request'),
+        Result.error('Backend rejected the request'),
       );
 
       final result = await future;

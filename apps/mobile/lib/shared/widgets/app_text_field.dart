@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Reusable Text Field dengan styling konsisten sesuai LABUDA design
 ///
@@ -122,7 +123,7 @@ class _AppTextFieldState extends State<AppTextField> {
       return RichText(
         text: TextSpan(
           text: textWithoutAsterisk,
-          style: TextStyle(color: scheme.onSurface, fontSize: 16),
+          style: TextStyle(color: scheme.onSurface, fontSize: AppType.s16),
           children: [
             TextSpan(
               text: ' *',
@@ -183,23 +184,23 @@ class _AppTextFieldState extends State<AppTextField> {
               )
             : widget.suffixIcon,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppShape.r12),
           borderSide: BorderSide(color: scheme.outlineVariant),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppShape.r12),
           borderSide: BorderSide(color: scheme.outlineVariant),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppShape.r12),
           borderSide: BorderSide(color: scheme.primary, width: 2),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppShape.r12),
           borderSide: BorderSide(color: scheme.error),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppShape.r12),
           borderSide: BorderSide(color: scheme.error, width: 2),
         ),
       ),

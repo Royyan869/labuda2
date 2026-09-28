@@ -250,4 +250,27 @@ void main() {
       expect(ds.getUserByIdCallCount, 2);
     });
   });
+
+  group('AvatarCacheService in-flight dedup', () {
+    test('N concurrent callers for one cold user share a single request',
+        () async {
+      final ds = _FakeUserApiDatasource();
+      ds.onGetUserById = (_) async {
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        return Result.success(
+          _makeResponse(id: 'herd', avatarUrl: 'https://img.example/herd.png'),
+        );
+      };
+      final svc = _makeService(ds);
+
+      final results = await Future.wait([
+        svc.getUserAvatarUrl('herd'),
+        svc.getUserAvatarUrl('herd'),
+        svc.getUserAvatarUrl('herd'),
+      ]);
+
+      expect(results, everyElement('https://img.example/herd.png'));
+      expect(ds.getUserByIdCallCount, 1);
+    });
+  });
 }

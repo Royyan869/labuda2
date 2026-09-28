@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:labuda/features/search/search/domain/entities/search_result.dart';
 import 'package:labuda/features/search/search/presentation/utils/all_tab_sections.dart';
 import 'package:labuda/features/search/search/presentation/widgets/search_result_item.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// All Tab content — SECTION-BASED multi-domain overview.
 ///
@@ -61,7 +62,7 @@ class AllTabResultsView extends StatelessWidget {
     if (children.isNotEmpty) children.removeLast();
 
     return ListView(
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.only(bottom: AppMetrics.p16),
       children: children,
     );
   }
@@ -78,14 +79,14 @@ class _SectionHeader extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 8, 4),
+      padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p16, AppMetrics.p8, AppMetrics.p4),
       child: Row(
         children: [
           Expanded(
             child: Text(
               title,
               style: TextStyle(
-                fontSize: 16,
+                fontSize: AppType.s16,
                 fontWeight: FontWeight.w700,
                 color: scheme.onSurface,
               ),
@@ -97,7 +98,7 @@ class _SectionHeader extends StatelessWidget {
             style: TextButton.styleFrom(
               foregroundColor: scheme.primary,
               visualDensity: VisualDensity.compact,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
+              padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12),
             ),
             child: const Text('Lihat Semua'),
           ),

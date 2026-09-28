@@ -1,5 +1,16 @@
 // API Exception types for handling backend errors
 // Maps HTTP status codes and API error responses to typed exceptions
+//
+// This file owns the mobile API failure vocabulary. In particular, the
+// `ApiExceptionFactory.fromTransport` table is the SINGLE place that turns a
+// `DioExceptionType` into a canonical error code — the code that eventually
+// lands in `Result.errorCode`. Consumers branch on that code
+// (`api_error_codes.dart`), never on the human message.
+
+import 'dart:io';
+
+import 'package:dio/dio.dart';
+import 'package:labuda/core/api/api_error_codes.dart';
 
 /// Base class for all API exceptions
 abstract class ApiException implements Exception {
@@ -124,7 +135,7 @@ class ServiceUnavailableException extends ApiException {
 class NetworkException extends ApiException {
   const NetworkException({
     required super.message,
-    super.code = 'NETWORK_ERROR',
+    super.code = networkError,
     super.statusCode,
     super.details,
   });
@@ -134,7 +145,7 @@ class NetworkException extends ApiException {
 class TimeoutException extends ApiException {
   const TimeoutException({
     super.message = 'Request timed out',
-    super.code = 'TIMEOUT',
+    super.code = requestTimeout,
     super.statusCode,
     super.details,
   });
@@ -144,7 +155,7 @@ class TimeoutException extends ApiException {
 class CancelledException extends ApiException {
   const CancelledException({
     super.message = 'Request was cancelled',
-    super.code = 'CANCELLED',
+    super.code = requestCancelled,
     super.statusCode,
     super.details,
   });
@@ -154,14 +165,80 @@ class CancelledException extends ApiException {
 class UnknownApiException extends ApiException {
   const UnknownApiException({
     required super.message,
-    super.code = 'UNKNOWN_ERROR',
+    super.code = unknownError,
     super.statusCode,
     super.details,
   });
 }
 
-/// Factory for creating exceptions from HTTP status codes
+/// Factory for creating exceptions from Dio failures and HTTP status codes
 class ApiExceptionFactory {
+  /// Classify a TRANSPORT failure — a request that never produced a usable
+  /// HTTP envelope — into a typed [ApiException] carrying the canonical
+  /// transport code from `api_error_codes.dart`.
+  ///
+  /// Returns `null` when the failure is not a transport failure, i.e. when
+  /// [DioException.type] is `badResponse`: that case DOES carry an HTTP
+  /// envelope and is classified by [fromStatusCode]. Returning null instead of
+  /// guessing keeps the two families apart — callers hold the HTTP branch.
+  ///
+  /// Both the Dio error interceptor (which wraps the result into
+  /// `DioException.error`) and [ApiClient.extractException] (the fallback for
+  /// an un-intercepted failure) classify through THIS method, so every
+  /// transport failure reaches `Result.errorCode` with the same code.
+  static ApiException? fromTransport(DioException exception) {
+    switch (exception.type) {
+      case DioExceptionType.connectionTimeout:
+      case DioExceptionType.sendTimeout:
+      case DioExceptionType.receiveTimeout:
+      case DioExceptionType.transformTimeout:
+        return const TimeoutException(
+          message: 'Connection timed out. Please try again.',
+          code: requestTimeout,
+        );
+
+      case DioExceptionType.cancel:
+        return const CancelledException(code: requestCancelled);
+
+      case DioExceptionType.connectionError:
+        // A connectionError means the socket/handshake to the configured
+        // backend host failed (refused, unreachable, wrong IP, backend down).
+        // It is distinct from the device having no network at all — reporting
+        // it as "no internet" misleads a user whose WiFi/data is fine but
+        // whose backend is unreachable.
+        return const NetworkException(
+          message:
+              'Cannot reach Labuda server. Check that the backend is running '
+              'and the device is on the same network.',
+          code: backendUnreachable,
+        );
+
+      case DioExceptionType.badCertificate:
+        return const NetworkException(
+          message: 'SSL certificate error. Please try again later.',
+          code: sslError,
+        );
+
+      case DioExceptionType.badResponse:
+        // Not a transport failure — see the `null` contract above.
+        return null;
+
+      case DioExceptionType.unknown:
+        if (exception.error is SocketException) {
+          return const NetworkException(
+            message: 'Network error. Please check your connection.',
+            code: networkError,
+          );
+        }
+        return UnknownApiException(
+          message: exception.message ?? 'An unexpected error occurred',
+          code: unknownError,
+          details: exception.error,
+        );
+    }
+  }
+
+  /// Factory for creating exceptions from HTTP status codes
   static ApiException fromStatusCode(
     int statusCode,
     String message, {

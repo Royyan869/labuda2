@@ -60,13 +60,13 @@ class LanguageSelector extends ConsumerWidget {
           ),
         ),
         trailing: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p6),
           decoration: BoxDecoration(
             color: scheme.surfaceContainerHigh,
             border: Border.all(
               color: scheme.outlineVariant,
             ),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(AppShape.r8),
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<SupportedLocale>(
@@ -75,7 +75,7 @@ class LanguageSelector extends ConsumerWidget {
               icon: Icon(
                 Icons.keyboard_arrow_down,
                 color: scheme.onSurfaceVariant,
-                size: 16,
+                size: AppMetrics.p16,
               ),
               items: SupportedLocale.values.map((locale) {
                 return DropdownMenuItem<SupportedLocale>(
@@ -84,7 +84,7 @@ class LanguageSelector extends ConsumerWidget {
                     '${locale.flagEmoji} ${locale.displayName}',
                     style: TextStyle(
                       color: scheme.onSurface,
-                      fontSize: 14,
+                      fontSize: AppType.s14,
                     ),
                   ),
                 );
@@ -118,13 +118,13 @@ class LanguageSelector extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     return Container(
       padding:
-          padding ?? const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          padding ?? const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p8),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHigh,
         border: Border.all(
           color: scheme.outlineVariant,
         ),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppShape.r8),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<SupportedLocale>(
@@ -142,7 +142,7 @@ class LanguageSelector extends ConsumerWidget {
                 '${locale.flagEmoji} ${locale.shortName}',
                 style: TextStyle(
                   color: scheme.onSurface,
-                  fontSize: 14,
+                  fontSize: AppType.s14,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -184,7 +184,7 @@ class LanguageSelectorTile extends ConsumerWidget {
         l10n.language,
         style: TextStyle(
           color: scheme.onSurface,
-          fontSize: 16,
+          fontSize: AppType.s16,
           fontWeight: FontWeight.w500,
         ),
       ),
@@ -192,7 +192,7 @@ class LanguageSelectorTile extends ConsumerWidget {
         '${currentLocale.flagEmoji} ${currentLocale.displayName}',
         style: TextStyle(
           color: scheme.onSurfaceVariant,
-          fontSize: 14,
+          fontSize: AppType.s14,
         ),
       ),
       trailing: Icon(
@@ -201,7 +201,7 @@ class LanguageSelectorTile extends ConsumerWidget {
       ),
       contentPadding:
           contentPadding ??
-          const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+          const EdgeInsets.symmetric(horizontal: AppMetrics.p24, vertical: AppMetrics.p4),
       onTap: () => _showLanguageBottomSheet(context, ref),
     );
   }
@@ -215,12 +215,12 @@ class LanguageSelectorTile extends ConsumerWidget {
     showModalBottomSheet<void>(
       context: context,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppShape.r20)),
       ),
       builder: (BuildContext context) {
         final scheme = Theme.of(context).colorScheme;
         return Container(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(AppMetrics.p20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -232,7 +232,7 @@ class LanguageSelectorTile extends ConsumerWidget {
                   height: 4,
                   decoration: BoxDecoration(
                     color: scheme.outlineVariant,
-                    borderRadius: BorderRadius.circular(2),
+                    borderRadius: BorderRadius.circular(AppShape.r2),
                   ),
                 ),
               ),
@@ -243,7 +243,7 @@ class LanguageSelectorTile extends ConsumerWidget {
                 l10n.language,
                 style: TextStyle(
                   color: scheme.onSurface,
-                  fontSize: 20,
+                  fontSize: AppType.s20,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -256,13 +256,13 @@ class LanguageSelectorTile extends ConsumerWidget {
                   contentPadding: EdgeInsets.zero,
                   leading: Text(
                     locale.flagEmoji,
-                    style: const TextStyle(fontSize: 24),
+                    style: const TextStyle(fontSize: AppType.s24),
                   ),
                   title: Text(
                     locale.displayName,
                     style: TextStyle(
                       color: scheme.onSurface,
-                      fontSize: 16,
+                      fontSize: AppType.s16,
                       fontWeight: isSelected
                           ? FontWeight.w600
                           : FontWeight.w500,

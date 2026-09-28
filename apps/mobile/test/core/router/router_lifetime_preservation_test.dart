@@ -442,7 +442,7 @@ class _FakeHomeRepository implements HomeRepository {
 
 class _FakeContentRepository implements ContentRepository {
   @override
-  Future<ContentRepositoryResult<Content>> createContent({
+  Future<Result<Content>> createContent({
     required String authorId,
     String? authorUsername,
     String? authorAvatarUrl,
@@ -452,38 +452,38 @@ class _FakeContentRepository implements ContentRepository {
     List<String> mentionedUserIds = const [],
     ContentSettings settings = const ContentSettings(),
     ContentLocation? location,
-  }) async => ContentRepositoryResult.error('not used');
+  }) async => Result.error('not used');
 
   @override
-  Future<ContentRepositoryResult<void>> deleteContent(String contentId) async =>
-      ContentRepositoryResult.error('not used');
+  Future<Result<void>> deleteContent(String contentId) async =>
+      Result.error('not used');
 
   @override
-  Future<ContentRepositoryResult<Content>> getContentById(
+  Future<Result<Content>> getContentById(
     String contentId,
-  ) async => ContentRepositoryResult.error('not used');
+  ) async => Result.error('not used');
 
   @override
-  Future<ContentRepositoryResult<List<Content>>> getContents({
+  Future<Result<List<Content>>> getContents({
     int? limit,
     int? offset,
     String? location,
     ContentStatus? status,
-  }) async => ContentRepositoryResult.success(const <Content>[]);
+  }) async => Result.success(const <Content>[]);
 
   @override
-  Future<ContentRepositoryResult<List<Content>>> getContentsByAuthor(
+  Future<Result<List<Content>>> getContentsByAuthor(
     String authorId, {
     int? limit,
     int? offset,
-  }) async => ContentRepositoryResult.success(const <Content>[]);
+  }) async => Result.success(const <Content>[]);
 
   @override
-  Future<ContentRepositoryResult<ContentAuthorPage>> getContentsByAuthorPaged(
+  Future<Result<ContentAuthorPage>> getContentsByAuthorPaged(
     String authorId, {
     int limit = 20,
     String? cursor,
-  }) async => ContentRepositoryResult.success(
+  }) async => Result.success(
     const ContentAuthorPage(
       items: <Content>[],
       nextCursor: null,
@@ -492,29 +492,29 @@ class _FakeContentRepository implements ContentRepository {
   );
 
   @override
-  Future<ContentRepositoryResult<List<Content>>> getContentsByLocation({
+  Future<Result<List<Content>>> getContentsByLocation({
     required String location,
     int? limit,
-  }) async => ContentRepositoryResult.success(const <Content>[]);
+  }) async => Result.success(const <Content>[]);
 
   @override
-  Future<ContentRepositoryResult<List<Content>>> getTrendingContents({
+  Future<Result<List<Content>>> getTrendingContents({
     int? limit,
-  }) async => ContentRepositoryResult.success(const <Content>[]);
+  }) async => Result.success(const <Content>[]);
 
   @override
-  Future<ContentRepositoryResult<ContentSearchResult>> searchContents({
+  Future<Result<ContentSearchResult>> searchContents({
     required String query,
     int? limit,
     int? offset,
     String? location,
-  }) async => ContentRepositoryResult.error('not used');
+  }) async => Result.error('not used');
 
   @override
-  Future<ContentRepositoryResult<Content>> updateContent(
+  Future<Result<Content>> updateContent(
     String contentId,
     Content content,
-  ) async => ContentRepositoryResult.error('not used');
+  ) async => Result.error('not used');
 
   @override
   dynamic noSuchMethod(Invocation invocation) => null;

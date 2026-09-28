@@ -17,7 +17,7 @@ import 'package:labuda/domains/system/notification/domain/entities/notification_
 import 'package:labuda/domains/system/notification/presentation/providers/notification_list_provider.dart';
 import 'package:labuda/shared/shared.dart';
 
-import 'package:labuda/core/src/theme/app_colors.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 // Flutter
 import 'package:flutter/material.dart';
@@ -57,7 +57,7 @@ class NotificationDialogHelper {
                 }
               }
             },
-            style: TextButton.styleFrom(foregroundColor: AppColors.statusError),
+            style: TextButton.styleFrom(foregroundColor: context.statusColors.error),
             child: const Text('Delete All'),
           ),
         ],
@@ -110,7 +110,7 @@ class NotificationDialogHelper {
                 }
               }
             },
-            style: TextButton.styleFrom(foregroundColor: AppColors.statusError),
+            style: TextButton.styleFrom(foregroundColor: context.statusColors.error),
             child: const Text('Delete'),
           ),
         ],
@@ -148,7 +148,7 @@ class NotificationDialogHelper {
       builder: (dialogContext) => AlertDialog(
         title: Row(
           children: [
-            Icon(Icons.error_outline, color: AppColors.statusError),
+            Icon(Icons.error_outline, color: context.statusColors.error),
             const SizedBox(width: 8),
             const Text('Error'),
           ],

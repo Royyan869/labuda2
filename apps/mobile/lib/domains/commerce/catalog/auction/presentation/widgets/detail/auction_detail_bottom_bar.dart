@@ -167,11 +167,11 @@ class AuctionDetailBottomBar extends StatelessWidget {
   /// Urgency/success have no scheme role (palette authority); error and
   /// info map to scheme roles. Terminal states render disabled via the
   /// button theme, so this only needs a non-null fallback there.
-  Color _mainActionColor(ColorScheme scheme) {
+  Color _mainActionColor(BuildContext context, ColorScheme scheme) {
     // Winner checkout - urgency tone for waiting settlement.
     if (_shouldShowWinnerCheckout && onWinnerCheckout != null) {
       if (auction.status == AuctionStatus.waitingSettlement) {
-        return AppColors.statusWarning; // Urgent - deadline approaching
+        return context.statusColors.warning; // Urgent - deadline approaching
       }
       return scheme.error; // Regular ended checkout
     }
@@ -187,7 +187,7 @@ class AuctionDetailBottomBar extends StatelessWidget {
     }
 
     // Active auction - success tone.
-    return AppColors.statusSuccess;
+    return context.statusColors.success;
   }
 
   @override
@@ -204,7 +204,7 @@ class AuctionDetailBottomBar extends StatelessWidget {
           ),
         ],
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p12),
       child: SafeArea(
         top: false,
         child: _showSecondaryAction
@@ -239,9 +239,9 @@ class AuctionDetailBottomBar extends StatelessWidget {
               foregroundColor: scheme.onSurfaceVariant,
               disabledBackgroundColor: scheme.surfaceContainerHighest,
               disabledForegroundColor: scheme.onSurfaceVariant,
-              padding: const EdgeInsets.symmetric(vertical: 14),
+              padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(AppShape.r8),
               ),
             ),
             child: Text(
@@ -257,9 +257,9 @@ class AuctionDetailBottomBar extends StatelessWidget {
           style: ElevatedButton.styleFrom(
             backgroundColor: scheme.secondary,
             foregroundColor: scheme.onSecondary,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p14),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(AppShape.r8),
             ),
           ),
           child: const Text(
@@ -291,13 +291,13 @@ class AuctionDetailBottomBar extends StatelessWidget {
           child: ElevatedButton(
             onPressed: _mainActionCallback,
             style: ElevatedButton.styleFrom(
-              backgroundColor: _mainActionColor(scheme),
+              backgroundColor: _mainActionColor(context, scheme),
               foregroundColor: scheme.onPrimary,
               disabledBackgroundColor: scheme.surfaceContainerHighest,
               disabledForegroundColor: scheme.onSurfaceVariant,
-              padding: const EdgeInsets.symmetric(vertical: 14),
+              padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(AppShape.r8),
               ),
             ),
             child: Text(
@@ -328,7 +328,7 @@ class AuctionDetailBottomBar extends StatelessWidget {
             size: 20,
           ),
           const SizedBox(height: 2),
-          Text(label, style: const TextStyle(fontSize: 10)),
+          Text(label, style: const TextStyle(fontSize: AppType.s10)),
         ],
       ),
     );

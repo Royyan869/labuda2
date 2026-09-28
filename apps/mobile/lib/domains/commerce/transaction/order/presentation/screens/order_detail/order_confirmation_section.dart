@@ -33,13 +33,13 @@ class OrderConfirmationSection extends StatelessWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.all(16),
-      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(core.AppMetrics.p16),
+      margin: const EdgeInsets.only(bottom: core.AppMetrics.p16),
       decoration: BoxDecoration(
         color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(core.AppShape.r12),
         border: Border.all(
-          color: _getBorderColorForStatus(order.status, colorScheme),
+          color: _getBorderColorForStatus(context, order.status, colorScheme),
           width: 1.5,
         ),
       ),
@@ -53,7 +53,7 @@ class OrderConfirmationSection extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: _getIconBgColorForStatus(
+                  color: _getIconBgColorForStatus(context, 
                     order.status,
                     colorScheme,
                   ),
@@ -61,7 +61,7 @@ class OrderConfirmationSection extends StatelessWidget {
                 ),
                 child: Icon(
                   _getIconForStatus(order.status),
-                  color: _getIconColorForStatus(order.status, colorScheme),
+                  color: _getIconColorForStatus(context, order.status, colorScheme),
                   size: 20,
                 ),
               ),
@@ -137,19 +137,19 @@ class OrderConfirmationSection extends StatelessWidget {
           if (isBuyer && order.status == OrderStatus.shipped) ...[
             const SizedBox(height: 12),
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(core.AppMetrics.p12),
               decoration: BoxDecoration(
-                color: core.AppColors.statusInfo.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
+                color: context.statusColors.info.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(core.AppShape.r8),
                 border: Border.all(
-                  color: core.AppColors.statusInfo.withValues(alpha: 0.3),
+                  color: context.statusColors.info.withValues(alpha: 0.3),
                 ),
               ),
               child: Row(
                 children: [
                   Icon(
                     Icons.info_outline,
-                    color: core.AppColors.statusInfo,
+                    color: context.statusColors.info,
                     size: 20,
                   ),
                   const SizedBox(width: 8),
@@ -157,7 +157,7 @@ class OrderConfirmationSection extends StatelessWidget {
                     child: Text(
                       'Jika barang sudah diterima dan sesuai, tap "Terima Barang" untuk menyelesaikan pesanan.',
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: core.AppColors.statusInfo,
+                        color: context.statusColors.info,
                       ),
                     ),
                   ),
@@ -170,10 +170,10 @@ class OrderConfirmationSection extends StatelessWidget {
     );
   }
 
-  Color _getBorderColorForStatus(OrderStatus status, ColorScheme colorScheme) {
+  Color _getBorderColorForStatus(BuildContext context, OrderStatus status, ColorScheme colorScheme) {
     switch (status) {
       case OrderStatus.shipped:
-        return core.AppColors.statusInfo.withValues(alpha: 0.5);
+        return context.statusColors.info.withValues(alpha: 0.5);
       case OrderStatus.delivered:
         return colorScheme.primary.withValues(alpha: 0.5);
       default:
@@ -181,10 +181,10 @@ class OrderConfirmationSection extends StatelessWidget {
     }
   }
 
-  Color _getIconBgColorForStatus(OrderStatus status, ColorScheme colorScheme) {
+  Color _getIconBgColorForStatus(BuildContext context, OrderStatus status, ColorScheme colorScheme) {
     switch (status) {
       case OrderStatus.shipped:
-        return core.AppColors.statusInfo.withValues(alpha: 0.1);
+        return context.statusColors.info.withValues(alpha: 0.1);
       case OrderStatus.delivered:
         return colorScheme.primary.withValues(alpha: 0.1);
       default:
@@ -192,10 +192,10 @@ class OrderConfirmationSection extends StatelessWidget {
     }
   }
 
-  Color _getIconColorForStatus(OrderStatus status, ColorScheme colorScheme) {
+  Color _getIconColorForStatus(BuildContext context, OrderStatus status, ColorScheme colorScheme) {
     switch (status) {
       case OrderStatus.shipped:
-        return core.AppColors.statusInfo;
+        return context.statusColors.info;
       case OrderStatus.delivered:
         return colorScheme.primary;
       default:
@@ -361,10 +361,10 @@ class _ShippingNoteSection extends StatelessWidget {
     final colorScheme = theme.colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(core.AppMetrics.p10),
       decoration: BoxDecoration(
         color: colorScheme.secondaryContainer,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(core.AppShape.r8),
         border: Border.all(
           color: colorScheme.secondary.withValues(alpha: 0.4),
         ),
