@@ -544,7 +544,9 @@ void main() {
           'service_fee_amount': 2000,
           'total_before_coins_amount': 110000,
           'total_payable_amount': 112000,
-          'payment_status': 'settlement',
+          // Canonical vocabulary: the backend normalises a settled payment row
+          // (raw "settlement") to "paid" before exposing payment_status.
+          'payment_status': 'paid',
           'tracking_number': 'RESI-123',
           'proof_type': 'phone',
           'shipping_note': 'diantar malam ini',

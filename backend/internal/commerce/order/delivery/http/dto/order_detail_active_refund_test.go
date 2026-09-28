@@ -63,7 +63,9 @@ func TestOrderDetailResponse_WithActiveRefund(t *testing.T) {
 	assert.NotNil(t, resp.PaymentID)
 	assert.Equal(t, paymentID, *resp.PaymentID)
 	if assert.NotNil(t, resp.PaymentStatus) {
-		assert.Equal(t, paymentStatus, *resp.PaymentStatus)
+		// paymentStatus below is the raw persisted row ("settlement"); the wire
+		// carries the canonical vocabulary, so "paid" is what must arrive.
+		assert.Equal(t, "paid", *resp.PaymentStatus)
 	}
 }
 

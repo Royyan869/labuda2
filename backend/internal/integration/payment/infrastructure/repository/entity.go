@@ -120,6 +120,67 @@ func IsSettledStatus(status string) bool {
 	return false
 }
 
+// canonicalWireStatus maps the payments-table status — the gateway vocabulary
+// this system persists (settlement / capture / deny / cancel / expire / pending)
+// — onto the canonical payment vocabulary exposed on the wire.
+//
+// The translation lives HERE, in the package that owns the payment state,
+// because the status has exactly one authority. Every consumer that used to
+// restate the gateway words (or, worse, silently degrade an unknown value to
+// "pending") was a second source of truth for the same money question.
+func canonicalWireStatus(raw string) (string, bool) {
+	switch raw {
+	case PaymentStatusPending:
+		return "pending", true
+	case PaymentStatusSettlement, PaymentStatusCapture:
+		return "paid", true
+	case PaymentStatusDeny:
+		return "failed", true
+	case PaymentStatusCancel:
+		return WireStatusNoVerdict, false
+	case PaymentStatusExpire:
+		return "expired", true
+	default:
+		return "", false
+	}
+}
+
+// CanonicalWireStatusPtr is canonicalWireStatus for the `payment_status` field
+// carried alongside an order: it returns nil when there is no payment row or
+// the persisted status is outside this contract, so the wire omits the field
+// instead of inventing a money state the client would render as truth.
+// WireStatusNoVerdict is the wire value for "this payment row carries no
+// buyer-facing verdict" — no payment row, a cancelled/void row, or a status
+// outside the canonical vocabulary. It is deliberately NOT "pending": silently
+// degrading that into a money state is the lie this vocabulary exists to prevent.
+//
+// A CANCELLED payment row belongs here, not with the failures: in this system it
+// is the shadow of an order-level cancellation, and reporting it as "failed"
+// would blame the buyer for a payment nobody asked them to retry.
+const WireStatusNoVerdict = ""
+
+// CanonicalWireStatus is the plain-string form for untyped response maps
+// (gin.H), where a key cannot simply be omitted.
+func CanonicalWireStatus(raw string) string {
+	canonical, ok := canonicalWireStatus(raw)
+	if !ok {
+		return WireStatusNoVerdict
+	}
+	return canonical
+}
+
+// CanonicalWireStatusPtr is canonicalWireStatus for the `payment_status` field
+func CanonicalWireStatusPtr(raw *string) *string {
+	if raw == nil {
+		return nil
+	}
+	canonical, ok := canonicalWireStatus(*raw)
+	if !ok {
+		return nil
+	}
+	return &canonical
+}
+
 // IsFailed returns true if payment has failed.
 func (p *Payment) IsFailed() bool {
 	return p.Status == PaymentStatusDeny ||

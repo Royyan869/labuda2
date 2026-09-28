@@ -12,8 +12,8 @@ import 'package:labuda/domains/finance/transaction/payment/domain/entities/payme
 import 'package:labuda/domains/finance/transaction/payment/domain/repositories/payment_repository.dart'
     as payment_repo;
 import 'package:labuda/domains/finance/transaction/payment/presentation/providers/payment_providers.dart';
-import 'package:labuda/domains/finance/transaction/payment/presentation/providers/payment_result_notifier.dart';
-import 'package:labuda/domains/finance/transaction/payment/presentation/providers/payment_result_state.dart';
+import 'package:labuda/domains/commerce/transaction/checkout/presentation/providers/payment_result_notifier.dart';
+import 'package:labuda/domains/commerce/transaction/checkout/presentation/providers/payment_result_state.dart';
 import 'package:labuda/shared/services/logger_service.dart';
 
 class _FakeOrderRepository implements OrderRepository {
@@ -103,7 +103,9 @@ Payment _payment({
     referenceType: 'order',
     referenceId: referenceId,
     createdAt: DateTime.utc(2026, 6, 1),
-    expiredAt: DateTime.utc(2026, 8, 2),
+    // Relative to now: a hardcoded expiry turns into a time-bomb once it
+    // passes (the reusable-URL contract is "URL + not expired").
+    expiredAt: DateTime.now().add(const Duration(days: 30)),
     paymentUrl: paymentUrl,
   );
 }

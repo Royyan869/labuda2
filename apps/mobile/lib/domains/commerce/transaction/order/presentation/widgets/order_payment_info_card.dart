@@ -35,8 +35,10 @@ class OrderPaymentInfoCard extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              _PaymentStatusBadge(
-                status: order.paymentStatus,
+              // No verdict on the payment row: claim no payment state at all.
+              if (order.paymentStatus != null)
+                _PaymentStatusBadge(
+                status: order.paymentStatus!,
                 colorScheme: colorScheme,
               ),
             ],
@@ -72,6 +74,8 @@ class OrderPaymentInfoCard extends StatelessWidget {
 
   Color _getPaymentStatusColor(BuildContext context, ColorScheme colorScheme) {
     switch (order.paymentStatus) {
+      case null:
+        return colorScheme.onSurfaceVariant;
       case PaymentStatus.paid:
         return context.statusColors.success;
       case PaymentStatus.pending:

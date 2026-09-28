@@ -62,7 +62,9 @@ func TestCancelledTimeout_DecisionV2_NoSecondaryActions(t *testing.T) {
 	}
 }
 
-// TestCancelledTimeout_DetailResponse_PaymentStatusWired verifies PaymentStatus flows through.
+// TestCancelledTimeout_DetailResponse_PaymentStatusWired verifies PaymentStatus
+// flows through NORMALISED: the raw payments-table status must not leak onto the
+// wire, which speaks the canonical vocabulary only.
 func TestCancelledTimeout_DetailResponse_PaymentStatusWired(t *testing.T) {
 	order := cancelledTimeoutOrder()
 	ps := "settlement"
@@ -79,8 +81,8 @@ func TestCancelledTimeout_DetailResponse_PaymentStatusWired(t *testing.T) {
 		nil, // no payment ID in test
 		nil, // no payment expiry in test
 	)
-	if resp.PaymentStatus == nil || *resp.PaymentStatus != "settlement" {
-		t.Errorf("expected PaymentStatus='settlement', got %v", resp.PaymentStatus)
+	if resp.PaymentStatus == nil || *resp.PaymentStatus != "paid" {
+		t.Errorf("expected canonical PaymentStatus='paid' for a raw settled row, got %v", resp.PaymentStatus)
 	}
 }
 

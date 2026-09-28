@@ -769,7 +769,7 @@ func OrderToDetailResponseWithIdentity(
 		ConfirmationExtendedAt:    confirmationExtendedAt,
 		BuyerNotes:                nil, // Field not yet implemented in entity
 		PaymentID:                 paymentID,
-		PaymentStatus:             paymentStatus,
+		PaymentStatus:             paymentRepo.CanonicalWireStatusPtr(paymentStatus),
 		CreatedAt:                 order.CreatedAt.Unix(),
 		UpdatedAt:                 order.UpdatedAt.Unix(),
 		CompletedAt:               completedAt,

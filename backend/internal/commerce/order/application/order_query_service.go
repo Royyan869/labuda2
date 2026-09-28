@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/labuda/backend/internal/commerce/order/delivery/http/dto"
 	"github.com/labuda/backend/internal/commerce/order/entity"
+	paymentRepo "github.com/labuda/backend/internal/integration/payment/infrastructure/repository"
 	"github.com/labuda/backend/internal/pkg/sellerdisplay"
 	"github.com/labuda/backend/internal/pkg/userdisplay"
 	"github.com/labuda/backend/internal/projection"
@@ -274,8 +275,7 @@ func (s *OrderQueryService) ListMyOrders(
 		if psErr == nil {
 			for _, item := range items {
 				if pm, ok := paymentStatuses[item.ID]; ok {
-					ps := pm.Status
-					item.PaymentStatus = &ps
+					item.PaymentStatus = paymentRepo.CanonicalWireStatusPtr(&pm.Status)
 					item.PaymentID = &pm.ID
 				}
 			}

@@ -531,7 +531,7 @@ money). Ratchet lama "cards never format money themselves" tetap ada.
   test/domains/social/share test/domains/commerce/catalog/for_sale` →
   **120 PASS, 1 skip**.
 - `flutter test test/domains/chat test/domains/finance` → 477 PASS / 3 FAIL:
-  `payment_result_notifier_test` (authority `order.status` vs payment resource).
+  `payment_result_notifier_test` (⚠️ KOREKSI 2026-09-28 malam-2: klaim "authority" ini SALAH — akarnya fixture time-bomb `expiredAt`; lihat bagian terakhir).
   Di luar scope — `payment_remote_datasource.dart` +
   `payment_method_picker_sheet.dart` sedang diedit agen lain (`M` di git
   status) dan test itu tidak menyentuh satu pun file sapuan ini.
@@ -1233,7 +1233,7 @@ bisa lolos senyap.
   di `order.dart` (sekitar `isSellerActionRequired`): getter masih hidup dan
   dipakai; butuh audit apakah ia masih authority UI seller-action atau harus
   membaca decision contract. Tidak disentuh.
-- **Pre-existing terverifikasi**: 3 gagal di `payment_result_notifier_test`
+- **Pre-existing terverifikasi**: 3 gagal di `payment_result_notifier_test` — ⚠️ **KOREKSI 2026-09-28 malam-2: label "authority `order.status` vs payment resource" SALAH. Akar sebenarnya fixture time-bomb `expiredAt: 2026-08-02` yang sudah lewat; lihat bagian terakhir dokumen ini.**
   (authority `order.status` vs payment resource; baris 206/239/533). Bukti bukan
   regresi purge: file test **tidak tersentuh** (tidak muncul di `git status`),
   `grep -c decision` di file itu = **0**, dan nol pembaca `Payment.decision` di
@@ -2432,3 +2432,123 @@ tree (±160 file) milik sesi/agen lain — jangan ikut di-stage.
 ### 10. Owner retest diperlukan?
 Belum. **Nol perubahan visual** di scope ini (nilai warna identik, file yang
 dihapus nol konsumen). Yang menunggu keputusan owner ada di parkiran #1 dan #2.
+
+---
+
+## Sesi 2026-09-28 (malam 2) — Boundary commerce↔finance jadi SATU ARAH + koreksi klaim ledger (§11)
+
+### 1. Verdict
+Scope: buang coupling dua arah commerce↔finance. **SELESAI dan terverifikasi.** Arah canonical = **commerce → finance** (commerce boleh bergantung pada finance; finance TIDAK boleh). Recon hasil pembayaran dipindahkan dari finance ke `commerce/transaction/checkout/`, lalu boundary-nya dikunci oleh gate baru.
+
+### 2. KOREKSI KLAIM LEDGER — WAJIB dibaca sesi berikutnya
+Klaim "3 gagal `payment_result_notifier_test` = authority `order.status` vs payment resource" (muncul di baris 534, 1236, 1311, 1486, 1599, 1704, 1763, 1908, 2299) **SALAH**. Akar sebenarnya = **fixture time-bomb**: helper `_payment()` memakai `expiredAt: DateTime.utc(2026, 8, 2)` yang sudah lewat, sehingga `hasReusablePaymentUrl` dan `canContinuePayment` selalu false. Tiga assertion yang gagal (baris 206/239/531) semuanya bergantung expiry — **nol hubungan dengan authority maupun tipe result**. Diperbaiki dengan 1 baris (expiry relatif ke now) → **18/18 PASS**, nol perubahan produksi.
+Pelajaran yang harus dipakai: label "pre-existing" yang diwariskan lintas sesi harus **diverifikasi**, bukan disalin. Tiga sesi berturut-turut memakai angka itu tanpa membacanya, dan diagnosis yang salah hampir menyebabkan perubahan kontrak jalur uang yang tidak perlu.
+
+### 3. Root cause coupling
+`payment_result_notifier.dart` + `payment_result_state.dart` tinggal di `lib/domains/finance/...` tetapi mengimpor `order_providers.dart` (repository commerce), `Order` dan `OrderStatus` (entity/enum commerce), lalu memutuskan hasil pembayaran dari state machine order milik commerce. Konsumen satu-satunya = screen **commerce** (`checkout/presentation/screens/payment_result_screen_impl.dart`). Backend justru sebaliknya: payment upstream (webhook menyettle payment row), dan `order_completion_service.go:597` menolak menyelesaikan order sampai payment settlement/capture → kebenaran mengalir **payment → order**, sedangkan mobile membalikkannya.
+
+### 4. Yang dilakukan
+- **Dipindah**: `payment_result_notifier.dart` + `payment_result_notifier.g.dart` (generated, untracked) + `payment_result_state.dart` → `lib/domains/commerce/transaction/checkout/presentation/providers/`. Test → `test/domains/commerce/transaction/checkout/presentation/providers/`.
+- **Diubah**: barrel `finance/.../presentation/presentation.dart` (2 export dicabut, bagian "Payment result" dihapus); screen commerce (2 import); 2 file test (import diarahkan ke jalur commerce — satu di antaranya, `payment_result_screen_widget_test.dart`, terlewat di sweep pertama karena sweep hanya menyentuh `lib/`).
+- **BARU**: `test/core/domain_boundary_contract_test.dart` (5 test, gate).
+- **Semantik runtime: NOL perubahan.** Operasi OR (`order.status || payment resource`) **DIPERTAHANKAN**, karena itu memang kontrak yang diuji ("succeeds when payment resource is settled", "keeps polling when payment resource is processing"). Yang BUKAN authority adalah field proyeksi `order.paymentStatus` — sudah dipin oleh test "does not succeed even when paymentStatus is paid".
+- **Slice media (authority)**: `evidence_media_gallery.dart` dulu mendeteksi video sendiri (`contains('/videos/')`, `endsWith('.mp4')`) → kini `MediaUploadOrchestrator.isVideoUrl`.
+
+### 5. Gate (diranah DIRECTIVE, bukan prosa)
+Pola: `^\s*(import|export|part)\b[^;]*commerce/` atas `lib/domains/finance` + `test/domains/finance`.
+Prosa dan string data TIDAK dihitung — mis. `test/domains/finance/.../payment_decision_phantom_purge_test.dart:25` menyebut path commerce sebagai data scan, itu sah dan tidak boleh di-allowlist.
+Floor anti-vakum: >40 file disapu + 4 file finance wajib masih hidup + arah canonical (commerce→finance) wajib >0, supaya gate tidak bisa lulus dengan mengosongkan finance atau menghapus arah yang sah.
+
+### 6. Proof (command → hasil)
+- Residu: `domains/commerce` di `lib/domains/finance` = **0**; jalur lama `finance/.../providers/payment_result*` di `lib`+`test` = **0**.
+- `flutter analyze` (checkout + payment + gallery + test checkout) = **0 error** (2 warning pre-existing di test checkout lain, bukan scope ini).
+- `flutter test test/core/domain_boundary_contract_test.dart` = **5/5 PASS** (setelah 1 sampel negative-proof milik saya sendiri diperbaiki: `providers/commerce_state.dart` tidak mengandung `commerce/`).
+- `flutter test` gate + seluruh `test/domains/commerce/transaction/checkout` + gate media = **81 PASS / 1 skip**.
+- `payment_result_notifier_test.dart` = **18/18 PASS** (sebelumnya 15/3).
+- `test/core/media/media_pick_engine_authority_test.dart` = **5/5 PASS** (sebelumnya merah).
+- **Negative proof nyata (probe)**: `import 'package:labuda/domains/commerce/...order.dart';` ditanam di `payment_providers.dart` (finance) → gate **GAGAL** dan menyebut pelanggar persis; probe dilepas → `git diff` file itu **kosong (byte-identik)** → gate PASS.
+
+### 7. Temuan luar scope (dicatat, TIDAK dikerjakan)
+- `payment_decision_phantom_purge_test.dart` (finance) menginspeksi file entity commerce lewat string path. Bukan coupling kompilasi, tapi letaknya janggal: kandidat pindah ke tree commerce.
+- OR dua-sumber tetap ada karena diuji, bukan karena ada dokumen authority yang menetapkannya. Kalau nanti ingin satu sumber, ubah di backend dulu (order = proyeksi ketat dari payment), jangan di klien.
+- Parkiran lama tetap hidup (tidak tersentuh): `SupportResult`/`SupportFailure`, `Either<Failure,T>` dartz ×6 use case follow, `Withdrawal.isSuccess`, `PaymentResult`/`PaymentResultStatus` **yang HIDUP** (dipakai `PaymentState.paymentSuccess` → `payment_notifier`) sehingga ada dua gagasan "payment result" di finance, `errorCode` belum mengalir ke `auction_detail_screen`, baseline bertanggal, dua hijau + kontras dark WCAG, komponen theme belum dipin.
+- Gate ini hanya memetakan SATU arah (finance→commerce = 0). Boundary domain lain belum dipetakan dan tidak diklaim.
+
+### 8. Git status
+Belum di-commit. Milik scope ini: 3 file `R` (2 lib + 1 test), 1 file baru (gate), 1 file `M` (`evidence_media_gallery.dart`), 1 `M` (barrel finance), 1 `M` (screen commerce), 1 `M` (widget test), plus 1 baris fixture di test yang dipindah. `.g.dart` ikut dipindah tetapi tidak di-track (`.gitignore:77 **/*.g.dart`).
+
+### 9. Owner retest
+Boundary: **tidak perlu** — nol perubahan semantik runtime (hanya lokasi modul + import).
+Slice media: smoke ringan — buka order yang punya bukti media video, pastikan thumbnail video tetap ter-render (bukan ikon gambar rusak).
+
+### 10. Next (kandidat, pilih satu)
+Converge `SupportResult`/`SupportFailure` (sisa vocabulary terdekat) · salurkan `errorCode` ke presentasi (`auction_detail_screen`) · baseline bertanggal untuk gagal pre-existing yang BELUM diverifikasi (jangan salin daftar lama — lihat §2) · keputusan owner: dua hijau + kontras dark WCAG · pindahkan `payment_decision_phantom_purge_test.dart` ke tree commerce.
+
+---
+
+## Sesi 2026-09-28 (malam 3) — Satu vocabulary status payment di wire (§11)
+
+**Status scope: BELUM CLOSED — 1 keputusan authority menggantung + 1 perilaku residu yang saya nyatakan terang-terangan, tidak dibungkus.**
+
+### 1. Authority yang ditemukan (bukan asumsi)
+Satu konsep (`status pembayaran`) punya DUA kebenaran sekaligus:
+- `core/common/types/payment_types.dart` (tipe kanonik, dokumennya sendiri): "the vocabulary IS the enum names; backend never puts gateway vocabulary on this wire … a settled payment that silently reads as pending is a money-safety lie" → MENOLAK kosakata gateway.
+- `commerce/.../order_mapper.dart`: peta kosakata gateway privat (`settlement`/`capture`/`challenge` — `challenge` bahkan tidak ada di backend) + **unknown → `pending` diam-diam**.
+- Producer: backend menuang status payments-table mentah ke wire di **7 situs** (order detail `decision.go:772`, order list `order_query_service.go:278`, payments-create ×5 di `dependencies.go`).
+
+### 2. Yang dieksekusi
+- Authority baru di **pemilik** state: `integration/payment/infrastructure/repository/entity.go` → `canonicalWireStatus`, `CanonicalWireStatus`, `CanonicalWireStatusPtr`, `WireStatusUnknown`.
+- 7 produsen mentah → 0 (`grep '"status": *payment\.Status,'` = kosong).
+- Competitor dibunuh: tabel gateway di `order_mapper.dart` DIHAPUS; klien kini `PaymentStatus.fromString` (strict, lantang) + empty → pending.
+- Test mengikuti kodebase (bukan sebaliknya): `order_payment_status_mapper_test.dart` (13 PASS), `order_contract_p1_test.dart:547` fixture `settlement` → `paid`, `decision_cancelled_timeout_test.go`, `order_detail_active_refund_test.go`, `order_query_service_payment_status_test.go`.
+- Proof: `go build ./...` OK; `go test ./internal/commerce/order/... ./internal/integration/payment/infrastructure/repository/` hijau; `flutter test test/domains/commerce/transaction/order` **122/122**; analyze 0 error.
+
+### 3. YANG BELUM CLOSED — jangan dibaca sebagai PASS
+1. **Satu keputusan authority menggantung (business truth, bukan teknis).** Authority backend membedakan 6 status tersimpan (`pending`, `settlement`, `capture`, `deny`, `cancel`, `expire`) + predikat sendiri-sendiri (`IsSettledStatus` = settlement|capture; `IsExpired()` = expire; `IsFailed()` = deny|cancel|expire). Vocabulary kanonik klien hanya punya 4 nama terminal (`paid`/`failed`/`expired`/`refunded`). Jadi kolaps 3→2 itu **sebagian penemuan saya**, bukan turunan authority: `settlement|capture → paid` dan `expire → expired` punya dasar predikat, tetapi `deny|cancel → failed` adalah penggabungan yang saya pilih. Dua opsi yang harus diputuskan owner: (a) perluas vocabulary kanonik agar mencerminkan 6 status authority (nama paling jujur), atau (b) tetapkan aturan kolaps secara eksplisit.
+2. **Perilaku residu yang saya nyatakan, bukan disembunyikan:** `CanonicalWireStatusPtr` masih mengembalikan `nil` untuk status tak dikenal → di wire order field-nya OMIT → klien membacanya sebagai `pending`. Itu masih persis "unknown silently reads as pending" untuk kasus itu. `CanonicalWireStatus` (dipakai 5 situs payments-create) sudah memakai sentinel `WireStatusUnknown` yang DITOLAK lantang oleh klien, jadi jalur itu jujur. Menyamakan `Ptr` dengan perilaku itu belum dikerjakan (butuh penulisan ulang fungsi, bukan penggantian satu baris).
+3. `wire` payments-create kini bisa memancarkan `"unknown"`; mobile `payment_dto.dart` mem-parse `json['status'] as String` lalu `PaymentStatus.fromString` → menolak lantang. **Nol test kontrak untuk kasus ini** — perlu ditambahkan sebelum scope boleh CLOSED.
+
+### 4. Next
+Keputusan owner untuk §3.1 (perluas vocabulary kanonik vs aturan kolaps) · samakan `CanonicalWireStatusPtr` ke perilaku sentinel jujur · tambah test kontrak "status tak dikenal ditolak" di kedua wire · lalu scope ini boleh CLOSED.
+
+---
+
+## Sesi 2026-09-28 (malam 4) — Kebenaran TUNGGAL status pembayaran: CLOSED (3 tahap)
+
+**Prinsip yang dipakai (koreksi penting):** kebenaran sesungguhnya adalah **kebutuhan bisnis**, bukan internal gateway. Status pembayaran didefinisikan oleh PERTANYAAN PEMBELI dan AKSI yang terbuka — bukan oleh daftar teknis Midtrans. Entri malam-3 (§3.1/3.2/3.3) ditutup oleh entri ini.
+
+### Keputusan bisnis (dikunci owner)
+| Pertanyaan pembeli | Wire | Aksi yang terbuka |
+|---|---|---|
+| Masih harus bayar? | `pending` | bayar / lanjutkan (URL + deadline) |
+| Uang sudah masuk? | `paid` (settlement **atau** capture) | pesanan lanjut; escrow terisi |
+| Bisa coba lagi? | `failed` (deny) | coba dengan metode lain |
+| Sudah terlambat? | `expired` (expire) | tidak bisa bayar lagi |
+| Tidak ada putusan | **tanpa nilai** | tidak ada aksi pembayaran; kebenaran ada di `order.status` |
+| — | `cancel` | **TANPA PUTUSAN**, bukan `failed` |
+
+Alasan `capture` = `paid`: backend sendiri sudah memutuskan itu (`IsSettledStatus = {settlement, capture}`, dan penyelesaian pesanan digerbangi keduanya). Uang terkunci = cukup untuk melanjutkan pesanan.
+Alasan `cancel` ≠ `failed`: di sistem ini `cancel` adalah ekor dari pembatalan **pesanan**, bukan penolakan gateway. Menyebutnya "Pembayaran Gagal" menuduh pembeli atas pembayaran yang tidak pernah diminta diulang.
+Alasan `pending` harus sempit: sebelumnya satu kata itu menanggung tiga makna (belum ada baris payment, status tak dikenal, benar-benar menunggu bayar) — di layar uang.
+
+### Tahap 1 — authority di pemilik state (backend)
+`canonicalWireStatus` (integration/payment/infrastructure/repository): `pending→pending` · `settlement|capture→paid` · `deny→failed` · `expire→expired` · **`cancel→tanpa putusan`** · tak dikenal→tanpa putusan. Konstanta `WireStatusNoVerdict = ""`. `go build ./...` OK, nol sisa `WireStatusUnknown`.
+
+### Tahap 2 — klien berhenti mengoersi
+`Order.paymentStatus` → `PaymentStatus?` (+ `clearPaymentStatus` di `copyWith`, supaya putusan bisa benar-benar dikosongkan). `_mapPaymentStatus`: kosong/absen → **null** (bukan `pending`); selain itu strict `PaymentStatus.fromString`. `order_payment_info_card`: tanpa putusan → badge TIDAK dirender, warna netral. `flutter analyze lib` = **0 error**.
+
+### Tahap 3 — kunci anti-kebangkitan
+Gate baru `test/core/payment_status_authority_contract_test.dart` (4 test):
+1. Nol **literal gateway ber-quote** (`'settlement'`/`'capture'`/`'challenge'`/`'deny'`) di seluruh `lib/`, **tanpa allowlist** — prosa boleh menyebut katanya, kode tidak boleh memegangnya sebagai nilai. `waiting_settlement` (fase auction, konsep lain) tetap sah.
+2. Floor anti-vakum (>600 file) + pemetaan kanonik wajib tetap hidup (gate tidak boleh lulus dengan menghapus terjemahannya).
+3. `pending` HANYA bisa datang dari wire `pending`; kosong → null; kosakata tak dikenal → ditolak lantang.
+4. Negative proof detektor: menangkap bentuk tabel lama, tidak menangkap prosa.
+
+### Proof (command → hasil)
+- `flutter analyze lib` = **0 error**.
+- `flutter test` gate payment-status + gate boundary + gate media + seluruh `order` + `checkout` = **207 PASS / 1 skip**.
+- Backend: `go build ./...` OK; `go test ./internal/commerce/order/... ./internal/integration/payment/infrastructure/repository/` hijau.
+- **Probe nyata**: literal `'settlement'` ditanam di `order_mapper.dart` → gate **GAGAL** dan menyebut pelanggar persis (`holds 'settlement'`); probe dilepas → bersih, gate PASS.
+
+### Status
+**CLOSED — SATU AUTHORITY, SATU VOCABULARY.** `pending` kembali berarti satu hal saja. Yang tersisa dari model ini untuk sesi lain: guard UI/copy yang memakai kata "gagal"/"pending" untuk status pembayaran (audit copy, belum dikerjakan) dan parkiran lama yang tidak tersentuh.

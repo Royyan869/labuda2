@@ -29,14 +29,14 @@ OrderApiResponse _orderWith({String paymentStatus = '', String? paymentId}) {
 }
 
 void main() {
-  group('OrderMapper payment status — crash prevention', () {
+  group('OrderMapper payment status — canonical vocabulary', () {
     test(
-      'absent payment_status (empty string) maps to pending without throwing',
+      'absent payment_status means NO VERDICT — not pending',
       () {
         final dto = _orderWith(paymentStatus: '');
         expect(() => OrderMapper.toOrder(dto), returnsNormally);
         final order = OrderMapper.toOrder(dto);
-        expect(order.paymentStatus, PaymentStatus.pending);
+        expect(order.paymentStatus, isNull);
       },
     );
 
@@ -45,28 +45,28 @@ void main() {
       expect(() => OrderMapper.toOrderList(dtos), returnsNormally);
     });
 
-    test('unknown payment_status degrades gracefully to pending', () {
+    test(
+      'unknown payment_status is rejected loudly instead of reading as pending',
+      () {
       final dto = _orderWith(paymentStatus: 'future_gateway_status');
-      expect(() => OrderMapper.toOrder(dto), returnsNormally);
-      final order = OrderMapper.toOrder(dto);
-      expect(order.paymentStatus, PaymentStatus.pending);
+      expect(() => OrderMapper.toOrder(dto), throwsFormatException,
+          reason: 'a raw gateway status must not parse');
+      // No client-side translation table: the backend owns the vocabulary,
+      // so an unparseable value surfaces instead of silently reading pending.
     });
 
-    test('settlement maps to paid', () {
-      final order = OrderMapper.toOrder(
-        _orderWith(paymentStatus: 'settlement'),
-      );
-      expect(order.paymentStatus, PaymentStatus.paid);
-    });
-
-    test('capture maps to paid', () {
-      final order = OrderMapper.toOrder(_orderWith(paymentStatus: 'capture'));
-      expect(order.paymentStatus, PaymentStatus.paid);
-    });
-
-    test('challenge maps to processing', () {
-      final order = OrderMapper.toOrder(_orderWith(paymentStatus: 'challenge'));
-      expect(order.paymentStatus, PaymentStatus.processing);
+    test('gateway vocabulary is rejected — the backend normalises before the wire', () {
+      // The client holds NO translation table. 'settlement' / 'capture' /
+      // 'challenge' are payments-table vocabulary owned by finance; a leak of
+      // that vocabulary onto the order wire is a contract violation, not
+      // something this layer silently repairs.
+      for (final raw in ['settlement', 'capture', 'challenge']) {
+        expect(
+          () => OrderMapper.toOrder(_orderWith(paymentStatus: raw)),
+          throwsFormatException,
+          reason: 'the wire speaks the canonical vocabulary only (raw: $raw)',
+        );
+      }
     });
 
     test('paid maps to paid', () {
@@ -123,7 +123,7 @@ void main() {
     });
 
     test('paid order status must not be OrderStatus.pending', () {
-      final dto = _orderWith(paymentStatus: 'settlement');
+      final dto = _orderWith(paymentStatus: 'paid');
       // Override status to 'paid'
       final paidDto = OrderApiResponse(
         id: dto.id,
@@ -137,7 +137,7 @@ void main() {
         totalBeforeCoinsAmount: dto.totalBeforeCoinsAmount,
         totalPayableAmount: dto.totalPayableAmount,
         status: 'paid',
-        paymentStatus: 'settlement',
+        paymentStatus: 'paid',
         createdAt: dto.createdAt,
         hasActiveRefund: false,
       );

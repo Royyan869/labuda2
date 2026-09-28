@@ -97,9 +97,10 @@ func TestListOrders_BatchPaymentQuery_ReferenceTypeFilter(t *testing.T) {
 func TestListOrders_PaymentStatus_AssignedToListItem(t *testing.T) {
 	src := readQueryServiceSource(t)
 
-	if !strings.Contains(src, "item.PaymentStatus = &ps") {
-		t.Fatal("ListMyOrders must assign &ps (payment status string pointer) to " +
-			"item.PaymentStatus for orders that have a payment row")
+	if !strings.Contains(src, "item.PaymentStatus = paymentRepo.CanonicalWireStatusPtr(&pm.Status)") {
+		t.Fatal("ListMyOrders must assign paymentRepo.CanonicalWireStatusPtr(pm.Status) to " +
+			"item.PaymentStatus for orders that have a payment row: the list wire carries " +
+			"the canonical payment vocabulary, not the raw payments-table status")
 	}
 }
 

@@ -446,7 +446,11 @@ class Order extends Equatable {
 
   // Payment & Shipping
   final PaymentMethodType paymentMethod;
-  final PaymentStatus paymentStatus;
+  /// Buyer-facing payment verdict, or null when the payment row carries NO
+  /// verdict (no row yet, cancelled/void, or a status outside the canonical
+  /// vocabulary). Null is deliberately not `pending`: pending means one thing
+  /// only — there is a bill waiting to be paid.
+  final PaymentStatus? paymentStatus;
   final int tokenRegenerationCount;
   final ShippingInfo shippingInfo;
   final OrderPricing pricing;
@@ -701,6 +705,7 @@ class Order extends Equatable {
     String? lastStatusChangedBy,
     PaymentMethodType? paymentMethod,
     PaymentStatus? paymentStatus,
+    bool clearPaymentStatus = false,
     int? tokenRegenerationCount,
     ShippingInfo? shippingInfo,
     OrderPricing? pricing,
@@ -761,7 +766,9 @@ class Order extends Equatable {
       lastStatusChangeAt: lastStatusChangeAt ?? this.lastStatusChangeAt,
       lastStatusChangedBy: lastStatusChangedBy ?? this.lastStatusChangedBy,
       paymentMethod: paymentMethod ?? this.paymentMethod,
-      paymentStatus: paymentStatus ?? this.paymentStatus,
+      paymentStatus: clearPaymentStatus
+          ? null
+          : (paymentStatus ?? this.paymentStatus),
       tokenRegenerationCount:
           tokenRegenerationCount ?? this.tokenRegenerationCount,
       shippingInfo: shippingInfo ?? this.shippingInfo,

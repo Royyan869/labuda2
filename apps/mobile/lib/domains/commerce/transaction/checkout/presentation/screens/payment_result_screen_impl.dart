@@ -16,8 +16,8 @@ import 'package:labuda/core/src/theme/app_theme.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart' as core;
-import 'package:labuda/domains/finance/transaction/payment/presentation/providers/payment_result_notifier.dart';
-import 'package:labuda/domains/finance/transaction/payment/presentation/providers/payment_result_state.dart'
+import 'package:labuda/domains/commerce/transaction/checkout/presentation/providers/payment_result_notifier.dart';
+import 'package:labuda/domains/commerce/transaction/checkout/presentation/providers/payment_result_state.dart'
     show PaymentResultScreenStatus, PaymentResultState;
 import 'package:labuda/domains/system/support/presentation/screens/help_center_screen.dart';
 import 'package:labuda/domains/system/support/presentation/widgets/pre_chat_form_sheet.dart';

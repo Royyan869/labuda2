@@ -3774,7 +3774,7 @@ func (h *CorePaymentHandler) CreatePayment(c *gin.Context) {
 		}
 		response.Success(c, gin.H{
 			"payment_id":               payment.ID,
-			"status":                   payment.Status,
+			"status":                   repository.CanonicalWireStatus(payment.Status),
 			"payment_number":           payment.PaymentNumber,
 			"payment_url":              paymentURL,
 			"payment_method_code":      methodCode,
@@ -3791,7 +3791,7 @@ func (h *CorePaymentHandler) CreatePayment(c *gin.Context) {
 	if payment.PaymentURL != nil && *payment.PaymentURL != "" {
 		response.Success(c, gin.H{
 			"payment_id":               payment.ID,
-			"status":                   payment.Status,
+			"status":                   repository.CanonicalWireStatus(payment.Status),
 			"payment_number":           payment.PaymentNumber,
 			"payment_url":              *payment.PaymentURL,
 			"payment_method_code":      methodCode,
@@ -3839,7 +3839,7 @@ func (h *CorePaymentHandler) CreatePayment(c *gin.Context) {
 
 	response.Success(c, gin.H{
 		"payment_id":               payment.ID,
-		"status":                   payment.Status,
+		"status":                   repository.CanonicalWireStatus(payment.Status),
 		"payment_number":           payment.PaymentNumber,
 		"payment_url":              paymentURL,
 		"payment_method_code":      methodCode,
@@ -4397,7 +4397,7 @@ func (h *CorePaymentHandler) SyncPayment(c *gin.Context) {
 
 	response.Success(c, gin.H{
 		"payment_id":     paymentID.String(),
-		"status":         payment.Status,
+		"status":         repository.CanonicalWireStatus(payment.Status),
 		"provider_state": string(providerState),
 		"settled":        payment.IsSettled(),
 		"mutated":        mutated,
@@ -4463,7 +4463,7 @@ func (h *CorePaymentHandler) GetPayment(c *gin.Context) {
 		"gross_amount":         payment.GrossAmount.Int64(),
 		"coins_to_use":         payment.CoinsToUse,
 		"coin_discount_amount": payment.CoinDiscountAmount.Int64(),
-		"status":               payment.Status,
+		"status":               repository.CanonicalWireStatus(payment.Status),
 		"midtrans_order_id":    payment.MidtransOrderID,
 		"midtrans_transaction_id": func() *string {
 			if payment.TransactionID != nil && *payment.TransactionID != "" {

@@ -1,5 +1,3 @@
-import 'package:flutter/foundation.dart' show debugPrint;
-
 import '../../domain/domain.dart';
 import 'package:labuda/core/common/types/preparation_time.dart';
 import '../models/api/order_api_response_dtos.dart'
@@ -229,48 +227,20 @@ class OrderMapper {
     }
   }
 
-  /// Map backend payment status string to PaymentStatus enum.
+  /// Map the wire `payment_status` string to [PaymentStatus].
   ///
-  /// TOLERANT: Returns PaymentStatus.pending for absent/empty/unknown values
-  /// instead of throwing. This prevents order screens from crashing when the
-  /// backend does not yet populate payment_status (e.g. no payment record exists).
+  /// This layer translates NOTHING. The backend owns the payment state and
+  /// normalises its own persisted vocabulary (settlement / capture / deny /
+  /// cancel / expire → paid / failed / expired) before exposing it, so the wire
+  /// speaks exactly the names [PaymentStatus] declares.
   ///
-  /// Known gateway statuses:
-  ///   settlement / capture  → paid
-  ///   pending               → pending
-  ///   failed                → failed
-  ///   cancelled / expired   → expired
-  ///   refunded              → refunded
-  ///   challenge             → processing (gateway hold)
-  ///   absent / empty / unknown → pending (safe fallback, logged in debug builds)
-  static PaymentStatus _mapPaymentStatus(String status) {
-    switch (status.toLowerCase()) {
-      case 'pending':
-      case '':
-        return PaymentStatus.pending;
-      case 'paid':
-      case 'success':
-      case 'settlement':
-      case 'capture':
-        return PaymentStatus.paid;
-      case 'failed':
-        return PaymentStatus.failed;
-      case 'cancelled':
-      case 'expired':
-        return PaymentStatus.expired;
-      case 'refunded':
-        return PaymentStatus.refunded;
-      case 'challenge':
-        return PaymentStatus.processing;
-      default:
-        // Unknown status from backend — degrade gracefully rather than crashing.
-        // This preserves order screen usability when gateway adds new status values.
-        debugPrint(
-          'OrderMapper._mapPaymentStatus: unknown payment status "$status" — '
-          'add a case when backend introduces new payment statuses.',
-        );
-        return PaymentStatus.pending;
-    }
+  /// An empty/absent value means the wire carries NO VERDICT (no payment row
+  /// yet, a cancelled/void row, or a status outside the vocabulary), and that
+  /// absence is reported as such — never coerced into pending. Any other
+  /// unrecognised value is a contract violation and is rejected loudly.
+  static PaymentStatus? _mapPaymentStatus(String status) {
+    if (status.trim().isEmpty) return null; // wire says: no verdict
+    return PaymentStatus.fromString(status);
   }
 
   static String mapPaymentStatusToString(PaymentStatus status) {
@@ -366,7 +336,7 @@ class OrderMapper {
   }
 
   // Public version of _mapPaymentStatus for external use
-  static PaymentStatus mapPaymentStatus(String status) {
+  static PaymentStatus? mapPaymentStatus(String status) {
     return _mapPaymentStatus(status);
   }
 }
