@@ -46,7 +46,7 @@ class UploadTaskUtils {
         break;
       case UploadTaskStatus.uploading:
       case UploadTaskStatus.processing:
-        iconColor = AppColors.primaryBlue;
+        iconColor = AppColors.statusInfo;
         break;
       default:
         iconColor = scheme.onSurfaceVariant;

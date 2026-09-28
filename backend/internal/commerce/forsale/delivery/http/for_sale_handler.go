@@ -1036,12 +1036,13 @@ func for_saleToResponseWithSeller(
 ) map[string]interface{} {
 	product := l.Product
 
-	// Canonical media authority is Product.MediaURLs — the deprecated alias
-	// fallback (l.MediaURLs) was purged with the alias fields. Typed media
-	// block is the CONVERGED shared helper (same shape as auction detail).
-	mediaURLs := product.MediaURLs
+	// Canonical media authority is Product.MediaURLs (storage keys). Both wire
+	// slots carry the SAME resolved CloudFront URLs: `media` (typed) and
+	// `media_urls` (flat). They are projections of one source, never raw keys.
+	mediaURLs := []string{}
 	var renderedMedia []map[string]interface{}
 	if product != nil {
+		mediaURLs = commerceshared.ResolveReadableMediaReferences(product.MediaURLs)
 		renderedMedia = commerceshared.MediaWireItems(product.MediaURLs, l.CreatedAt)
 	} else {
 		renderedMedia = []map[string]interface{}{}

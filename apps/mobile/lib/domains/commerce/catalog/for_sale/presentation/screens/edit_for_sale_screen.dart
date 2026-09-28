@@ -6,6 +6,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/shared/widgets/app_snackbar.dart';
 import 'package:labuda/shared/utils/media_extensions.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/domain/domain.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart';
@@ -240,12 +241,7 @@ class _EditForSaleScreenState extends ConsumerState<EditForSaleScreen> {
         }
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('ForSale berhasil diperbarui'),
-          backgroundColor: AppColors.successGreen,
-        ),
-      );
+      AppSnackBar.showSuccess(context, 'ForSale berhasil diperbarui');
       Navigator.of(context).pop(true);
     } catch (e) {
       setState(() => _errorMessage = 'Terjadi kesalahan: ${e.toString()}');

@@ -13,9 +13,9 @@ import (
 
 // Config controls how media references are projected for read paths.
 //
-// Resolution order:
-//   - key or bucket URL -> CDN URL when CDNBaseURL is configured
-//   - key or bucket URL -> fresh presigned GET URL in development
+// Canonical resolution order:
+//   - key or bucket URL -> CloudFront CDN URL (single read authority)
+//   - key or bucket URL -> fresh presigned GET URL only when CDN is unset
 //   - valid external absolute URL -> passed through unchanged
 //
 // Invalid inputs return a MediaReferenceError.

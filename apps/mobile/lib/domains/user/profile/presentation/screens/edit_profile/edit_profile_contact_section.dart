@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/shared.dart';
 
 /// Contact & Social Media Fields for Edit Profile
@@ -31,7 +30,7 @@ class EditProfileContactSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -42,25 +41,25 @@ class EditProfileContactSection extends StatelessWidget {
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: isDark ? AppColors.neutralGray300 : AppColors.neutralGray700,
+            color: scheme.onSurfaceVariant,
           ),
         ),
         const SizedBox(height: 8),
 
         _buildPrivacyToggle(
+          context,
           title: 'Make Email Public',
           subtitle: 'Others can see your email address',
           value: isEmailPublic,
           onChanged: onEmailPublicChanged,
-          isDark: isDark,
         ),
 
         _buildPrivacyToggle(
+          context,
           title: 'Make Phone Public',
           subtitle: 'Others can see your phone number',
           value: isPhonePublic,
           onChanged: onPhonePublicChanged,
-          isDark: isDark,
         ),
 
         const SizedBox(height: 24),
@@ -71,7 +70,7 @@ class EditProfileContactSection extends StatelessWidget {
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: isDark ? AppColors.neutralGray300 : AppColors.neutralGray700,
+            color: scheme.onSurfaceVariant,
           ),
         ),
         const SizedBox(height: 8),
@@ -109,36 +108,37 @@ class EditProfileContactSection extends StatelessWidget {
         const SizedBox(height: 16),
 
         _buildPrivacyToggle(
+          context,
           title: 'Make Social Media Public',
           subtitle: 'Others can see your social media links',
           value: isSocialMediaPublic,
           onChanged: onSocialMediaPublicChanged,
-          isDark: isDark,
         ),
       ],
     );
   }
 
-  Widget _buildPrivacyToggle({
+  Widget _buildPrivacyToggle(
+    BuildContext context, {
     required String title,
     required String subtitle,
     required bool value,
     required ValueChanged<bool> onChanged,
-    required bool isDark,
   }) {
+    final scheme = Theme.of(context).colorScheme;
     return SwitchListTile(
       title: Text(title),
       subtitle: Text(
         subtitle,
         style: TextStyle(
           fontSize: 12,
-          color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray600,
+          color: scheme.onSurfaceVariant,
         ),
       ),
       value: value,
       onChanged: onChanged,
-      activeTrackColor: AppColors.primary.withValues(alpha: 0.5),
-      activeThumbColor: AppColors.primary,
+      activeTrackColor: scheme.primary.withValues(alpha: 0.5),
+      activeThumbColor: scheme.primary,
       contentPadding: EdgeInsets.zero,
     );
   }

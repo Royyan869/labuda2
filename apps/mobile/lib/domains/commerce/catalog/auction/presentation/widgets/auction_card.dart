@@ -3,7 +3,6 @@ import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction_status.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction_time_extension.dart';
-import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_card_seller_metadata.dart';
 import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_marketplace_primitives.dart';
 import 'package:labuda/domains/social/content/domain/entities/content.dart';
 import 'package:labuda/shared/domain/entities/resource_projection.dart';
@@ -13,16 +12,18 @@ import 'package:labuda/shared/domain/entities/resource_projection.dart';
 /// CANONICAL DESIGN (owner-locked): every public commerce card is one
 /// `CommerceMarketplaceCardShell` inside the shared `CommerceMarketplaceGrid`
 /// (2 columns). A channel may only fill slots; it may NOT re-implement the
-/// frame, typography, media badge or seller block.
+/// frame, typography or media badge stack.
 ///
-/// Slots: badges (item state — auction urgency/status lives here) → title →
-/// value (money) → seller metadata. Channel-specific content lives in the
-/// slot data only (current bid here, fixed price on [ForSaleCard]);
-/// description belongs to the detail surface.
+/// CARD CONTRACT (owner decision 2026-09-27) — IDENTICAL to [ForSaleCard] so
+/// the promotion grid can reuse this exact card for both channels:
+///   media (4:5 contain, countdown/status chip as an OVERLAY on the media)
+///   → title (one line) → value (one line, current bid / opening bid).
+/// No badge row under the media, and NO seller identity: username and store
+/// name never render on a discovery card (detail + search keep identity,
+/// redaction and the seller-trust badge).
 ///
-/// Used by every discovery / browsing surface (Marketplace, ProfileStore).
-/// Seller identity is redacted when [Auction.sellerUserLifecycle] is degraded,
-/// providing parity with SearchResultItem (E8.4).
+/// Used by every discovery / browsing surface (Marketplace, ProfileStore) and
+/// by future promoted Auction placements.
 ///
 /// NOT for seller management surfaces.
 class AuctionCard extends StatelessWidget {
@@ -42,53 +43,37 @@ class AuctionCard extends StatelessWidget {
       media: CommerceMarketplaceCardMedia(
         imageUrl: media?.originalUrl,
         mediaType: media?.type ?? MediaType.image,
+        overlay: _mediaOverlay(scheme),
         fallback: Icon(
           Icons.image_outlined,
           size: 48,
           color: scheme.onSurfaceVariant,
         ),
       ),
-      badges: _badges(scheme),
       title: auction.title,
       value: CommerceMarketplaceCardValue(value: _priceLabel, compact: true),
-      metadata: CommerceCardSellerMetadata(
-        username: auction.sellerUsername,
-        storeName: auction.sellerFarmName,
-        sellerUserLifecycle: auction.sellerUserLifecycle,
-        sellerTrustLifecycle: auction.sellerTrustLifecycle,
-      ),
     );
   }
 
-  /// Item-state badges. PURGED vs the old card: the "X bid" badge (the wire
-  /// never emitted total_bids — always-zero fake truth, owner decision
-  /// 2026-09-25) and the location row (AuctionLocation was never hydrated).
-  List<Widget> _badges(ColorScheme scheme) {
-    final badges = <Widget>[];
-
+  /// Item-state chip rendered ON the media (bottom-left) instead of a row
+  /// under it — keeps For Sale and Auction card rhythm identical.
+  Widget _mediaOverlay(ColorScheme scheme) {
     if (auction.isActive) {
       final timeRemaining = auction.getTimeRemaining();
-      badges.add(
-        CommerceMarketplaceCardBadge(
-          label: timeRemaining.displayText,
-          backgroundColor: _urgencyColor(scheme, timeRemaining.urgencyLevel),
-          foregroundColor:
-              timeRemaining.urgencyLevel == AuctionUrgencyLevel.ended
-              ? scheme.surface
-              : scheme.onPrimary,
-          compact: true,
-        ),
-      );
-    } else {
-      badges.add(
-        CommerceMarketplaceCardBadge(
-          label: auction.status.displayName,
-          compact: true,
-        ),
+      return CommerceMarketplaceCardBadge(
+        label: timeRemaining.displayText,
+        backgroundColor: _urgencyColor(scheme, timeRemaining.urgencyLevel),
+        foregroundColor: timeRemaining.urgencyLevel == AuctionUrgencyLevel.ended
+            ? scheme.surface
+            : scheme.onPrimary,
+        compact: true,
       );
     }
 
-    return badges;
+    return CommerceMarketplaceCardBadge(
+      label: auction.status.displayName,
+      compact: true,
+    );
   }
 
   String get _priceLabel {

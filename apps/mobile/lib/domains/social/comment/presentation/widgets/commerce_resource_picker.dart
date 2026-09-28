@@ -8,6 +8,7 @@ library;
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:labuda/shared/widgets/app_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/domain.dart';
@@ -373,12 +374,12 @@ class _Tile extends StatelessWidget {
       leading: ClipRRect(
         borderRadius: BorderRadius.circular(6),
         child: imageUrl != null
-            ? Image.network(
-                imageUrl!,
+            ? AppImage(
+                imageUrl: imageUrl,
                 width: 48,
                 height: 48,
                 fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => _placeholder(context),
+                errorWidget: _placeholder(context),
               )
             : _placeholder(context),
       ),

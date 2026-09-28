@@ -1,4 +1,3 @@
-import 'package:labuda/core/src/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 
 /// Custom Rupiah (Rp) icon widget yang menyerupai Material Icons
@@ -11,7 +10,10 @@ class CustomRpIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final iconColor = color ?? IconTheme.of(context).color ?? AppColors.dark;
+    final iconColor =
+        color ??
+        IconTheme.of(context).color ??
+        Theme.of(context).colorScheme.onSurface;
 
     return SizedBox(
       width: size,

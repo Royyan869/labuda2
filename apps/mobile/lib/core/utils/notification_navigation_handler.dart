@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/shared/widgets/app_snackbar.dart';
 
 /// Notification Navigation Handler
 ///
@@ -194,13 +195,10 @@ class NotificationNavigationHandler {
   static void _showError(BuildContext context, String message) {
     if (!context.mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 4),
-      ),
+    AppSnackBar.showError(
+      context,
+      message,
+      duration: const Duration(seconds: 4),
     );
   }
 

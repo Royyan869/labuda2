@@ -26,7 +26,7 @@ class SearchResultTypeHelper {
   static Color getColor(SearchResultType type, BuildContext context) {
     switch (type) {
       case SearchResultType.user:
-        return AppColors.primaryBlue;
+        return Theme.of(context).colorScheme.secondary;
       case SearchResultType.forSale:
       case SearchResultType.externalProduct:
         return AppColors.primary;

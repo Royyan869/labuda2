@@ -20,7 +20,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:labuda/shared/attachment/entities/share_reference.dart';
-import 'package:labuda/shared/widgets/stable_network_image.dart';
+import 'package:labuda/shared/widgets/app_image.dart';
 
 /// Displays the cached transport preview of a shared reference.
 ///
@@ -89,43 +89,24 @@ class ObjectPreviewCard extends StatelessWidget {
     );
   }
 
-  /// Thumbnail for the reference preview.
-  ///
-  /// [ShareTargetType.content] references carry a persisted Content media
-  /// reference (`content_media.media_url`) in their cached preview, so they are
-  /// projected through the shared network-media path — [StableNetworkImage] /
-  /// `resolveNetworkImageUrl` — exactly like every other converged Content media
-  /// surface. A persisted storage reference is never handed straight to the
-  /// image decoder.
-  ///
-  /// Commerce (for_sale / auction) and profile references are unchanged.
+  /// Thumbnail for the reference preview. Every target type renders the cached
+  /// preview URL through [AppImage] as-is — one widget, no per-type decoder.
   Widget _buildThumbnail(BuildContext context, String imageUrl) {
     const borderRadius = BorderRadius.all(Radius.circular(8));
 
-    if (reference.targetType == ShareTargetType.content) {
-      return ClipRRect(
-        borderRadius: borderRadius,
-        child: SizedBox(
-          width: 60,
-          height: 60,
-          child: StableNetworkImage(
-            imageUrl: imageUrl,
-            fit: BoxFit.cover,
-            fallback: _buildThumbnailFallback(context),
-          ),
-        ),
-      );
-    }
-
     return ClipRRect(
       borderRadius: borderRadius,
-      child: Image.network(
-        imageUrl,
+      child: SizedBox(
         width: 60,
         height: 60,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) =>
-            _buildThumbnailFallback(context),
+        child: AppImage(
+          imageUrl: imageUrl,
+          fit: BoxFit.cover,
+          backgroundColor: Theme.of(
+            context,
+          ).colorScheme.surfaceContainerHighest,
+          errorWidget: _buildThumbnailFallback(context),
+        ),
       ),
     );
   }

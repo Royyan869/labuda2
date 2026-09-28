@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:labuda/core/core.dart';
 
 /// Reusable tooltip widget explaining discount management features
 /// Shows info about Edit, Nonaktif, and Hapus
@@ -12,7 +13,10 @@ class DiscountManagementInfoTooltip extends StatelessWidget {
         title: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(Icons.info_outline, color: Colors.blue[700]),
+            Icon(
+              Icons.info_outline,
+              color: Theme.of(context).colorScheme.primary,
+            ),
             const SizedBox(width: 8),
             const Expanded(
               child: Text('Discount Management Guide', softWrap: true),
@@ -25,8 +29,9 @@ class DiscountManagementInfoTooltip extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               _buildFeatureSection(
+                context: context,
                 icon: Icons.edit_outlined,
-                iconColor: Colors.grey[700]!,
+                iconColor: Theme.of(context).colorScheme.onSurfaceVariant,
                 title: 'Edit',
                 description:
                     'Change discount information that has been created.',
@@ -37,8 +42,9 @@ class DiscountManagementInfoTooltip extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               _buildFeatureSection(
+                context: context,
                 icon: Icons.visibility_off_outlined,
-                iconColor: Colors.grey[700]!,
+                iconColor: Theme.of(context).colorScheme.onSurfaceVariant,
                 title: 'Deactivate / Activate',
                 description: 'Change active/inactive status of discount.',
                 rules: [
@@ -49,8 +55,9 @@ class DiscountManagementInfoTooltip extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               _buildFeatureSection(
+                context: context,
                 icon: Icons.delete_outline,
-                iconColor: Colors.red,
+                iconColor: AppColors.error,
                 title: 'Hapus',
                 description: 'Permanently delete discount from system.',
                 rules: [
@@ -63,8 +70,8 @@ class DiscountManagementInfoTooltip extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.amber.withValues(alpha: 0.1),
-                  border: Border.all(color: Colors.amber),
+                  color: AppColors.warning.withValues(alpha: 0.1),
+                  border: Border.all(color: AppColors.warning),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -72,7 +79,7 @@ class DiscountManagementInfoTooltip extends StatelessWidget {
                   children: [
                     Icon(
                       Icons.lightbulb_outline,
-                      color: Colors.amber[700],
+                      color: AppColors.warning,
                       size: 20,
                     ),
                     const SizedBox(width: 8),
@@ -81,7 +88,7 @@ class DiscountManagementInfoTooltip extends StatelessWidget {
                         'Tip: Use "Deactivate" to stop discount temporarily, and "Delete" to clean up incorrectly input or testing discounts.',
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.amber[900],
+                          color: AppColors.warning,
                         ),
                       ),
                     ),
@@ -102,6 +109,7 @@ class DiscountManagementInfoTooltip extends StatelessWidget {
   }
 
   Widget _buildFeatureSection({
+    required BuildContext context,
     required IconData icon,
     required Color iconColor,
     required String title,
@@ -131,7 +139,10 @@ class DiscountManagementInfoTooltip extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           description,
-          style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+          style: TextStyle(
+            fontSize: 14,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
           softWrap: true,
         ),
         const SizedBox(height: 8),
@@ -140,7 +151,10 @@ class DiscountManagementInfoTooltip extends StatelessWidget {
             padding: const EdgeInsets.only(left: 8, top: 4),
             child: Text(
               rule,
-              style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+              style: TextStyle(
+                fontSize: 13,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
               softWrap: true,
             ),
           ),

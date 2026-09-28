@@ -367,7 +367,7 @@ class _SellerUpgradeWizardScreenState
   }
 
   Widget _buildReadOnlyStatusCard(
-    bool isDark, {
+    {
     required String title,
     required IconData icon,
     required String value,
@@ -377,10 +377,10 @@ class _SellerUpgradeWizardScreenState
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray700 : AppColors.neutralWhite,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isDark ? AppColors.darkGray600 : AppColors.neutralGray200,
+          color: Theme.of(context).colorScheme.outlineVariant,
         ),
       ),
       child: Row(
@@ -389,7 +389,7 @@ class _SellerUpgradeWizardScreenState
           Icon(
             icon,
             size: 20,
-            color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray600,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -401,9 +401,7 @@ class _SellerUpgradeWizardScreenState
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: isDark
-                        ? AppColors.neutralGray400
-                        : AppColors.neutralGray600,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -411,9 +409,7 @@ class _SellerUpgradeWizardScreenState
                   value,
                   style: TextStyle(
                     fontSize: 14,
-                    color: isDark
-                        ? AppColors.neutralGray200
-                        : AppColors.neutralGray800,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 if (note != null) ...[
@@ -422,9 +418,7 @@ class _SellerUpgradeWizardScreenState
                     note,
                     style: TextStyle(
                       fontSize: 12,
-                      color: isDark
-                          ? AppColors.neutralGray500
-                          : AppColors.neutralGray600,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ],
@@ -436,7 +430,7 @@ class _SellerUpgradeWizardScreenState
     );
   }
 
-  Widget _buildSenderAddressSection(bool isDark) {
+  Widget _buildSenderAddressSection() {
     final address = _selectedSenderAddress;
 
     return Column(
@@ -450,9 +444,7 @@ class _SellerUpgradeWizardScreenState
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: isDark
-                      ? AppColors.neutralGray200
-                      : AppColors.neutralGray900,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
             ),
@@ -477,12 +469,10 @@ class _SellerUpgradeWizardScreenState
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: isDark ? AppColors.darkGray700 : AppColors.neutralWhite,
+              color: Theme.of(context).colorScheme.surface,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: isDark
-                    ? AppColors.darkGray600
-                    : AppColors.neutralGray200,
+                color: Theme.of(context).colorScheme.outlineVariant,
               ),
             ),
             child: Column(
@@ -494,9 +484,7 @@ class _SellerUpgradeWizardScreenState
                     Icon(
                       Icons.warehouse_outlined,
                       size: 20,
-                      color: isDark
-                          ? AppColors.neutralGray400
-                          : AppColors.neutralGray600,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -505,9 +493,7 @@ class _SellerUpgradeWizardScreenState
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: isDark
-                              ? AppColors.neutralGray200
-                              : AppColors.neutralGray900,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                     ),
@@ -518,9 +504,7 @@ class _SellerUpgradeWizardScreenState
                   'Recipient: ${address.recipientName}',
                   style: TextStyle(
                     fontSize: 13,
-                    color: isDark
-                        ? AppColors.neutralGray300
-                        : AppColors.neutralGray700,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -528,9 +512,7 @@ class _SellerUpgradeWizardScreenState
                   'Phone: ${address.phone}',
                   style: TextStyle(
                     fontSize: 13,
-                    color: isDark
-                        ? AppColors.neutralGray300
-                        : AppColors.neutralGray700,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -539,9 +521,7 @@ class _SellerUpgradeWizardScreenState
                   style: TextStyle(
                     fontSize: 13,
                     height: 1.5,
-                    color: isDark
-                        ? AppColors.neutralGray400
-                        : AppColors.neutralGray600,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
                 if (!address.isPrimary) ...[
@@ -562,14 +542,10 @@ class _SellerUpgradeWizardScreenState
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: isDark
-                  ? AppColors.darkGray700.withValues(alpha: 0.5)
-                  : AppColors.neutralGray50,
+              color: Theme.of(context).colorScheme.surfaceContainerLow,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: isDark
-                    ? AppColors.darkGray600
-                    : AppColors.neutralGray200,
+                color: Theme.of(context).colorScheme.outlineVariant,
               ),
             ),
             child: Column(
@@ -580,9 +556,7 @@ class _SellerUpgradeWizardScreenState
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: isDark
-                        ? AppColors.neutralGray200
-                        : AppColors.neutralGray800,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -591,9 +565,7 @@ class _SellerUpgradeWizardScreenState
                   style: TextStyle(
                     fontSize: 12,
                     height: 1.4,
-                    color: isDark
-                        ? AppColors.neutralGray400
-                        : AppColors.neutralGray600,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -678,13 +650,12 @@ class _SellerUpgradeWizardScreenState
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final configAsync = ref.watch(config.sellerUpgradeConfigProvider);
     final packageConfig = configAsync.asData?.value;
     final packageStepWidget = configAsync.when(
-      data: (data) => _buildPackageDisclosureStep(data, isDark),
-      loading: () => _buildPackageLoadingStep(isDark),
-      error: (error, _) => _buildPackageErrorStep(isDark, error.toString()),
+      data: (data) => _buildPackageDisclosureStep(data),
+      loading: () => _buildPackageLoadingStep(),
+      error: (error, _) => _buildPackageErrorStep(error.toString()),
     );
     final authState = ref.watch(authControllerProvider);
     final authenticatedUser = ref.watch(authenticatedUserProvider);
@@ -698,7 +669,6 @@ class _SellerUpgradeWizardScreenState
         : 'unknown';
     final previewStepWidget = packageConfig == null
         ? _buildPackagePendingStep(
-            isDark,
             'Seller package must load before you can preview the onboarding summary.',
           )
         : SellerWizardPreviewWidget(
@@ -714,14 +684,12 @@ class _SellerUpgradeWizardScreenState
             agreeToTerms: _agreeToTerms,
             onAgreeToTermsChanged: (value) =>
                 setState(() => _agreeToTerms = value),
-            isDark: isDark,
           );
     final paymentStepWidget = packageConfig == null
         ? _buildPackagePendingStep(
-            isDark,
             'Seller package must load before payment can continue.',
           )
-        : _buildPaymentStep(packageConfig, isDark);
+        : _buildPaymentStep(packageConfig);
     final canAdvanceFromPackage =
         packageConfig != null && packageConfig.isEnabled;
     // Registration wizard is only for first-time sellers; renewal uses SellerRenewalScreen.
@@ -770,7 +738,7 @@ class _SellerUpgradeWizardScreenState
         body: isOperationalMode
             ? Column(
                 children: [
-                  _buildModeBanner(isDark, sellerState),
+                  _buildModeBanner(sellerState),
                   WizardProgressIndicator(
                     currentStep: _currentStep,
                     totalSteps: _totalSteps,
@@ -791,7 +759,6 @@ class _SellerUpgradeWizardScreenState
                       children: [
                         packageStepWidget,
                         _buildAccountStep(
-                          isDark,
                           isEmailVerified,
                           lifecycleLabel,
                           authState is AuthStateAuthenticated
@@ -804,7 +771,6 @@ class _SellerUpgradeWizardScreenState
                           onStorePhotoUpload: _handleStorePhotoUpload,
                           farmPhotoUrl: _farmPhotoDisplayUrl,
                           selectedStorePhotoPath: _selectedStorePhotoPath,
-                          isDark: isDark,
                         ),
                         previewStepWidget,
                         paymentStepWidget,
@@ -829,12 +795,10 @@ class _SellerUpgradeWizardScreenState
                     onPrevious: _previousStep,
                     onNext: _nextStep,
                     onSubmit: _submitUpgrade,
-                    isDark: isDark,
                   ),
                 ],
               )
             : _buildWizardGate(
-                isDark,
                 icon: switch (wizardMode) {
                   _SellerUpgradeWizardMode.restricted => Icons.block,
                   _SellerUpgradeWizardMode.unauthenticated => Icons.login,
@@ -879,7 +843,7 @@ class _SellerUpgradeWizardScreenState
   }
 
   Widget _buildWizardGate(
-    bool isDark, {
+    {
     required IconData icon,
     required String title,
     required String message,
@@ -894,10 +858,10 @@ class _SellerUpgradeWizardScreenState
           padding: const EdgeInsets.all(24),
           margin: const EdgeInsets.symmetric(horizontal: 8),
           decoration: BoxDecoration(
-            color: isDark ? AppColors.darkGray700 : AppColors.neutralWhite,
+            color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: isDark ? AppColors.darkGray600 : AppColors.neutralGray200,
+              color: Theme.of(context).colorScheme.outlineVariant,
             ),
           ),
           child: Column(
@@ -906,9 +870,7 @@ class _SellerUpgradeWizardScreenState
               Icon(
                 icon,
                 size: 40,
-                color: isDark
-                    ? AppColors.neutralGray300
-                    : AppColors.neutralGray600,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               const SizedBox(height: 16),
               Text(
@@ -917,9 +879,7 @@ class _SellerUpgradeWizardScreenState
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: isDark
-                      ? AppColors.neutralWhite
-                      : AppColors.neutralGray900,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 12),
@@ -929,9 +889,7 @@ class _SellerUpgradeWizardScreenState
                 style: TextStyle(
                   fontSize: 14,
                   height: 1.5,
-                  color: isDark
-                      ? AppColors.neutralGray300
-                      : AppColors.neutralGray700,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
               if (actionLabel != null && onAction != null) ...[
@@ -951,7 +909,7 @@ class _SellerUpgradeWizardScreenState
     );
   }
 
-  Widget _buildModeBanner(bool isDark, SellerState sellerState) {
+  Widget _buildModeBanner(SellerState sellerState) {
     const headline = 'Registration mode';
     const message =
         'Never-sellers enter the canonical onboarding flow and may create a seller profile only through registration.';
@@ -963,13 +921,13 @@ class _SellerUpgradeWizardScreenState
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            AppColors.primaryBlue.withValues(alpha: 0.18),
-            AppColors.primaryBlue.withValues(alpha: 0.06),
+            Theme.of(context).colorScheme.secondary.withValues(alpha: 0.18),
+            Theme.of(context).colorScheme.secondary.withValues(alpha: 0.06),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: AppColors.primaryBlue.withValues(alpha: 0.35),
+          color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.35),
         ),
       ),
       child: Column(
@@ -980,7 +938,7 @@ class _SellerUpgradeWizardScreenState
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w700,
-              color: isDark ? AppColors.neutralWhite : AppColors.neutralGray900,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 6),
@@ -989,9 +947,7 @@ class _SellerUpgradeWizardScreenState
             style: TextStyle(
               fontSize: 13,
               height: 1.4,
-              color: isDark
-                  ? AppColors.neutralGray200
-                  : AppColors.neutralGray700,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 8),
@@ -1000,9 +956,7 @@ class _SellerUpgradeWizardScreenState
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: isDark
-                  ? AppColors.neutralGray300
-                  : AppColors.neutralGray700,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
         ],
@@ -1011,7 +965,6 @@ class _SellerUpgradeWizardScreenState
   }
 
   Widget _buildAccountStep(
-    bool isDark,
     bool isEmailVerified,
     String lifecycleLabel,
     String email,
@@ -1026,7 +979,7 @@ class _SellerUpgradeWizardScreenState
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: isDark ? AppColors.neutralWhite : AppColors.neutralGray900,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 8),
@@ -1034,14 +987,11 @@ class _SellerUpgradeWizardScreenState
             'Email status tetap read-only. Isi data akun sebelum lanjut ke info toko dan pembayaran pertama.',
             style: TextStyle(
               fontSize: 14,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray600,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 16),
           _buildReadOnlyStatusCard(
-            isDark,
             title: 'Email',
             icon: Icons.email_outlined,
             value: email.isNotEmpty ? email : '-',
@@ -1049,7 +999,6 @@ class _SellerUpgradeWizardScreenState
           ),
           const SizedBox(height: 12),
           _buildStatusCard(
-            isDark,
             title: 'Account status',
             items: [
               'Lifecycle: $lifecycleLabel',
@@ -1059,7 +1008,6 @@ class _SellerUpgradeWizardScreenState
           const SizedBox(height: 24),
           if (_usernameController.text.trim().isNotEmpty)
             _buildReadOnlyStatusCard(
-              isDark,
               title: 'Username',
               icon: Icons.alternate_email,
               value: _usernameController.text.trim(),
@@ -1085,21 +1033,19 @@ class _SellerUpgradeWizardScreenState
                 CanonicalPhoneValidator.validationMessage(value),
           ),
           const SizedBox(height: 16),
-          _buildSenderAddressSection(isDark),
+          _buildSenderAddressSection(),
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.primaryBlue.withValues(alpha: 0.08),
+              color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
               'Username is read only when already saved. Phone and sender address remain required for seller onboarding.',
               style: TextStyle(
                 fontSize: 13,
-                color: isDark
-                    ? AppColors.neutralGray300
-                    : AppColors.neutralGray700,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           ),
@@ -1110,7 +1056,6 @@ class _SellerUpgradeWizardScreenState
 
   Widget _buildPackageDisclosureStep(
     SellerUpgradeConfigEntity upgradeConfig,
-    bool isDark,
   ) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -1122,7 +1067,7 @@ class _SellerUpgradeWizardScreenState
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
-              color: isDark ? AppColors.neutralWhite : AppColors.neutralGray900,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 8),
@@ -1130,13 +1075,11 @@ class _SellerUpgradeWizardScreenState
             'Lihat fee seller dari backend sebelum mengisi data akun. Pembayaran diperlukan agar seller aktif.',
             style: TextStyle(
               fontSize: 14,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray600,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 24),
-          _buildPaidPlanCard(upgradeConfig, isDark),
+          _buildPaidPlanCard(upgradeConfig),
           if (!upgradeConfig.isEnabled) ...[
             const SizedBox(height: 16),
             Container(
@@ -1153,9 +1096,7 @@ class _SellerUpgradeWizardScreenState
                 'Seller registration is currently disabled by backend config.',
                 style: TextStyle(
                   fontSize: 13,
-                  color: isDark
-                      ? AppColors.neutralGray300
-                      : AppColors.neutralGray700,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
             ),
@@ -1175,14 +1116,12 @@ class _SellerUpgradeWizardScreenState
               'KYC dan review bank dipakai untuk payout/withdrawal, bukan untuk registrasi seller awal.',
               style: TextStyle(
                 fontSize: 13,
-                color: isDark
-                    ? AppColors.neutralGray300
-                    : AppColors.neutralGray700,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           ),
           const SizedBox(height: 24),
-          _buildFeaturesList(isDark),
+          _buildFeaturesList(),
         ],
       ),
     );
@@ -1190,7 +1129,6 @@ class _SellerUpgradeWizardScreenState
 
   Widget _buildPaymentStep(
     SellerUpgradeConfigEntity upgradeConfig,
-    bool isDark,
   ) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -1202,7 +1140,7 @@ class _SellerUpgradeWizardScreenState
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
-              color: isDark ? AppColors.neutralWhite : AppColors.neutralGray900,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 8),
@@ -1210,13 +1148,11 @@ class _SellerUpgradeWizardScreenState
             'Onboarding hanya dipanggil setelah prerequisites valid. Subscription akan dimulai setelah onboarding sukses.',
             style: TextStyle(
               fontSize: 14,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray600,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 24),
-          _buildPaymentSection(upgradeConfig, isDark),
+          _buildPaymentSection(upgradeConfig),
           const SizedBox(height: 24),
           Container(
             padding: const EdgeInsets.all(16),
@@ -1228,9 +1164,7 @@ class _SellerUpgradeWizardScreenState
               'KYC dan review bank dipakai nanti untuk payout/withdrawal, terpisah dari registrasi seller.',
               style: TextStyle(
                 fontSize: 13,
-                color: isDark
-                    ? AppColors.neutralGray300
-                    : AppColors.neutralGray700,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           ),
@@ -1239,18 +1173,16 @@ class _SellerUpgradeWizardScreenState
     );
   }
 
-  Widget _buildPackageLoadingStep(bool isDark) {
+  Widget _buildPackageLoadingStep() {
     return _buildPackageStateCard(
-      isDark,
       title: 'Paket & Syarat Seller',
       message: 'Mengambil fee seller dari backend...',
       leading: const CircularProgressIndicator(strokeWidth: 2),
     );
   }
 
-  Widget _buildPackageErrorStep(bool isDark, String error) {
+  Widget _buildPackageErrorStep(String error) {
     return _buildPackageStateCard(
-      isDark,
       title: 'Paket & Syarat Seller',
       message: 'Gagal memuat konfigurasi seller dari backend.\n$error',
       leading: const Icon(
@@ -1263,21 +1195,20 @@ class _SellerUpgradeWizardScreenState
     );
   }
 
-  Widget _buildPackagePendingStep(bool isDark, String message) {
+  Widget _buildPackagePendingStep(String message) {
     return _buildPackageStateCard(
-      isDark,
       title: 'Paket & Syarat Seller',
       message: message,
-      leading: const Icon(
+      leading: Icon(
         Icons.info_outline,
-        color: AppColors.primaryBlue,
+        color: Theme.of(context).colorScheme.secondary,
         size: 28,
       ),
     );
   }
 
   Widget _buildPackageStateCard(
-    bool isDark, {
+    {
     required String title,
     required String message,
     Widget? leading,
@@ -1290,10 +1221,10 @@ class _SellerUpgradeWizardScreenState
         width: double.infinity,
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: isDark ? AppColors.darkGray700 : AppColors.neutralWhite,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isDark ? AppColors.darkGray600 : AppColors.neutralGray200,
+            color: Theme.of(context).colorScheme.outlineVariant,
           ),
         ),
         child: Column(
@@ -1304,9 +1235,7 @@ class _SellerUpgradeWizardScreenState
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
-                color: isDark
-                    ? AppColors.neutralWhite
-                    : AppColors.neutralGray900,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 16),
@@ -1316,9 +1245,7 @@ class _SellerUpgradeWizardScreenState
               style: TextStyle(
                 fontSize: 14,
                 height: 1.5,
-                color: isDark
-                    ? AppColors.neutralGray300
-                    : AppColors.neutralGray700,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
             if (actionLabel != null && onAction != null) ...[
@@ -1338,7 +1265,7 @@ class _SellerUpgradeWizardScreenState
   }
 
   Widget _buildStatusCard(
-    bool isDark, {
+    {
     required String title,
     required List<String> items,
   }) {
@@ -1346,10 +1273,10 @@ class _SellerUpgradeWizardScreenState
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray700 : AppColors.neutralWhite,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isDark ? AppColors.darkGray600 : AppColors.neutralGray200,
+          color: Theme.of(context).colorScheme.outlineVariant,
         ),
       ),
       child: Column(
@@ -1360,9 +1287,7 @@ class _SellerUpgradeWizardScreenState
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w700,
-              color: isDark
-                  ? AppColors.neutralGray200
-                  : AppColors.neutralGray900,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 8),
@@ -1373,9 +1298,7 @@ class _SellerUpgradeWizardScreenState
                 '• $item',
                 style: TextStyle(
                   fontSize: 13,
-                  color: isDark
-                      ? AppColors.neutralGray300
-                      : AppColors.neutralGray700,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
             ),
@@ -1387,7 +1310,6 @@ class _SellerUpgradeWizardScreenState
 
   Widget _buildPaidPlanCard(
     SellerUpgradeConfigEntity upgradeConfig,
-    bool isDark,
   ) {
     return Container(
       width: double.infinity,
@@ -1396,19 +1318,14 @@ class _SellerUpgradeWizardScreenState
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: isDark
-              ? [
-                  AppColors.primaryBlue.withValues(alpha: 0.2),
-                  AppColors.primaryBlue.withValues(alpha: 0.05),
-                ]
-              : [
-                  AppColors.primaryBlue.withValues(alpha: 0.1),
-                  AppColors.primaryBlue.withValues(alpha: 0.02),
-                ],
+          colors: [
+            Theme.of(context).colorScheme.secondary.withValues(alpha: 0.12),
+            Theme.of(context).colorScheme.secondary.withValues(alpha: 0.06),
+          ],
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: AppColors.primaryBlue.withValues(alpha: 0.5),
+          color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.5),
           width: 2,
         ),
       ),
@@ -1418,13 +1335,13 @@ class _SellerUpgradeWizardScreenState
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: AppColors.primaryBlue,
+              color: Theme.of(context).colorScheme.secondary,
               borderRadius: BorderRadius.circular(20),
             ),
-            child: const Text(
+            child: Text(
               'AKTIVASI SELLER',
               style: TextStyle(
-                color: AppColors.neutralWhite,
+                color: Theme.of(context).colorScheme.onSecondary,
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
               ),
@@ -1436,7 +1353,7 @@ class _SellerUpgradeWizardScreenState
             style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
-              color: isDark ? AppColors.neutralWhite : AppColors.neutralGray900,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 8),
@@ -1445,10 +1362,10 @@ class _SellerUpgradeWizardScreenState
             children: [
               Text(
                 AppFormatters.formatCurrency(upgradeConfig.yearlyFee),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.primaryBlue,
+                  color: Theme.of(context).colorScheme.secondary,
                 ),
               ),
               const SizedBox(width: 8),
@@ -1458,9 +1375,7 @@ class _SellerUpgradeWizardScreenState
                   '/${upgradeConfig.durationDays} hari',
                   style: TextStyle(
                     fontSize: 14,
-                    color: isDark
-                        ? AppColors.neutralGray400
-                        : AppColors.neutralGray600,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ),
@@ -1471,9 +1386,7 @@ class _SellerUpgradeWizardScreenState
             'Seller access stays active for ${upgradeConfig.durationDays} days after payment is confirmed.',
             style: TextStyle(
               fontSize: 14,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray600,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 8),
@@ -1481,9 +1394,7 @@ class _SellerUpgradeWizardScreenState
             'Fee sourced from backend config. KYC and bank review happen later for payout access.',
             style: TextStyle(
               fontSize: 12,
-              color: isDark
-                  ? AppColors.neutralGray500
-                  : AppColors.neutralGray600,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
         ],
@@ -1491,7 +1402,7 @@ class _SellerUpgradeWizardScreenState
     );
   }
 
-  Widget _buildFeaturesList(bool isDark) {
+  Widget _buildFeaturesList() {
     final features = [
       ('Buat forSale', Icons.inventory_2_outlined),
       ('Buat lelang', Icons.gavel),
@@ -1510,7 +1421,7 @@ class _SellerUpgradeWizardScreenState
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
-            color: isDark ? AppColors.neutralWhite : AppColors.neutralGray900,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 16),
@@ -1536,9 +1447,7 @@ class _SellerUpgradeWizardScreenState
                 Icon(
                   feature.$2,
                   size: 20,
-                  color: isDark
-                      ? AppColors.neutralGray400
-                      : AppColors.neutralGray600,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -1546,9 +1455,7 @@ class _SellerUpgradeWizardScreenState
                     feature.$1,
                     style: TextStyle(
                       fontSize: 14,
-                      color: isDark
-                          ? AppColors.neutralGray300
-                          : AppColors.neutralGray700,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ),
@@ -1562,7 +1469,6 @@ class _SellerUpgradeWizardScreenState
 
   Widget _buildPaymentSection(
     SellerUpgradeConfigEntity upgradeConfig,
-    bool isDark,
   ) {
     // PMF-02: once the canonical methods payload is loaded it is the money
     // authority for the whole summary — principal A, fee F per method, and the
@@ -1578,10 +1484,10 @@ class _SellerUpgradeWizardScreenState
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray700 : AppColors.neutralWhite,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isDark ? AppColors.darkGray600 : AppColors.neutralGray200,
+          color: Theme.of(context).colorScheme.outlineVariant,
         ),
       ),
       child: Column(
@@ -1592,18 +1498,16 @@ class _SellerUpgradeWizardScreenState
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: isDark
-                  ? AppColors.neutralGray200
-                  : AppColors.neutralGray900,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 16),
-          _buildPaymentRow('Yearly subscription', principalAmount, isDark),
+          _buildPaymentRow('Yearly subscription', principalAmount),
           const SizedBox(height: 12),
-          _buildSubscriptionMethodSelector(isDark),
+          _buildSubscriptionMethodSelector(),
           if (selectedMethod != null) ...[
             const SizedBox(height: 12),
-            _buildPaymentRow('Payment method fee', feeAmount, isDark),
+            _buildPaymentRow('Payment method fee', feeAmount),
           ],
           const Divider(height: 24),
           _buildPaymentRowText(
@@ -1611,7 +1515,6 @@ class _SellerUpgradeWizardScreenState
             selectedMethod == null
                 ? 'Belum dipilih'
                 : AppFormatters.formatCurrency(selectedMethod.grossAmount.toDouble()),
-            isDark,
             isBold: true,
           ),
           const SizedBox(height: 12),
@@ -1623,10 +1526,10 @@ class _SellerUpgradeWizardScreenState
             ),
             child: Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.info_outline,
                   size: 16,
-                  color: AppColors.primaryBlue,
+                  color: Theme.of(context).colorScheme.secondary,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -1634,9 +1537,7 @@ class _SellerUpgradeWizardScreenState
                     'You will be redirected to the payment provider in a browser.',
                     style: TextStyle(
                       fontSize: 12,
-                      color: isDark
-                          ? AppColors.neutralGray400
-                          : AppColors.neutralGray600,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ),
@@ -1651,7 +1552,7 @@ class _SellerUpgradeWizardScreenState
   /// PMF-02: the seller must explicitly choose a payment method. The picker
   /// renders only backend-calculated fee and gross values (see
   /// GET /seller/subscription/payment-methods); this widget never computes them.
-  Widget _buildSubscriptionMethodSelector(bool isDark) {
+  Widget _buildSubscriptionMethodSelector() {
     final methods = _subscriptionPaymentMethods?.methods ?? const [];
     final selected = _selectedSubscriptionMethod;
     final isLoading = _isLoadingSubscriptionMethods;
@@ -1671,7 +1572,7 @@ class _SellerUpgradeWizardScreenState
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray600,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
         const SizedBox(height: 6),
@@ -1687,9 +1588,7 @@ class _SellerUpgradeWizardScreenState
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: isDark
-                    ? AppColors.darkGray600
-                    : AppColors.neutralGray300,
+                color: Theme.of(context).colorScheme.outlineVariant,
               ),
             ),
             child: Row(
@@ -1701,9 +1600,7 @@ class _SellerUpgradeWizardScreenState
                       fontSize: 14,
                       color: methods.isEmpty && !isLoading
                           ? AppColors.statusError
-                          : (isDark
-                                ? AppColors.neutralGray200
-                                : AppColors.neutralGray900),
+                          : (Theme.of(context).colorScheme.onSurface),
                     ),
                   ),
                 ),
@@ -1711,9 +1608,7 @@ class _SellerUpgradeWizardScreenState
                   Icon(
                     Icons.chevron_right,
                     size: 20,
-                    color: isDark
-                        ? AppColors.neutralGray400
-                        : AppColors.neutralGray600,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
               ],
             ),
@@ -1726,7 +1621,7 @@ class _SellerUpgradeWizardScreenState
   Widget _buildPaymentRowText(
     String label,
     String amountText,
-    bool isDark, {
+    {
     bool isBold = false,
   }) {
     return Row(
@@ -1739,9 +1634,7 @@ class _SellerUpgradeWizardScreenState
             style: TextStyle(
               fontSize: 14,
               fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-              color: isDark
-                  ? AppColors.neutralGray300
-                  : AppColors.neutralGray700,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
         ),
@@ -1751,7 +1644,7 @@ class _SellerUpgradeWizardScreenState
           style: TextStyle(
             fontSize: isBold ? 16 : 14,
             fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
-            color: isDark ? AppColors.neutralGray200 : AppColors.neutralGray900,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
       ],
@@ -1761,13 +1654,12 @@ class _SellerUpgradeWizardScreenState
   Widget _buildPaymentRow(
     String label,
     double amount,
-    bool isDark, {
+    {
     bool isBold = false,
   }) {
     return _buildPaymentRowText(
       label,
       AppFormatters.formatCurrency(amount),
-      isDark,
       isBold: isBold,
     );
   }

@@ -79,7 +79,6 @@ class FCMActionMapper {
           BannerAction(
             label: 'Balas',
             icon: Icons.reply,
-            color: Colors.blue,
             onTap: () => _navigate(type, data),
           ),
         ];
@@ -91,7 +90,7 @@ class FCMActionMapper {
           BannerAction(
             label: 'Lihat Lelang',
             icon: Icons.gavel,
-            color: Colors.orange,
+            color: AppColors.statusWarning,
             onTap: () => _navigate(type, data),
           ),
         ];
@@ -102,7 +101,7 @@ class FCMActionMapper {
           BannerAction(
             label: 'Bayar Sekarang',
             icon: Icons.payment,
-            color: Colors.green,
+            color: AppColors.statusSuccess,
             onTap: () => _navigate(type, data),
           ),
         ];
@@ -129,7 +128,6 @@ class FCMActionMapper {
           BannerAction(
             label: 'Lacak Paket',
             icon: Icons.local_shipping,
-            color: Colors.blue,
             onTap: () => _navigate(type, data),
           ),
         ];
@@ -140,7 +138,7 @@ class FCMActionMapper {
           BannerAction(
             label: 'Konfirmasi Terima',
             icon: Icons.check_circle,
-            color: Colors.green,
+            color: AppColors.statusSuccess,
             onTap: () => _navigate(type, data),
           ),
         ];

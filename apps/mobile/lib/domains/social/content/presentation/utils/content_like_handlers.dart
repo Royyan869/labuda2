@@ -5,7 +5,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
+import 'package:labuda/shared/widgets/app_snackbar.dart';
 import 'package:labuda/domains/social/content/domain/entities/content.dart';
 import 'package:labuda/domains/social/like/domain/entities/like.dart';
 import 'package:labuda/domains/social/like/presentation/providers/like_notifier.dart';
@@ -67,13 +67,9 @@ class ContentLikeHandlers {
     }
     if (!context.mounted) return;
     if (result.errorCode == 'EMAIL_VERIFICATION_REQUIRED') {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Verifikasi email kamu diperlukan sebelum menyukai konten.',
-          ),
-          backgroundColor: AppColors.statusError,
-        ),
+      AppSnackBar.showError(
+        context,
+        'Verifikasi email kamu diperlukan sebelum menyukai konten.',
       );
       return;
     }

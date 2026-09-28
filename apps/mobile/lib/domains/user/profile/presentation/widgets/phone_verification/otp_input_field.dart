@@ -186,9 +186,9 @@ class _OTPInputFieldState extends ConsumerState<OTPInputField> {
                       },
                 child: Text(
                   state.isResending ? 'Sending...' : 'Resend',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
-                    color: AppColors.primaryRed,
+                    color: scheme.primary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),

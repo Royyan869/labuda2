@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/domains/commerce/pricing/discount/domain/entities/discount_entity.dart';
 import 'package:intl/intl.dart';
@@ -47,7 +48,7 @@ class DiscountCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  _buildStatusBadge(isActive, isExpired),
+                  _buildStatusBadge(context, isActive, isExpired),
                   const SizedBox(width: 8),
                   _buildMoreButton(context),
                 ],
@@ -57,7 +58,10 @@ class DiscountCard extends StatelessWidget {
               // Description
               Text(
                 discount.description,
-                style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontSize: 14,
+                ),
               ),
               const SizedBox(height: 12),
 
@@ -67,7 +71,7 @@ class DiscountCard extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: Colors.green,
+                  color: AppColors.primaryGreen,
                 ),
               ),
               const SizedBox(height: 8),
@@ -75,7 +79,10 @@ class DiscountCard extends StatelessWidget {
               // Expiry
               Text(
                 'Expires: ${_formatDate(discount.validUntil)}',
-                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
 
               // Usage stats
@@ -83,7 +90,10 @@ class DiscountCard extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   'Used: ${discount.currentUsageCount}/${discount.totalUsageLimit}',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ],
             ],
@@ -93,18 +103,22 @@ class DiscountCard extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusBadge(bool isActive, bool isExpired) {
+  Widget _buildStatusBadge(
+    BuildContext context,
+    bool isActive,
+    bool isExpired,
+  ) {
     Color color;
     String text;
 
     if (isExpired) {
-      color = Colors.grey;
+      color = Theme.of(context).colorScheme.onSurfaceVariant;
       text = 'Expired';
     } else if (!isActive) {
-      color = Colors.orange;
+      color = AppColors.warning;
       text = 'Inactive';
     } else {
-      color = Colors.green;
+      color = AppColors.primaryGreen;
       text = 'Active';
     }
 
@@ -150,7 +164,11 @@ class DiscountCard extends StatelessWidget {
           value: 'edit',
           child: Row(
             children: [
-              Icon(Icons.edit_outlined, size: 20, color: Colors.grey[700]),
+              Icon(
+                Icons.edit_outlined,
+                size: 20,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
               const SizedBox(width: 12),
               const Text('Edit'),
             ],
@@ -167,7 +185,7 @@ class DiscountCard extends StatelessWidget {
                     ? Icons.visibility_off_outlined
                     : Icons.visibility_outlined,
                 size: 20,
-                color: Colors.grey[700],
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               const SizedBox(width: 12),
               Text(discount.isActive ? 'Deactivate' : 'Activate'),
@@ -181,9 +199,13 @@ class DiscountCard extends StatelessWidget {
             value: 'delete',
             child: Row(
               children: [
-                const Icon(Icons.delete_outline, size: 20, color: Colors.red),
+                const Icon(
+                  Icons.delete_outline,
+                  size: 20,
+                  color: AppColors.error,
+                ),
                 const SizedBox(width: 12),
-                const Text('Hapus', style: TextStyle(color: Colors.red)),
+                const Text('Hapus', style: TextStyle(color: AppColors.error)),
               ],
             ),
           )
@@ -192,9 +214,18 @@ class DiscountCard extends StatelessWidget {
             enabled: false,
             child: Row(
               children: [
-                Icon(Icons.delete_outline, size: 20, color: Colors.grey[400]),
+                Icon(
+                  Icons.delete_outline,
+                  size: 20,
+                  color: Theme.of(context).colorScheme.outline,
+                ),
                 const SizedBox(width: 12),
-                Text('Hapus', style: TextStyle(color: Colors.grey[400])),
+                Text(
+                  'Hapus',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.outline,
+                  ),
+                ),
               ],
             ),
           ),

@@ -88,8 +88,8 @@ class ChatResourceProjectionCard extends StatelessWidget {
   ///
   /// [ResourceMediaRef.mediaKind] — the transported persisted
   /// `content_media.media_type` — is the render authority:
-  /// - image — [CommerceMarketplaceCardMedia], i.e. [StableNetworkImage] / the
-  ///   shared network-media path (`resolveNetworkImageUrl`).
+  /// - image — [CommerceMarketplaceCardMedia], i.e. [AppImage] (CloudFront
+  ///   URL as-is, cached).
   /// - video — [CarouselVideoPlayer], the shared video primitive. A video
   ///   reference must never reach the image decoder.
   Widget _buildContentMedia(

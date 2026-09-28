@@ -172,14 +172,10 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
       if (result.isSuccess && result.data != null) {
         final forSale = result.data!;
         // Show success and navigate back with forSale data
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'ForSale tayang dengan ${_selectedShippingSetupIds.length} opsi pengiriman.',
-            ),
-            backgroundColor: AppColors.successGreen,
-            duration: const Duration(seconds: 3),
-          ),
+        AppSnackBar.showSuccess(
+          context,
+          'ForSale tayang dengan ${_selectedShippingSetupIds.length} opsi pengiriman.',
+          duration: const Duration(seconds: 3),
         );
         // Return mode comes from the canonical route args (see [routeArgs]).
         final returnMode = widget.routeArgs?.returnMode;

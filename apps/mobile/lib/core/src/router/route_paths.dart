@@ -75,6 +75,9 @@ class RoutePaths {
 
   // Seller routes
   static const String sellerDashboard = '/seller/dashboard';
+  // Canonical seller order list (registered in seller_module). Named constant
+  // so UI never hardcodes the path literal.
+  static const String sellerOrders = '/seller/orders';
   static const String sellerSettings = '/seller/settings';
   static const String sellerAnalytics = '/seller/analytics';
   // PARKED V1: No SellerWarningsScreen exists yet. Path reserved for future

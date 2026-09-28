@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/shared/widgets/app_image.dart';
 import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import '../../domain/entities/share_target.dart';
 
@@ -40,15 +40,12 @@ class SharePreviewCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
               child: AspectRatio(
                 aspectRatio: 1.0, // Square image
-                child: CachedNetworkImage(
-                  imageUrl: target.imageUrl!,
+                child: AppImage(
+                  imageUrl: target.imageUrl,
                   width: double.infinity,
                   fit: BoxFit.cover,
-                  placeholder: (context, url) => Container(
-                    color: placeholderColor,
-                    child: const Center(child: CircularProgressIndicator()),
-                  ),
-                  errorWidget: (context, url, error) => Container(
+                  backgroundColor: placeholderColor,
+                  errorWidget: Container(
                     color: placeholderColor,
                     child: Icon(
                       Icons.broken_image,
@@ -91,21 +88,25 @@ class SharePreviewCard extends StatelessWidget {
           const SizedBox(height: 8),
 
           // Metadata display berdasarkan content type
-          _buildMetadataSection(textColor, secondaryTextColor),
+          _buildMetadataSection(context, textColor, secondaryTextColor),
         ],
       ),
     );
   }
 
   /// Build metadata section based on content type
-  Widget _buildMetadataSection(Color textColor, Color secondaryTextColor) {
+  Widget _buildMetadataSection(
+    BuildContext context,
+    Color textColor,
+    Color secondaryTextColor,
+  ) {
     switch (target.type) {
       case ExternalShareType.forSale:
         return _buildForSaleMetadata(textColor, secondaryTextColor);
       case ExternalShareType.auction:
-        return _buildAuctionMetadata(textColor, secondaryTextColor);
+        return _buildAuctionMetadata(context, textColor, secondaryTextColor);
       case ExternalShareType.request:
-        return _buildContentMetadata(textColor, secondaryTextColor);
+        return _buildContentMetadata(context, textColor, secondaryTextColor);
       case ExternalShareType.post:
       case ExternalShareType.profile:
         return _buildDefaultMetadata(secondaryTextColor);
@@ -176,7 +177,12 @@ class SharePreviewCard extends StatelessWidget {
   }
 
   /// Auction metadata - show current bid & time remaining
-  Widget _buildAuctionMetadata(Color textColor, Color secondaryTextColor) {
+  Widget _buildAuctionMetadata(
+    BuildContext context,
+    Color textColor,
+    Color secondaryTextColor,
+  ) {
+    final scheme = Theme.of(context).colorScheme;
     final currentBid = target.metadata['currentBid'] as num?;
     final endTimeStr = target.metadata['endTime'] as String?;
     final variety = target.metadata['variety'] as String?;
@@ -208,12 +214,12 @@ class SharePreviewCard extends StatelessWidget {
         if (currentBid != null) ...[
           Row(
             children: [
-              const Icon(Icons.gavel, size: 16, color: AppColors.primaryRed),
+              Icon(Icons.gavel, size: 16, color: scheme.primary),
               const SizedBox(width: 4),
               Text(
                 'KB: ${_formatPrice(currentBid)}',
                 style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.primaryRed,
+                  color: scheme.primary,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -279,7 +285,12 @@ class SharePreviewCard extends StatelessWidget {
   }
 
   /// Content metadata - show budget/variety when available
-  Widget _buildContentMetadata(Color textColor, Color secondaryTextColor) {
+  Widget _buildContentMetadata(
+    BuildContext context,
+    Color textColor,
+    Color secondaryTextColor,
+  ) {
+    final scheme = Theme.of(context).colorScheme;
     final budget = target.metadata['budget'] as num?;
     final maxBudget = target.metadata['maxBudget'] as num?;
     final location = target.metadata['location'] as String?;
@@ -292,10 +303,10 @@ class SharePreviewCard extends StatelessWidget {
         if (budget != null || maxBudget != null) ...[
           Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.account_balance_wallet,
                 size: 16,
-                color: AppColors.primaryBlue,
+                color: scheme.secondary,
               ),
               const SizedBox(width: 4),
               Text(
@@ -303,7 +314,7 @@ class SharePreviewCard extends StatelessWidget {
                     ? 'Budget: ${_formatPrice(maxBudget)}'
                     : 'Budget: ${_formatPrice(budget!)}',
                 style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.primaryBlue,
+                  color: scheme.secondary,
                   fontWeight: FontWeight.w700,
                 ),
               ),

@@ -6,7 +6,7 @@
 ///     → `mediaref.MediaRef.Kind`
 ///     → `ResourceMediaRef.kind`
 ///     → `ResourceMediaRef.mediaKind`
-///     → image: `CommerceMarketplaceCardMedia` / `StableNetworkImage`
+///     → image: `CommerceMarketplaceCardMedia` / `AppImage`
 ///     → video: `CarouselVideoPlayer` (the shared video primitive).
 ///
 /// NEGATIVE PROOF: the render decision must come from the transported media
@@ -18,30 +18,17 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/domains/chat/chat/presentation/widgets/chat_resource_projection_card.dart';
+import 'package:labuda/shared/widgets/app_image.dart';
 import 'package:labuda/shared/widgets/carousel_video_player.dart';
-import 'package:labuda/shared/widgets/stable_network_image.dart';
 
-/// The canonical CDN/S3 base the resolver prefixes a storage reference with.
-String get _mediaBaseUrl => AppConstants.useCloudFront
-    ? AppConstants.cdnBaseUrl
-    : AppConstants.awsS3BaseUrl;
-
-/// Every network URL actually handed to the image decoder in the tree.
-List<String> _decodedNetworkUrls(WidgetTester tester) {
-  final urls = <String>[];
-  for (final image in tester.widgetList<Image>(find.byType(Image))) {
-    final provider = image.image;
-    final resolved = provider is ResizeImage
-        ? provider.imageProvider
-        : provider;
-    if (resolved is NetworkImage) {
-      urls.add(resolved.url);
-    }
-  }
-  return urls;
+/// The backend URL handed to the canonical widget in the tree.
+List<String?> _canonicalWidgetUrls(WidgetTester tester) {
+  return tester
+      .widgetList<AppImage>(find.byType(AppImage))
+      .map((w) => w.imageUrl)
+      .toList();
 }
 
 Map<String, dynamic> _contentLiveJson(List<Map<String, dynamic>> media) {
@@ -91,22 +78,17 @@ void main() {
   testWidgets('kind=image renders the canonical image media path', (
     tester,
   ) async {
-    const storageReference = 'images/1749600000005_chat.jpg';
+    const backendUrl =
+        'https://d358tu61i1wrtt.cloudfront.net/images/1749600000005_chat.jpg';
 
     await _pumpProjection(tester, [
-      {'url': storageReference, 'kind': 'image'},
+      {'url': backendUrl, 'kind': 'image'},
     ]);
 
-    expect(find.byType(StableNetworkImage), findsOneWidget);
+    expect(find.byType(AppImage), findsWidgets);
     expect(find.byType(CarouselVideoPlayer), findsNothing);
 
-    final urls = _decodedNetworkUrls(tester);
-    expect(urls, contains('$_mediaBaseUrl/$storageReference'));
-    expect(
-      urls,
-      isNot(contains(storageReference)),
-      reason: 'the raw storage reference must never reach the image decoder',
-    );
+    expect(_canonicalWidgetUrls(tester), contains(backendUrl));
   });
 
   testWidgets('kind=video renders the canonical video renderer, not the image '
@@ -122,13 +104,10 @@ void main() {
     ]);
 
     expect(find.byType(CarouselVideoPlayer), findsOneWidget);
-    expect(find.byType(StableNetworkImage), findsNothing);
-
-    final urls = _decodedNetworkUrls(tester);
     expect(
-      urls,
-      isNot(contains(videoUrl)),
-      reason: 'a video reference must not be handed to the image decoder',
+      find.byType(AppImage),
+      findsNothing,
+      reason: 'a video reference must not be handed to the image widget',
     );
   });
 
@@ -142,9 +121,9 @@ void main() {
 
     expect(find.byType(CarouselVideoPlayer), findsOneWidget);
     expect(
-      _decodedNetworkUrls(tester),
-      isNot(contains(videoUrl)),
-      reason: 'no image request may target a video reference',
+      find.byType(AppImage),
+      findsNothing,
+      reason: 'no image widget may target a video reference',
     );
   });
 
@@ -157,36 +136,32 @@ void main() {
     ]);
 
     expect(find.byType(CarouselVideoPlayer), findsNothing);
-    expect(_decodedNetworkUrls(tester), contains(imageUrl));
+    expect(_canonicalWidgetUrls(tester), contains(imageUrl));
   });
 
-  testWidgets('content with no media renders neither decoder nor video '
+  testWidgets('content with no media renders neither image nor video '
       'player', (tester) async {
     await _pumpProjection(tester, const []);
 
-    // The card media is the canonical placeholder: the shared image widget is
-    // present but is handed no URL, so no image request is ever issued.
-    final images = tester.widgetList<StableNetworkImage>(
-      find.byType(StableNetworkImage),
-    );
-    expect(images.every((image) => image.imageUrl == null), isTrue);
     expect(find.byType(CarouselVideoPlayer), findsNothing);
-    expect(_decodedNetworkUrls(tester), isEmpty);
+    expect(find.byType(AppImage), findsNothing);
   });
 
   testWidgets('the first media entry is the card media (ordering authority)', (
     tester,
   ) async {
-    const first = 'images/1749600000006_first.jpg';
-    const second = 'images/1749600000007_second.jpg';
+    const first =
+        'https://d358tu61i1wrtt.cloudfront.net/images/1749600000006_first.jpg';
+    const second =
+        'https://d358tu61i1wrtt.cloudfront.net/images/1749600000007_second.jpg';
 
     await _pumpProjection(tester, [
       {'url': first, 'kind': 'image'},
       {'url': second, 'kind': 'image'},
     ]);
 
-    final urls = _decodedNetworkUrls(tester);
-    expect(urls, contains('$_mediaBaseUrl/$first'));
-    expect(urls, isNot(contains('$_mediaBaseUrl/$second')));
+    final urls = _canonicalWidgetUrls(tester);
+    expect(urls, contains(first));
+    expect(urls, isNot(contains(second)));
   });
 }

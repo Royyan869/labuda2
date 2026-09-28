@@ -154,11 +154,7 @@ class _CoinBalanceScreenState extends ConsumerState<CoinBalanceScreen> {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: Theme.of(context).brightness == Brightness.dark
-              ? AppColors.neutralGray700
-              : AppColors.neutralGray200,
-        ),
+        side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -178,7 +174,9 @@ class _CoinBalanceScreenState extends ConsumerState<CoinBalanceScreen> {
           style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.bold,
-            color: transaction.amount > 0 ? Colors.green : Colors.red,
+            color: transaction.amount > 0
+                ? AppColors.statusSuccess
+                : AppColors.statusError,
           ),
         ),
       ),
@@ -251,7 +249,11 @@ class _CoinBalanceScreenState extends ConsumerState<CoinBalanceScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, size: 64, color: Colors.red),
+            Icon(
+              Icons.error_outline,
+              size: 64,
+              color: AppColors.statusError,
+            ),
             const SizedBox(height: 16),
             const Text(
               'Terjadi Kesalahan',

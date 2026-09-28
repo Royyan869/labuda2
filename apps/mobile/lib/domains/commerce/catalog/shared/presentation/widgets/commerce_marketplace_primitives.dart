@@ -1,56 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_marketplace_metrics.dart';
 import 'package:labuda/domains/social/content/domain/entities/content.dart';
-import 'package:labuda/shared/widgets/stable_network_image.dart';
-
-const Set<String> _transientQueryKeys = {
-  'expires',
-  'policy',
-  'signature',
-  'token',
-  'x-amz-algorithm',
-  'x-amz-credential',
-  'x-amz-date',
-  'x-amz-expires',
-  'x-amz-signature',
-  'x-amz-security-token',
-  'x-amz-signedheaders',
-  'x-amz-token',
-};
-
-String normalizeMarketplaceMediaReference(String reference) {
-  final trimmed = reference.trim();
-  if (trimmed.isEmpty) return '';
-
-  final uri = Uri.tryParse(trimmed);
-  if (uri == null) {
-    return _normalizeRawReference(trimmed);
-  }
-
-  final normalizedPath = _normalizePath(
-    uri.path.isNotEmpty ? uri.path : trimmed,
-  );
-  final query = _stableQuerySuffix(uri);
-
-  if (normalizedPath.isNotEmpty) {
-    return query.isEmpty ? normalizedPath : '$normalizedPath?$query';
-  }
-
-  if (uri.hasScheme || uri.hasAuthority) {
-    return query.isEmpty ? trimmed : '$trimmed?$query';
-  }
-
-  return query.isEmpty ? trimmed : '$trimmed?$query';
-}
-
-String marketplaceMediaLogicalKey({
-  required String entityId,
-  required String mediaReference,
-  required int position,
-  String entityType = 'marketplace',
-}) {
-  return '$entityType|$entityId|$position|'
-      '${normalizeMarketplaceMediaReference(mediaReference)}';
-}
+import 'package:labuda/shared/widgets/app_image.dart';
 
 class CommerceMarketplaceGrid extends StatelessWidget {
   final int itemCount;
@@ -77,10 +28,15 @@ class CommerceMarketplaceGrid extends StatelessWidget {
     super.key,
     required this.itemCount,
     required this.itemBuilder,
-    this.padding = const EdgeInsets.fromLTRB(8, 8, 8, 16),
-    this.crossAxisSpacing = 12,
-    this.mainAxisSpacing = 12,
-    this.childAspectRatio = 0.53,
+    this.padding = const EdgeInsets.fromLTRB(
+      CommerceMarketplaceMetrics.gridEdgePadding,
+      CommerceMarketplaceMetrics.gridEdgePadding,
+      CommerceMarketplaceMetrics.gridEdgePadding,
+      CommerceMarketplaceMetrics.gridBottomPadding,
+    ),
+    this.crossAxisSpacing = CommerceMarketplaceMetrics.gridGap,
+    this.mainAxisSpacing = CommerceMarketplaceMetrics.gridGap,
+    this.childAspectRatio = CommerceMarketplaceMetrics.childAspectRatio,
     this.isLoading = false,
     this.error,
     this.errorStackTrace,
@@ -205,6 +161,14 @@ class CommerceMarketplaceGrid extends StatelessWidget {
   }
 }
 
+/// CANONICAL card frame for every public commerce grid (owner-locked).
+///
+/// Structure: media (4:5, contain — chips such as video, auction countdown or
+/// `Dipromosikan` are OVERLAYS on the media) → title (one line) → value (one
+/// line). Geometry comes from [CommerceMarketplaceMetrics], never literals.
+///
+/// For Sale, Auction and the promotion grid that reuses both must render an
+/// IDENTICAL frame; a channel only fills slot data.
 class CommerceMarketplaceCardShell extends StatelessWidget {
   final Widget media;
   final String title;
@@ -234,10 +198,14 @@ class CommerceMarketplaceCardShell extends StatelessWidget {
     this.badges = const [],
     this.onTap,
     this.padding = EdgeInsets.zero,
-    this.contentPadding = const EdgeInsets.all(12),
-    this.borderRadius = const BorderRadius.all(Radius.circular(16)),
+    this.contentPadding = const EdgeInsets.all(
+      CommerceMarketplaceMetrics.contentPadding,
+    ),
+    this.borderRadius = const BorderRadius.all(
+      Radius.circular(CommerceMarketplaceMetrics.cardRadius),
+    ),
     this.compact = false,
-    this.titleMaxLines = 2,
+    this.titleMaxLines = CommerceMarketplaceMetrics.titleMaxLines,
     this.semanticLabel,
   });
 
@@ -245,7 +213,7 @@ class CommerceMarketplaceCardShell extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final resolvedPadding = compact ? const EdgeInsets.all(10) : contentPadding;
+    final resolvedPadding = contentPadding;
     final titleStyle =
         (compact ? theme.textTheme.titleSmall : theme.textTheme.titleMedium)
             ?.copyWith(
@@ -281,8 +249,14 @@ class CommerceMarketplaceCardShell extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       if (badges.isNotEmpty) ...[
-                        Wrap(spacing: 6, runSpacing: 6, children: badges),
-                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: CommerceMarketplaceMetrics.contentGap,
+                          runSpacing: CommerceMarketplaceMetrics.contentGap,
+                          children: badges,
+                        ),
+                        const SizedBox(
+                          height: CommerceMarketplaceMetrics.contentGap,
+                        ),
                       ],
                       Text(
                         title,
@@ -290,10 +264,14 @@ class CommerceMarketplaceCardShell extends StatelessWidget {
                         maxLines: titleMaxLines,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(
+                        height: CommerceMarketplaceMetrics.contentGap,
+                      ),
                       value,
                       if (metadata != null) ...[
-                        const SizedBox(height: 8),
+                        const SizedBox(
+                          height: CommerceMarketplaceMetrics.contentGap,
+                        ),
                         metadata!,
                       ],
                       if (footer != null) ...[footer!],
@@ -321,44 +299,62 @@ class CommerceMarketplaceCardMedia extends StatelessWidget {
   final bool showVideoBadge;
   final String videoBadgeLabel;
 
+  /// Chip rendered ON the media (bottom-left), e.g. the auction countdown or
+  /// the `Dipromosikan` disclosure. Overlay chips live here — never in a row
+  /// under the media — so every channel keeps the same card rhythm.
+  final Widget? overlay;
+
   const CommerceMarketplaceCardMedia({
     super.key,
     required this.imageUrl,
     required this.fallback,
     this.reloadToken,
-    this.aspectRatio = 4 / 5,
-    this.fit = BoxFit.cover,
+    this.aspectRatio = CommerceMarketplaceMetrics.mediaAspectRatio,
+    this.fit = BoxFit.contain,
     this.alignment = Alignment.center,
     this.borderRadius,
     this.mediaType,
     this.showVideoBadge = false,
     this.videoBadgeLabel = 'Video',
+    this.overlay,
   });
 
   @override
   Widget build(BuildContext context) {
-    final media = Stack(
-      fit: StackFit.expand,
-      children: [
-        StableNetworkImage(
-          imageUrl: imageUrl,
+    final scheme = Theme.of(context).colorScheme;
+    final trimmed = imageUrl?.trim() ?? '';
 
-          reloadToken: reloadToken,
-          fit: fit,
-          alignment: alignment,
-          fallback: fallback,
-        ),
-        if (showVideoBadge || mediaType == MediaType.video)
-          Positioned(
-            top: 8,
-            right: 8,
-            child: CommerceMarketplaceCardBadge(
-              label: videoBadgeLabel,
-              icon: Icons.videocam_outlined,
-              compact: true,
+    // `fit: contain` (token-locked) keeps portrait AND landscape koi photos
+    // fully visible; the tinted mat absorbs the letterbox bars so the 4:5
+    // frame stays uniform across cards. Backend CloudFront URL is used as-is.
+    final media = ColoredBox(
+      color: scheme.surfaceContainerHighest,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          if (trimmed.isEmpty)
+            fallback
+          else
+            AppImage(
+              key: ValueKey('marketplace-media:$trimmed|${reloadToken ?? ''}'),
+              imageUrl: trimmed,
+              fit: fit,
+              backgroundColor: scheme.surfaceContainerHighest,
+              errorWidget: fallback,
             ),
-          ),
-      ],
+          if (showVideoBadge || mediaType == MediaType.video)
+            Positioned(
+              top: 8,
+              right: 8,
+              child: CommerceMarketplaceCardBadge(
+                label: videoBadgeLabel,
+                icon: Icons.videocam_outlined,
+                compact: true,
+              ),
+            ),
+          if (overlay != null) Positioned(left: 8, bottom: 8, child: overlay!),
+        ],
+      ),
     );
 
     final clipped = borderRadius == null
@@ -500,61 +496,4 @@ class CommerceMarketplaceCardBadge extends StatelessWidget {
   }
 }
 
-String _normalizeRawReference(String value) {
-  final path = _normalizePath(value);
-  return path.isEmpty ? value.trim() : path;
-}
 
-String _normalizePath(String value) {
-  var out = value.trim();
-  if (out.isEmpty) return '';
-  if (out.contains('://')) {
-    final uri = Uri.tryParse(out);
-    if (uri != null) {
-      out = uri.path;
-    }
-  }
-  out = out.replaceAll('\\', '/');
-  out = out.replaceFirst(RegExp(r'^/+'), '');
-  out = out.replaceAll(RegExp(r'/+'), '/');
-  return out;
-}
-
-String _stableQuerySuffix(Uri uri) {
-  final entries = <MapEntry<String, String>>[];
-  uri.queryParametersAll.forEach((rawKey, values) {
-    final key = rawKey.trim();
-    if (key.isEmpty) return;
-    if (_transientQueryKeys.contains(key.toLowerCase())) return;
-
-    final cleanedValues =
-        values
-            .map((value) => value.trim())
-            .where((value) => value.isNotEmpty)
-            .toList()
-          ..sort();
-
-    for (final value in cleanedValues) {
-      entries.add(MapEntry(key, value));
-    }
-  });
-
-  if (entries.isEmpty) return '';
-
-  entries.sort((a, b) {
-    final keyCompare = a.key.compareTo(b.key);
-    if (keyCompare != 0) return keyCompare;
-    return a.value.compareTo(b.value);
-  });
-
-  final buffer = StringBuffer();
-  for (var i = 0; i < entries.length; i++) {
-    final entry = entries[i];
-    if (i > 0) buffer.write('&');
-    buffer
-      ..write(Uri.encodeQueryComponent(entry.key))
-      ..write('=')
-      ..write(Uri.encodeQueryComponent(entry.value));
-  }
-  return buffer.toString();
-}

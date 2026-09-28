@@ -250,7 +250,7 @@ class AttachmentWidget extends ConsumerWidget {
         border: Border.all(
           color: canInteract
               ? AppColors.successGreen.withValues(alpha: 0.5)
-              : AppColors.primaryRed.withValues(alpha: 0.3),
+              : scheme.primary.withValues(alpha: 0.3),
           width: 1.5,
         ),
       ),

@@ -442,7 +442,8 @@ AuthUser _neverSeller() => _sellerUser(
   hasMarketAuthority: false,
   username: 'never-seller',
   bio: 'Bio registration',
-  phoneNumber: '+6211111111',
+  // 9 digits after +62: CanonicalPhoneValidator minimum.
+  phoneNumber: '+62111111111',
 );
 
 AuthUser _expiredSeller() => _sellerUser(

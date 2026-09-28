@@ -42,13 +42,13 @@ class ContentToolbarWidget extends StatelessWidget {
           ),
           _ToolbarIcon(
             icon: Icons.camera_alt,
-            color: AppColors.primaryBlue,
+            color: Theme.of(context).colorScheme.secondary,
             label: 'Camera',
             onTap: onCameraTap,
           ),
           _ToolbarIcon(
             icon: Icons.person_add,
-            color: AppColors.primaryRed,
+            color: Theme.of(context).colorScheme.primary,
             label: 'Tag',
             badge: taggedPeopleCount > 0 ? taggedPeopleCount.toString() : null,
             onTap: onTagPeopleTap,

@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/user/preference/seller/presentation/widgets/wizard/store_name_form_field.dart';
 import 'package:labuda/shared/shared.dart';
 
@@ -15,7 +14,6 @@ class SellerWizardStep2Widget extends StatelessWidget {
   final VoidCallback onStorePhotoUpload;
   final String? farmPhotoUrl;
   final String? selectedStorePhotoPath;
-  final bool isDark;
   final Widget? feeNoticeWidget;
 
   const SellerWizardStep2Widget({
@@ -25,12 +23,12 @@ class SellerWizardStep2Widget extends StatelessWidget {
     required this.onStorePhotoUpload,
     this.farmPhotoUrl,
     this.selectedStorePhotoPath,
-    required this.isDark,
     this.feeNoticeWidget,
   });
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Form(
       key: formKey,
       child: ListView(
@@ -46,9 +44,7 @@ class SellerWizardStep2Widget extends StatelessWidget {
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: isDark
-                  ? AppColors.neutralGray200
-                  : AppColors.neutralGray900,
+              color: scheme.onSurface,
             ),
           ),
           const SizedBox(height: 8),
@@ -56,9 +52,7 @@ class SellerWizardStep2Widget extends StatelessWidget {
             'Isi nama toko/farm dan unggah logo atau foto opsional jika tersedia.',
             style: TextStyle(
               fontSize: 14,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray600,
+              color: scheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 24),
@@ -66,16 +60,14 @@ class SellerWizardStep2Widget extends StatelessWidget {
           Center(
             child: Column(
               children: [
-                _buildStoreLogoSection(),
+                _buildStoreLogoSection(context),
                 const SizedBox(height: 8),
                 Text(
                   'Logo/Foto Opsional',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: isDark
-                        ? AppColors.neutralGray300
-                        : AppColors.neutralGray700,
+                    color: scheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -91,7 +83,8 @@ class SellerWizardStep2Widget extends StatelessWidget {
     );
   }
 
-  Widget _buildStoreLogoSection() {
+  Widget _buildStoreLogoSection(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final hasLocalSelection =
         selectedStorePhotoPath != null && selectedStorePhotoPath!.isNotEmpty;
     final hasRemoteImage = farmPhotoUrl != null && farmPhotoUrl!.isNotEmpty;
@@ -103,9 +96,9 @@ class SellerWizardStep2Widget extends StatelessWidget {
         height: 120,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: isDark ? AppColors.darkGray700 : AppColors.neutralGray100,
+          color: scheme.surfaceContainer,
           border: Border.all(
-            color: isDark ? AppColors.darkGray600 : AppColors.neutralGray300,
+            color: scheme.outlineVariant,
             width: 2,
           ),
         ),
@@ -116,27 +109,27 @@ class SellerWizardStep2Widget extends StatelessWidget {
                         selectedStorePhotoPath!,
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) =>
-                            _fallback(),
+                            _fallback(context),
                       )
                     : Image.file(
                         File(selectedStorePhotoPath!),
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) =>
-                            _fallback(),
+                            _fallback(context),
                       ))
               : hasRemoteImage
               ? AppImage.avatar(imageUrl: farmPhotoUrl!, size: 120)
-              : _fallback(),
+              : _fallback(context),
         ),
       ),
     );
   }
 
-  Widget _fallback() {
+  Widget _fallback(BuildContext context) {
     return Icon(
       Icons.store_outlined,
       size: 48,
-      color: isDark ? AppColors.neutralGray500 : AppColors.neutralGray400,
+      color: Theme.of(context).colorScheme.onSurfaceVariant,
     );
   }
 }

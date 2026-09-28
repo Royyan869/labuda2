@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/commerce/pricing/discount/domain/entities/discount_entity.dart';
 import 'package:labuda/domains/commerce/pricing/discount/domain/entities/discount_validation_result.dart';
 import 'package:labuda/domains/commerce/pricing/discount/domain/use_cases/validate_discount_use_case.dart';
@@ -159,18 +160,18 @@ class _DiscountInputFieldState extends ConsumerState<DiscountInputField> {
       return Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.red.withValues(alpha: 0.1),
+          color: AppColors.error.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.red),
+          border: Border.all(color: AppColors.error),
         ),
         child: Row(
           children: [
-            const Icon(Icons.error_outline, color: Colors.red, size: 20),
+            const Icon(Icons.error_outline, color: AppColors.error, size: 20),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
                 result.errorMessage ?? 'Invalid discount code',
-                style: const TextStyle(color: Colors.red, fontSize: 14),
+                style: const TextStyle(color: AppColors.error, fontSize: 14),
               ),
             ),
           ],
@@ -182,19 +183,23 @@ class _DiscountInputFieldState extends ConsumerState<DiscountInputField> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.green.withValues(alpha: 0.1),
+        color: AppColors.successGreen.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.green),
+        border: Border.all(color: AppColors.successGreen),
       ),
       child: Row(
         children: [
-          const Icon(Icons.check_circle, color: Colors.green, size: 20),
+          const Icon(
+            Icons.check_circle,
+            color: AppColors.successGreen,
+            size: 20,
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               discount.description,
               style: const TextStyle(
-                color: Colors.green,
+                color: AppColors.successGreen,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),

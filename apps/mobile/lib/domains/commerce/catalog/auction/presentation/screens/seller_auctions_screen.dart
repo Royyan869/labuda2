@@ -9,6 +9,7 @@ import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/a
 import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/seller_auctions_pager.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/screens/seller_auction_draft_edit_screen.dart';
 import 'package:labuda/shared/domain/entities/resource_projection.dart';
+import 'package:labuda/shared/widgets/app_image.dart';
 
 class SellerAuctionsScreen extends ConsumerWidget {
   const SellerAuctionsScreen({super.key});
@@ -473,7 +474,11 @@ class _AuctionThumbnail extends StatelessWidget {
                 Icons.image_outlined,
                 color: theme.colorScheme.onSurfaceVariant,
               )
-            : Image.network(imageUrl!, fit: BoxFit.cover),
+            : AppImage(
+                imageUrl: imageUrl,
+                fit: BoxFit.cover,
+                backgroundColor: theme.colorScheme.surfaceContainerHighest,
+              ),
       ),
     );
   }

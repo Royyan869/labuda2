@@ -128,14 +128,14 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
           Icon(
             Icons.outbox_outlined,
             size: 64,
-            color: AppColors.neutralGray400,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
           const SizedBox(height: 16),
           Text(
             'No Reports Yet',
             style: Theme.of(
               context,
-            ).textTheme.titleLarge?.copyWith(color: AppColors.neutralGray700),
+            ).textTheme.titleLarge?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 8),
           Text(
@@ -144,7 +144,7 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
                 : 'You haven\'t submitted any reports yet.\nTap the report button on content to report it.',
             style: Theme.of(
               context,
-            ).textTheme.bodyMedium?.copyWith(color: AppColors.neutralGray500),
+            ).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
             textAlign: TextAlign.center,
           ),
         ],
@@ -161,15 +161,14 @@ class ReportCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray700 : AppColors.neutralWhite,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isDark ? AppColors.darkGray600 : AppColors.neutralGray200,
+          color: Theme.of(context).colorScheme.outlineVariant,
         ),
       ),
       child: Column(
@@ -183,14 +182,14 @@ class ReportCard extends StatelessWidget {
                   Icon(
                     _getIconForTargetType(report.subjectType),
                     size: 16,
-                    color: AppColors.neutralGray500,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                   const SizedBox(width: 6),
                   Text(
                     report.subjectType.displayName,
                     style: TextStyle(
                       fontSize: 13,
-                      color: AppColors.neutralGray500,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -205,9 +204,7 @@ class ReportCard extends StatelessWidget {
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w600,
-              color: isDark
-                  ? AppColors.neutralWhite
-                  : AppColors.neutralGray900,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
@@ -215,14 +212,14 @@ class ReportCard extends StatelessWidget {
           const SizedBox(height: 8),
           Row(
             children: [
-              Icon(Icons.flag_outlined, size: 14, color: AppColors.primaryRed),
+              Icon(Icons.flag_outlined, size: 14, color: Theme.of(context).colorScheme.primary),
               const SizedBox(width: 4),
               Expanded(
                 child: Text(
                   report.reason.displayName,
                   style: TextStyle(
                     fontSize: 13,
-                    color: AppColors.primaryRed,
+                    color: Theme.of(context).colorScheme.primary,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -235,9 +232,7 @@ class ReportCard extends StatelessWidget {
               report.description!,
               style: TextStyle(
                 fontSize: 13,
-                color: isDark
-                    ? AppColors.neutralGray400
-                    : AppColors.neutralGray600,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
@@ -246,7 +241,7 @@ class ReportCard extends StatelessWidget {
           ],
           Text(
             _formatDate(report.createdAt),
-            style: TextStyle(fontSize: 12, color: AppColors.neutralGray400),
+            style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
         ],
       ),
@@ -265,13 +260,16 @@ class ReportCard extends StatelessWidget {
         icon = Icons.schedule;
         break;
       case ReportDisplayState.underReview:
-        bgColor = AppColors.primaryBlue.withValues(alpha: 0.15);
-        textColor = AppColors.primaryBlue;
+        bgColor = Theme.of(context).colorScheme.secondary.withValues(alpha: 0.15);
+        textColor = Theme.of(context).colorScheme.secondary;
         icon = Icons.search;
         break;
       case ReportDisplayState.reviewedNoViolation:
-        bgColor = AppColors.neutralGray400.withValues(alpha: 0.15);
-        textColor = AppColors.neutralGray500;
+        bgColor = Theme.of(context)
+            .colorScheme
+            .outlineVariant
+            .withValues(alpha: 0.15);
+        textColor = Theme.of(context).colorScheme.onSurfaceVariant;
         icon = Icons.check_circle_outline;
         break;
       case ReportDisplayState.reviewedViolation:

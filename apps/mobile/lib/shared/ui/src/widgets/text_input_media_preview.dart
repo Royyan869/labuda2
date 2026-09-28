@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:labuda/shared/widgets/app_image.dart';
 
 /// Text Input Media Preview Widget - Generic media preview for text inputs
 class TextInputMediaPreview extends StatelessWidget {
@@ -60,27 +60,21 @@ class TextInputMediaPreview extends StatelessWidget {
                                     ),
                                   )
                                 : mediaUrl.startsWith('http')
-                                ? CachedNetworkImage(
+                                ? AppImage(
                                     imageUrl: mediaUrl,
                                     width: 64,
                                     height: 64,
                                     fit: BoxFit.cover,
-                                    placeholder: (context, url) => Container(
+                                    backgroundColor:
+                                        scheme.surfaceContainerHighest,
+                                    errorWidget: Container(
                                       color: scheme.surfaceContainerHighest,
-                                      child: const Center(
-                                        child:
-                                            CircularProgressIndicator.adaptive(),
+                                      child: Icon(
+                                        Icons.broken_image_outlined,
+                                        size: 24,
+                                        color: scheme.onSurfaceVariant,
                                       ),
                                     ),
-                                    errorWidget: (context, url, error) =>
-                                        Container(
-                                          color: scheme.surfaceContainerHighest,
-                                          child: Icon(
-                                            Icons.broken_image_outlined,
-                                            size: 24,
-                                            color: scheme.onSurfaceVariant,
-                                          ),
-                                        ),
                                   )
                                 : Image.file(
                                     File(mediaUrl),

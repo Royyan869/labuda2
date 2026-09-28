@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/shared/widgets/stable_network_image.dart';
+import 'package:labuda/shared/widgets/app_image.dart';
 
 /// CANONICAL personal user avatar — the single authority for rendering a
 /// user's avatar anywhere in the app.
@@ -7,8 +7,7 @@ import 'package:labuda/shared/widgets/stable_network_image.dart';
 /// Business truth (Owner decision 2026-09-24):
 /// - A user avatar is ALWAYS the user's photo, or the `Icons.person` user
 ///   icon when there is no photo. There is no initials fallback anywhere.
-/// - Rendering goes through [StableNetworkImage] (gapless playback) so a
-///   rotating signed URL never flashes a placeholder over a visible frame.
+/// - Rendering goes through [AppImage] (CloudFront URL as-is, cached).
 ///
 /// This widget resolves no data: callers own avatar URL resolution
 /// ([HybridAvatar] is the canonical resolver wrapper).
@@ -74,13 +73,16 @@ class ProfileAvatar extends StatelessWidget {
 
   Widget _buildAvatarContent(BuildContext context) {
     if (imageUrl != null && imageUrl!.trim().isNotEmpty) {
-      // StableNetworkImage keeps the last successful frame visible while a
-      // new signed URL loads (gapless), and falls back to the user icon on
-      // error. One authority for user avatar rendering, no flicker.
-      return StableNetworkImage(
+      return AppImage(
         imageUrl: imageUrl,
         fit: BoxFit.cover,
-        fallback: _buildUserIcon(context),
+        isCircle: true,
+        width: size,
+        height: size,
+        backgroundColor: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHighest,
+        errorWidget: _buildUserIcon(context),
       );
     }
 

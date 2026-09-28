@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:labuda/shared/widgets/app_image.dart';
 import 'package:labuda/shared/widgets/follow_button.dart';
 import 'package:labuda/domains/social/follow/domain/entities/follow_entity.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
@@ -126,12 +126,15 @@ class UserCard extends ConsumerWidget {
       child: ClipOval(
         // Degraded users always show the placeholder — no avatar leaked.
         child: user.avatar != null && !isDegraded
-            ? CachedNetworkImage(
-                imageUrl: user.avatar!,
+            ? AppImage(
+                imageUrl: user.avatar,
                 fit: BoxFit.cover,
-                placeholder: (context, url) => _buildAvatarPlaceholder(context),
-                errorWidget: (context, url, error) =>
-                    _buildAvatarPlaceholder(context),
+                isCircle: true,
+                width: 48,
+                height: 48,
+                backgroundColor:
+                    Theme.of(context).colorScheme.surfaceContainerHighest,
+                errorWidget: _buildAvatarPlaceholder(context),
               )
             : _buildAvatarPlaceholder(context),
       ),

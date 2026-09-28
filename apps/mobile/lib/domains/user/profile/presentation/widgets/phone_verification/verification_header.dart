@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/user/profile/profile.dart'
     show phoneVerificationProvider, phoneVerificationServiceProvider;
 
@@ -26,12 +25,12 @@ class VerificationHeader extends ConsumerWidget {
           width: 56,
           height: 56,
           decoration: BoxDecoration(
-            color: AppColors.primaryRed.withValues(alpha: 0.1),
+            color: scheme.primary.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
-          child: const Icon(
+          child: Icon(
             Icons.phone_android,
-            color: AppColors.primaryRed,
+            color: scheme.primary,
             size: 28,
           ),
         ),
@@ -57,13 +56,13 @@ class VerificationHeader extends ConsumerWidget {
         ),
         if (isTestNumber && !state.codeSent) ...[
           const SizedBox(height: 4),
-          const Text(
+          Text(
             '🧪 Test mode: OTP code = 123456',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w600,
-              color: AppColors.primaryRed,
+              color: scheme.primary,
             ),
           ),
         ],

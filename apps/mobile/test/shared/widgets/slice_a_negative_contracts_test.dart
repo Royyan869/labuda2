@@ -61,22 +61,21 @@ void main() {
       );
     });
 
-    test('renders through StableNetworkImage (anti-flicker authority)', () {
+    test('renders through AppImage (canonical cached authority)', () {
       final source = _codeOnly(_profileAvatarSource());
 
       expect(
-        source.contains('StableNetworkImage'),
+        source.contains('AppImage'),
         isTrue,
         reason:
-            'Rotating signed URLs must never flash a placeholder - all '
-            'user-avatar rendering goes through gapless StableNetworkImage.',
+            'All user-avatar rendering goes through the canonical cached '
+            'AppImage (CloudFront URL as-is).',
       );
       expect(
-        source.contains('CachedNetworkImage'),
+        source.contains('StableNetworkImage'),
         isFalse,
         reason:
-            'CachedNetworkImage is not the canonical renderer for avatars; '
-            'use StableNetworkImage.',
+            'StableNetworkImage was purged; use AppImage.',
       );
     });
 

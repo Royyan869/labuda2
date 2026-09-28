@@ -81,7 +81,7 @@ class CanonicalPromotionListScreen extends ConsumerWidget {
             Icon(
               Icons.campaign_outlined,
               size: 64,
-              color: AppColors.neutralGray400,
+              color: Theme.of(context).colorScheme.outline,
             ),
             const SizedBox(height: 16),
             Text(
@@ -89,14 +89,17 @@ class CanonicalPromotionListScreen extends ConsumerWidget {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: AppColors.neutralGray900,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               'Promosi canonical Anda akan muncul di sini.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: AppColors.neutralGray600),
+              style: TextStyle(
+                fontSize: 14,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
           ],
         ),
@@ -111,10 +114,10 @@ class CanonicalPromotionListScreen extends ConsumerWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
+            Icon(
               Icons.error_outline,
               size: 64,
-              color: AppColors.primaryRed,
+              color: Theme.of(context).colorScheme.primary,
             ),
             const SizedBox(height: 16),
             Text(
@@ -122,14 +125,17 @@ class CanonicalPromotionListScreen extends ConsumerWidget {
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: AppColors.neutralGray900,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: AppColors.neutralGray600),
+              style: TextStyle(
+                fontSize: 14,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 24),
             ElevatedButton(
@@ -238,8 +244,8 @@ class _PromotionListItemState extends ConsumerState<_PromotionListItem> {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.neutralGray200),
-        color: Colors.white,
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+        color: Theme.of(context).colorScheme.surface,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -260,7 +266,7 @@ class _PromotionListItemState extends ConsumerState<_PromotionListItem> {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: _statusColor(contract.status),
+                  color: _statusColor(context, contract.status),
                 ),
               ),
             ],
@@ -383,16 +389,16 @@ class _PromotionListItemState extends ConsumerState<_PromotionListItem> {
     }
   }
 
-  static Color _statusColor(String status) {
+  static Color _statusColor(BuildContext context, String status) {
     switch (status) {
       case 'active':
         return AppColors.successGreen;
       case 'paused':
         return AppColors.statusInfo;
       case 'finalized':
-        return AppColors.neutralGray500;
+        return Theme.of(context).colorScheme.outline;
       default:
-        return AppColors.primaryBlue;
+        return AppColors.statusInfo;
     }
   }
 }

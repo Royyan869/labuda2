@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 
 /// Profile text field for consistent form styling
 ///
@@ -152,7 +151,12 @@ class ProfileTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
+    final inputStyle = TextStyle(
+      fontSize: 14,
+      fontWeight: FontWeight.w500,
+      color: scheme.onSurface,
+    );
 
     // If value is provided (for read-only display), use TextFormField with initial value
     if (value != null && readOnly) {
@@ -161,12 +165,8 @@ class ProfileTextField extends StatelessWidget {
         keyboardType: keyboardType,
         readOnly: true,
         enabled: false,
-        style: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
-          color: isDark ? AppColors.neutralWhite : AppColors.neutralGray900,
-        ),
-        decoration: _buildDecoration(context, isDark),
+        style: inputStyle,
+        decoration: _buildDecoration(context, readOnly: true),
       );
     }
 
@@ -182,69 +182,32 @@ class ProfileTextField extends StatelessWidget {
       onChanged: onChanged,
       textCapitalization: textCapitalization,
       textInputAction: textInputAction,
-      style: TextStyle(
-        fontSize: 14,
-        fontWeight: FontWeight.w500,
-        color: isDark ? AppColors.neutralWhite : AppColors.neutralGray900,
-      ),
-      decoration: _buildDecoration(context, isDark),
+      style: inputStyle,
+      decoration: _buildDecoration(context, readOnly: readOnly),
       validator: validator,
     );
   }
 
-  InputDecoration _buildDecoration(BuildContext context, bool isDark) {
+  /// Border shapes come from `AppTheme.inputDecorationTheme` (the single
+  /// authority) — this decoration only supplies field-specific hint/icon/fill
+  /// colours, all read from the scheme.
+  InputDecoration _buildDecoration(BuildContext context, {required bool readOnly}) {
+    final scheme = Theme.of(context).colorScheme;
     return InputDecoration(
       labelText: labelText,
       hintText: hintText,
       floatingLabelBehavior: FloatingLabelBehavior.always,
       hintStyle: TextStyle(
-        color: isDark
-            ? AppColors.neutralGray400.withValues(alpha: 0.6)
-            : AppColors.neutralGray500.withValues(alpha: 0.6),
+        color: scheme.onSurfaceVariant.withValues(alpha: 0.6),
       ),
       prefixIcon: prefixIcon != null
-          ? Icon(
-              prefixIcon,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray500,
-            )
+          ? Icon(prefixIcon, color: scheme.onSurfaceVariant)
           : null,
       suffixIcon: suffixIcon,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(
-          color: isDark ? AppColors.darkGray600 : AppColors.neutralGray300,
-        ),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(
-          color: isDark ? AppColors.darkGray600 : AppColors.neutralGray300,
-        ),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.primaryRed, width: 2),
-      ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.error),
-      ),
-      focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.error, width: 2),
-      ),
-      disabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(
-          color: isDark ? AppColors.darkGray700 : AppColors.neutralGray200,
-        ),
-      ),
       filled: true,
       fillColor: readOnly
-          ? (isDark ? AppColors.darkGray800 : AppColors.neutralGray50)
-          : (isDark ? AppColors.darkGray700 : AppColors.neutralGray50),
+          ? scheme.surfaceContainerHighest
+          : scheme.surfaceContainerLow,
     );
   }
 }

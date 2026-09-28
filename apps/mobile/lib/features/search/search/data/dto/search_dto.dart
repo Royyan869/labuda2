@@ -202,11 +202,9 @@ class ContentSearchResultDto extends Equatable {
   final String type;
   final String? caption;
 
-  /// Media URLs for the row. The backend already projected these through the
-  /// canonical mediaresolve read authority, so they arrive as readable URLs for
-  /// the search surface. This layer MUST NOT build, rewrite, or type-infer
-  /// media; rendering goes through the canonical `StableNetworkImage` /
-  /// `resolveNetworkImageUrl` path.
+  /// Media URLs for the row. The backend already projected these onto canonical
+  /// CloudFront read URLs. This layer MUST NOT build, rewrite, or type-infer
+  /// media; rendering goes through the canonical [AppImage] path as-is.
   final List<String> mediaUrls;
 
   final DateTime createdAt;

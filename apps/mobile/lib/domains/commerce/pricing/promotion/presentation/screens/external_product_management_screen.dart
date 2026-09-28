@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/shared/widgets/app_snackbar.dart';
 import 'package:labuda/domains/commerce/pricing/promotion/domain/entities/external_product.dart';
 import 'package:labuda/domains/commerce/pricing/promotion/domain/entities/external_product_review_status.dart';
 import 'package:labuda/domains/commerce/pricing/promotion/presentation/providers/canonical_external_product_providers.dart';
@@ -142,13 +143,7 @@ class _ExternalProductManagementScreenState
 
     final title = _titleController.text.trim();
     final url = _urlController.text.trim();
-    if (title.isEmpty || url.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Title and URL are required'),
-          backgroundColor: AppColors.primaryRed,
-        ),
-      );
+    if (title.isEmpty || url.isEmpty) {        AppSnackBar.showError(context, 'Title and URL are required');
       return;
     }
 
@@ -168,13 +163,7 @@ class _ExternalProductManagementScreenState
         context,
       ).showSnackBar(const SnackBar(content: Text('External product created')));
       _navigateToDetail(result.data!.id);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Gagal membuat produk. Coba lagi.'),
-          backgroundColor: AppColors.primaryRed,
-        ),
-      );
+    } else {        AppSnackBar.showError(context, 'Gagal membuat produk. Coba lagi.');
     }
   }
 }
@@ -194,7 +183,9 @@ class _ExternalProductCard extends StatelessWidget {
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.neutralGray200),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -218,7 +209,10 @@ class _ExternalProductCard extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               product.externalUrl,
-              style: TextStyle(fontSize: 13, color: AppColors.neutralGray600),
+              style: TextStyle(
+                fontSize: 13,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -226,7 +220,10 @@ class _ExternalProductCard extends StatelessWidget {
               const SizedBox(height: 6),
               Text(
                 product.rejectionReason!,
-                style: TextStyle(fontSize: 12, color: AppColors.primaryRed),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -266,23 +263,29 @@ class _ReviewStatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (label, color) = switch (status) {
-      ExternalProductReviewStatus.draft => ('Draft', AppColors.neutralGray600),
+      ExternalProductReviewStatus.draft => (
+        'Draft',
+        Theme.of(context).colorScheme.onSurfaceVariant,
+      ),
       ExternalProductReviewStatus.pendingReview => (
         'Menunggu Review',
-        Colors.orange,
+        AppColors.warning,
       ),
       ExternalProductReviewStatus.approved => (
         'Disetujui',
         AppColors.successGreen,
       ),
-      ExternalProductReviewStatus.rejected => ('Ditolak', AppColors.primaryRed),
+      ExternalProductReviewStatus.rejected => (
+        'Ditolak',
+        Theme.of(context).colorScheme.primary,
+      ),
       ExternalProductReviewStatus.requestChanges => (
         'Perlu Perbaikan',
-        Colors.orange,
+        AppColors.warning,
       ),
       ExternalProductReviewStatus.hidden => (
         'Disembunyikan',
-        AppColors.neutralGray600,
+        Theme.of(context).colorScheme.onSurfaceVariant,
       ),
     };
 

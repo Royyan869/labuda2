@@ -1,51 +1,25 @@
 /// CONTENT SHARED-REFERENCE MEDIA RENDER CONTRACT
 ///
 /// Pins the canonical media path for a Content share reference rendered by
-/// `ObjectPreviewCard` — the transport-snapshot shell a communication row falls
-/// back to when the server has not projected a canonical resource projection:
-///   Content reference preview image
+/// `ObjectPreviewCard`:
+///   backend preview image URL
 ///     → `ShareTargetType.content`
-///     → `StableNetworkImage` / `resolveNetworkImageUrl`
-///     → `NetworkImage` request with the *resolved* readable URL.
+///     → `AppImage` (URL as-is).
 ///
-/// NEGATIVE PROOF: the raw persisted storage reference must never reach the
-/// image decoder. Before convergence this branch used `Image.network` directly,
-/// which handed the persisted reference straight to the decoder.
+/// NEGATIVE PROOF: mobile builds no readable URL — every reference type
+/// renders the cached snapshot URL unchanged through the single widget.
 ///
 /// The shell has no live branch any more (see
 /// `reference_attachment_live_fetch_purge_test.dart`): every case below is the
-/// snapshot path. Commerce (`for_sale` / `auction`) and profile references keep
-/// their own rendering path and are asserted here only to pin that they were
-/// not changed.
+/// snapshot path.
 library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/attachment/entities/share_reference.dart';
 import 'package:labuda/shared/object/object_preview.dart';
 import 'package:labuda/shared/object/presentation/widgets/object_preview_card.dart';
-import 'package:labuda/shared/widgets/stable_network_image.dart';
-
-/// The canonical CDN/S3 base the resolver prefixes a storage reference with.
-String get _mediaBaseUrl => AppConstants.useCloudFront
-    ? AppConstants.cdnBaseUrl
-    : AppConstants.awsS3BaseUrl;
-
-/// Every network URL actually handed to the image decoder in the tree.
-List<String> _decodedNetworkUrls(WidgetTester tester) {
-  final urls = <String>[];
-  for (final image in tester.widgetList<Image>(find.byType(Image))) {
-    final provider = image.image;
-    final resolved = provider is ResizeImage
-        ? provider.imageProvider
-        : provider;
-    if (resolved is NetworkImage) {
-      urls.add(resolved.url);
-    }
-  }
-  return urls;
-}
+import 'package:labuda/shared/widgets/app_image.dart';
 
 ShareReference _contentReference({String? imageUrl}) {
   return ShareReference(
@@ -71,74 +45,53 @@ Widget _card(ShareReference reference) {
 
 void main() {
   testWidgets(
-    'content reference resolves a persisted storage reference before decoding',
+    'content reference renders the backend URL as-is',
     (tester) async {
-      // A reference as persisted in `content_media.media_url`: no scheme, no
-      // authority — exactly what the upload path can produce.
-      const storageReference = 'images/1749600000003_shared.jpg';
+      const backendUrl =
+          'https://d358tu61i1wrtt.cloudfront.net/images/1749600000003_shared.jpg';
 
       await tester.pumpWidget(
-        _card(_contentReference(imageUrl: storageReference)),
+        _card(_contentReference(imageUrl: backendUrl)),
       );
       await tester.pump();
 
-      // The content branch renders through the shared network-media widget.
-      expect(find.byType(StableNetworkImage), findsOneWidget);
-
-      final urls = _decodedNetworkUrls(tester);
-      final expectedResolved = '$_mediaBaseUrl/$storageReference';
+      expect(find.byType(AppImage), findsOneWidget);
+      final appImage = tester.widget<AppImage>(find.byType(AppImage));
       expect(
-        urls,
-        contains(expectedResolved),
-        reason: 'the storage reference must be resolved before decoding',
-      );
-      expect(
-        urls,
-        isNot(contains(storageReference)),
-        reason: 'the raw storage reference must never reach the image decoder',
+        appImage.imageUrl,
+        backendUrl,
+        reason: 'the backend URL must reach the canonical widget unchanged',
       );
     },
   );
 
-  testWidgets('content reference passes an absolute readable URL through', (
-    tester,
-  ) async {
-    const absoluteUrl = 'https://cdn.example.com/content/shared-image.jpg';
-
-    await tester.pumpWidget(_card(_contentReference(imageUrl: absoluteUrl)));
-    await tester.pump();
-
-    expect(_decodedNetworkUrls(tester), contains(absoluteUrl));
-  });
-
-  testWidgets('content reference without a preview image decodes nothing', (
+  testWidgets('content reference without a preview image renders no image', (
     tester,
   ) async {
     await tester.pumpWidget(_card(_contentReference()));
     await tester.pump();
 
-    expect(find.byType(StableNetworkImage), findsNothing);
-    expect(_decodedNetworkUrls(tester), isEmpty);
+    expect(find.byType(AppImage), findsNothing);
   });
 
   testWidgets(
-    'commerce reference keeps its unchanged direct image decoder path',
+    'commerce reference renders through the same canonical widget',
     (tester) async {
       final reference = ShareReference.forSale(
         forSaleId: 'sale-1',
         title: 'Koi Premium',
-        imageUrl: 'https://cdn.example.com/commerce/sale.jpg',
+        imageUrl:
+            'https://d358tu61i1wrtt.cloudfront.net/images/sale.jpg',
       );
 
       await tester.pumpWidget(_card(reference));
       await tester.pump();
 
-      // Commerce references are NOT converged in this scope: they must render
-      // exactly as before.
-      expect(find.byType(StableNetworkImage), findsNothing);
+      expect(find.byType(AppImage), findsOneWidget);
+      final appImage = tester.widget<AppImage>(find.byType(AppImage));
       expect(
-        _decodedNetworkUrls(tester),
-        contains('https://cdn.example.com/commerce/sale.jpg'),
+        appImage.imageUrl,
+        'https://d358tu61i1wrtt.cloudfront.net/images/sale.jpg',
       );
     },
   );

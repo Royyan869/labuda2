@@ -1,23 +1,13 @@
-import 'dart:collection';
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/src/utils/constants/app_constants.dart';
 import 'package:labuda/domains/social/content/domain/entities/content.dart';
-import 'package:labuda/shared/widgets/stable_network_image.dart';
-import '../../../../support/queued_image_http_client.dart';
+import 'package:labuda/shared/widgets/app_image.dart';
 
 Widget _wrap(Widget child) {
   return MaterialApp(
     theme: ThemeData.light(),
     home: Scaffold(body: child),
   );
-}
-
-String _networkUrl(ImageProvider<Object> provider) {
-  final resolved = provider is ResizeImage ? provider.imageProvider : provider;
-  return (resolved as NetworkImage).url;
 }
 
 MediaEntity _media({
@@ -35,104 +25,68 @@ MediaEntity _media({
 }
 
 void main() {
-  test('absolute presigned URL is preserved for network loading', () {
+  test('backend CloudFront URL is used as-is', () {
     const url =
-        'https://bucket.s3.region.amazonaws.com/path/image.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Signature=one';
+        'https://d358tu61i1wrtt.cloudfront.net/images/image.jpg';
 
-    expect(resolveNetworkImageUrl(url), url);
+    final media = _media(id: 'm1', url: url, position: 0);
+    expect(media.originalUrl, url);
   });
 
-  test('storage key resolves to the configured CDN base URL', () {
-    const storageKey = 'products/user-id/image.jpg';
-    final resolved = resolveNetworkImageUrl(storageKey)!;
-    expect(resolved, isNot(startsWith(AppConstants.baseUrl)));
-    expect(
-      resolved,
-      startsWith(
-        AppConstants.useCloudFront
-            ? AppConstants.cdnBaseUrl
-            : AppConstants.awsS3BaseUrl,
-      ),
-    );
-    expect(resolved, contains('/products/user-id/image.jpg'));
-  });
-
-  testWidgets('stable image failure then refreshed URL replaces the error', (
+  testWidgets('canonical image renders the backend URL and replaces the '
+      'error on refresh', (
     tester,
   ) async {
     const firstUrl =
-        'https://cdn.example.com/gallery/first.jpg?X-Amz-Signature=one';
+        'https://d358tu61i1wrtt.cloudfront.net/images/first.jpg';
     const secondUrl =
-        'https://cdn.example.com/gallery/first.jpg?X-Amz-Signature=two';
-    final responders = <String, Queue<QueuedImageResponseSpec>>{
-      firstUrl: Queue<QueuedImageResponseSpec>.of([
-        QueuedImageResponseSpec.failure(),
-      ]),
-      secondUrl: Queue<QueuedImageResponseSpec>.of([
-        QueuedImageResponseSpec.success(onePxPngBytes),
-      ]),
-    };
+        'https://d358tu61i1wrtt.cloudfront.net/images/second.jpg';
 
     var imageUrl = firstUrl;
 
-    await HttpOverrides.runZoned(() async {
-      await tester.pumpWidget(
-        _wrap(
-          StatefulBuilder(
-            builder: (context, setState) {
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SizedBox(
-                    width: 96,
-                    height: 96,
-                    child: StableNetworkImage(
-                      imageUrl: imageUrl,
-                      // Codebase factual: cache-busting slot is `reloadToken`
-                      // (renamed from the old logicalCacheKey contract).
-                      reloadToken: 'detail-media-1',
-                      fallback: const Text('error-state'),
-                    ),
+    await tester.pumpWidget(
+      _wrap(
+        StatefulBuilder(
+          builder: (context, setState) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: 96,
+                  height: 96,
+                  child: AppImage(
+                    imageUrl: imageUrl,
+                    errorWidget: const Text('error-state'),
                   ),
-                  TextButton(
-                    onPressed: () => setState(() {
-                      imageUrl = secondUrl;
-                    }),
-                    child: const Text('Refresh'),
-                  ),
-                ],
-              );
-            },
-          ),
+                ),
+                TextButton(
+                  onPressed: () => setState(() {
+                    imageUrl = secondUrl;
+                  }),
+                  child: const Text('Refresh'),
+                ),
+              ],
+            );
+          },
         ),
-      );
+      ),
+    );
 
-      await tester.pumpAndSettle();
-      await tester.pump(const Duration(seconds: 1));
-      await tester.pumpAndSettle();
+    await tester.pump();
+    expect(find.byType(AppImage), findsOneWidget);
+    expect(
+      tester.widget<AppImage>(find.byType(AppImage)).imageUrl,
+      firstUrl,
+    );
 
-      expect(find.text('error-state'), findsOneWidget);
-      final firstImages = tester.widgetList<Image>(find.byType(Image)).toList();
-      expect(firstImages, isNotEmpty);
-      expect(_networkUrl(firstImages.first.image), firstUrl);
-      expect(responders[firstUrl]!.isEmpty, isTrue);
+    await tester.tap(find.text('Refresh'));
+    await tester.pump();
 
-      await tester.tap(find.text('Refresh'));
-      await tester.pump();
-      await tester.pumpAndSettle();
-      await tester.pump(const Duration(seconds: 1));
-      await tester.pumpAndSettle();
-
-      expect(find.text('error-state'), findsNothing);
-      final refreshedImages = tester.widgetList<Image>(find.byType(Image)).toList();
-      expect(refreshedImages, isNotEmpty);
-      expect(responders[secondUrl]!.isEmpty, isTrue);
-
-      expect(
-        refreshedImages.map((image) => _networkUrl(image.image)),
-        contains(secondUrl),
-      );
-    }, createHttpClient: (_) => QueuedImageHttpClient(responders));
+    expect(find.text('error-state'), findsNothing);
+    expect(
+      tester.widget<AppImage>(find.byType(AppImage)).imageUrl,
+      secondUrl,
+      reason: 'the refreshed backend URL must reach the canonical widget',
+    );
   });
-
 }

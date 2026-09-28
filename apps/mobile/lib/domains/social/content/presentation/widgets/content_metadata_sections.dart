@@ -44,7 +44,7 @@ class ContentMetadataSections {
     return _buildSection(
       context: context,
       icon: Icons.tag,
-      iconColor: AppColors.primaryBlue,
+      iconColor: Theme.of(context).colorScheme.secondary,
       title: 'Hashtags',
       onEdit: onEdit,
       content: Wrap(
@@ -57,17 +57,21 @@ class ContentMetadataSections {
                   tag,
                   style: TextStyle(
                     fontSize: 12,
-                    color: AppColors.primaryBlue,
+                    color: Theme.of(context).colorScheme.secondary,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
                 deleteIcon: Icon(
                   Icons.close,
                   size: 16,
-                  color: AppColors.primaryBlue.withValues(alpha: 0.7),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.secondary.withValues(alpha: 0.7),
                 ),
                 onDeleted: () => onRemove(tag),
-                backgroundColor: AppColors.primaryBlue.withValues(alpha: 0.1),
+                backgroundColor: Theme.of(
+                  context,
+                ).colorScheme.secondary.withValues(alpha: 0.1),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),

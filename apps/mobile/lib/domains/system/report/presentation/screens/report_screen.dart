@@ -47,10 +47,10 @@ class ReportScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
+            Icon(
               Icons.report_outlined,
               size: 64,
-              color: AppColors.primaryRed,
+              color: Theme.of(context).colorScheme.primary,
             ),
             const SizedBox(height: 16),
             const Text(
@@ -60,7 +60,7 @@ class ReportScreen extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               'Reporting ${reportTargetType.displayName}...',
-              style: const TextStyle(color: AppColors.neutralGray500),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
               textAlign: TextAlign.center,
             ),
           ],

@@ -26,7 +26,9 @@ class BlockedUsersScreen extends ConsumerWidget {
         body: Center(
           child: Text(
             'Please login to view blocked users',
-            style: TextStyle(color: AppColors.neutralGray600),
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
         ),
       );
@@ -42,7 +44,7 @@ class BlockedUsersScreen extends ConsumerWidget {
         child: blockedUsersAsync.when(
           data: (blockedUsers) {
             if (blockedUsers.isEmpty) {
-              return _buildEmptyState();
+              return _buildEmptyState(context);
             }
 
             return ListView.builder(
@@ -74,14 +76,14 @@ class BlockedUsersScreen extends ConsumerWidget {
                 Icon(
                   Icons.error_outline,
                   size: 48,
-                  color: AppColors.primaryRed,
+                  color: Theme.of(context).colorScheme.error,
                 ),
                 const SizedBox(height: 16),
                 Text(
                   'Failed to load blocked users',
                   style: TextStyle(
                     fontSize: 16,
-                    color: AppColors.neutralGray700,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -89,7 +91,7 @@ class BlockedUsersScreen extends ConsumerWidget {
                   error.toString(),
                   style: TextStyle(
                     fontSize: 12,
-                    color: AppColors.neutralGray500,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -101,7 +103,8 @@ class BlockedUsersScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -111,7 +114,7 @@ class BlockedUsersScreen extends ConsumerWidget {
             Icon(
               Icons.block_outlined,
               size: 64,
-              color: AppColors.neutralGray400,
+              color: scheme.onSurfaceVariant,
             ),
             const SizedBox(height: 16),
             Text(
@@ -119,7 +122,7 @@ class BlockedUsersScreen extends ConsumerWidget {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: AppColors.neutralGray700,
+                color: scheme.onSurface,
               ),
             ),
             const SizedBox(height: 8),
@@ -127,7 +130,7 @@ class BlockedUsersScreen extends ConsumerWidget {
               'Users you block will appear here.\nYou won\'t see their posts or messages.',
               style: TextStyle(
                 fontSize: 14,
-                color: AppColors.neutralGray600,
+                color: scheme.onSurfaceVariant,
                 height: 1.5,
               ),
               textAlign: TextAlign.center,
@@ -161,7 +164,9 @@ class BlockedUsersScreen extends ConsumerWidget {
             onPressed: () => Navigator.of(context).pop(true),
             child: Text(
               'Unblock',
-              style: TextStyle(color: AppColors.primaryRed),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.primary,
+              ),
             ),
           ),
         ],
@@ -206,7 +211,7 @@ class _BlockedUserTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -219,26 +224,26 @@ class _BlockedUserTile extends StatelessWidget {
         '@$username',
         style: TextStyle(
           fontWeight: FontWeight.w600,
-          color: isDark ? AppColors.neutralWhite : AppColors.neutralGray900,
+          color: scheme.onSurface,
         ),
       ),
       subtitle: Text(
         'Blocked ${_formatBlockedDate(blockedAt)}',
         style: TextStyle(
           fontSize: 12,
-          color: isDark ? AppColors.neutralGray500 : AppColors.neutralGray600,
+          color: scheme.onSurfaceVariant,
         ),
       ),
       trailing: OutlinedButton(
         onPressed: onUnblock,
         style: OutlinedButton.styleFrom(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          side: BorderSide(color: AppColors.primaryRed),
+          side: BorderSide(color: scheme.primary),
         ),
         child: Text(
           'Unblock',
           style: TextStyle(
-            color: AppColors.primaryRed,
+            color: scheme.primary,
             fontSize: 13,
             fontWeight: FontWeight.w600,
           ),

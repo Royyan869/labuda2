@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'app_theme.dart';
 
 /// Theme state class
 class ThemeState {
@@ -15,23 +14,6 @@ class ThemeState {
       themeMode: themeMode ?? this.themeMode,
       isLoading: isLoading ?? this.isLoading,
     );
-  }
-
-  /// Get current effective theme berdasarkan system
-  Brightness getCurrentBrightness(BuildContext context) {
-    switch (themeMode) {
-      case ThemeMode.light:
-        return Brightness.light;
-      case ThemeMode.dark:
-        return Brightness.dark;
-      case ThemeMode.system:
-        return MediaQuery.platformBrightnessOf(context);
-    }
-  }
-
-  /// Check if currently using dark theme
-  bool isDarkMode(BuildContext context) {
-    return getCurrentBrightness(context) == Brightness.dark;
   }
 }
 
@@ -132,25 +114,6 @@ extension ThemeModeExtension on ThemeMode {
         return Icons.dark_mode;
       case ThemeMode.system:
         return Icons.brightness_auto;
-    }
-  }
-}
-
-/// Helper untuk mendapatkan theme data
-class ThemeHelper {
-  static ThemeData getThemeData(
-    ThemeMode themeMode,
-    Brightness systemBrightness,
-  ) {
-    switch (themeMode) {
-      case ThemeMode.light:
-        return AppTheme.lightTheme;
-      case ThemeMode.dark:
-        return AppTheme.darkTheme;
-      case ThemeMode.system:
-        return systemBrightness == Brightness.dark
-            ? AppTheme.darkTheme
-            : AppTheme.lightTheme;
     }
   }
 }

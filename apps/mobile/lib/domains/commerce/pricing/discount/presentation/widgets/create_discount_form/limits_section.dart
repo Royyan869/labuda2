@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:labuda/core/core.dart' as core;
 import 'package:labuda/shared/widgets/app_text_field.dart';
 
 /// Section untuk limits, minimum purchase, & status discount
@@ -53,14 +52,10 @@ class _LimitsSectionState extends State<LimitsSection> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark
-            ? core.AppColors.darkGray800
-            : core.AppColors.neutralWhite,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -71,9 +66,7 @@ class _LimitsSectionState extends State<LimitsSection> {
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: isDark
-                  ? core.AppColors.neutralWhite
-                  : core.AppColors.neutralGray900,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 16),
@@ -96,9 +89,7 @@ class _LimitsSectionState extends State<LimitsSection> {
             'Pembeli harus membeli minimal sejumlah ini untuk menggunakan kode diskon.',
             style: TextStyle(
               fontSize: 12,
-              color: isDark
-                  ? core.AppColors.neutralGray400
-                  : core.AppColors.neutralGray600,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 16),
@@ -121,9 +112,7 @@ class _LimitsSectionState extends State<LimitsSection> {
             'Limit total usage of this code by all buyers. Leave empty for unlimited.',
             style: TextStyle(
               fontSize: 12,
-              color: isDark
-                  ? core.AppColors.neutralGray400
-                  : core.AppColors.neutralGray600,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 24),
@@ -132,9 +121,7 @@ class _LimitsSectionState extends State<LimitsSection> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: isDark
-                  ? core.AppColors.darkGray700
-                  : core.AppColors.neutralGray50,
+              color: Theme.of(context).colorScheme.surfaceContainer,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
@@ -148,9 +135,7 @@ class _LimitsSectionState extends State<LimitsSection> {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
-                          color: isDark
-                              ? core.AppColors.neutralWhite
-                              : core.AppColors.neutralGray900,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -160,9 +145,7 @@ class _LimitsSectionState extends State<LimitsSection> {
                             : 'Discount is inactive and cannot be used',
                         style: TextStyle(
                           fontSize: 12,
-                          color: isDark
-                              ? core.AppColors.neutralGray400
-                              : core.AppColors.neutralGray600,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -171,10 +154,12 @@ class _LimitsSectionState extends State<LimitsSection> {
                 Switch(
                   value: widget.isActive,
                   onChanged: widget.onIsActiveChanged,
-                  activeThumbColor: core.AppColors.neutralWhite,
-                  activeTrackColor: core.AppColors.primaryRed,
-                  inactiveThumbColor: core.AppColors.neutralGray400,
-                  inactiveTrackColor: core.AppColors.neutralGray300,
+                  activeThumbColor: Theme.of(context).colorScheme.onPrimary,
+                  activeTrackColor: Theme.of(context).colorScheme.primary,
+                  inactiveThumbColor: Theme.of(context).colorScheme.outline,
+                  inactiveTrackColor: Theme.of(
+                    context,
+                  ).colorScheme.surfaceContainerHighest,
                 ),
               ],
             ),

@@ -17,8 +17,9 @@ import (
 // content authority; the typed block is a projection of it, never a
 // competing source.
 
-// ResolveReadableMediaReference resolves a stored media reference into a
-// readable URL, falling back to the raw value when resolution fails.
+// ResolveReadableMediaReference projects a stored media reference onto the
+// canonical CloudFront read URL. Fail-open per item: unresolvable references
+// are emitted trimmed and unchanged so a persisted reference is never erased.
 func ResolveReadableMediaReference(value string) string {
 	trimmed := strings.TrimSpace(value)
 	if trimmed == "" {
@@ -29,6 +30,28 @@ func ResolveReadableMediaReference(value string) string {
 		return trimmed
 	}
 	return resolved
+}
+
+// ResolveReadableMediaReferences projects a stored reference list onto the
+// canonical CloudFront read URLs in order. Fail-open per item; never nil so
+// the wire shape stays stable.
+func ResolveReadableMediaReferences(references []string) []string {
+	if len(references) == 0 {
+		return []string{}
+	}
+	out := make([]string, 0, len(references))
+	for _, ref := range references {
+		trimmed := strings.TrimSpace(ref)
+		if trimmed == "" {
+			continue
+		}
+		if resolved, err := mediaresolve.ResolveMediaReadURL(trimmed); err == nil {
+			out = append(out, resolved)
+		} else {
+			out = append(out, trimmed)
+		}
+	}
+	return out
 }
 
 // MediaWireItems renders the typed media block from Product media

@@ -119,43 +119,34 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
-
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     // Degraded states are terminal — recovery is explicit via Coba Lagi
     // (retryBackendSync) using the current Firebase identity.
     // There is no automatic timer retry.
     if (authState is AuthStateBackendUnavailable) {
-      return _buildDegradedScaffold(context, isDark, authState);
+      return _buildDegradedScaffold(context, authState);
     }
     if (authState is AuthStateBackendFailure) {
-      return _buildDegradedScaffold(context, isDark, authState);
+      return _buildDegradedScaffold(context, authState);
     }
 
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
-          gradient: isDark
-              ? const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    AppColors.darkGray900,
-                    AppColors.darkGray800,
-                    AppColors.darkGray900,
-                  ],
-                  stops: [0.0, 0.5, 1.0],
-                )
-              : const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    AppColors.neutralWhite,
-                    AppColors.neutralGray50,
-                    AppColors.neutralWhite,
-                  ],
-                  stops: [0.0, 0.5, 1.0],
-                ),
+          // Both modes keep the same shallow vignette: lowest → surface →
+          // lowest, mirroring the previous light/dark gradients without a
+          // local brightness fork.
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              scheme.surfaceContainerLowest,
+              scheme.surface,
+              scheme.surfaceContainerLowest,
+            ],
+            stops: const [0.0, 0.5, 1.0],
+          ),
         ),
         child: Center(
           child: Column(
@@ -205,11 +196,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   /// is reached only during the pre-authenticated sync flow, so
   /// AuthController.signOut()'s AuthStateAuthenticated-only branches
   /// (backend logout call, FCM cleanup) are simply skipped.
-  Widget _buildDegradedScaffold(
-    BuildContext context,
-    bool isDark,
-    AuthState authState,
-  ) {
+  Widget _buildDegradedScaffold(BuildContext context, AuthState authState) {
+    final scheme = Theme.of(context).colorScheme;
     final isUnavailable = authState is AuthStateBackendUnavailable;
     final message = isUnavailable
         ? 'Tidak bisa terhubung ke server Labuda. Pastikan backend sedang '
@@ -217,7 +205,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         : (authState as AuthStateBackendFailure).message;
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkGray900 : AppColors.neutralWhite,
       body: SafeArea(
         child: Center(
           child: Padding(
@@ -229,13 +216,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                   width: 64,
                   height: 64,
                   decoration: BoxDecoration(
-                    color: AppColors.primaryRed.withValues(alpha: 0.1),
+                    color: scheme.primary.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     isUnavailable ? Icons.cloud_off : Icons.error_outline,
                     size: 32,
-                    color: AppColors.primaryRed,
+                    color: scheme.primary,
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -245,9 +232,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                       : 'Gagal Memuat Data',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: isDark
-                        ? AppColors.neutralWhite
-                        : AppColors.neutralGray900,
+                    color: scheme.onSurface,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -255,9 +240,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                 Text(
                   message,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: isDark
-                        ? AppColors.neutralGray300
-                        : AppColors.neutralGray600,
+                    color: scheme.onSurfaceVariant,
                     height: 1.5,
                   ),
                   textAlign: TextAlign.center,
@@ -275,8 +258,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                     icon: const Icon(Icons.refresh),
                     label: const Text('Coba Lagi'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryRed,
-                      foregroundColor: AppColors.neutralWhite,
+                      backgroundColor: scheme.primary,
+                      foregroundColor: scheme.onPrimary,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -290,11 +273,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                   },
                   child: Text(
                     'Keluar',
-                    style: TextStyle(
-                      color: isDark
-                          ? AppColors.neutralGray400
-                          : AppColors.neutralGray600,
-                    ),
+                    style: TextStyle(color: scheme.onSurfaceVariant),
                   ),
                 ),
               ],
@@ -306,7 +285,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   }
 
   Widget _buildLogo() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       width: 120,
       height: 120,
@@ -314,9 +293,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: isDark
-                ? Colors.black.withValues(alpha: 0.3)
-                : Colors.grey.withValues(alpha: 0.2),
+            color: scheme.shadow.withValues(alpha: 0.3),
             blurRadius: 16,
             spreadRadius: 2,
             offset: const Offset(0, 4),
@@ -336,6 +313,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   }
 
   Widget _buildBrandText() {
+    final scheme = Theme.of(context).colorScheme;
     return Column(
       children: [
         Text(
@@ -343,9 +321,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
           style: Theme.of(context).textTheme.headlineLarge?.copyWith(
             fontWeight: FontWeight.bold,
             letterSpacing: 3.0,
-            color: Theme.of(context).brightness == Brightness.dark
-                ? AppColors.neutralWhite
-                : AppColors.neutralGray900,
+            color: scheme.onSurface,
           ),
         ),
         const SizedBox(height: 8),
@@ -353,9 +329,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
           'Komunitas Koi Indonesia',
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
             letterSpacing: 1.0,
-            color: Theme.of(context).brightness == Brightness.dark
-                ? AppColors.neutralGray400
-                : AppColors.neutralGray600,
+            color: scheme.onSurfaceVariant,
           ),
         ),
       ],
@@ -363,6 +337,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   }
 
   Widget _buildLoadingIndicator() {
+    final scheme = Theme.of(context).colorScheme;
     return Column(
       children: [
         SizedBox(
@@ -370,23 +345,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
           height: 32,
           child: CircularProgressIndicator(
             strokeWidth: 3,
-            valueColor: AlwaysStoppedAnimation<Color>(
-              Theme.of(context).brightness == Brightness.dark
-                  ? AppColors.primaryRed
-                  : AppColors.primaryRed,
-            ),
-            backgroundColor: Theme.of(context).brightness == Brightness.dark
-                ? AppColors.darkGray600
-                : AppColors.neutralGray200,
+            valueColor: AlwaysStoppedAnimation<Color>(scheme.primary),
+            backgroundColor: scheme.surfaceContainerHighest,
           ),
         ),
         const SizedBox(height: 16),
         Text(
           'Memuat aplikasi...',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Theme.of(context).brightness == Brightness.dark
-                ? AppColors.neutralGray500
-                : AppColors.neutralGray500,
+            color: scheme.onSurfaceVariant,
           ),
         ),
       ],

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/domains/user/profile/domain/entities/bank_account_entity.dart';
 import 'package:labuda/domains/user/profile/presentation/providers/bank_account_provider.dart'
@@ -75,7 +74,7 @@ class _AddEditBankAccountDialogState
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     final isEdit = widget.account != null;
 
     return Dialog(
@@ -84,7 +83,7 @@ class _AddEditBankAccountDialogState
       child: Container(
         constraints: const BoxConstraints(maxWidth: 500),
         decoration: BoxDecoration(
-          color: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
+          color: scheme.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Column(
@@ -94,7 +93,7 @@ class _AddEditBankAccountDialogState
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: isDark ? AppColors.darkGray700 : AppColors.neutralGray50,
+                color: scheme.surfaceContainerHighest,
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(20),
                   topRight: Radius.circular(20),
@@ -105,12 +104,12 @@ class _AddEditBankAccountDialogState
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppColors.primaryRed.withValues(alpha: 0.1),
+                      color: scheme.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
                       Icons.account_balance,
-                      color: AppColors.primaryRed,
+                      color: scheme.primary,
                       size: 24,
                     ),
                   ),
@@ -121,9 +120,7 @@ class _AddEditBankAccountDialogState
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: isDark
-                            ? AppColors.neutralWhite
-                            : AppColors.neutralGray900,
+                        color: scheme.onSurface,
                       ),
                     ),
                   ),
@@ -131,9 +128,7 @@ class _AddEditBankAccountDialogState
                     onPressed: () => Navigator.pop(context),
                     icon: Icon(
                       Icons.close,
-                      color: isDark
-                          ? AppColors.neutralGray400
-                          : AppColors.neutralGray600,
+                      color: scheme.onSurfaceVariant,
                     ),
                   ),
                 ],
@@ -150,9 +145,9 @@ class _AddEditBankAccountDialogState
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Bank selection
-                      _buildLabel('Bank', isDark),
+                      _buildLabel(context, 'Bank'),
                       const SizedBox(height: 8),
-                      _buildBankDropdown(isDark),
+                      _buildBankDropdown(context),
                       const SizedBox(height: 16),
 
                       // Account Number
@@ -206,7 +201,7 @@ class _AddEditBankAccountDialogState
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: isDark ? AppColors.darkGray700 : AppColors.neutralGray50,
+                color: scheme.surfaceContainerHighest,
                 borderRadius: const BorderRadius.only(
                   bottomLeft: Radius.circular(20),
                   bottomRight: Radius.circular(20),
@@ -237,46 +232,43 @@ class _AddEditBankAccountDialogState
     );
   }
 
-  Widget _buildLabel(String text, bool isDark) {
+  Widget _buildLabel(BuildContext context, String text) {
     return Text(
       text,
       style: TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.w600,
-        color: isDark ? AppColors.neutralGray200 : AppColors.neutralGray900,
+        color: Theme.of(context).colorScheme.onSurface,
       ),
     );
   }
 
-  Widget _buildBankDropdown(bool isDark) {
+  Widget _buildBankDropdown(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return DropdownButtonFormField<String>(
       initialValue: _selectedBankCode,
       decoration: InputDecoration(
         hintText: 'Select bank',
         filled: true,
-        fillColor: isDark ? AppColors.darkGray700 : AppColors.neutralGray50,
+        fillColor: scheme.surfaceContainerHighest,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: isDark ? AppColors.darkGray600 : AppColors.neutralGray200,
-          ),
+          borderSide: BorderSide(color: scheme.outlineVariant),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: isDark ? AppColors.darkGray600 : AppColors.neutralGray200,
-          ),
+          borderSide: BorderSide(color: scheme.outlineVariant),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.primaryRed, width: 2),
+          borderSide: BorderSide(color: scheme.primary, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.error),
+          borderSide: BorderSide(color: scheme.error),
         ),
       ),
-      dropdownColor: isDark ? AppColors.darkGray700 : AppColors.neutralWhite,
+      dropdownColor: scheme.surfaceContainerHigh,
       items: _indonesianBanks.map((bank) {
         return DropdownMenuItem(
           value: bank.code,
@@ -287,11 +279,7 @@ class _AddEditBankAccountDialogState
               Expanded(
                 child: Text(
                   bank.name,
-                  style: TextStyle(
-                    color: isDark
-                        ? AppColors.neutralGray200
-                        : AppColors.neutralGray900,
-                  ),
+                  style: TextStyle(color: scheme.onSurface),
                 ),
               ),
             ],

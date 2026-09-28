@@ -338,7 +338,6 @@ class HelpCenterScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBarCustom(title: _Strings.helpSupport),
@@ -348,28 +347,28 @@ class HelpCenterScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Header
-            _buildHeader(context, isDark),
+            _buildHeader(context),
             const SizedBox(height: 24),
             // Search Bar
-            _buildSearchBar(context, isDark),
+            _buildSearchBar(context),
             const SizedBox(height: 24),
             // Quick Help Cards
             _buildSectionTitle(context, _Strings.quickHelp),
             const SizedBox(height: 12),
-            _buildQuickHelpCards(context, isDark),
+            _buildQuickHelpCards(context),
             const SizedBox(height: 24),
             // Browse by Category
             _buildSectionTitle(context, _Strings.browseByCategory),
             const SizedBox(height: 12),
-            _buildCategoryCards(context, isDark),
+            _buildCategoryCards(context),
             const SizedBox(height: 24),
             // Popular Articles
             _buildSectionTitle(context, _Strings.popularArticles),
             const SizedBox(height: 12),
-            _buildPopularArticles(context, isDark),
+            _buildPopularArticles(context),
             const SizedBox(height: 24),
             // Still Need Help Section
-            _buildStillNeedHelpSection(context, isDark),
+            _buildStillNeedHelpSection(context),
             const SizedBox(height: 32),
           ],
         ),
@@ -377,7 +376,7 @@ class HelpCenterScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context, bool isDark) {
+  Widget _buildHeader(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -386,7 +385,7 @@ class HelpCenterScreen extends StatelessWidget {
           style: TextStyle(
             fontSize: 28,
             fontWeight: FontWeight.bold,
-            color: isDark ? AppColors.neutralWhite : AppColors.neutralGray900,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 8),
@@ -394,17 +393,17 @@ class HelpCenterScreen extends StatelessWidget {
           _Strings.helpCenterDescription,
           style: TextStyle(
             fontSize: 14,
-            color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray600,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildSearchBar(BuildContext context, bool isDark) {
+  Widget _buildSearchBar(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray800 : AppColors.neutralGray100,
+        color: Theme.of(context).colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(12),
       ),
       child: TextField(
@@ -422,7 +421,6 @@ class HelpCenterScreen extends StatelessWidget {
   }
 
   Widget _buildSectionTitle(BuildContext context, String title) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.only(left: 4),
       child: Text(
@@ -430,20 +428,20 @@ class HelpCenterScreen extends StatelessWidget {
         style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w600,
-          color: isDark ? AppColors.neutralWhite : AppColors.neutralGray900,
+          color: Theme.of(context).colorScheme.onSurface,
         ),
       ),
     );
   }
 
-  Widget _buildQuickHelpCards(BuildContext context, bool isDark) {
+  Widget _buildQuickHelpCards(BuildContext context) {
     return Row(
       children: [
         Expanded(
           child: _QuickHelpCard(
             icon: Icons.shopping_cart_outlined,
             title: _Strings.orders,
-            color: AppColors.primaryRed,
+            color: Theme.of(context).colorScheme.primary,
             onTap: () => _navigateToCategory(context, HelpCategory.order),
           ),
         ),
@@ -460,13 +458,13 @@ class HelpCenterScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCategoryCards(BuildContext context, bool isDark) {
+  Widget _buildCategoryCards(BuildContext context) {
     final categories = [
       _CategoryItem(
         icon: Icons.shopping_bag_outlined,
         title: _Strings.orders,
         subtitle: _Strings.orderHelpSubtitle,
-        color: AppColors.primaryRed,
+        color: Theme.of(context).colorScheme.primary,
         category: HelpCategory.order,
       ),
       _CategoryItem(
@@ -487,7 +485,7 @@ class HelpCenterScreen extends StatelessWidget {
         icon: Icons.person_outlined,
         title: _Strings.account,
         subtitle: _Strings.accountHelpSubtitle,
-        color: AppColors.primaryBlue,
+        color: Theme.of(context).colorScheme.secondary,
         category: HelpCategory.account,
       ),
       _CategoryItem(
@@ -501,7 +499,7 @@ class HelpCenterScreen extends StatelessWidget {
         icon: Icons.build_outlined,
         title: _Strings.technical,
         subtitle: _Strings.technicalHelpSubtitle,
-        color: AppColors.neutralGray600,
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
         category: HelpCategory.technical,
       ),
     ];
@@ -529,7 +527,7 @@ class HelpCenterScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPopularArticles(BuildContext context, bool isDark) {
+  Widget _buildPopularArticles(BuildContext context) {
     final articles = _getPopularArticles();
 
     return Column(
@@ -543,25 +541,25 @@ class HelpCenterScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStillNeedHelpSection(BuildContext context, bool isDark) {
+  Widget _buildStillNeedHelpSection(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            AppColors.primaryRed.withValues(alpha: 0.1),
-            AppColors.primaryRed.withValues(alpha: 0.05),
+            Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+            Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.primaryRed.withValues(alpha: 0.2)),
+        border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.support_agent, color: AppColors.primaryRed),
+              Icon(Icons.support_agent, color: Theme.of(context).colorScheme.primary),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
@@ -569,9 +567,7 @@ class HelpCenterScreen extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: isDark
-                        ? AppColors.neutralWhite
-                        : AppColors.neutralGray900,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
               ),
@@ -582,9 +578,7 @@ class HelpCenterScreen extends StatelessWidget {
             _Strings.contactSupportDescription,
             style: TextStyle(
               fontSize: 14,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray600,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 16),
@@ -593,8 +587,8 @@ class HelpCenterScreen extends StatelessWidget {
             child: ElevatedButton(
               onPressed: () => _navigateToSupportForm(context),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryRed,
-                foregroundColor: AppColors.neutralWhite,
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Theme.of(context).colorScheme.onPrimary,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
@@ -875,7 +869,6 @@ class HelpArticleScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBarCustom(title: _Strings.helpArticle),
@@ -888,15 +881,15 @@ class HelpArticleScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: AppColors.primaryBlue.withValues(alpha: 0.1),
+                color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Text(
                 article.category,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.primaryBlue,
+                  color: Theme.of(context).colorScheme.secondary,
                 ),
               ),
             ),
@@ -907,9 +900,7 @@ class HelpArticleScreen extends StatelessWidget {
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
-                color: isDark
-                    ? AppColors.neutralWhite
-                    : AppColors.neutralGray900,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 24),
@@ -919,25 +910,23 @@ class HelpArticleScreen extends StatelessWidget {
               style: TextStyle(
                 fontSize: 16,
                 height: 1.6,
-                color: isDark
-                    ? AppColors.neutralGray300
-                    : AppColors.neutralGray700,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 32),
             // Helpful Section
-            _buildHelpfulSection(context, isDark),
+            _buildHelpfulSection(context),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildHelpfulSection(BuildContext context, bool isDark) {
+  Widget _buildHelpfulSection(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray800 : AppColors.neutralGray100,
+        color: Theme.of(context).colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -948,7 +937,7 @@ class HelpArticleScreen extends StatelessWidget {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: isDark ? AppColors.neutralWhite : AppColors.neutralGray900,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 12),
@@ -958,11 +947,9 @@ class HelpArticleScreen extends StatelessWidget {
                 child: OutlinedButton.icon(
                   onPressed: () {
                     Navigator.of(context).pop();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(_Strings.feedbackThanks),
-                        backgroundColor: AppColors.successGreen,
-                      ),
+                    AppSnackBar.showSuccess(
+                      context,
+                      _Strings.feedbackThanks,
                     );
                   },
                   icon: const Icon(Icons.thumb_up_outlined, size: 18),
@@ -1018,7 +1005,6 @@ class _QuickHelpCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return InkWell(
       onTap: onTap,
@@ -1026,10 +1012,10 @@ class _QuickHelpCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isDark ? AppColors.darkGray700 : AppColors.neutralGray200,
+            color: Theme.of(context).colorScheme.outlineVariant,
           ),
         ),
         child: Column(
@@ -1048,9 +1034,7 @@ class _QuickHelpCard extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
-                color: isDark
-                    ? AppColors.neutralWhite
-                    : AppColors.neutralGray900,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
           ],
@@ -1077,7 +1061,6 @@ class _CategoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return InkWell(
       onTap: onTap,
@@ -1085,10 +1068,10 @@ class _CategoryCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isDark ? AppColors.darkGray700 : AppColors.neutralGray200,
+            color: Theme.of(context).colorScheme.outlineVariant,
           ),
         ),
         child: Column(
@@ -1101,9 +1084,7 @@ class _CategoryCard extends StatelessWidget {
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: isDark
-                    ? AppColors.neutralWhite
-                    : AppColors.neutralGray900,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 4),
@@ -1112,9 +1093,7 @@ class _CategoryCard extends StatelessWidget {
                 subtitle,
                 style: TextStyle(
                   fontSize: 11,
-                  color: isDark
-                      ? AppColors.neutralGray500
-                      : AppColors.neutralGray600,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
@@ -1140,7 +1119,6 @@ class _ArticleTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return InkWell(
       onTap: onTap,
@@ -1148,10 +1126,10 @@ class _ArticleTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: isDark ? AppColors.darkGray700 : AppColors.neutralGray200,
+            color: Theme.of(context).colorScheme.outlineVariant,
           ),
         ),
         child: Row(
@@ -1165,17 +1143,15 @@ class _ArticleTile extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: isDark
-                          ? AppColors.neutralWhite
-                          : AppColors.neutralGray900,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     category,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: AppColors.primaryBlue,
+                      color: Theme.of(context).colorScheme.secondary,
                     ),
                   ),
                 ],
@@ -1183,9 +1159,7 @@ class _ArticleTile extends StatelessWidget {
             ),
             Icon(
               Icons.chevron_right,
-              color: isDark
-                  ? AppColors.neutralGray600
-                  : AppColors.neutralGray400,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ],
         ),

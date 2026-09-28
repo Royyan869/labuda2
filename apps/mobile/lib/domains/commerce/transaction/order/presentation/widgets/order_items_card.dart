@@ -72,26 +72,25 @@ class _OrderItemTile extends StatelessWidget {
           // Item image
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
-            child: Image.network(
-              item.forSaleImage,
+            child: AppImage(
+              imageUrl: item.forSaleImage,
               width: 60,
               height: 60,
               fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    color: colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    Icons.image_not_supported,
-                    color: colorScheme.onSurfaceVariant,
-                    size: 24,
-                  ),
-                );
-              },
+              backgroundColor: colorScheme.surfaceContainerHighest,
+              errorWidget: Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.image_not_supported,
+                  color: colorScheme.onSurfaceVariant,
+                  size: 24,
+                ),
+              ),
             ),
           ),
           const SizedBox(width: 12),

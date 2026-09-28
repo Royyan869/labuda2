@@ -107,7 +107,9 @@ class _ChatInputAreaState extends ConsumerState<ChatInputArea> {
         color: Theme.of(context).colorScheme.surface,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Theme.of(
+              context,
+            ).colorScheme.shadow.withValues(alpha: 0.05),
             blurRadius: 4,
             offset: const Offset(0, -2),
           ),
@@ -241,7 +243,7 @@ class _ChatInputAreaState extends ConsumerState<ChatInputArea> {
                   nextStepHint,
                   style: TextStyle(
                     fontSize: 10,
-                    color: AppColors.neutralGray600,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                     height: 1.3,
                   ),
                 ),
@@ -263,7 +265,7 @@ class _ChatInputAreaState extends ConsumerState<ChatInputArea> {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: Colors.grey[200],
+        color: Theme.of(context).colorScheme.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -323,7 +325,7 @@ class _ChatInputAreaState extends ConsumerState<ChatInputArea> {
   Widget _buildTextField(BuildContext context, bool canSend) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.grey[100],
+        color: Theme.of(context).colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(24),
       ),
       child: TextField(
@@ -347,7 +349,9 @@ class _ChatInputAreaState extends ConsumerState<ChatInputArea> {
     return IconButton(
       icon: Icon(
         showSend ? Icons.send : Icons.mic,
-        color: canSend ? Theme.of(context).colorScheme.primary : Colors.grey,
+        color: canSend
+            ? Theme.of(context).colorScheme.primary
+            : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.38),
         size: 28,
       ),
       onPressed: canSend && showSend ? _handleSendMessage : null,

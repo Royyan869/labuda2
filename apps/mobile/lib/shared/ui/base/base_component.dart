@@ -129,32 +129,3 @@ abstract class ResettableComponent {
   void reset();
 }
 
-/// Component size constraints
-enum ComponentSize {
-  small, // height: 40
-  medium, // height: 56
-  large, // height: 72
-  auto, // fit content
-}
-
-/// Component spacing enum
-enum ComponentSpacing {
-  xxs, // 2.0
-  xs, // 4.0
-  sm, // 8.0
-  md, // 12.0
-  lg, // 16.0
-  xl, // 20.0
-  xxl, // 24.0
-}
-
-/// Component spacing helpers
-class ComponentSpacingValues {
-  static const double XXS = 2.0;
-  static const double XS = 4.0;
-  static const double SM = 8.0;
-  static const double MD = 12.0;
-  static const double LG = 16.0;
-  static const double XL = 20.0;
-  static const double XXL = 24.0;
-}

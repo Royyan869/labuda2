@@ -48,11 +48,12 @@ func (searchProjectionAdapter) forSalePreviewsToResponse(
 			continue
 		}
 
-		media := buildMediaRefs(l.MediaURLs)
+		mediaURLs := commerceshared.ResolveReadableMediaReferences(l.MediaURLs)
+		media := buildMediaRefs(mediaURLs)
 
 		var thumbnail *string
-		if len(l.MediaURLs) > 0 {
-			t := l.MediaURLs[0]
+		if len(mediaURLs) > 0 {
+			t := mediaURLs[0]
 			thumbnail = &t
 		}
 
@@ -63,7 +64,7 @@ func (searchProjectionAdapter) forSalePreviewsToResponse(
 			"description":       l.Description,
 			"variety":           l.Variety,
 			"price":             l.Price,
-			"media_urls":        l.MediaURLs,
+			"media_urls":        mediaURLs,
 			"seller_id":         l.SellerID.String(),
 			"created_at":        l.CreatedAt.Format(time.RFC3339),
 			"seller_username":   projection.Author.Username,
@@ -198,11 +199,16 @@ func (searchProjectionAdapter) auctionPreviewsToResponse(
 			continue
 		}
 
+		var resolvedThumbnail *string
+		if a.ThumbnailURL != nil && strings.TrimSpace(*a.ThumbnailURL) != "" {
+			t := commerceshared.ResolveReadableMediaReference(*a.ThumbnailURL)
+			resolvedThumbnail = &t
+		}
 		media := make([]mediaref.MediaRef, 0, 1)
-		if a.ThumbnailURL != nil && *a.ThumbnailURL != "" {
+		if resolvedThumbnail != nil && *resolvedThumbnail != "" {
 			localKind := thumbnailKind
 			media = append(media, mediaref.MediaRef{
-				URL:  *a.ThumbnailURL,
+				URL:  *resolvedThumbnail,
 				Kind: &localKind,
 			})
 		}
@@ -222,7 +228,7 @@ func (searchProjectionAdapter) auctionPreviewsToResponse(
 			"start_at":          a.StartAt.Format(time.RFC3339),
 			"end_at":            a.EndAt.Format(time.RFC3339),
 			"status":            auctionentity.Status(a.Status).PublicPhase(),
-			"thumbnail_url":     a.ThumbnailURL,
+			"thumbnail_url":     resolvedThumbnail,
 			"bid_count":         a.BidCount,
 			"created_at":        a.CreatedAt.Format(time.RFC3339),
 			"seller_username":   projection.Author.Username,
@@ -234,7 +240,7 @@ func (searchProjectionAdapter) auctionPreviewsToResponse(
 			"auction": publiccard.NewAuctionCard(
 				a.ID,
 				a.Title,
-				a.ThumbnailURL,
+				resolvedThumbnail,
 				a.CurrentBid,
 				a.BuyNowPrice,
 				a.EndAt.Format(time.RFC3339),

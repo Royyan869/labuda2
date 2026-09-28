@@ -90,6 +90,7 @@ class _CoinBalanceCardState extends State<CoinBalanceCard> {
   Widget build(BuildContext context) {
     final isNearMaxBalance = widget.balance.isNearMaxBalance;
     final isAtMaxBalance = widget.balance.isAtMaxBalance;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 12),
@@ -112,24 +113,24 @@ class _CoinBalanceCardState extends State<CoinBalanceCard> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Row(
+              Row(
                 children: [
-                  Icon(Icons.stars, color: AppColors.neutralWhite, size: 16),
-                  SizedBox(width: 6),
+                  Icon(Icons.stars, color: colorScheme.onPrimary, size: 16),
+                  const SizedBox(width: 6),
                   Text(
                     'Coins',
                     style: TextStyle(
                       fontSize: 13,
-                      color: AppColors.neutralWhite,
+                      color: colorScheme.onPrimary,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],
               ),
               IconButton(
-                icon: const Icon(
+                icon: Icon(
                   Icons.info_outline,
-                  color: AppColors.neutralWhite,
+                  color: colorScheme.onPrimary,
                   size: 18,
                 ),
                 onPressed: _showCoinInfo,
@@ -154,10 +155,10 @@ class _CoinBalanceCardState extends State<CoinBalanceCard> {
                       _isBalanceVisible
                           ? '${formatGroupedAmount(widget.balance.balance)} Coins'
                           : '******** Coins',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.neutralWhite,
+                        color: colorScheme.onPrimary,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -167,7 +168,7 @@ class _CoinBalanceCardState extends State<CoinBalanceCard> {
                           : '~Potongan Rp ********',
                       style: TextStyle(
                         fontSize: 13,
-                        color: AppColors.neutralWhite.withValues(alpha: 0.9),
+                        color: colorScheme.onPrimary.withValues(alpha: 0.9),
                       ),
                     ),
                   ],
@@ -176,7 +177,7 @@ class _CoinBalanceCardState extends State<CoinBalanceCard> {
               IconButton(
                 icon: Icon(
                   _isBalanceVisible ? Icons.visibility_off : Icons.visibility,
-                  color: AppColors.neutralWhite,
+                  color: colorScheme.onPrimary,
                   size: 20,
                 ),
                 onPressed: () =>
@@ -202,7 +203,7 @@ class _CoinBalanceCardState extends State<CoinBalanceCard> {
                 children: [
                   Icon(
                     isAtMaxBalance ? Icons.block : Icons.warning_amber,
-                    color: AppColors.neutralWhite,
+                    color: colorScheme.onPrimary,
                     size: 16,
                   ),
                   const SizedBox(width: 8),
@@ -211,9 +212,9 @@ class _CoinBalanceCardState extends State<CoinBalanceCard> {
                       isAtMaxBalance
                           ? 'Maksimal coins tercapai (1.000.000)'
                           : 'Mendekati batas maksimal coins',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
-                        color: AppColors.neutralWhite,
+                        color: colorScheme.onPrimary,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -236,9 +237,9 @@ class _CoinBalanceCardState extends State<CoinBalanceCard> {
                   style: TextStyle(fontSize: 13),
                 ),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.neutralWhite,
-                  side: const BorderSide(
-                    color: AppColors.neutralWhite,
+                  foregroundColor: colorScheme.onPrimary,
+                  side: BorderSide(
+                    color: colorScheme.onPrimary,
                     width: 1.5,
                   ),
                   padding: const EdgeInsets.symmetric(vertical: 10),

@@ -65,14 +65,12 @@ class AppConstants {
 
   // API Endpoints (will be configured per environment)
   static const String baseUrl = 'https://api.labuda.app';
-  static const String awsS3BaseUrl = 'https://labuda-media.s3.amazonaws.com';
 
-  // CDN Configuration
+  // Canonical media read authority: backend projects every media reference
+  // onto this CloudFront prefix. Mobile uses backend URLs as-is and never
+  // builds bucket URLs.
   static const String cloudFrontDomain = 'd358tu61i1wrtt.cloudfront.net';
   static const String cdnBaseUrl = 'https://$cloudFrontDomain';
-
-  // Media URL Strategy
-  static const bool useCloudFront = true; // Enabled for faster media loading
 
   // Development Settings
   static const bool isDevelopment =

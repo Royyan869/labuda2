@@ -9,9 +9,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/shared/widgets/app_snackbar.dart';
 import 'package:labuda/shared/utils/media_extensions.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/domain/domain.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart';
+import 'package:labuda/shared/widgets/app_image.dart';
 
 /// My ForSales Screen
 ///
@@ -293,12 +295,7 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
       if (!context.mounted) return;
 
       if (result.isSuccess) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Status berhasil diubah'),
-            backgroundColor: AppColors.statusSuccess,
-          ),
-        );
+        AppSnackBar.showSuccess(context, 'Status berhasil diubah');
         ref.invalidate(
           sellerForSalesProvider(
             SellerForSalesParams(sellerId: forSale.sellerId),
@@ -370,12 +367,7 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Gagal mengubah status: ${result.error}'),
-          backgroundColor: scheme.error,
-        ),
-      );
+      AppSnackBar.showError(context, 'Gagal mengubah status: ${result.error}');
     }
   }
 
@@ -411,20 +403,13 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
       if (mounted) {
         result.fold(
           (error) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Gagal menghapus For Sale: $error'),
-                backgroundColor: Theme.of(context).colorScheme.error,
-              ),
+            AppSnackBar.showError(
+              context,
+              'Gagal menghapus For Sale: $error',
             );
           },
           (_) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('For Sale berhasil dihapus'),
-                backgroundColor: AppColors.statusSuccess,
-              ),
-            );
+            AppSnackBar.showSuccess(context, 'For Sale berhasil dihapus');
             // Invalidate to refresh
             ref.invalidate(
               sellerForSalesProvider(
@@ -476,14 +461,13 @@ class _SellerForSaleManagementCard extends StatelessWidget {
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: forSale.media.isNotEmptyUrls
-                    ? Image.network(
-                        forSale.media.firstUrl,
-                        width: 80,
-                        height: 80,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) =>
-                            _buildPlaceholder(context),
-                      )
+                 ? AppImage(
+                     imageUrl: forSale.media.firstUrl,
+                     width: 80,
+                     height: 80,
+                     fit: BoxFit.cover,
+                     errorWidget: _buildPlaceholder(context),
+                   )
                     : _buildPlaceholder(context),
               ),
               const SizedBox(width: 12),

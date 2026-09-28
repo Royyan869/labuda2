@@ -32,7 +32,7 @@ class _BankAccountScreenState extends ConsumerState<BankAccountScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     final authState = ref.watch(authControllerProvider);
 
     // Get current user ID
@@ -57,25 +57,21 @@ class _BankAccountScreenState extends ConsumerState<BankAccountScreen> {
               child: Text(
                 result.error ?? 'Failed to load bank accounts',
                 style: TextStyle(
-                  color: isDark
-                      ? AppColors.neutralGray400
-                      : AppColors.neutralGray600,
+                  color: scheme.onSurfaceVariant,
                 ),
               ),
             );
           }
 
           final bankAccounts = result.data ?? [];
-          return _buildContent(context, isDark, bankAccounts, userId);
+          return _buildContent(context, bankAccounts, userId);
         },
         loading: () => const Center(child: LoadingIndicator()),
         error: (error, stack) => Center(
           child: Text(
             'Error: $error',
             style: TextStyle(
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray600,
+              color: scheme.onSurfaceVariant,
             ),
           ),
         ),
@@ -85,7 +81,6 @@ class _BankAccountScreenState extends ConsumerState<BankAccountScreen> {
 
   Widget _buildContent(
     BuildContext context,
-    bool isDark,
     List<BankAccountEntity> bankAccounts,
     String userId,
   ) {
@@ -110,7 +105,7 @@ class _BankAccountScreenState extends ConsumerState<BankAccountScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  _buildAddAccountButton(isDark, userId),
+                  _buildAddAccountButton(userId),
                 ],
               ),
             ),
@@ -131,18 +126,17 @@ class _BankAccountScreenState extends ConsumerState<BankAccountScreen> {
   }
 
   Widget _buildSectionHeader(String title) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Text(
       title,
       style: TextStyle(
         fontSize: 18,
         fontWeight: FontWeight.bold,
-        color: isDark ? AppColors.neutralWhite : AppColors.neutralGray900,
+        color: Theme.of(context).colorScheme.onSurface,
       ),
     );
   }
 
-  Widget _buildAddAccountButton(bool isDark, String userId) {
+  Widget _buildAddAccountButton(String userId) {
     return SizedBox(
       width: double.infinity,
       child: AppButton.secondary(

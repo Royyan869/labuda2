@@ -18,7 +18,7 @@ import 'package:labuda/domains/user/profile/presentation/providers/user_data_pro
 import 'package:labuda/domains/system/report/domain/entities/entities.dart';
 import 'package:labuda/domains/system/report/presentation/dialogs/report_submission_dialog.dart';
 import 'package:labuda/shared/widgets/carousel_video_player.dart';
-import 'package:labuda/shared/widgets/stable_network_image.dart';
+
 
 /// Content Detail Screen
 class ContentDetailScreen extends ConsumerStatefulWidget {
@@ -249,13 +249,13 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.6),
+                color: Theme.of(context).colorScheme.scrim.withValues(alpha: 0.6),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Text(
                 '${_currentMediaIndex + 1} / ${content.media.length}',
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onPrimary,
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                 ),
@@ -268,11 +268,9 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
 
   /// Canonical content media frame for the detail hero.
   ///
-  /// [MediaEntity.type] is the render authority: images go through
-  /// [StableNetworkImage] (the shared network-media path that projects the
-  /// reference through `resolveNetworkImageUrl`), videos through
-  /// [CarouselVideoPlayer]. A video reference is never handed to the image
-  /// decoder.
+  /// [MediaEntity.type] is the render authority: images go through [AppImage]
+  /// (CloudFront URL as-is, cached), videos through [CarouselVideoPlayer].
+  /// A video reference is never handed to the image decoder.
   Widget _buildMediaFrame(BuildContext context, Content content, int index) {
     final media = content.media[index];
 
@@ -288,16 +286,16 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
       );
     }
 
-    return StableNetworkImage(
+    return AppImage(
       imageUrl: media.originalUrl,
       fit: BoxFit.cover,
-      fallback: _buildMediaPlaceholder(),
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+      errorWidget: _buildMediaPlaceholder(),
     );
   }
 
-  /// Neutral placeholder shown while the media loads and when it cannot be
-  /// loaded — the [StableNetworkImage] contract keeps a single fallback for
-  /// both states.
+  /// Error icon shown when the media cannot load. Loading shows the AppImage
+  /// shimmer — the two states are never the same widget.
   Widget _buildMediaPlaceholder() {
     return Builder(
       builder: (context) {
@@ -518,18 +516,18 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(
+                Icon(
                   Icons.chat_bubble_outline,
                   size: 16,
-                  color: AppColors.primaryRed,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
                 if (content.engagement.commentCount > 0) ...[
                   const SizedBox(width: 4),
                   Text(
                     '${content.engagement.commentCount}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: AppColors.primaryRed,
+                      color: Theme.of(context).colorScheme.primary,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -677,7 +675,7 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
   /// Open the canonical MediaViewerWidget fullscreen for the tapped media item.
   ///
   /// The Content media entities are handed over verbatim so the viewer renders
-  /// by [MediaEntity.type] — image through [StableNetworkImage], video through
+  /// by [MediaEntity.type] — image through [AppImage], video through
   /// [MediaViewerVideoPlayer] — instead of sniffing the file extension of a
   /// flattened URL list.
   void _openMediaViewer(
@@ -688,7 +686,7 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
     if (content.media.isEmpty) return;
     showDialog(
       context: context,
-      barrierColor: Colors.black87,
+      barrierColor: Theme.of(context).colorScheme.scrim.withValues(alpha: 0.87),
       builder: (_) => MediaViewerWidget(
         media: content.media,
         initialIndex: initialIndex,

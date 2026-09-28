@@ -112,17 +112,16 @@ class _SupportTicketThreadScreenState
   }
 
   Widget _buildTicketHeader(SupportTicket ticket) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final statusConfig = StatusConfig.get(ticket.status);
     final categoryConfig = CategoryConfig.get(ticket.category);
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray800 : AppColors.neutralGray100,
+        color: Theme.of(context).colorScheme.surfaceContainer,
         border: Border(
           bottom: BorderSide(
-            color: isDark ? AppColors.darkGray700 : AppColors.neutralGray200,
+            color: Theme.of(context).colorScheme.outlineVariant,
           ),
         ),
       ),
@@ -151,11 +150,11 @@ class _SupportTicketThreadScreenState
             const SizedBox(height: 8),
             Row(
               children: [
-                Icon(Icons.link, size: 14, color: AppColors.primaryBlue),
+                Icon(Icons.link, size: 14, color: Theme.of(context).colorScheme.secondary),
                 const SizedBox(width: 4),
                 Text(
                   'Order #${ticket.linkedOrderId!.substring(0, 8)}...',
-                  style: TextStyle(fontSize: 12, color: AppColors.primaryBlue),
+                  style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.secondary),
                 ),
               ],
             ),
@@ -167,9 +166,7 @@ class _SupportTicketThreadScreenState
             'Created ${SupportUtils.formatTimeAgo(ticket.createdAt)}',
             style: TextStyle(
               fontSize: 11,
-              color: isDark
-                  ? AppColors.neutralGray500
-                  : AppColors.neutralGray600,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
         ],
@@ -285,21 +282,21 @@ class _SupportTicketThreadScreenState
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.mail_outline, size: 64, color: AppColors.neutralGray400),
+          Icon(Icons.mail_outline, size: 64, color: Theme.of(context).colorScheme.onSurfaceVariant),
           const SizedBox(height: 16),
           Text(
             'Ticket berhasil dibuat',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: AppColors.neutralGray900,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'Tim support kami akan segera merespon',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 14, color: AppColors.neutralGray600),
+            style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
         ],
       ),
@@ -308,15 +305,14 @@ class _SupportTicketThreadScreenState
 
   /// Composer: posts the user's reply into the ticket conversation.
   Widget _buildComposer() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray800 : AppColors.neutralGray100,
+        color: Theme.of(context).colorScheme.surfaceContainer,
         border: Border(
           top: BorderSide(
-            color: isDark ? AppColors.darkGray700 : AppColors.neutralGray200,
+            color: Theme.of(context).colorScheme.outlineVariant,
           ),
         ),
       ),
@@ -333,9 +329,7 @@ class _SupportTicketThreadScreenState
                 hintText: 'Tulis balasan...',
                 isDense: true,
                 filled: true,
-                fillColor: isDark
-                    ? AppColors.darkGray700
-                    : AppColors.neutralWhite,
+                fillColor: Theme.of(context).colorScheme.surfaceContainer,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
@@ -359,7 +353,7 @@ class _SupportTicketThreadScreenState
               : IconButton(
                   onPressed: _sendMessage,
                   icon: const Icon(Icons.send),
-                  color: AppColors.primaryRed,
+                  color: Theme.of(context).colorScheme.primary,
                   tooltip: 'Kirim',
                 ),
         ],
@@ -380,7 +374,6 @@ class _ThreadMessageCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
@@ -388,7 +381,7 @@ class _ThreadMessageCard extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: isDark ? AppColors.darkGray700 : AppColors.neutralGray200,
+          color: Theme.of(context).colorScheme.outlineVariant,
         ),
       ),
       child: Padding(
@@ -403,14 +396,14 @@ class _ThreadMessageCard extends StatelessWidget {
                 CircleAvatar(
                   radius: 16,
                   backgroundColor: isFromUser
-                      ? AppColors.primaryBlue
-                      : AppColors.primaryRed,
+                      ? Theme.of(context).colorScheme.secondary
+                      : Theme.of(context).colorScheme.primary,
                   child: Text(
                     isFromUser ? 'Y' : 'S',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.neutralWhite,
+                      color: Theme.of(context).colorScheme.onPrimary,
                     ),
                   ),
                 ),
@@ -426,18 +419,14 @@ class _ThreadMessageCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: isDark
-                              ? AppColors.neutralWhite
-                              : AppColors.neutralGray900,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                       Text(
                         _getSenderTypeLabel(),
                         style: TextStyle(
                           fontSize: 11,
-                          color: isDark
-                              ? AppColors.neutralGray500
-                              : AppColors.neutralGray600,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -449,9 +438,7 @@ class _ThreadMessageCard extends StatelessWidget {
                   _formatTimestamp(message.createdAt),
                   style: TextStyle(
                     fontSize: 11,
-                    color: isDark
-                        ? AppColors.neutralGray500
-                        : AppColors.neutralGray600,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -465,9 +452,7 @@ class _ThreadMessageCard extends StatelessWidget {
               style: TextStyle(
                 fontSize: 14,
                 height: 1.5,
-                color: isDark
-                    ? AppColors.neutralGray200
-                    : AppColors.neutralGray800,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
           ],

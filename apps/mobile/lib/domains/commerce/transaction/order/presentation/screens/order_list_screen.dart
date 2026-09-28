@@ -250,12 +250,13 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: Image.network(
-                    firstItem?.forSaleImage ?? '',
+                  child: AppImage(
+                    imageUrl: firstItem?.forSaleImage,
                     width: 60,
                     height: 60,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => Container(
+                    backgroundColor: colorScheme.surfaceContainerHighest,
+                    errorWidget: Container(
                       width: 60,
                       height: 60,
                       color: colorScheme.surfaceContainerHighest,

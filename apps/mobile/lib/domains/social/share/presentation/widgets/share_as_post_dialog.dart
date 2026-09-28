@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/shared/widgets/app_snackbar.dart';
 import 'package:labuda/domains/social/share/domain/entities/share_target.dart';
 import 'package:labuda/domains/social/share/presentation/providers/share_notifier.dart';
 import 'package:labuda/domains/social/share/presentation/providers/share_state.dart';
@@ -229,12 +230,10 @@ class _ShareAsPostDialogState extends ConsumerState<ShareAsPostDialog> {
 
     if (userId == null) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('You must login first'),
-            backgroundColor: AppColors.statusError,
-            duration: Duration(seconds: 4),
-          ),
+        AppSnackBar.showError(
+          context,
+          'You must login first',
+          duration: const Duration(seconds: 4),
         );
       }
       return;
@@ -266,31 +265,25 @@ class _ShareAsPostDialogState extends ConsumerState<ShareAsPostDialog> {
         refreshFeedGlobally();
 
         // Show success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Successfully shared to feed'),
-            backgroundColor: AppColors.statusSuccess,
-            duration: Duration(seconds: 3),
-          ),
+        AppSnackBar.showSuccess(
+          context,
+          'Successfully shared to feed',
+          duration: const Duration(seconds: 3),
         );
       } else {
         // Show error
         final shareState = ref.read(shareNotifierProvider);
         if (shareState is ShareError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(shareState.failure.message),
-              backgroundColor: AppColors.statusError,
-              duration: const Duration(seconds: 4),
-            ),
+          AppSnackBar.showError(
+            context,
+            shareState.failure.message,
+            duration: const Duration(seconds: 4),
           );
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Failed to share to feed'),
-              backgroundColor: AppColors.statusError,
-              duration: Duration(seconds: 4),
-            ),
+          AppSnackBar.showError(
+            context,
+            'Failed to share to feed',
+            duration: const Duration(seconds: 4),
           );
         }
       }

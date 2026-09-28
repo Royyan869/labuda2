@@ -254,6 +254,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Widget _buildSellerDashboardCard(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
       decoration: BoxDecoration(
@@ -261,14 +262,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Color(0xFF10B981), // Emerald green
-            Color(0xFF059669), // Darker emerald
+            AppColors.primaryGreen,
+            AppColors.statusSuccess,
           ],
         ),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF10B981).withValues(alpha: 0.3),
+            color: AppColors.primaryGreen.withValues(alpha: 0.3),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -286,33 +287,33 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppColors.neutralWhite.withValues(alpha: 0.2),
+                    color: scheme.onPrimary.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.dashboard,
-                    color: AppColors.neutralWhite,
+                    color: scheme.onPrimary,
                     size: 28,
                   ),
                 ),
                 const SizedBox(width: 16),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         'Seller Dashboard',
                         style: TextStyle(
-                          color: AppColors.neutralWhite,
+                          color: scheme.onPrimary,
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
                       Text(
                         'Manage your store and sales',
                         style: TextStyle(
-                          color: AppColors.neutralWhite,
+                          color: scheme.onPrimary,
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
                         ),
@@ -320,9 +321,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ],
                   ),
                 ),
-                const Icon(
+                Icon(
                   Icons.arrow_forward_ios,
-                  color: AppColors.neutralWhite,
+                  color: scheme.onPrimary,
                   size: 18,
                 ),
               ],
@@ -335,15 +336,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   /// Phase 1: Pengiriman entry — opens the seller global shipping options screen.
   Widget _buildSellerShippingTile(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
+        color: scheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDark ? AppColors.darkGray700 : AppColors.neutralGray200,
-        ),
+        border: Border.all(color: scheme.outlineVariant),
       ),
       child: Material(
         color: Colors.transparent,
@@ -376,9 +375,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
-                          color: isDark
-                              ? AppColors.neutralWhite
-                              : AppColors.neutralGray900,
+                          color: scheme.onSurface,
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -386,7 +383,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         'Manage shipping options & rates for your products',
                         style: TextStyle(
                           fontSize: 12,
-                          color: AppColors.neutralGray600,
+                          color: scheme.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -395,7 +392,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 Icon(
                   Icons.arrow_forward_ios,
                   size: 16,
-                  color: AppColors.neutralGray400,
+                  color: scheme.onSurfaceVariant,
                 ),
               ],
             ),
@@ -516,7 +513,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             },
             child: Text(
               l10n.signOut,
-              style: TextStyle(color: AppColors.primaryRed),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.primary,
+              ),
             ),
           ),
         ],

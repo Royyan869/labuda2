@@ -52,19 +52,19 @@ class _SupportTicketsListScreenState
     if (currentUser == null) {
       return Scaffold(
         appBar: AppBarCustom(title: 'My Support Tickets'),
-        body: const Center(
+        body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
                 Icons.lock_outline,
                 size: 48,
-                color: AppColors.neutralGray400,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               SizedBox(height: 16),
               Text(
                 'Please login to view your support tickets',
-                style: TextStyle(color: AppColors.neutralGray600),
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
             ],
           ),
@@ -77,11 +77,11 @@ class _SupportTicketsListScreenState
       body: _buildTicketsList(),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showCreateTicketSheet(currentUser),
-        backgroundColor: AppColors.primaryRed,
-        icon: const Icon(Icons.add, color: AppColors.neutralWhite),
-        label: const Text(
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        icon: Icon(Icons.add, color: Theme.of(context).colorScheme.onPrimary),
+        label: Text(
           'New Ticket',
-          style: TextStyle(color: AppColors.neutralWhite),
+          style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),
         ),
       ),
     );
@@ -128,28 +128,27 @@ class _SupportTicketsListScreenState
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(
-                  Icons.mail_outline,
-                  size: 64,
-                  color: AppColors.neutralGray400,
+              children: [                Icon(
+                Icons.mail_outline,
+                size: 64,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
                 const SizedBox(height: 16),
-                const Text(
+                Text(
                   'No support tickets yet',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.neutralGray600,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
+                Text(
                   'Create a ticket to get help from our support team',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 14,
-                    color: AppColors.neutralGray600,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -160,8 +159,8 @@ class _SupportTicketsListScreenState
                   icon: const Icon(Icons.add),
                   label: const Text('Create Ticket'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryRed,
-                    foregroundColor: AppColors.neutralWhite,
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    foregroundColor: Theme.of(context).colorScheme.onPrimary,
                   ),
                 ),
               ],
@@ -217,7 +216,6 @@ class _SupportTicketListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final categoryConfig = CategoryConfig.get(ticket.category);
     final statusConfig = StatusConfig.get(ticket.status);
@@ -257,9 +255,7 @@ class _SupportTicketListItem extends StatelessWidget {
                     SupportUtils.formatTimeAgo(lastActivity),
                     style: TextStyle(
                       fontSize: 11,
-                      color: isDark
-                          ? AppColors.neutralGray500
-                          : AppColors.neutralGray600,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ],
@@ -274,9 +270,7 @@ class _SupportTicketListItem extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 14,
-                    color: isDark
-                        ? AppColors.neutralGray300
-                        : AppColors.neutralGray700,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
                 const SizedBox(height: 8),

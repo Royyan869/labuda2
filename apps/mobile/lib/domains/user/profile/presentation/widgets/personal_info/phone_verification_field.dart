@@ -118,7 +118,7 @@ borderSide: BorderSide(
     );
   }
 
-  Widget _buildVerificationBadge(scheme) {
+  Widget _buildVerificationBadge(ColorScheme scheme) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(

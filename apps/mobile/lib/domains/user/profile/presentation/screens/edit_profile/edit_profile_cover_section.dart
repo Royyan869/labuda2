@@ -28,7 +28,7 @@ class EditProfileCoverSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -38,7 +38,7 @@ class EditProfileCoverSection extends StatelessWidget {
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: isDark ? AppColors.neutralGray300 : AppColors.neutralGray700,
+            color: scheme.onSurfaceVariant,
           ),
         ),
         const SizedBox(height: 8),
@@ -49,9 +49,7 @@ class EditProfileCoverSection extends StatelessWidget {
             child: Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
-                color: isDark
-                    ? AppColors.darkGray700
-                    : AppColors.neutralGray200,
+                color: scheme.surfaceContainerHighest,
                 image: _getCoverDecorationImage(),
               ),
               child: Stack(
@@ -65,7 +63,7 @@ class EditProfileCoverSection extends StatelessWidget {
                         end: Alignment.bottomCenter,
                         colors: [
                           Colors.transparent,
-                          Colors.black.withValues(alpha: 0.3),
+                          scheme.scrim.withValues(alpha: 0.3),
                         ],
                       ),
                     ),
@@ -75,12 +73,12 @@ class EditProfileCoverSection extends StatelessWidget {
                     child: Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: AppColors.neutralBlack.withValues(alpha: 0.5),
+                        color: scheme.scrim.withValues(alpha: 0.5),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.camera_alt_outlined,
-                        color: AppColors.neutralWhite,
+                        color: scheme.onPrimary,
                         size: 28,
                       ),
                     ),

@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
+import 'package:labuda/shared/widgets/app_snackbar.dart';
 import 'package:labuda/shared/ui/src/helpers/media_picker_helper.dart';
 import 'package:labuda/shared/ui/src/screens/custom_camera_screen.dart';
 
@@ -139,12 +139,10 @@ class ContentMediaHandler {
 
   /// Show error messages
   void _showError(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: AppColors.statusError,
-        duration: const Duration(seconds: 4),
-      ),
+    AppSnackBar.showError(
+      context,
+      message,
+      duration: const Duration(seconds: 4),
     );
   }
 }

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/user/profile/profile.dart';
 
 /// Action buttons for verification dialog
@@ -48,9 +47,7 @@ class VerificationActionButtons extends StatelessWidget {
                backgroundColor: scheme.primary,
                foregroundColor: scheme.onPrimary,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-              disabledBackgroundColor: AppColors.primaryRed.withValues(
-                alpha: 0.5,
-              ),
+              disabledBackgroundColor: scheme.primary.withValues(alpha: 0.5),
             ),
             child: state.isLoading || state.isVerifying
                 ? SizedBox(

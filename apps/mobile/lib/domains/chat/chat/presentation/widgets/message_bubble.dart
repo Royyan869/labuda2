@@ -12,6 +12,7 @@ import 'package:labuda/domains/chat/chat/presentation/widgets/chat_resource_proj
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 import 'package:labuda/shared/widgets/attachment_widget.dart' as widget_lib;
 import 'package:labuda/shared/object/presentation/widgets/object_preview_card.dart';
+import 'package:labuda/shared/widgets/app_image.dart';
 
 /// Message Bubble Widget
 ///
@@ -75,13 +76,14 @@ class MessageBubble extends ConsumerWidget {
   }
 
   Widget _buildBubble(BuildContext context, WidgetRef ref) {
+    final colorScheme = Theme.of(context).colorScheme;
     final backgroundColor = isFromUser
-        ? Theme.of(context).colorScheme.primary
-        : Colors.grey[200]!;
+        ? colorScheme.primary
+        : colorScheme.surfaceContainerHigh;
 
     final textColor = isFromUser
-        ? Theme.of(context).colorScheme.onPrimary
-        : Colors.grey[900]!;
+        ? colorScheme.onPrimary
+        : colorScheme.onSurface;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -104,8 +106,8 @@ class MessageBubble extends ConsumerWidget {
               _buildResourceProjection(context),
             if (message.type == MessageType.text)
               _buildTextMessage(context, textColor)
-            else if (message.type == MessageType.image)
-              _buildImageMessage(context)
+            else            if (message.type == MessageType.image)
+              _buildImageMessage(context, textColor)
             else if (message.type == MessageType.video)
               _buildVideoMessage(context)
             else if (message.type == MessageType.audio)
@@ -135,30 +137,31 @@ class MessageBubble extends ConsumerWidget {
     return SelectableText(message.content, style: TextStyle(color: textColor));
   }
 
-  Widget _buildImageMessage(BuildContext context) {
+  Widget _buildImageMessage(BuildContext context, Color textColor) {
     if (message.mediaUrls.isNotEmpty) {
+      final colorScheme = Theme.of(context).colorScheme;
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: Image.network(
-              message.mediaUrls.first,
+            child: AppImage(
+              imageUrl: message.mediaUrls.first,
               width: double.maxFinite,
+              height: 200,
               fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  width: double.maxFinite,
-                  height: 200,
-                  color: Colors.grey[300],
-                  child: const Icon(Icons.broken_image, size: 48),
-                );
-              },
+              backgroundColor: colorScheme.surfaceContainerHighest,
+              errorWidget: Container(
+                width: double.maxFinite,
+                height: 200,
+                color: colorScheme.surfaceContainerHighest,
+                child: const Icon(Icons.broken_image, size: 48),
+              ),
             ),
           ),
           if (message.content.isNotEmpty) ...[
             const SizedBox(height: 8),
-            _buildTextMessage(context, Colors.white),
+            _buildTextMessage(context, textColor),
           ],
         ],
       );
@@ -171,11 +174,15 @@ class MessageBubble extends ConsumerWidget {
       width: double.maxFinite,
       height: 200,
       decoration: BoxDecoration(
-        color: Colors.black,
+        color: Theme.of(context).colorScheme.scrim,
         borderRadius: BorderRadius.circular(12),
       ),
-      child: const Center(
-        child: Icon(Icons.play_circle_outline, color: Colors.white, size: 48),
+      child: Center(
+        child: Icon(
+          Icons.play_circle_outline,
+          color: Theme.of(context).colorScheme.onPrimary,
+          size: 48,
+        ),
       ),
     );
   }
@@ -190,7 +197,9 @@ class MessageBubble extends ConsumerWidget {
           width: 100,
           height: 4,
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.3),
+            color: Theme.of(
+              context,
+            ).colorScheme.onPrimary.withValues(alpha: 0.3),
             borderRadius: BorderRadius.circular(2),
           ),
         ),
@@ -225,14 +234,14 @@ class MessageBubble extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: Colors.grey[300],
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Text(
           message.content,
           style: TextStyle(
             fontSize: 12,
-            color: Colors.grey[700],
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
             fontStyle: FontStyle.italic,
           ),
         ),
@@ -241,11 +250,15 @@ class MessageBubble extends ConsumerWidget {
   }
 
   Widget _buildReplyPreview(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final replyInk = isFromUser
+        ? colorScheme.onPrimary.withValues(alpha: 0.7)
+        : colorScheme.onSurfaceVariant;
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.1),
+        color: colorScheme.onSurface.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -255,8 +268,8 @@ class MessageBubble extends ConsumerWidget {
             height: 40,
             decoration: BoxDecoration(
               color: isFromUser
-                  ? Colors.white.withValues(alpha: 0.5)
-                  : Colors.black.withValues(alpha: 0.2),
+                  ? colorScheme.onPrimary.withValues(alpha: 0.5)
+                  : colorScheme.onSurface.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -269,7 +282,7 @@ class MessageBubble extends ConsumerWidget {
                   _senderLabelForReplyPreview(),
                   style: TextStyle(
                     fontSize: 11,
-                    color: isFromUser ? Colors.white70 : Colors.black54,
+                    color: replyInk,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -278,7 +291,7 @@ class MessageBubble extends ConsumerWidget {
                   message.content,
                   style: TextStyle(
                     fontSize: 12,
-                    color: isFromUser ? Colors.white70 : Colors.black54,
+                    color: replyInk,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -421,11 +434,11 @@ class MessageBubble extends ConsumerWidget {
         break;
       case MessageStatus.read:
         icon = Icons.done_all;
-        iconColor = Colors.blue[300]!;
+        iconColor = AppColors.statusInfo;
         break;
       case MessageStatus.failed:
         icon = Icons.error;
-        iconColor = Colors.red[300]!;
+        iconColor = AppColors.statusError;
         break;
     }
 
@@ -451,7 +464,7 @@ class MessageBubble extends ConsumerWidget {
         displayName,
         style: TextStyle(
           fontSize: 11,
-          color: senderDegraded ? AppColors.neutralGray500 : Colors.grey[600],
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
           fontStyle: senderDegraded ? FontStyle.italic : FontStyle.normal,
         ),
       ),

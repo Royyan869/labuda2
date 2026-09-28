@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart' as gmaps;
 import 'package:geocoding/geocoding.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/services/places_autocomplete_service.dart';
 import 'package:labuda/shared/services/location_service.dart';
 import 'package:labuda/shared/widgets/map_picker/address_formatter.dart';
+import 'package:labuda/shared/widgets/app_snackbar.dart';
 
 /// Handler mixin untuk Map Picker logic
 mixin MapPickerHandlers<T extends StatefulWidget> on State<T> {
@@ -164,14 +164,10 @@ mixin MapPickerHandlers<T extends StatefulWidget> on State<T> {
 
         // Show warning jika menggunakan default location
         if (locationWithAccuracy.isDefault && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'GPS tidak terdeteksi. Menggunakan lokasi default.',
-              ),
-              duration: Duration(seconds: 3),
-              backgroundColor: AppColors.primaryRed,
-            ),
+          AppSnackBar.showWarning(
+            context,
+            'GPS tidak terdeteksi. Menggunakan lokasi default.',
+            duration: const Duration(seconds: 3),
           );
         }
       } else if (mounted) {

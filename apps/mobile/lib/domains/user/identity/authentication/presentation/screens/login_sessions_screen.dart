@@ -162,7 +162,9 @@ class _LoginSessionsScreenState extends ConsumerState<LoginSessionsScreen> {
           if (_isMutating)
             Positioned.fill(
               child: ColoredBox(
-                color: Colors.black.withValues(alpha: 0.35),
+                color: Theme.of(
+                  context,
+                ).colorScheme.scrim.withValues(alpha: 0.35),
                 child: const Center(child: CircularProgressIndicator()),
               ),
             ),

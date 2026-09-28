@@ -2,7 +2,6 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/widgets/app_snackbar.dart';
 
 /// Selfie Camera Screen - Capture selfie with KTP in portrait orientation
@@ -140,8 +139,11 @@ class _SelfieCameraScreenState extends State<SelfieCameraScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Immersive camera room: fixed dark in both modes via the scheme scrim
+    // role; overlay ink uses onPrimary (photo-bound, identical pixels).
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: scheme.scrim,
       body: SafeArea(
         child: Stack(
           children: [
@@ -156,7 +158,7 @@ class _SelfieCameraScreenState extends State<SelfieCameraScreen>
                   padding: const EdgeInsets.all(16.0),
                   child: Text(
                     _errorMessage!,
-                    style: const TextStyle(color: Colors.white, fontSize: 16),
+                    style: TextStyle(color: scheme.onPrimary, fontSize: 16),
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -164,8 +166,8 @@ class _SelfieCameraScreenState extends State<SelfieCameraScreen>
 
             // Loading
             if (!_isCameraInitialized && _errorMessage == null)
-              const Center(
-                child: CircularProgressIndicator(color: Colors.white),
+              Center(
+                child: CircularProgressIndicator(color: scheme.onPrimary),
               ),
 
             // Selfie Frame Overlay
@@ -191,7 +193,7 @@ class _SelfieCameraScreenState extends State<SelfieCameraScreen>
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                   border: Border.all(
-                                    color: Colors.white,
+                                    color: scheme.onPrimary,
                                     width: 2,
                                   ),
                                 ),
@@ -212,31 +214,27 @@ class _SelfieCameraScreenState extends State<SelfieCameraScreen>
                                           decoration: BoxDecoration(
                                             border: Border(
                                               top: isTop
-                                                  ? const BorderSide(
-                                                      color:
-                                                          AppColors.primaryRed,
+                                                  ? BorderSide(
+                                                      color: scheme.primary,
                                                       width: 3,
                                                     )
                                                   : BorderSide.none,
                                               bottom: isTop
                                                   ? BorderSide.none
-                                                  : const BorderSide(
-                                                      color:
-                                                          AppColors.primaryRed,
+                                                  : BorderSide(
+                                                      color: scheme.primary,
                                                       width: 3,
                                                     ),
                                               left: isLeft
-                                                  ? const BorderSide(
-                                                      color:
-                                                          AppColors.primaryRed,
+                                                  ? BorderSide(
+                                                      color: scheme.primary,
                                                       width: 3,
                                                     )
                                                   : BorderSide.none,
                                               right: isLeft
                                                   ? BorderSide.none
-                                                  : const BorderSide(
-                                                      color:
-                                                          AppColors.primaryRed,
+                                                  : BorderSide(
+                                                      color: scheme.primary,
                                                       width: 3,
                                                     ),
                                             ),
@@ -263,26 +261,26 @@ class _SelfieCameraScreenState extends State<SelfieCameraScreen>
                                 vertical: 8,
                               ),
                               decoration: BoxDecoration(
-                                color: const Color(0xCC000000),
+                                color: scheme.scrim.withValues(alpha: 0.8),
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
-                                  color: AppColors.primaryRed,
+                                  color: scheme.primary,
                                   width: 2,
                                 ),
                               ),
-                              child: const Row(
+                              child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(
                                     Icons.credit_card,
-                                    color: AppColors.primaryRed,
+                                    color: scheme.primary,
                                     size: 20,
                                   ),
-                                  SizedBox(width: 6),
+                                  const SizedBox(width: 6),
                                   Text(
                                     'Pegang KTP',
                                     style: TextStyle(
-                                      color: Colors.white,
+                                      color: scheme.onPrimary,
                                       fontSize: 12,
                                       fontWeight: FontWeight.w500,
                                     ),
@@ -305,12 +303,12 @@ class _SelfieCameraScreenState extends State<SelfieCameraScreen>
               right: 0,
               child: Container(
                 padding: const EdgeInsets.all(16),
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      Color(0x99000000), // Black with 60% opacity
+                      scheme.scrim.withValues(alpha: 0.6),
                       Colors.transparent,
                     ],
                   ),
@@ -322,7 +320,7 @@ class _SelfieCameraScreenState extends State<SelfieCameraScreen>
                     IconButton(
                       onPressed: () => Navigator.of(context).pop(),
                       icon: const Icon(Icons.close),
-                      color: Colors.white,
+                      color: scheme.onPrimary,
                       iconSize: 28,
                     ),
                     const SizedBox(width: 48), // Balance for centering
@@ -338,12 +336,12 @@ class _SelfieCameraScreenState extends State<SelfieCameraScreen>
               right: 0,
               child: Container(
                 padding: const EdgeInsets.all(24),
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.bottomCenter,
                     end: Alignment.topCenter,
                     colors: [
-                      Color(0xCC000000), // Black with 80% opacity
+                      scheme.scrim.withValues(alpha: 0.8),
                       Colors.transparent,
                     ],
                   ),
@@ -352,19 +350,19 @@ class _SelfieCameraScreenState extends State<SelfieCameraScreen>
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     // Instructions
-                    const Text(
+                    Text(
                       'Posisikan wajah di dalam lingkaran',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: scheme.onPrimary,
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                     const SizedBox(height: 4),
-                    const Text(
+                    Text(
                       'Pegang KTP di samping wajah Anda',
                       style: TextStyle(
-                        color: Color(0xB3FFFFFF), // White with 70% opacity
+                        color: scheme.onPrimary.withValues(alpha: 0.7),
                         fontSize: 14,
                       ),
                     ),
@@ -378,14 +376,17 @@ class _SelfieCameraScreenState extends State<SelfieCameraScreen>
                         height: 72,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 4),
+                          border: Border.all(
+                            color: scheme.onPrimary,
+                            width: 4,
+                          ),
                         ),
                         child: Center(
                           child: Container(
                             width: 56,
                             height: 56,
-                            decoration: const BoxDecoration(
-                              color: Colors.white,
+                            decoration: BoxDecoration(
+                              color: scheme.onPrimary,
                               shape: BoxShape.circle,
                             ),
                           ),

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/system/report/domain/entities/entities.dart';
 
 /// Report Reason Selector Widget
@@ -20,7 +19,6 @@ class ReportReasonSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -30,7 +28,7 @@ class ReportReasonSelector extends StatelessWidget {
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
-            color: isDark ? AppColors.neutralWhite : AppColors.neutralGray900,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 16),
@@ -46,7 +44,6 @@ class ReportReasonSelector extends StatelessWidget {
             return _ReasonCard(
               reason: reason,
               isSelected: isSelected,
-              isDark: isDark,
               isEnabled: isEnabled,
               onTap: isEnabled ? () => onReasonSelected(reason) : null,
             );
@@ -60,14 +57,12 @@ class ReportReasonSelector extends StatelessWidget {
 class _ReasonCard extends StatelessWidget {
   final ReportReasonType reason;
   final bool isSelected;
-  final bool isDark;
   final bool isEnabled;
   final VoidCallback? onTap;
 
   const _ReasonCard({
     required this.reason,
     required this.isSelected,
-    required this.isDark,
     required this.isEnabled,
     required this.onTap,
   });
@@ -80,13 +75,13 @@ class _ReasonCard extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           color: isSelected
-              ? AppColors.primaryBlue.withValues(alpha: 0.1)
-              : (isDark ? AppColors.darkGray700 : AppColors.neutralGray100),
+              ? Theme.of(context).colorScheme.secondary.withValues(alpha: 0.1)
+              : (Theme.of(context).colorScheme.surfaceContainer),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected
-                ? AppColors.primaryBlue
-                : (isDark ? AppColors.darkGray600 : AppColors.neutralGray300),
+                ? Theme.of(context).colorScheme.secondary
+                : (Theme.of(context).colorScheme.outlineVariant),
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -98,19 +93,15 @@ class _ReasonCard extends StatelessWidget {
               height: 40,
               decoration: BoxDecoration(
                 color: isSelected
-                    ? AppColors.primaryBlue
-                    : (isDark
-                          ? AppColors.darkGray600
-                          : AppColors.neutralGray200),
+                    ? Theme.of(context).colorScheme.secondary
+                    : (Theme.of(context).colorScheme.outlineVariant),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 _getIconForReason(reason),
                 color: isSelected
-                    ? AppColors.neutralWhite
-                    : (isDark
-                          ? AppColors.neutralGray400
-                          : AppColors.neutralGray600),
+                    ? Theme.of(context).colorScheme.onPrimary
+                    : (Theme.of(context).colorScheme.onSurfaceVariant),
                 size: 20,
               ),
             ),
@@ -123,10 +114,8 @@ class _ReasonCard extends StatelessWidget {
                   fontSize: 12,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                   color: isSelected
-                      ? AppColors.primaryBlue
-                      : (isDark
-                            ? AppColors.neutralWhite
-                            : AppColors.neutralGray900),
+                      ? Theme.of(context).colorScheme.secondary
+                      : (Theme.of(context).colorScheme.onSurface),
                 ),
                 textAlign: TextAlign.center,
                 maxLines: 2,

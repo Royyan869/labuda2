@@ -77,7 +77,7 @@ class SupportTicketCardRefactored extends ConsumerWidget {
                   Text(
                     timeAgo,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: Colors.grey[600],
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ],
@@ -120,7 +120,7 @@ class SupportTicketCardRefactored extends ConsumerWidget {
                               Icon(
                                 Icons.link,
                                 size: 12,
-                                color: Colors.blue[700],
+                                color: Theme.of(context).colorScheme.secondary,
                               ),
                               const SizedBox(width: 4),
                               Flexible(
@@ -128,7 +128,7 @@ class SupportTicketCardRefactored extends ConsumerWidget {
                                   'Order #${ticket.linkedOrderId!.substring(0, 8)}...',
                                   style: TextStyle(
                                     fontSize: 11,
-                                    color: Colors.blue[700],
+                                    color: Theme.of(context).colorScheme.secondary,
                                   ),
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -159,7 +159,7 @@ class SupportTicketCardRefactored extends ConsumerWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey[700],
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
                 const SizedBox(height: 12),

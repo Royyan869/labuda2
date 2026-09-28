@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/domains/user/identity/authentication/authentication.dart';
+import 'package:labuda/core/core.dart';
+import 'package:labuda/shared/widgets/app_snackbar.dart';
 import 'package:labuda/domains/commerce/pricing/discount/domain/entities/discount_entity.dart';
 import 'package:labuda/domains/commerce/pricing/discount/presentation/providers/discount_provider.dart';
 import 'package:labuda/domains/commerce/pricing/discount/presentation/screens/create_discount_screen.dart';
@@ -79,9 +80,21 @@ class _SellerDiscountListScreenState
             return TabBarView(
               controller: _tabController,
               children: [
-                _buildDiscountList(activeDiscounts, 'No active discounts'),
-                _buildDiscountList(expiredDiscounts, 'No expired discounts'),
-                _buildDiscountList(inactiveDiscounts, 'No inactive discounts'),
+                _buildDiscountList(
+                  context,
+                  activeDiscounts,
+                  'No active discounts',
+                ),
+                _buildDiscountList(
+                  context,
+                  expiredDiscounts,
+                  'No expired discounts',
+                ),
+                _buildDiscountList(
+                  context,
+                  inactiveDiscounts,
+                  'No inactive discounts',
+                ),
               ],
             );
           },
@@ -102,10 +115,19 @@ class _SellerDiscountListScreenState
     );
   }
 
-  Widget _buildDiscountList(List<Discount> discounts, String emptyMessage) {
+  Widget _buildDiscountList(
+    BuildContext context,
+    List<Discount> discounts,
+    String emptyMessage,
+  ) {
     if (discounts.isEmpty) {
       return Center(
-        child: Text(emptyMessage, style: const TextStyle(color: Colors.grey)),
+        child: Text(
+          emptyMessage,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
       );
     }
 
@@ -193,12 +215,10 @@ class _SellerDiscountListScreenState
     result.fold(
       (error) {
         // Show error message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(error),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 4),
-          ),
+        AppSnackBar.showError(
+          context,
+          error,
+          duration: const Duration(seconds: 4),
         );
       },
       (updatedDiscount) {
@@ -239,8 +259,8 @@ class _SellerDiscountListScreenState
           if (discount.currentUsageCount == 0)
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
+                backgroundColor: AppColors.error,
+                foregroundColor: Theme.of(context).colorScheme.onError,
               ),
               onPressed: () => Navigator.pop(context, true),
               child: const Text('Delete'),
@@ -265,12 +285,10 @@ class _SellerDiscountListScreenState
     result.fold(
       (error) {
         // Show error message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(error),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 4),
-          ),
+        AppSnackBar.showError(
+          context,
+          error,
+          duration: const Duration(seconds: 4),
         );
       },
       (_) {

@@ -27,7 +27,8 @@ func TestAuctionListResponse_CarriesCanonicalProductContentBlock(t *testing.T) {
 			SecretKey: "test-secret-key",
 			Bucket:    "labuda-uploads",
 		},
-		ReadTTL: time.Minute,
+		CDNBaseURL: "https://cdn.example.test",
+		ReadTTL:    time.Minute,
 	})
 
 	now := time.Now().UTC()
@@ -81,8 +82,8 @@ func TestAuctionListResponse_CarriesCanonicalProductContentBlock(t *testing.T) {
 	if !ok || len(mediaURLs) != 1 {
 		t.Fatalf("media_urls = %#v, want 1 item", resp["media_urls"])
 	}
-	if mediaURLs[0] != product.MediaURLs[0] {
-		t.Fatalf("media_urls[0] = %q, want %q", mediaURLs[0], product.MediaURLs[0])
+	if mediaURLs[0] != "https://cdn.example.test/auctions/koi.jpg" {
+		t.Fatalf("media_urls[0] = %q, want canonical CDN URL", mediaURLs[0])
 	}
 
 	media, ok := resp["media"].([]map[string]interface{})
@@ -94,6 +95,9 @@ func TestAuctionListResponse_CarriesCanonicalProductContentBlock(t *testing.T) {
 	}
 	if media[0]["type"] != "image" {
 		t.Fatalf("media[0].type = %v, want image", media[0]["type"])
+	}
+	if media[0]["url"] != mediaURLs[0] {
+		t.Fatalf("media[0].url = %q, want %q (single read authority)", media[0]["url"], mediaURLs[0])
 	}
 
 	if resp["farm_address_id"] == nil {

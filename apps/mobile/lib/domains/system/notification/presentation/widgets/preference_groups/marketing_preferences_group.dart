@@ -11,6 +11,7 @@
 library;
 
 // Dart
+import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/system/notification/domain/entities/notification_preference_entity.dart';
 import 'package:labuda/domains/system/notification/presentation/widgets/preference_toggle_widget.dart';
 
@@ -33,7 +34,7 @@ class MarketingPreferencesGroup extends StatelessWidget {
       children: [
         PreferenceToggleWidget(
           icon: Icons.campaign_outlined,
-          iconColor: Colors.cyan[700]!,
+          iconColor: AppColors.statusInfo,
           title: 'Promotions & Announcements',
           subtitle: 'Special offers and latest news',
           value: preferences.marketingNotifications,

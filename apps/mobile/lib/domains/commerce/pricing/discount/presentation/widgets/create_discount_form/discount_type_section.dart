@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:labuda/core/core.dart' as core;
 import 'package:labuda/domains/commerce/pricing/discount/domain/entities/discount_entity.dart';
 import 'package:labuda/shared/widgets/app_text_field.dart';
 
@@ -53,14 +52,10 @@ class _DiscountTypeSectionState extends State<DiscountTypeSection> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark
-            ? core.AppColors.darkGray800
-            : core.AppColors.neutralWhite,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -71,9 +66,7 @@ class _DiscountTypeSectionState extends State<DiscountTypeSection> {
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: isDark
-                  ? core.AppColors.neutralWhite
-                  : core.AppColors.neutralGray900,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 16),
@@ -84,9 +77,7 @@ class _DiscountTypeSectionState extends State<DiscountTypeSection> {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
-              color: isDark
-                  ? core.AppColors.neutralGray300
-                  : core.AppColors.neutralGray700,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 8),
@@ -102,17 +93,15 @@ class _DiscountTypeSectionState extends State<DiscountTypeSection> {
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? core.AppColors.primaryRed.withValues(alpha: 0.1)
-                        : (isDark
-                              ? core.AppColors.darkGray700
-                              : core.AppColors.neutralGray50),
+                        ? Theme.of(
+                            context,
+                          ).colorScheme.primary.withValues(alpha: 0.1)
+                        : (Theme.of(context).colorScheme.surfaceContainer),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
                       color: isSelected
-                          ? core.AppColors.primaryRed
-                          : (isDark
-                                ? core.AppColors.neutralGray700
-                                : core.AppColors.neutralGray200),
+                          ? Theme.of(context).colorScheme.primary
+                          : (Theme.of(context).colorScheme.outlineVariant),
                       width: isSelected ? 2 : 1,
                     ),
                   ),
@@ -123,10 +112,8 @@ class _DiscountTypeSectionState extends State<DiscountTypeSection> {
                             ? Icons.radio_button_checked
                             : Icons.radio_button_unchecked,
                         color: isSelected
-                            ? core.AppColors.primaryRed
-                            : (isDark
-                                  ? core.AppColors.neutralGray400
-                                  : core.AppColors.neutralGray500),
+                            ? Theme.of(context).colorScheme.primary
+                            : (Theme.of(context).colorScheme.outline),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -138,10 +125,8 @@ class _DiscountTypeSectionState extends State<DiscountTypeSection> {
                                 ? FontWeight.w600
                                 : FontWeight.normal,
                             color: isSelected
-                                ? core.AppColors.primaryRed
-                                : (isDark
-                                      ? core.AppColors.neutralWhite
-                                      : core.AppColors.neutralGray900),
+                                ? Theme.of(context).colorScheme.primary
+                                : (Theme.of(context).colorScheme.onSurface),
                           ),
                         ),
                       ),

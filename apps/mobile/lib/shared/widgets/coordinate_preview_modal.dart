@@ -159,23 +159,11 @@ class CoordinatePreviewModal extends StatelessWidget {
             ),
             clipBehavior: Clip.antiAlias,
             child: GoogleConfig.isConfigured
-                ? Image.network(
-                    _staticMapUrl,
+                ? AppImage(
+                    imageUrl: _staticMapUrl,
                     fit: BoxFit.cover,
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return Center(
-                        child: CircularProgressIndicator(
-                          value: loadingProgress.expectedTotalBytes != null
-                              ? loadingProgress.cumulativeBytesLoaded /
-                                    loadingProgress.expectedTotalBytes!
-                              : null,
-                        ),
-                      );
-                    },
-                    errorBuilder: (context, error, stackTrace) {
-                      return _buildMapPlaceholder(scheme);
-                    },
+                    backgroundColor: scheme.surfaceContainerHighest,
+                    errorWidget: _buildMapPlaceholder(scheme),
                   )
                 : _buildMapPlaceholder(scheme),
           ),

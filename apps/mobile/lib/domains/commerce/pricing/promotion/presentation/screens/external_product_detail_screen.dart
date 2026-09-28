@@ -3,9 +3,11 @@ library;
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:labuda/shared/widgets/app_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/shared/widgets/app_snackbar.dart';
 import 'package:labuda/domains/commerce/pricing/promotion/domain/entities/external_product.dart';
 import 'package:labuda/domains/commerce/pricing/promotion/domain/entities/external_product_media.dart';
 import 'package:labuda/domains/commerce/pricing/promotion/domain/entities/external_product_review_status.dart';
@@ -119,7 +121,7 @@ class _ExternalProductDetailScreenState
         if (product.canEdit)
           _actionButton(
             label: 'Edit',
-            color: Colors.blue,
+            color: AppColors.statusInfo,
             onPressed: () => _showEditDialog(context, product),
           ),
 
@@ -136,7 +138,7 @@ class _ExternalProductDetailScreenState
           const SizedBox(height: 10),
           _actionButton(
             label: 'Resubmit for Review',
-            color: Colors.orange,
+            color: AppColors.warning,
             onPressed: () => _resubmit(product.id),
           ),
         ],
@@ -155,7 +157,7 @@ class _ExternalProductDetailScreenState
         onPressed: _isSubmitting ? null : onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: color,
-          foregroundColor: Colors.white,
+          foregroundColor: Theme.of(context).colorScheme.onPrimary,
         ),
         child: _isSubmitting ? const CircularProgressIndicator() : Text(label),
       ),
@@ -166,11 +168,15 @@ class _ExternalProductDetailScreenState
     final isRequestChanges =
         product.reviewStatus == ExternalProductReviewStatus.requestChanges;
     final titleText = isRequestChanges ? 'Perlu Perbaikan' : 'Alasan Penolakan';
-    final borderColor = isRequestChanges ? Colors.orange : AppColors.primaryRed;
+    final borderColor = isRequestChanges
+        ? AppColors.warning
+        : Theme.of(context).colorScheme.primary;
     final bgColor = isRequestChanges
-        ? Colors.orange.withValues(alpha: 0.05)
-        : AppColors.primaryRed.withValues(alpha: 0.05);
-    final textColor = isRequestChanges ? Colors.orange : AppColors.primaryRed;
+        ? AppColors.warning.withValues(alpha: 0.05)
+        : Theme.of(context).colorScheme.primary.withValues(alpha: 0.05);
+    final textColor = isRequestChanges
+        ? AppColors.warning
+        : Theme.of(context).colorScheme.primary;
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -224,9 +230,9 @@ class _ExternalProductDetailScreenState
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text(
+            child: Text(
               'Delete',
-              style: TextStyle(color: AppColors.primaryRed),
+              style: TextStyle(color: Theme.of(context).colorScheme.primary),
             ),
           ),
         ],
@@ -281,7 +287,7 @@ class _ExternalProductDetailScreenState
                   padding: EdgeInsets.only(top: 8),
                   child: Text(
                     'Editing an approved product will return it to pending review.',
-                    style: TextStyle(fontSize: 12, color: Colors.orange),
+                    style: TextStyle(fontSize: 12, color: AppColors.warning),
                   ),
                 ),
             ],
@@ -334,7 +340,7 @@ class _ExternalProductDetailScreenState
           title: const Text('Add Media to Approved Product'),
           content: const Text(
             'Adding media to an approved product will return it to pending review.',
-            style: TextStyle(fontSize: 13, color: Colors.orange),
+            style: TextStyle(fontSize: 13, color: AppColors.warning),
           ),
           actions: [
             TextButton(
@@ -402,13 +408,7 @@ class _ExternalProductDetailScreenState
 
     if (!context.mounted) return;
     if (!uploadResult.isSuccess) {
-      setState(() => _isSubmitting = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(uploadResult.error ?? 'Upload failed'),
-          backgroundColor: AppColors.primaryRed,
-        ),
-      );
+      setState(() => _isSubmitting = false);        AppSnackBar.showError(context, uploadResult.error ?? 'Upload failed');
       return;
     }
 
@@ -435,10 +435,7 @@ class _ExternalProductDetailScreenState
         context,
       ).showSnackBar(const SnackBar(content: Text('Success')));
       return;
-    }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(errorText), backgroundColor: AppColors.primaryRed),
-    );
+    }      AppSnackBar.showError(context, errorText);
   }
 
   static String _reviewStatusLabel(ExternalProductReviewStatus status) {
@@ -487,7 +484,7 @@ class _SectionCard extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.neutralGray200),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -517,7 +514,7 @@ class _MediaRow extends StatelessWidget {
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
-        color: AppColors.neutralGray50,
+        color: Theme.of(context).colorScheme.surfaceContainer,
       ),
       child: Row(
         children: [
@@ -526,16 +523,15 @@ class _MediaRow extends StatelessWidget {
             height: 48,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(6),
-              color: AppColors.neutralGray100,
+              color: Theme.of(context).colorScheme.surfaceContainer,
             ),
             clipBehavior: Clip.antiAlias,
             child: media.mediaType == 'image'
-                ? Image.network(
-                    media.thumbnailUrl ?? media.url,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) =>
-                        const Icon(Icons.broken_image_outlined),
-                  )
+            ? AppImage(
+                imageUrl: media.thumbnailUrl ?? media.url,
+                fit: BoxFit.cover,
+                errorWidget: const Icon(Icons.broken_image_outlined),
+              )
                 : const Icon(Icons.videocam_outlined),
           ),
           const SizedBox(width: 10),
@@ -551,7 +547,7 @@ class _MediaRow extends StatelessWidget {
                   media.url,
                   style: TextStyle(
                     fontSize: 11,
-                    color: AppColors.neutralGray600,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -563,7 +559,7 @@ class _MediaRow extends StatelessWidget {
             IconButton(
               onPressed: onDelete,
               icon: const Icon(Icons.delete_outline, size: 20),
-              color: AppColors.primaryRed,
+              color: Theme.of(context).colorScheme.primary,
             ),
         ],
       ),

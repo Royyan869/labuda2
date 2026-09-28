@@ -1,7 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:labuda/domains/social/content/domain/entities/content.dart';
-import 'stable_network_image.dart';
+import 'app_image.dart';
 import 'media_viewer_video_player.dart';
 
 /// Shared Media Viewer Widget untuk fullscreen image/video viewing
@@ -9,8 +9,7 @@ import 'media_viewer_video_player.dart';
 /// CANONICAL CONTENT MEDIA SURFACE:
 /// - [MediaEntity.type] is the render authority. A `MediaType.video` entity
 ///   renders through [MediaViewerVideoPlayer]; an image entity renders
-///   through [StableNetworkImage] (the shared network-media path that
-///   projects the reference through `resolveNetworkImageUrl`). A video
+///   through [AppImage] (CloudFront URL as-is, cached). A video
 ///   reference is never handed to the image decoder, and the render decision
 ///   is never inferred from a file extension.
 ///
@@ -131,7 +130,7 @@ class _MediaViewerWidgetState extends State<MediaViewerWidget> {
   }
 
   /// Image frame: blurred backdrop + zoomable canonical image. Both layers
-  /// render through [StableNetworkImage], the shared network-media path.
+  /// render through [AppImage]; the shared HTTP cache serves the second layer.
   Widget _buildImage(String imageUrl) {
     return Stack(
       fit: StackFit.expand,
@@ -144,10 +143,10 @@ class _MediaViewerWidgetState extends State<MediaViewerWidget> {
               sigmaY: 20,
               tileMode: TileMode.decal,
             ),
-            child: StableNetworkImage(
+            child: AppImage(
               imageUrl: imageUrl,
               fit: BoxFit.cover,
-              fallback: const SizedBox.shrink(),
+              errorWidget: const SizedBox.shrink(),
             ),
           ),
         ),
@@ -159,10 +158,10 @@ class _MediaViewerWidgetState extends State<MediaViewerWidget> {
         InteractiveViewer(
           minScale: 0.5,
           maxScale: 3.0,
-          child: StableNetworkImage(
+          child: AppImage(
             imageUrl: imageUrl,
             fit: BoxFit.contain,
-            fallback: const SizedBox.shrink(),
+            errorWidget: const SizedBox.shrink(),
           ),
         ),
       ],

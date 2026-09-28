@@ -21,6 +21,8 @@ import 'package:labuda/domains/system/notification/domain/entities/notification_
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:labuda/core/src/theme/app_colors.dart';
+
 class NotificationNavigationService {
   final NavigationHandler _navigationHandler;
 
@@ -558,7 +560,7 @@ class NotificationNavigationService {
       builder: (context) => AlertDialog(
         title: Row(
           children: [
-            const Icon(Icons.build, color: Colors.orange),
+            Icon(Icons.build, color: AppColors.statusWarning),
             const SizedBox(width: 8),
             const Expanded(
               child: Text('Maintenance System', style: TextStyle(fontSize: 18)),

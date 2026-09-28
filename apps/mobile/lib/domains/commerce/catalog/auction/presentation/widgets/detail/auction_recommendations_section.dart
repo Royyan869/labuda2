@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
 import 'package:labuda/shared/utils/media_extensions.dart';
+import 'package:labuda/shared/widgets/app_image.dart';
 
 /// Recommendations section widget for auction detail
 class AuctionRecommendationsSection extends StatelessWidget {
@@ -90,11 +91,13 @@ class AuctionRecommendationsSection extends StatelessWidget {
                       children: [
                         if (auction.media.isNotEmptyUrls)
                           Expanded(
-                            child: Image.network(
-                              auction.media.firstUrl,
+                            child: AppImage(
+                              imageUrl: auction.media.firstUrl,
                               width: double.infinity,
                               fit: BoxFit.cover,
-                              errorBuilder: (_, _, _) => Container(
+                              backgroundColor:
+                                  colorScheme.surfaceContainerHighest,
+                              errorWidget: Container(
                                 color:
                                     colorScheme.surfaceContainerHighest,
                                 child: Icon(

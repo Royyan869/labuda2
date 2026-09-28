@@ -193,7 +193,10 @@ class _CreateDiscountScreenState extends ConsumerState<CreateDiscountScreen> {
               Navigator.of(context).pop();
               Navigator.of(context).pop();
             },
-            child: const Text('Discard', style: TextStyle(color: Colors.red)),
+            child: const Text(
+              'Discard',
+              style: TextStyle(color: core.AppColors.error),
+            ),
           ),
         ],
       ),
@@ -202,8 +205,6 @@ class _CreateDiscountScreenState extends ConsumerState<CreateDiscountScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
@@ -215,9 +216,7 @@ class _CreateDiscountScreenState extends ConsumerState<CreateDiscountScreen> {
         }
       },
       child: Scaffold(
-        backgroundColor: isDark
-            ? core.AppColors.darkGray900
-            : core.AppColors.neutralGray50,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         appBar: AppBar(
           title: Text(_isEditMode ? 'Edit Discount' : 'Create New Discount'),
           elevation: 0,
@@ -337,12 +336,12 @@ class _CreateDiscountScreenState extends ConsumerState<CreateDiscountScreen> {
         bottomNavigationBar: Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: isDark
-                ? core.AppColors.darkGray800
-                : core.AppColors.neutralWhite,
+            color: Theme.of(context).colorScheme.surface,
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
+                color: Theme.of(
+                  context,
+                ).colorScheme.scrim.withValues(alpha: 0.05),
                 blurRadius: 10,
                 offset: const Offset(0, -2),
               ),

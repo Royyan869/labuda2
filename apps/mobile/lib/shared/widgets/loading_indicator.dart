@@ -83,7 +83,9 @@ class FullScreenLoading extends StatelessWidget {
     return PopScope(
       canPop: barrierDismissible,
       child: Container(
-        color: AppColors.dark.withValues(alpha: 0.5),
+        color: Theme.of(
+          context,
+        ).colorScheme.scrim.withValues(alpha: 0.5),
         child: Center(
           child: Card(
             child: Padding(

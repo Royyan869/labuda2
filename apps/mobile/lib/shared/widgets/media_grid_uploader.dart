@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/core/media/media_upload_config.dart';
 import 'package:labuda/core/media/media_upload_orchestrator.dart';
+import 'package:labuda/shared/widgets/app_image.dart';
 
 /// Shared commerce media grid — foto+video, dipakai for_sale, auction, komentar, chat.
 ///
 /// Immediate upload: pick → S3 → List<String> URLs → parent setState.
-/// Foto tampil Image.network, video tampil icon overlay (storageKey mp4).
+/// Foto tampil AppImage, video tampil icon overlay (storageKey mp4).
 class MediaGridUploader extends StatelessWidget {
   final List<String> mediaUrls;
   final void Function(String url) onMediaAdded;
@@ -105,7 +106,7 @@ class MediaGridUploader extends StatelessWidget {
                           size: 32,
                         ),
                       )
-                    : Image.network(url, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.broken_image)),
+                    : AppImage(imageUrl: url, fit: BoxFit.cover, errorWidget: const Icon(Icons.broken_image)),
               ),
               Positioned(
                 top: 4,
@@ -209,7 +210,7 @@ class CompactMediaStrip extends StatelessWidget {
                                 color: scheme.onPrimary,
                               ),
                             )
-                          : Image.network(url, width: 72, height: 72, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.broken_image)),
+                          : AppImage(imageUrl: url, width: 72, height: 72, fit: BoxFit.cover, errorWidget: const Icon(Icons.broken_image)),
                     ),
                     Positioned(
                       top: 2, right: 2,

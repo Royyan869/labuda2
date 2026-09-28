@@ -53,14 +53,11 @@ class AppColors {
   static const Color coinPrimary = Color(0xFFFFA726); // Amber
   static const Color coinSecondary = Color(0xFFFF9800); // Orange
 
-  // Shortcut aliases untuk consistency
+  // Semantic aliases (canonical, in active use)
   static const Color primary = primaryRed;
   static const Color success = statusSuccess;
   static const Color warning = statusWarning;
   static const Color error = statusError;
-  static const Color light = neutralWhite; // For backward compatibility
-  static const Color dark = neutralBlack; // For backward compatibility
-  static const Color neutral = neutralGray500; // For backward compatibility
 
   // Gradients
   static const LinearGradient primaryGradient = LinearGradient(

@@ -12,6 +12,7 @@ import 'package:labuda/domains/user/profile/data/services/blocked_users_service.
 import 'package:labuda/domains/user/profile/presentation/providers/blocked_users_provider.dart';
 import 'package:labuda/domains/user/profile/presentation/screens/blocked_users_screen.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
+import 'package:labuda/shared/widgets/app_image.dart';
 
 class _FakeAuthController extends AuthController {
   _FakeAuthController(this._state);
@@ -237,24 +238,25 @@ void main() {
           service: service,
         ),
       );
-      await tester.pumpAndSettle();
+      // No pumpAndSettle: the canonical cached image shows an animated
+      // shimmer while loading.
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
 
       expect(find.text('@alice'), findsOneWidget);
       expect(find.text('Pengguna tidak tersedia'), findsNothing);
 
       // Factual ProfileAvatar contract (owner decision 2026-09-24): the
-      // user's photo is wired through StableNetworkImage (an Image.network
+      // user's photo is wired through AppImage (canonical cached renderer
       // with the user's URL inside the ListTile) — the old
-      // CircleAvatar/backgroundImage API no longer exists. The icon fallback
-      // legitimately stays visible while the photo is loading.
+      // CircleAvatar/backgroundImage API no longer exists.
       expect(
         find.descendant(
           of: find.byType(ListTile),
           matching: find.byWidgetPredicate(
             (widget) =>
-                widget is Image &&
-                widget.image is NetworkImage &&
-                (widget.image as NetworkImage).url.contains('alice.png'),
+                widget is AppImage &&
+                (widget.imageUrl ?? '').contains('alice.png'),
           ),
         ),
         findsOneWidget,

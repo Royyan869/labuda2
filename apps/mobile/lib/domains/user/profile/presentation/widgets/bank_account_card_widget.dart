@@ -28,14 +28,14 @@ class BankAccountCardWidget extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: account.isDefault
-              ? AppColors.primaryRed.withValues(alpha: 0.3)
+              ? scheme.primary.withValues(alpha: 0.3)
               : scheme.outlineVariant,
         ),
         gradient: account.isDefault
             ? LinearGradient(
                 colors: [
-                  AppColors.primaryRed.withValues(alpha: 0.05),
-                  AppColors.primaryRed.withValues(alpha: 0.02),
+                  scheme.primary.withValues(alpha: 0.05),
+                  scheme.primary.withValues(alpha: 0.02),
                 ],
               )
             : null,
@@ -50,12 +50,12 @@ class BankAccountCardWidget extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryRed.withValues(alpha: 0.1),
+                  color: scheme.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
                   Icons.account_balance,
-                  color: AppColors.primaryRed,
+                  color: scheme.primary,
                   size: 20,
                 ),
               ),

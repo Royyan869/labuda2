@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/shared.dart';
-import 'package:labuda/shared/widgets/empty_state.dart';
 import 'package:labuda/domains/social/content/content.dart';
 import 'package:labuda/features/home/domain/domain.dart'; // R3.1: Import FeedItem from home domain
 import 'package:labuda/features/home/presentation/providers/feed_renderers.dart';
@@ -210,7 +209,7 @@ class _ProfileFeedTabState extends ConsumerState<ProfileFeedTab> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     // Use CustomScrollView for NestedScrollView compatibility
     return CustomScrollView(
@@ -221,13 +220,9 @@ class _ProfileFeedTabState extends ConsumerState<ProfileFeedTab> {
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
+              color: scheme.surface,
               border: Border(
-                bottom: BorderSide(
-                  color: isDark
-                      ? AppColors.darkGray600
-                      : AppColors.neutralGray200,
-                ),
+                bottom: BorderSide(color: scheme.outlineVariant),
               ),
             ),
             child: Row(
@@ -237,9 +232,7 @@ class _ProfileFeedTabState extends ConsumerState<ProfileFeedTab> {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: isDark
-                        ? AppColors.neutralWhite
-                        : AppColors.neutralGray900,
+                    color: scheme.onSurface,
                   ),
                 ),
                 const Spacer(),
@@ -249,9 +242,7 @@ class _ProfileFeedTabState extends ConsumerState<ProfileFeedTab> {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: isDark
-                        ? AppColors.darkGray700
-                        : AppColors.neutralGray100,
+                    color: scheme.surfaceContainer,
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: DropdownButtonHideUnderline(
@@ -260,13 +251,9 @@ class _ProfileFeedTabState extends ConsumerState<ProfileFeedTab> {
                       isDense: true,
                       style: TextStyle(
                         fontSize: 14,
-                        color: isDark
-                            ? AppColors.neutralWhite
-                            : AppColors.neutralGray800,
+                        color: scheme.onSurface,
                       ),
-                      dropdownColor: isDark
-                          ? AppColors.darkGray700
-                          : AppColors.neutralWhite,
+                      dropdownColor: scheme.surfaceContainerHigh,
                       items: _filterOptions.map((String filter) {
                         return DropdownMenuItem<String>(
                           value: filter,
@@ -294,7 +281,7 @@ class _ProfileFeedTabState extends ConsumerState<ProfileFeedTab> {
         else if (_loadErrorMessage != null)
           SliverFillRemaining(child: _buildErrorState(_loadErrorMessage!))
         else if (_filteredContent.isEmpty)
-          SliverFillRemaining(child: _buildEmptyState(context, isDark))
+          SliverFillRemaining(child: _buildEmptyState(context))
         else
           SliverPadding(
             padding: const EdgeInsets.symmetric(vertical: 8),
@@ -356,7 +343,8 @@ class _ProfileFeedTabState extends ConsumerState<ProfileFeedTab> {
     return 'Coba lagi beberapa saat.';
   }
 
-  Widget _buildEmptyState(BuildContext context, bool isDark) {
+  Widget _buildEmptyState(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -364,7 +352,7 @@ class _ProfileFeedTabState extends ConsumerState<ProfileFeedTab> {
           Icon(
             Icons.photo_library_outlined,
             size: 64,
-            color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray500,
+            color: scheme.onSurfaceVariant,
           ),
           const SizedBox(height: 16),
           Text(
@@ -372,9 +360,7 @@ class _ProfileFeedTabState extends ConsumerState<ProfileFeedTab> {
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
-              color: isDark
-                  ? AppColors.neutralGray300
-                  : AppColors.neutralGray600,
+              color: scheme.onSurface,
             ),
           ),
           const SizedBox(height: 8),
@@ -382,9 +368,7 @@ class _ProfileFeedTabState extends ConsumerState<ProfileFeedTab> {
             _getEmptyStateSubtitle(),
             style: TextStyle(
               fontSize: 14,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray500,
+              color: scheme.onSurfaceVariant,
             ),
           ),
         ],

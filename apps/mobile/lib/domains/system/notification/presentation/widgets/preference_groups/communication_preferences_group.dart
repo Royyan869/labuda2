@@ -7,7 +7,6 @@
 library;
 
 // Dart
-import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/system/notification/domain/entities/notification_preference_entity.dart';
 import 'package:labuda/domains/system/notification/presentation/widgets/preference_toggle_widget.dart';
 
@@ -28,7 +27,7 @@ class CommunicationPreferencesGroup extends StatelessWidget {
   Widget build(BuildContext context) {
     return PreferenceToggleWidget(
       icon: Icons.chat_bubble_outline,
-      iconColor: AppColors.primaryRed,
+      iconColor: Theme.of(context).colorScheme.primary,
       title: 'Chat Notifications',
       subtitle: 'New messages from sellers or buyers',
       value: preferences.chatNotifications,

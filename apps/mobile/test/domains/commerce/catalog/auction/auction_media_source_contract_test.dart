@@ -7,23 +7,22 @@ String _source(String relativePath) {
 }
 
 void main() {
-  test('auction card renders media with lifecycle-aware seller identity', () {
+  test('auction card renders media with the channel-identical frame', () {
     final source = _source(
       'lib/domains/commerce/catalog/auction/presentation/widgets/auction_card.dart',
     );
 
-    // The card is a thin wrapper: frame + seller block live in the shared
-    // commerce primitives so both channels stay identical.
+    // The card is a thin wrapper: frame lives in the shared commerce
+    // primitives so For Sale, Auction and the promotion grid stay identical.
     expect(source, contains('CommerceMarketplaceCardShell('));
-    expect(source, contains('CommerceCardSellerMetadata('));
     expect(source, isNot(contains('return Card(')));
 
-    // Redaction vocabulary is owned by the shared metadata block.
-    final metadata = _source(
-      'lib/domains/commerce/catalog/shared/presentation/widgets/commerce_card_seller_metadata.dart',
-    );
-    expect(metadata, contains('sellerUserLifecycle'));
-    expect(metadata, contains('publicRedactionLabel'));
+    // Owner decision 2026-09-27: no seller block on discovery cards, and the
+    // countdown/status chip is a MEDIA overlay — never a row under the media.
+    expect(source, isNot(contains('CommerceCardSellerMetadata(')));
+    expect(source, isNot(contains('sellerUsername')));
+    expect(source, contains('overlay:'));
+    expect(source, isNot(contains('badges:')));
   });
 
   test('auction detail header renders media without raw video controllers', () {

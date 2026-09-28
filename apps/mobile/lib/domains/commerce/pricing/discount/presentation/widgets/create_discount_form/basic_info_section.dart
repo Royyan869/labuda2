@@ -43,14 +43,10 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark
-            ? core.AppColors.darkGray800
-            : core.AppColors.neutralWhite,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -61,9 +57,7 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: isDark
-                  ? core.AppColors.neutralWhite
-                  : core.AppColors.neutralGray900,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 16),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:labuda/core/src/theme/app_colors.dart';
 import 'package:labuda/shared/domain/entities/resource_projection.dart';
+import 'package:labuda/shared/widgets/app_snackbar.dart';
 
 /// Shipping Quote Creation Modal
 ///
@@ -56,24 +57,14 @@ class _ShippingQuoteCreationModalState
 
       if (mounted) {
         Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Ongkir berhasil dikirim'),
-            backgroundColor: AppColors.successGreen,
-          ),
-        );
+        AppSnackBar.showSuccess(context, 'Ongkir berhasil dikirim');
       }
     } catch (e) {
       if (mounted) {
         setState(() {
           _isSubmitting = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Gagal mengirim ongkir. Coba lagi.'),
-            backgroundColor: AppColors.statusError,
-          ),
-        );
+        AppSnackBar.showError(context, 'Gagal mengirim ongkir. Coba lagi.');
       }
     }
   }
@@ -92,12 +83,13 @@ class _ShippingQuoteCreationModalState
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return AlertDialog(
       title: Row(
         children: [
           Icon(
             Icons.local_shipping_outlined,
-            color: AppColors.primaryRed,
+            color: colorScheme.primary,
             size: 24,
           ),
           const SizedBox(width: 8),
@@ -114,10 +106,10 @@ class _ShippingQuoteCreationModalState
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: AppColors.primaryRed.withValues(alpha: 0.08),
+                color: colorScheme.primary.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: AppColors.primaryRed.withValues(alpha: 0.25),
+                  color: colorScheme.primary.withValues(alpha: 0.25),
                   width: 1,
                 ),
               ),
@@ -126,16 +118,16 @@ class _ShippingQuoteCreationModalState
                   Icon(
                     Icons.storefront_outlined,
                     size: 16,
-                    color: AppColors.primaryRed,
+                    color: colorScheme.primary,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       widget.forSaleName,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
-                        color: AppColors.neutralGray900,
+                        color: colorScheme.onSurface,
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -152,7 +144,7 @@ class _ShippingQuoteCreationModalState
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: AppColors.neutralGray900,
+                color: colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 8),
@@ -178,7 +170,7 @@ class _ShippingQuoteCreationModalState
                   borderRadius: BorderRadius.circular(8),
                 ),
                 filled: true,
-                fillColor: AppColors.neutralGray50,
+                fillColor: colorScheme.surfaceContainerLow,
               ),
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
@@ -206,7 +198,7 @@ class _ShippingQuoteCreationModalState
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: AppColors.neutralGray900,
+                color: colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 8),
@@ -219,7 +211,7 @@ class _ShippingQuoteCreationModalState
                   borderRadius: BorderRadius.circular(8),
                 ),
                 filled: true,
-                fillColor: AppColors.neutralGray50,
+                fillColor: colorScheme.surfaceContainerLow,
               ),
             ),
 
@@ -248,7 +240,7 @@ class _ShippingQuoteCreationModalState
                       'Ongkir yang Anda berikan akan dikirim ke pembeli dan dapat langsung digunakan untuk checkout.',
                       style: TextStyle(
                         fontSize: 11,
-                        color: AppColors.neutralGray700,
+                        color: colorScheme.onSurfaceVariant,
                         height: 1.4,
                       ),
                     ),
@@ -267,16 +259,18 @@ class _ShippingQuoteCreationModalState
         ElevatedButton(
           onPressed: _isSubmitting ? null : _handleSubmit,
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primaryRed,
-            foregroundColor: Colors.white,
+            backgroundColor: colorScheme.primary,
+            foregroundColor: colorScheme.onPrimary,
           ),
           child: _isSubmitting
-              ? const SizedBox(
+              ? SizedBox(
                   width: 16,
                   height: 16,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      colorScheme.onPrimary,
+                    ),
                   ),
                 )
               : const Text('Kirim Ongkir'),

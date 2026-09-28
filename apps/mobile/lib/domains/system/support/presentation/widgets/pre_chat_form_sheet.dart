@@ -6,7 +6,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
+import 'package:labuda/shared/widgets/app_snackbar.dart';
 import 'package:labuda/domains/system/support/domain/domain.dart';
 import 'package:labuda/domains/system/support/presentation/providers/support_providers.dart';
 import 'package:labuda/domains/system/support/presentation/screens/support_ticket_thread_screen.dart';
@@ -129,24 +129,18 @@ class _PreChatFormSheetRefactoredState
         );
 
         // Show success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Support ticket created. We\'ll respond shortly!'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 3),
-          ),
+        AppSnackBar.showSuccess(
+          context,
+          'Support ticket created. We\'ll respond shortly!',
+          duration: const Duration(seconds: 3),
         );
       } else {
         setState(() => _isLoading = false);
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              result.failure?.message ?? 'Failed to create support chat',
-            ),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 4),
-          ),
+        AppSnackBar.showError(
+          context,
+          result.failure?.message ?? 'Failed to create support chat',
+          duration: const Duration(seconds: 4),
         );
       }
     } catch (e) {
@@ -154,12 +148,10 @@ class _PreChatFormSheetRefactoredState
 
       setState(() => _isLoading = false);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Gagal membuka chat. Coba lagi.'),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 4),
-        ),
+      AppSnackBar.showError(
+        context,
+        'Gagal membuka chat. Coba lagi.',
+        duration: const Duration(seconds: 4),
       );
     }
   }
@@ -189,7 +181,7 @@ class _PreChatFormSheetRefactoredState
                     height: 4,
                     margin: const EdgeInsets.only(bottom: 20),
                     decoration: BoxDecoration(
-                      color: Colors.grey[300],
+                      color: Theme.of(context).colorScheme.outlineVariant,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -206,7 +198,7 @@ class _PreChatFormSheetRefactoredState
                 Text(
                   'Describe your issue and we\'ll get back to you via email.',
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey[600],
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -240,9 +232,7 @@ class _PreChatFormSheetRefactoredState
                       borderRadius: BorderRadius.circular(12),
                     ),
                     filled: true,
-                    fillColor: theme.brightness == Brightness.dark
-                        ? Colors.grey[850]
-                        : Colors.grey[100],
+                    fillColor: Theme.of(context).colorScheme.surfaceContainer,
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -252,19 +242,19 @@ class _PreChatFormSheetRefactoredState
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.blue[50],
+                      color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.blue[200]!),
+                      border: Border.all(color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.35)),
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.link, color: Colors.blue[700]),
+                        Icon(Icons.link, color: Theme.of(context).colorScheme.secondary),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             'Linked to Order #${_linkedOrderId!.substring(0, 8)}...',
                             style: TextStyle(
-                              color: Colors.blue[900],
+                              color: Theme.of(context).colorScheme.secondary,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -274,7 +264,7 @@ class _PreChatFormSheetRefactoredState
                           onPressed: () {
                             setState(() => _linkedOrderId = null);
                           },
-                          color: Colors.blue[700],
+                          color: Theme.of(context).colorScheme.secondary,
                         ),
                       ],
                     ),
@@ -292,19 +282,19 @@ class _PreChatFormSheetRefactoredState
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    backgroundColor: AppColors.primaryRed,
-                    foregroundColor: AppColors.neutralWhite,
-                    disabledBackgroundColor: AppColors.neutralGray400,
-                    disabledForegroundColor: AppColors.neutralGray600,
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                    disabledBackgroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
+                    disabledForegroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                   child: _isLoading
-                      ? const SizedBox(
+                      ? SizedBox(
                           height: 20,
                           width: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
                             valueColor: AlwaysStoppedAnimation<Color>(
-                              Colors.white,
+                              Theme.of(context).colorScheme.onPrimary,
                             ),
                           ),
                         )
@@ -354,9 +344,7 @@ class _PreChatFormSheetRefactoredState
             _onCategorySelected(selected ? category : null);
           },
           selectedColor: Color(config.colorValue).withValues(alpha: 0.2),
-          backgroundColor: Theme.of(context).brightness == Brightness.dark
-              ? Colors.grey[850]
-              : Colors.grey[100],
+          backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
           labelStyle: TextStyle(
             color: isSelected
                 ? Color(config.colorValue)

@@ -498,9 +498,11 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                       displayName,
                       overflow: TextOverflow.ellipsis,
                       style: participantDegraded
-                          ? const TextStyle(
+                          ? TextStyle(
                               fontStyle: FontStyle.italic,
-                              color: AppColors.neutralGray500,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
                             )
                           : null,
                     ),
@@ -517,7 +519,9 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                   'Online',
                   style: Theme.of(
                     context,
-                  ).textTheme.bodySmall?.copyWith(color: Colors.green),
+                  ).textTheme.bodySmall?.copyWith(
+                    color: AppColors.statusSuccess,
+                  ),
                 ),
             ],
           ),
@@ -593,7 +597,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.error_outline, size: 64, color: Colors.red),
+          Icon(Icons.error_outline, size: 64, color: AppColors.statusError),
           const SizedBox(height: 16),
           Text(
             'Failed to load messages',
@@ -617,7 +621,11 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.chat_bubble_outline, size: 64, color: Colors.grey[400]),
+          Icon(
+            Icons.chat_bubble_outline,
+            size: 64,
+            color: Theme.of(context).colorScheme.outline,
+          ),
           const SizedBox(height: 16),
           Text(
             'No messages yet',
@@ -626,9 +634,9 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
           const SizedBox(height: 8),
           Text(
             'Send a message to start the conversation',
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
         ],
       ),
@@ -1228,9 +1236,12 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                 ),
               ),
               const SizedBox(height: 4),
-              const Text(
+              Text(
                 'Masukkan harga tawaran Anda',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 16),
               TextFormField(
@@ -1403,10 +1414,15 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
             // Report option (shown for messages from other users)
             if (!isFromUser) ...[
               ListTile(
-                leading: const Icon(Icons.report, color: AppColors.primaryRed),
-                title: const Text(
+                leading: Icon(
+                  Icons.report,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                title: Text(
                   'Report Message',
-                  style: TextStyle(color: AppColors.primaryRed),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                 ),
                 onTap: () {
                   Navigator.pop(context);
@@ -1519,10 +1535,15 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.block, color: AppColors.primaryRed),
-                title: const Text(
+                leading: Icon(
+                  Icons.block,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                title: Text(
                   'Block',
-                  style: TextStyle(color: AppColors.primaryRed),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                 ),
                 onTap: () {
                   Navigator.pop(context);
@@ -1593,9 +1614,9 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        icon: const Icon(
+        icon: Icon(
           Icons.shield_outlined,
-          color: AppColors.primaryRed,
+          color: Theme.of(context).colorScheme.primary,
           size: 48,
         ),
         title: const Text('Report Submitted'),
@@ -1613,7 +1634,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
               _handleBlockUser(context, targetUserId, targetUserName);
             },
             style: FilledButton.styleFrom(
-              backgroundColor: AppColors.primaryRed,
+              backgroundColor: Theme.of(context).colorScheme.primary,
             ),
             child: const Text('Block User'),
           ),
@@ -1886,14 +1907,14 @@ class _MessageListWidget extends ConsumerWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           decoration: BoxDecoration(
-            color: AppColors.neutralGray200,
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
             _formatDate(date),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
-              color: AppColors.neutralGray600,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
         ),

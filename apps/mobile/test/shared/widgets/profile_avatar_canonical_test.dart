@@ -3,15 +3,14 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:labuda/shared/shared.dart';
-import 'package:labuda/shared/widgets/stable_network_image.dart';
+import 'package:labuda/shared/widgets/app_image.dart';
 
 /// CANONICAL ProfileAvatar contract (Owner decision 2026-09-24).
 ///
 /// Business truth:
 /// - A user avatar is ALWAYS the user's photo, or the `Icons.person` user
 ///   icon when there is no photo. Initials do not exist anywhere.
-/// - Rendering goes through StableNetworkImage (gapless playback) so a
-///   rotating signed URL never flashes a placeholder over a visible frame.
+/// - Rendering goes through AppImage (CloudFront URL as-is, cached).
 ///
 /// The old initials-flow tests (avatarInitials, named size constructors,
 /// CachedNetworkImage cacheKey stripping) were killed together with the
@@ -52,14 +51,14 @@ void main() {
       );
       await tester.pump();
       expect(find.byType(Text), findsNothing);
-      // The image always routes through the gapless renderer with the user
-      // icon as its error-fallback (test env has no HTTP, so the fallback
-      // legitimately renders after failure - that IS the canonical path).
-      expect(find.byType(StableNetworkImage), findsOneWidget);
-      final stable = tester.widget<StableNetworkImage>(
-        find.byType(StableNetworkImage),
+      // The image always routes through the canonical cached renderer with
+      // the user icon as its error-fallback (test env has no HTTP, so the
+      // fallback legitimately renders after failure - that IS the path).
+      expect(find.byType(AppImage), findsOneWidget);
+      final appImage = tester.widget<AppImage>(
+        find.byType(AppImage),
       );
-      expect(stable.imageUrl, 'https://example.com/avatar.png');
+      expect(appImage.imageUrl, 'https://example.com/avatar.png');
     });
 
     testWidgets('blank/whitespace image URL → user icon, never text', (
@@ -89,9 +88,9 @@ void main() {
     });
   });
 
-  group('Anti-flicker contract (StableNetworkImage gapless)', () {
+  group('Canonical URL contract (backend URL as-is)', () {
     testWidgets(
-      'rotating signed URL keeps the gapless image branch (no fallback flash)',
+      'new backend URL keeps the cached image branch',
       (tester) async {
         await tester.pumpWidget(
           const MaterialApp(
@@ -99,7 +98,8 @@ void main() {
               body: ProfileAvatar(
                 size: 40,
                 userId: 'u1',
-                imageUrl: 'https://example.com/a.png',
+                imageUrl:
+                    'https://d358tu61i1wrtt.cloudfront.net/images/a.png',
               ),
             ),
           ),
@@ -107,14 +107,14 @@ void main() {
         await tester.pump();
         await tester.pump(const Duration(seconds: 1));
 
-        // Rotating signed URL: same logical image, new query string.
         await tester.pumpWidget(
           const MaterialApp(
             home: Scaffold(
               body: ProfileAvatar(
                 size: 40,
                 userId: 'u1',
-                imageUrl: 'https://example.com/a.png?X-Amz-Signature=two',
+                imageUrl:
+                    'https://d358tu61i1wrtt.cloudfront.net/images/a.png',
               ),
             ),
           ),
@@ -122,12 +122,12 @@ void main() {
         await tester.pump();
         await tester.pump(const Duration(seconds: 1));
 
-        final stable = tester.widget<StableNetworkImage>(
-          find.byType(StableNetworkImage),
+        final appImage = tester.widget<AppImage>(
+          find.byType(AppImage),
         );
         expect(
-          stable.imageUrl,
-          'https://example.com/a.png?X-Amz-Signature=two',
+          appImage.imageUrl,
+          'https://d358tu61i1wrtt.cloudfront.net/images/a.png',
         );
         expect(find.byIcon(Icons.person), findsNothing);
       },

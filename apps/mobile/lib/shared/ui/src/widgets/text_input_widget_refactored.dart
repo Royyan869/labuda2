@@ -102,7 +102,7 @@ class _TextInputWidgetRefactoredState
       QuickAction(
         icon: Icons.camera_alt,
         label: 'Camera',
-        color: AppColors.primaryBlue,
+        color: Theme.of(context).colorScheme.secondary,
         onTap: _openCamera,
       ),
       QuickAction(
@@ -114,7 +114,7 @@ class _TextInputWidgetRefactoredState
       QuickAction(
         icon: Icons.link,
         label: 'Link',
-        color: AppColors.primaryBlue,
+        color: Theme.of(context).colorScheme.secondary,
         onTap: _showLinkPicker,
       ),
     ];

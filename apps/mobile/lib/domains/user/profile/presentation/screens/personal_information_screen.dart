@@ -227,7 +227,6 @@ class _PersonalInformationScreenState
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final authState = ref.watch(authControllerProvider);
 
     return Scaffold(
@@ -255,7 +254,6 @@ class _PersonalInformationScreenState
                 phoneVerified: _isPhoneVerified,
                 phoneVerifiedAt: _phoneVerifiedAt,
                 onVerifyPhone: _verifyPhone,
-                isDark: isDark,
               ),
               const SizedBox(height: 24),
 

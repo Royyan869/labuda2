@@ -41,6 +41,7 @@ class ChatCard extends ConsumerWidget {
     final otherUserHandle = formatChatHandle(otherUserName);
     final otherUserAvatar = chat.participantAvatars[otherUserId];
     final unreadCount = chat.roomUnreadCount;
+    final colorScheme = Theme.of(context).colorScheme;
 
     // E4.3 — Chat-participant lifecycle redaction. Slot-persistence is
     // preserved: the chat room remains tappable (the InkWell still opens
@@ -60,7 +61,7 @@ class ChatCard extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
           border: Border(
-            bottom: BorderSide(color: Colors.grey[200]!, width: 0.5),
+            bottom: BorderSide(color: colorScheme.outlineVariant, width: 0.5),
           ),
         ),
         child: Row(
@@ -96,6 +97,7 @@ class ChatCard extends ConsumerWidget {
 
   Widget _buildSupportChatCard(BuildContext context, String currentUserId) {
     final unreadCount = chat.roomUnreadCount;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return InkWell(
       onTap: onTap,
@@ -104,10 +106,10 @@ class ChatCard extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
           color: chat.supportStatus == SupportStatus.open
-              ? Colors.blue[50]
+              ? colorScheme.secondary.withValues(alpha: 0.08)
               : null,
           border: Border(
-            bottom: BorderSide(color: Colors.grey[200]!, width: 0.5),
+            bottom: BorderSide(color: colorScheme.outlineVariant, width: 0.5),
           ),
         ),
         child: Row(
@@ -170,6 +172,7 @@ class ChatCard extends ConsumerWidget {
     String userName, {
     bool degraded = false,
   }) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Row(
       children: [
         Expanded(
@@ -182,18 +185,19 @@ class ChatCard extends ConsumerWidget {
               // redaction placeholder is visually distinct from a real
               // username. Matches the E3.1 comment-author treatment.
               fontStyle: degraded ? FontStyle.italic : FontStyle.normal,
-              color: degraded ? AppColors.neutralGray500 : null,
+              color: degraded ? colorScheme.onSurfaceVariant : null,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
         ),
-        if (chat.updatedAt != null) _buildTimestamp(),
+        if (chat.updatedAt != null) _buildTimestamp(context),
       ],
     );
   }
 
   Widget _buildSupportHeader(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Row(
       children: [
         Expanded(
@@ -210,32 +214,34 @@ class ChatCard extends ConsumerWidget {
               if (chat.assignedAdminName != null)
                 Text(
                   'Agent: ${chat.assignedAdminName}',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
                 ),
             ],
           ),
         ),
-        if (chat.updatedAt != null) _buildTimestamp(),
+        if (chat.updatedAt != null) _buildTimestamp(context),
       ],
     );
   }
 
-  Widget _buildTimestamp() {
+  Widget _buildTimestamp(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final timeStr = chat.updatedAt != null
         ? timeago.format(chat.updatedAt!)
         : timeago.format(chat.createdAt);
 
     return Text(
       timeStr,
-      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+      style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
     );
   }
 
   Widget _buildLastMessage(BuildContext context, String currentUserId) {
+    final colorScheme = Theme.of(context).colorScheme;
     if (chat.lastMessage == null) {
       return Text(
         'No messages yet',
-        style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+        style: TextStyle(fontSize: 14, color: colorScheme.onSurfaceVariant),
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
       );
@@ -245,7 +251,7 @@ class ChatCard extends ConsumerWidget {
     if (message.isHidden) {
       return Text(
         context.l10n.hiddenMessageByModerator,
-        style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+        style: TextStyle(fontSize: 14, color: colorScheme.onSurfaceVariant),
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
       );
@@ -255,7 +261,7 @@ class ChatCard extends ConsumerWidget {
 
     return Text(
       '$prefix${_getMessagePreview(message)}',
-      style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+      style: TextStyle(fontSize: 14, color: colorScheme.onSurface),
       maxLines: 2,
       overflow: TextOverflow.ellipsis,
     );
@@ -288,7 +294,7 @@ class ChatCard extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: _getSupportCategoryColor().withValues(alpha: 0.1),
+        color: _getSupportCategoryColor(context).withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(4),
       ),
       child: Row(
@@ -297,12 +303,12 @@ class ChatCard extends ConsumerWidget {
           Icon(
             _getSupportCategoryIcon(),
             size: 14,
-            color: _getSupportCategoryColor(),
+            color: _getSupportCategoryColor(context),
           ),
           const SizedBox(width: 4),
           Text(
             _getSupportCategoryLabel(),
-            style: TextStyle(fontSize: 12, color: _getSupportCategoryColor()),
+            style: TextStyle(fontSize: 12, color: _getSupportCategoryColor(context)),
           ),
         ],
       ),
@@ -325,8 +331,8 @@ class ChatCard extends ConsumerWidget {
             child: Center(
               child: Text(
                 unreadCount > 99 ? '99+' : unreadCount.toString(),
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onPrimary,
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
                 ),
@@ -339,23 +345,24 @@ class ChatCard extends ConsumerWidget {
                 ? Icons.check_circle
                 : Icons.chevron_right,
             size: 20,
-            color: Colors.grey[400],
+            color: Theme.of(context).colorScheme.outline,
           ),
       ],
     );
   }
 
-  Color _getSupportCategoryColor() {
+  Color _getSupportCategoryColor(BuildContext context) {
     return switch (chat.supportCategory) {
-      SupportCategory.paymentIssue => Colors.green,
-      SupportCategory.refundRequest => Colors.green,
-      SupportCategory.orderIssue => Colors.orange,
-      SupportCategory.shippingIssue => Colors.orange,
-      SupportCategory.accountIssue => Colors.purple,
-      SupportCategory.listingIssue => Colors.teal,
-      SupportCategory.dispute => Colors.red,
-      SupportCategory.technicalIssue => Colors.blue,
-      SupportCategory.other || null => Colors.grey,
+      SupportCategory.paymentIssue => AppColors.statusSuccess,
+      SupportCategory.refundRequest => AppColors.statusSuccess,
+      SupportCategory.orderIssue => AppColors.statusWarning,
+      SupportCategory.shippingIssue => AppColors.statusWarning,
+      SupportCategory.accountIssue => AppColors.primaryPurple,
+      SupportCategory.listingIssue => AppColors.primaryGreen,
+      SupportCategory.dispute => AppColors.statusError,
+      SupportCategory.technicalIssue => AppColors.statusInfo,
+      SupportCategory.other || null =>
+        Theme.of(context).colorScheme.onSurfaceVariant,
     };
   }
 

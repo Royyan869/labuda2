@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/ui/src/helpers/media_picker_helper.dart';
 import 'package:labuda/shared/ui/src/screens/custom_camera_screen.dart';
+import 'package:labuda/shared/widgets/app_snackbar.dart';
 import 'media_upload_config.dart';
 
 /// Single canonical orchestrator for foto+video pick → validate → upload → URLs.
@@ -124,12 +125,10 @@ class MediaUploadOrchestrator {
     if (fail > 0) {
       _showError(context, '${urls.length} berhasil, $fail gagal');
     } else if (urls.isNotEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${urls.length} media berhasil diupload'),
-          backgroundColor: AppColors.successGreen,
-          duration: const Duration(seconds: 2),
-        ),
+      AppSnackBar.showSuccess(
+        context,
+        '${urls.length} media berhasil diupload',
+        duration: const Duration(seconds: 2),
       );
     }
     return urls;
@@ -219,9 +218,7 @@ class MediaUploadOrchestrator {
       urls = await orchestrator.uploadFiles(context: context, files: files);
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Upload gagal: $e'), backgroundColor: AppColors.statusError),
-        );
+        AppSnackBar.showError(context, 'Upload gagal: $e');
       }
     } finally {
       if (context.mounted && Navigator.of(context).canPop()) {
@@ -232,11 +229,9 @@ class MediaUploadOrchestrator {
     if (urls.isNotEmpty) {
       await onUploaded(urls);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Tidak ada media yang berhasil diupload. Coba lagi.'),
-          backgroundColor: AppColors.statusError,
-        ),
+      AppSnackBar.showError(
+        context,
+        'Tidak ada media yang berhasil diupload. Coba lagi.',
       );
     }
   }
@@ -267,9 +262,7 @@ class MediaUploadOrchestrator {
 
   void _showError(BuildContext context, String msg) {
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), backgroundColor: AppColors.statusError, duration: const Duration(seconds: 4)),
-    );
+    AppSnackBar.showError(context, msg, duration: const Duration(seconds: 4));
   }
 
   static Widget _sheetOption({
@@ -279,7 +272,7 @@ class MediaUploadOrchestrator {
     required VoidCallback onTap,
   }) {
     return ListTile(
-      leading: Icon(icon, color: AppColors.primaryRed),
+      leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
       title: Text(label),
       onTap: onTap,
     );

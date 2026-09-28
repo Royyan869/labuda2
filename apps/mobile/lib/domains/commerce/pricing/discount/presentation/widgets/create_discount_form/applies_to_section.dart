@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart' as core;
 import 'package:labuda/domains/commerce/pricing/discount/domain/entities/discount_entity.dart';
 
 /// Section untuk discount applicability
@@ -18,14 +17,10 @@ class AppliesToSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark
-            ? core.AppColors.darkGray800
-            : core.AppColors.neutralWhite,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -36,9 +31,7 @@ class AppliesToSection extends StatelessWidget {
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: isDark
-                  ? core.AppColors.neutralWhite
-                  : core.AppColors.neutralGray900,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 12),
@@ -74,9 +67,7 @@ class AppliesToSection extends StatelessWidget {
             'Diskon berlaku untuk semua item pada tipe penjualan yang dipilih.',
             style: TextStyle(
               fontSize: 12,
-              color: isDark
-                  ? core.AppColors.neutralGray400
-                  : core.AppColors.neutralGray600,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
         ],

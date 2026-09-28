@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:labuda/core/core.dart';
+import 'package:labuda/shared/widgets/app_snackbar.dart';
 import 'package:labuda/domains/social/share/domain/entities/share_target.dart';
 import 'package:labuda/domains/social/share/domain/entities/share_destination.dart';
 import 'package:labuda/domains/social/share/presentation/providers/share_notifier.dart';
@@ -207,28 +207,22 @@ class ShareBottomSheet extends ConsumerWidget {
       final shareState = ref.read(shareNotifierProvider);
 
       if (shareState is ShareSuccess) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Successfully shared to ${destination.label}'),
-            backgroundColor: AppColors.statusSuccess,
-            duration: const Duration(seconds: 3),
-          ),
+        AppSnackBar.showSuccess(
+          context,
+          'Successfully shared to ${destination.label}',
+          duration: const Duration(seconds: 3),
         );
       } else if (shareState is ShareError) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(shareState.failure.message),
-            backgroundColor: AppColors.statusError,
-            duration: const Duration(seconds: 4),
-          ),
+        AppSnackBar.showError(
+          context,
+          shareState.failure.message,
+          duration: const Duration(seconds: 4),
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to share content'),
-            backgroundColor: AppColors.statusError,
-            duration: Duration(seconds: 4),
-          ),
+        AppSnackBar.showError(
+          context,
+          'Failed to share content',
+          duration: const Duration(seconds: 4),
         );
       }
     }

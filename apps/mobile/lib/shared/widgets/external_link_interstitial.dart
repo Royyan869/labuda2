@@ -2,6 +2,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/shared/widgets/app_snackbar.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// Shows an interstitial dialog before opening an external URL.
@@ -14,12 +15,7 @@ Future<bool> showExternalLinkInterstitial(
   final uri = Uri.tryParse(url);
   if (uri == null || (uri.scheme != 'https' && uri.scheme != 'http')) {
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Tautan tidak valid'),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
-      );
+      AppSnackBar.showError(context, 'Tautan tidak valid');
     }
     return false;
   }
@@ -35,12 +31,7 @@ Future<bool> showExternalLinkInterstitial(
     return await launchUrl(uri, mode: LaunchMode.externalApplication);
   } catch (_) {
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Gagal membuka tautan'),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
-      );
+      AppSnackBar.showError(context, 'Gagal membuka tautan');
     }
     return false;
   }

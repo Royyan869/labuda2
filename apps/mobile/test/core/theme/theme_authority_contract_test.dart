@@ -90,6 +90,26 @@ const _migratedUiPaths = <String>[
   'domains/user/profile/presentation/widgets/add_edit_address_dialog/address_purpose_field.dart',
   'domains/user/profile/presentation/widgets/personal_info/date_of_birth_picker.dart',
   'domains/user/profile/presentation/widgets/personal_info/phone_verification_field.dart',
+  // Profile widget layer CLOSED as one slice: every widget under
+  // presentation/widgets (incl. personal_information_section, bank dialogs,
+  // profile feed tab, settings sections, phone verification family) and the
+  // whole presentation/shared tree (profile_text_field, profile_state_view)
+  // reads the scheme authority. Dead wizard/KTP residue was PURGED
+  // (seller_wizard_step1/3, ktp_upload/preview, selfie_verification,
+  // address_card_widget — zero callers, identity UI lives in
+  // preference/seller/.../seller_verification_screen).
+  'domains/user/profile/presentation/widgets',
+  'domains/user/profile/presentation/shared',
+  'domains/user/profile/presentation/screens/personal_information_screen.dart',
+  // Profile screens layer CLOSED as one slice: every screen under
+  // presentation/screens (security, profile_qr, settings, bank_account,
+  // blocked_users, edit_profile sections, ktp/selfie camera rooms, address
+  // list, about tabs, unified edit profile) reads the scheme authority.
+  // Camera rooms + the QR export surface keep fixed pixels via scheme roles
+  // (scrim = black, onPrimary = white in both modes) — photo/scanner-bound,
+  // never a local theme branch. Dead settings subtree PURGED
+  // (settings_role_cards.dart + settings_dialogs.dart — zero callers).
+  'domains/user/profile/presentation/screens',
   // Shared dropdown/address family CLOSED (app dropdown, wilayah
   // province/city/district/village + search, state builders, decoration
   // helper, base container).
@@ -115,6 +135,13 @@ const _migratedUiPaths = <String>[
   // use scheme roles; domain display colors are mapped to semantic roles.
   'domains/system/notification/presentation/widgets/notification_item_widget.dart',
   'domains/system/notification/presentation/widgets/notification_dismissible_item.dart',
+  // System support + report scope CLOSED as one slice: help center,
+  // ticket list/thread, pre-chat sheet, suggested messages, ticket card,
+  // report screens/dialogs/description field/reason selector all read the
+  // scheme authority. isDark/brightness forks PURGED; category greys and
+  // Material palette map to scheme roles + status* semantic tokens.
+  'domains/system/support/presentation',
+  'domains/system/report/presentation',
   'domains/system/notification/presentation/widgets/notification_list_app_bar.dart',
   'domains/system/notification/presentation/widgets/notification_empty_state_widget.dart',
   'domains/system/notification/presentation/widgets/preference_toggle_widget.dart',
@@ -185,6 +212,14 @@ const _migratedUiPaths = <String>[
   // showThemeSelectionSheet; welcome + full ThemeSelector migrated).
   'shared/widgets/theme_selector.dart',
   'domains/user/preference/onboarding/presentation/screens/welcome_screen.dart',
+  // Seller domain CLOSED as one slice: every screen (dashboard, upgrade
+  // wizard, earnings, verification, withdraw, renewal, shipping) and every
+  // widget (profile store tab, upgrade card, withdraw dialog, wizard
+  // step2/nav/preview/helpers) reads the scheme authority. isDark threading
+  // was PURGED end-to-end (local brightness vars, method params, widget
+  // fields + ctor args); status colours map to status*/primary* semantic
+  // tokens; warning/error button ink maps to onPrimary/onError.
+  'domains/user/preference/seller/presentation',
   'domains/user/preference/seller/presentation/widgets/profile_store_tab.dart',
   // Shared atoms scope CLOSED: button, text field, modal, empty state.
   // EmptyStateWidget is PURGED (duplicate authority killed: callers moved
@@ -206,27 +241,106 @@ const _migratedUiPaths = <String>[
   'shared/widgets/blocked_user_banner.dart',
   'shared/widgets/image_with_badge.dart',
   'shared/widgets/base_metric_card.dart',
+  // Pricing/discount domain CLOSED as one slice: create/edit/list screens,
+  // discount card, input field, management tooltip, and every
+  // create_discount_form section (basic info, type, applies-to, validity,
+  // limits) read the scheme authority. Local date-picker ThemeData override
+  // was DELETED (theme warisan — the app theme already owns the picker).
+  'domains/commerce/pricing/discount/presentation',
+  // Pricing/promotion domain CLOSED as one slice: all five screens
+  // (canonical analytics/create/list, external product detail/management)
+  // read the scheme authority. Flat light-palette tokens (no isDark branch)
+  // map straight to scheme roles; status accents map to statusInfo/warning
+  // tokens; _statusColor threads BuildContext so the gray role comes from
+  // the scheme; white card/sheet fills map to surface, button ink to
+  // onPrimary; const Icon/SnackBar/Text/BoxDecoration parents that wrapped
+  // palette literals were de-const'ed so the scheme read is legal.
+  'domains/commerce/pricing/promotion/presentation',
+  // Notification domain CLOSED as one slice: settings screen (raw-hex
+  // slate palette PURGED — isDark fork + 6 raw hex + surface/heading/body
+  // color threading deleted, screen now inherits AppBar/scaffold from the
+  // authority), settings section, in-app banner (isDark param threading
+  // PURGED from state methods), list content, badge widget, the whole
+  // preference_groups family, dialog helper, plus the UI-producing
+  // services (navigation service maintenance modal, fcm action mapper
+  // banner action inks). Colors.* Material palette maps to status*/primary*
+  // semantic tokens; scrim/shadow ink maps to scheme.shadow.
+  // Shared loading/icon fallback scope CLOSED: FullScreenLoading scrim
+  // maps to scheme.scrim (identical pixels, canonical M3 barrier role);
+  // CustomRpIcon/RpIcon ink fallback maps to onSurface (fixes the old
+  // AppColors.dark bind rendering near-invisible ink in dark mode).
+  'shared/widgets/loading_indicator.dart',
+  'shared/widgets/custom_rp_icon.dart',
+  // Chat legacy surfaces CLOSED as one slice: chat card (support-category
+  // Material switch mapped to status*/brand tokens, BuildContext threaded
+  // into the timestamp helper), message bubble (bubble fills, meta ink,
+  // reply-preview ink, media scrim/surface from scheme — the incoming-image
+  // caption no longer hardcodes white on a light bubble), input area
+  // (composer surface/shadow/disabled ink), unread badge, shipping-quote
+  // modal (brand tint from scheme.primary, fields from scheme surfaces),
+  // and chat detail surfaces (degraded header, online ink, error/empty
+  // views, message-option sheets, report follow-up dialog, date header).
+  'domains/chat/chat/presentation/widgets',
+  'domains/chat/chat/presentation/screens',
+  // Coins domain CLOSED as one slice: balance-card ink sitting on the fixed
+  // coin gradient reads scheme.onPrimary instead of the forbidden
+  // neutralWhite bind; the transaction-row border brightness fork is gone
+  // (outlineVariant); amount deltas map to statusSuccess/statusError; the
+  // history screen's grey.shade ramp maps to onSurface/onSurfaceVariant.
+  // Coin brand tokens (coinPrimary/coinSecondary/coinGradient) stay — they
+  // have no scheme role and remain legitimate.
+  'domains/finance/wallet/coins/presentation',
+  // Onboarding + saved-item + seller slice CLOSED: splash screen (isDark
+  // fork, inline brightness forks, branching gradient and 20
+  // neutral/darkGray binds PURGED — gradient is now
+  // lowest/surface/lowest in both modes), saved-item badge (statusError ink
+  // + scheme.shadow), whole preference tree reads the scheme authority.
+  'domains/user/preference',
+  // Shared camera / crop / map-picker / upload scope CLOSED: immersive
+  // camera rooms keep fixed pixels through scheme roles (scrim = black,
+  // onPrimary = white in both modes), crop overlays read scrim, map-picker
+  // shadows read scheme.shadow, upload/attachment accents read scheme
+  // roles, crop editors keep OS-chrome statusBarBrightness (gate-exempt).
+  'shared/ui/src/screens/custom_camera_screen.dart',
+  'shared/ui/src/widgets/text_input_widget_refactored.dart',
+  'shared/ui/src/helpers/media_picker_helper.dart',
+  'shared/widgets/flutter_crop_image.dart',
+  'shared/widgets/attachment_widget.dart',
+  'shared/widgets/interactive_map_picker_bottom_sheet.dart',
+  'shared/widgets/map_picker',
+  'shared/src/widgets/upload_task_utils.dart',
+  'core/media/media_upload_orchestrator.dart',
+  'features/search/search/presentation/utils/search_result_type_helper.dart',
+  'domains/user/identity/authentication/presentation/screens/login_sessions_screen.dart',
+  // Social surfaces CLOSED: share preview card (auction bid → scheme.primary,
+  // budget → scheme.secondary, BuildContext threaded into the metadata
+  // builders), content toolbar/metadata/modal accents and the detail
+  // screen's media overlay + report ink read scheme roles.
+  'domains/social/content/presentation',
+  'domains/social/share/presentation',
+  // Snackbar single-authority slice CLOSED: every per-screen toast that used
+  // to paint itself (`SnackBar(backgroundColor:)`) now routes through the
+  // canonical AppSnackBar.show{Success,Error,Info,Warning}; the
+  // BuildContext.showSnackBar extension no longer forks on a Color argument.
+  // The files below were opened by that sweep and stay locked here.
+  'core/utils/notification_navigation_handler.dart',
+  'core/src/utils/extensions/context_extensions.dart',
+  'shared/widgets/external_link_interstitial.dart',
+  'features/home/presentation/providers/feed_renderers.dart',
+  'domains/social/comment/presentation/screens/discussion_screen.dart',
+  'domains/social/comment/presentation/widgets/comment_input_with_commerce_reference.dart',
 ];
 
 void main() {
   group('theme foundation positive proof', () {
-    test('ThemeHelper resolves light / dark / system correctly', () {
-      expect(
-        ThemeHelper.getThemeData(ThemeMode.light, Brightness.dark).brightness,
-        Brightness.light,
-      );
-      expect(
-        ThemeHelper.getThemeData(ThemeMode.dark, Brightness.light).brightness,
-        Brightness.dark,
-      );
-      expect(
-        ThemeHelper.getThemeData(ThemeMode.system, Brightness.dark).brightness,
-        Brightness.dark,
-      );
-      expect(
-        ThemeHelper.getThemeData(ThemeMode.system, Brightness.light).brightness,
-        Brightness.light,
-      );
+    test('app.dart wires AppTheme as the single runtime authority', () {
+      final source = File('lib/app.dart').readAsStringSync();
+      // ONE authority: MaterialApp must resolve themes exclusively through
+      // AppTheme's static ThemeData pair, never a factory/helper that could
+      // silently resolve a different palette.
+      expect(source.contains('theme: AppTheme.lightTheme'), isTrue);
+      expect(source.contains('darkTheme: AppTheme.darkTheme'), isTrue);
+      expect(source.contains('themeMode: themeMode'), isTrue);
     });
 
     test('both themes carry the canonical scheme roles', () {
@@ -359,6 +473,123 @@ void main() {
         violations,
         isEmpty,
         reason: 'migrated UI owns no colour authority:\n'
+            '${violations.join('\n')}',
+      );
+    });
+  });
+
+  group('foundation zombie/alias gate', () {
+    test('AppColors carries no backward-compat colour aliases', () {
+      final source = File(
+        'lib/core/src/theme/app_colors.dart',
+      ).readAsStringSync();
+      // Killed in Scope F: flat light/dark/neutral binds had no scheme
+      // meaning and invited off-authority colour picks. Must not return.
+      expect(source.contains('Color light ='), isFalse);
+      expect(source.contains('Color dark ='), isFalse);
+      expect(source.contains('Color neutral ='), isFalse);
+    });
+
+    test('ThemeState exposes no brightness-branch helpers', () {
+      final source = File(
+        'lib/core/src/theme/theme_provider.dart',
+      ).readAsStringSync();
+      // Zombie helpers purged in Scope F: zero callers — widgets read
+      // Theme.of(context), never ThemeState brightness forks.
+      expect(source.contains('isDarkMode'), isFalse);
+      expect(source.contains('getCurrentBrightness'), isFalse);
+    });
+
+    test('no second ThemeData builder survives in the theme layer', () {
+      final source = File(
+        'lib/core/src/theme/theme_provider.dart',
+      ).readAsStringSync();
+      // Killed: ThemeHelper.getThemeData duplicated AppTheme's job by
+      // building ThemeData from a Brightness fork — a second authority.
+      expect(source.contains('ThemeHelper'), isFalse);
+      expect(source.contains('getThemeData'), isFalse);
+    });
+
+    test('component factory authority stays deleted', () {
+      // Killed: the factory resolved component palettes off a locked light
+      // brightness, competing with Theme.of(context). Must not be recreated.
+      expect(
+        File('lib/shared/ui/factory/component_factory.dart').existsSync(),
+        isFalse,
+      );
+      expect(
+        Directory('lib/shared/ui/factory').existsSync(),
+        isFalse,
+      );
+    });
+
+    test('base_component owns no colour/size authority', () {
+      final source = File(
+        'lib/shared/ui/base/base_component.dart',
+      ).readAsStringSync();
+      // Killed: ComponentSize/ComponentSpacing(value) duplicated the theme's
+      // layout scale and had zero consumers.
+      expect(source.contains('ComponentSize'), isFalse);
+      expect(source.contains('ComponentSpacing'), isFalse);
+    });
+  });
+
+  group('snackbar single-authority gate', () {
+    test('showSnackBar extension owns no colour decision', () {
+      final source = File(
+        'lib/core/src/utils/extensions/context_extensions.dart',
+      ).readAsStringSync();
+      // Killed: the extension forked error/success/info off a raw
+      // `backgroundColor` argument — the same decision AppSnackBar already
+      // owns. It now delegates with no colour parameter at all.
+      expect(source.contains('backgroundColor'), isFalse);
+      expect(source.contains('AppSnackBar.showInfo'), isTrue);
+    });
+
+    test('no per-screen SnackBar re-decides its palette', () {
+      // Killed: ~40 call sites passed `backgroundColor:` into a raw SnackBar,
+      // a second authority beside AppSnackBar's type → colour map. Every
+      // toast goes through AppSnackBar.show{Success,Error,Info,Warning}; a
+      // bare SnackBar may still exist but must not paint itself.
+      final violations = <String>[];
+      final files = Directory('lib')
+          .listSync(recursive: true)
+          .whereType<File>()
+          .where((f) => f.path.endsWith('.dart'));
+      for (final file in files) {
+        final path = file.path.replaceAll(r'\', '/');
+        if (path.endsWith('shared/widgets/app_snackbar.dart')) continue;
+        final src = file.readAsStringSync();
+        var from = 0;
+        while (true) {
+          final idx = src.indexOf('SnackBar(', from);
+          if (idx < 0) break;
+          // Only the bare Material widget counts: `ScaffoldMessenger…
+          // showSnackBar(` and `AppSnackBar(` are not scoped here.
+          final before = idx == 0 ? '' : src[idx - 1];
+          final bare = !RegExp(r'[A-Za-z0-9_]').hasMatch(before);
+          var depth = 0;
+          var end = idx + 'SnackBar'.length;
+          for (; end < src.length; end++) {
+            final ch = src[end];
+            if (ch == '(') depth++;
+            if (ch == ')') {
+              depth--;
+              if (depth == 0) break;
+            }
+          }
+          final block = src.substring(idx, end + 1);
+          if (bare && block.contains('backgroundColor')) {
+            final line = '\n'.allMatches(src.substring(0, idx)).length + 1;
+            violations.add('$path:$line');
+          }
+          from = idx + 1;
+        }
+      }
+      expect(
+        violations,
+        isEmpty,
+        reason: 'SnackBar painted outside the AppSnackBar authority:\n'
             '${violations.join('\n')}',
       );
     });

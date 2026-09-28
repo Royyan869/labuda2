@@ -18,6 +18,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/shared/widgets/app_snackbar.dart';
 import 'package:labuda/domains/social/comment/domain/entities/comment.dart';
 import 'package:labuda/domains/social/comment/presentation/comment_widgets.dart';
 import 'package:labuda/domains/social/comment/presentation/providers/comment_notifier.dart'
@@ -355,26 +356,17 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
       return true;
     }
 
-    if (result.errorCode == 'EMAIL_VERIFICATION_REQUIRED') {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Verifikasi email kamu diperlukan sebelum menulis komentar.',
-          ),
-          backgroundColor: AppColors.statusError,
-          duration: Duration(seconds: 3),
-        ),
-      );
+    if (result.errorCode == 'EMAIL_VERIFICATION_REQUIRED') {        AppSnackBar.showError(
+          context,
+          'Verifikasi email kamu diperlukan sebelum menulis komentar.',
+          duration: const Duration(seconds: 3),
+        );
       return false;
-    }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(result.error ?? 'Gagal mengirim komentar'),
+    }      AppSnackBar.showError(
+        context,
+        result.error ?? 'Gagal mengirim komentar',
         duration: const Duration(seconds: 3),
-        backgroundColor: AppColors.statusError,
-      ),
-    );
+      );
     return false;
   }
 
@@ -662,13 +654,11 @@ class _CommentsBatchWidget extends ConsumerWidget {
     final res = await ref
         .read(commentProvider.notifier)
         .updateComment(commentId: comment.id, body: result);
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(res.isSuccess ? 'Komentar diperbarui' : res.error ?? 'Gagal mengedit'),
-        backgroundColor: res.isSuccess ? null : AppColors.statusError,
-      ),
-    );
+    if (!context.mounted) return;      if (res.isSuccess) {
+        AppSnackBar.showSuccess(context, 'Komentar diperbarui');
+      } else {
+        AppSnackBar.showError(context, res.error ?? 'Gagal mengedit');
+      }
   }
 
   Future<void> _showDeleteConfirm(
@@ -698,13 +688,11 @@ class _CommentsBatchWidget extends ConsumerWidget {
     final res = await ref
         .read(commentProvider.notifier)
         .deleteComment(comment.id);
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(res.isSuccess ? 'Komentar dihapus' : res.error ?? 'Gagal menghapus'),
-        backgroundColor: res.isSuccess ? null : AppColors.statusError,
-      ),
-    );
+    if (!context.mounted) return;      if (res.isSuccess) {
+        AppSnackBar.showSuccess(context, 'Komentar dihapus');
+      } else {
+        AppSnackBar.showError(context, res.error ?? 'Gagal menghapus');
+      }
   }
 
   Widget _buildReplyItem(

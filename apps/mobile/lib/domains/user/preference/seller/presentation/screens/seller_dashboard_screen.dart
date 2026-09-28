@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/commerce/transaction/order/order.dart';
 import 'package:labuda/shared/utils/app_formatters.dart';
+import 'package:labuda/shared/widgets/app_image.dart';
 import 'package:labuda/domains/user/identity/verification/verification.dart';
 import 'package:labuda/domains/system/support/presentation/screens/help_center_screen.dart';
 import 'package:labuda/domains/system/support/presentation/widgets/pre_chat_form_sheet.dart';
@@ -11,6 +12,7 @@ import 'package:labuda/domains/chat/chat/presentation/providers/chat_providers.d
 import 'package:labuda/domains/chat/chat/presentation/screens/chat_list_screen.dart';
 import 'package:labuda/domains/user/preference/seller/domain/entities/seller_state.dart';
 import 'package:labuda/domains/user/preference/seller/presentation/providers/current_seller_provider.dart';
+import 'package:labuda/domains/user/preference/seller/presentation/widgets/operational_action_queue_section.dart';
 
 /// Seller Dashboard Screen
 ///
@@ -45,7 +47,6 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final authState = ref.watch(authControllerProvider);
     final sellerIdentityStatus = ref.watch(sellerIdentityStatusProvider);
     final sellerCapabilityStatus = ref.watch(sellerCapabilityStatusProvider);
@@ -60,18 +61,18 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
 
     if (sellerIdentityStatus == SellerIdentityStatus.unknown ||
         sellerCapabilityStatus == SellerCapabilityStatus.unknown) {
-      return _buildSellerStatusLoading(context, isDark);
+      return _buildSellerStatusLoading(context);
     }
 
     final user = authState.user;
     if (sellerIdentityStatus != SellerIdentityStatus.seller) {
-      return _buildSellerProfileRequired(context, isDark);
+      return _buildSellerProfileRequired(context);
     }
 
     final sellerId = user.id;
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkGray900 : AppColors.neutralGray50,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: CustomScrollView(
         slivers: [
           // App Bar
@@ -79,9 +80,7 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
             expandedHeight: 120,
             floating: false,
             pinned: true,
-            backgroundColor: isDark
-                ? AppColors.darkGray800
-                : AppColors.neutralWhite,
+            backgroundColor: Theme.of(context).colorScheme.surface,
             flexibleSpace: FlexibleSpaceBar(
               title: const Text(
                 'Dashboard Penjual',
@@ -93,8 +92,8 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      AppColors.primaryRed,
-                      AppColors.primaryRed.withValues(alpha: 0.8),
+                      Theme.of(context).colorScheme.primary,
+                      Theme.of(context).colorScheme.primary.withValues(alpha: 0.8),
                     ],
                   ),
                 ),
@@ -106,7 +105,6 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
           SliverToBoxAdapter(
             child: _buildContent(
               context,
-              isDark,
               sellerId,
               isSubscriptionExpired,
             ),
@@ -122,10 +120,10 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
+            Icon(
               Icons.lock_outline,
               size: 64,
-              color: AppColors.primaryRed,
+              color: Theme.of(context).colorScheme.primary,
             ),
             const SizedBox(height: 16),
             const Text(
@@ -140,19 +138,15 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
     );
   }
 
-  Widget _buildSellerProfileRequired(BuildContext context, bool isDark) {
+  Widget _buildSellerProfileRequired(BuildContext context) {
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkGray900 : AppColors.neutralWhite,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
         title: const Text('Seller Profile Required'),
         surfaceTintColor: Colors.transparent,
         scrolledUnderElevation: 0,
-        backgroundColor: isDark
-            ? AppColors.darkGray800
-            : AppColors.neutralWhite,
-        foregroundColor: isDark
-            ? AppColors.neutralWhite
-            : AppColors.darkGray800,
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        foregroundColor: Theme.of(context).colorScheme.onSurface,
         elevation: 0,
       ),
       body: Center(
@@ -179,9 +173,7 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: isDark
-                      ? AppColors.neutralWhite
-                      : AppColors.darkGray800,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 16),
@@ -189,9 +181,7 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
                 'Anda perlu membuat profil penjual untuk mulai berjualan di Labuda.',
                 style: TextStyle(
                   fontSize: 14,
-                  color: isDark
-                      ? AppColors.neutralGray300
-                      : AppColors.neutralGray600,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -200,9 +190,7 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: isDark
-                      ? AppColors.darkGray800
-                      : AppColors.neutralGray50,
+                  color: Theme.of(context).colorScheme.surfaceContainerLow,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Column(
@@ -213,7 +201,7 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
                         Icon(
                           Icons.info_outline,
                           size: 16,
-                          color: AppColors.primaryBlue,
+                          color: Theme.of(context).colorScheme.secondary,
                         ),
                         const SizedBox(width: 8),
                         Text(
@@ -221,9 +209,7 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
-                            color: isDark
-                                ? AppColors.neutralWhite
-                                : AppColors.darkGray800,
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                         ),
                       ],
@@ -264,8 +250,9 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
                     icon: const Icon(Icons.storefront, size: 18),
                     label: const Text('Mulai Jualan'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryRed,
-                      foregroundColor: AppColors.light,
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      foregroundColor:
+                          Theme.of(context).colorScheme.onPrimary,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 24,
                         vertical: 12,
@@ -281,9 +268,9 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
     );
   }
 
-  Widget _buildSellerStatusLoading(BuildContext context, bool isDark) {
+  Widget _buildSellerStatusLoading(BuildContext context) {
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkGray900 : AppColors.neutralWhite,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
@@ -301,9 +288,7 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: isDark
-                      ? AppColors.neutralWhite
-                      : AppColors.darkGray800,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 8),
@@ -311,9 +296,7 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
                 'Menunggu identitas dan kapabilitas dari backend.',
                 style: TextStyle(
                   fontSize: 13,
-                  color: isDark
-                      ? AppColors.neutralGray300
-                      : AppColors.neutralGray600,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -333,16 +316,16 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
             width: 24,
             height: 24,
             decoration: BoxDecoration(
-              color: AppColors.primaryBlue.withValues(alpha: 0.1),
+              color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(4),
             ),
             child: Center(
               child: Text(
                 number,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.primaryBlue,
+                  color: Theme.of(context).colorScheme.secondary,
                 ),
               ),
             ),
@@ -351,9 +334,9 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
           Expanded(
             child: Text(
               text,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
-                color: AppColors.neutralGray700,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           ),
@@ -364,7 +347,6 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
 
   Widget _buildContent(
     BuildContext context,
-    bool isDark,
     String sellerId,
     bool isSubscriptionExpired,
   ) {
@@ -380,11 +362,11 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
 
           // Subscription expiry banner - UX signal only, authority unchanged.
           // Expired sellers can still use workspace routes; this is a renewal prompt.
-          _SubscriptionExpiryBanner(isDark: isDark),
+          _SubscriptionExpiryBanner(),
 
           // PHASE 2 HARDENING: Seller Action Required Card
           // Shows prominently when seller has pending/paid orders needing action
-          _SellerActionRequiredCard(sellerId: sellerId, isDark: isDark),
+          _SellerActionRequiredCard(sellerId: sellerId),
 
           const SizedBox(height: 16),
 
@@ -397,29 +379,34 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
           // Getting Started Section (shown only for new sellers)
           _GettingStartedSection(
             sellerId: sellerId,
-            isDark: isDark,
             isSubscriptionExpired: isSubscriptionExpired,
           ),
 
           const SizedBox(height: 16),
 
           // Statistics Cards
-          _OrderStatsSection(sellerId: sellerId, isDark: isDark),
+          _OrderStatsSection(sellerId: sellerId),
+
+          const SizedBox(height: 24),
+
+          // Operational action queue: one queue for every actionable seller
+          // task (spec: seller_dashboard_operational_action_queue_test).
+          OperationalActionQueueSection(sellerId: sellerId),
 
           const SizedBox(height: 24),
 
           // Quick Actions
-          _QuickActionsSection(isDark: isDark),
+          _QuickActionsSection(),
 
           const SizedBox(height: 16),
 
           // PHASE 3 HARDENING: Seller Help Section
-          _SellerHelpSection(isDark: isDark),
+          _SellerHelpSection(),
 
           const SizedBox(height: 24),
 
           // Recent Orders Preview
-          _RecentOrdersSection(sellerId: sellerId, isDark: isDark),
+          _RecentOrdersSection(sellerId: sellerId),
         ],
       ),
     );
@@ -481,25 +468,25 @@ class _VerificationStatusSectionState
         buttonColor = AppColors.successGreen;
         break;
       case SellerVerificationStatus.pendingReview:
-        statusColor = Colors.orange;
+        statusColor = AppColors.statusWarning;
         statusText = 'Menunggu Verifikasi';
         statusDescription = 'Dokumen sedang ditinjau (1-2 hari kerja)';
         statusIcon = Icons.pending;
-        buttonColor = Colors.orange;
+        buttonColor = AppColors.statusWarning;
         break;
       case SellerVerificationStatus.rejected:
         statusColor = AppColors.error;
         statusText = 'Verifikasi Ditolak';
         statusDescription = 'Mohon periksa dokumen dan ajukan kembali';
         statusIcon = Icons.cancel;
-        buttonColor = AppColors.primaryRed;
+        buttonColor = Theme.of(context).colorScheme.primary;
         break;
       default:
-        statusColor = AppColors.neutralGray600;
+        statusColor = Theme.of(context).colorScheme.outline;
         statusText = 'Belum Diverifikasi';
         statusDescription = 'Verifikasi diperlukan untuk menarik dana';
         statusIcon = Icons.info_outline;
-        buttonColor = AppColors.primaryRed;
+        buttonColor = Theme.of(context).colorScheme.primary;
     }
 
     return Container(
@@ -537,7 +524,7 @@ class _VerificationStatusSectionState
                   statusDescription,
                   style: TextStyle(
                     fontSize: 12,
-                    color: AppColors.neutralGray600,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -566,9 +553,11 @@ class _VerificationStatusSectionState
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.neutralWhite,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.neutralGray200),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outlineVariant,
+        ),
       ),
       child: const Row(
         children: [
@@ -623,7 +612,7 @@ class _VerificationStatusSectionState
           const SizedBox(height: 8),
           Text(
             message,
-            style: TextStyle(fontSize: 12, color: AppColors.neutralGray700),
+            style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 12),
           TextButton(
@@ -653,9 +642,8 @@ class _VerificationStatusSectionState
 ///
 /// Shown only when `sellerSubscriptionStatus == 'expired'`.
 class _SubscriptionExpiryBanner extends ConsumerWidget {
-  final bool isDark;
 
-  const _SubscriptionExpiryBanner({required this.isDark});
+  const _SubscriptionExpiryBanner();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -709,16 +697,14 @@ class _SubscriptionExpiryBanner extends ConsumerWidget {
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: isDark
-                                ? AppColors.neutralWhite
-                                : AppColors.neutralGray900,
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                         ),
                         Text(
                           'Langganan Anda telah berakhir. Perbarui untuk memulihkan akses pasar.',
                           style: TextStyle(
                             fontSize: 12,
-                            color: AppColors.neutralGray600,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ],
@@ -733,7 +719,7 @@ class _SubscriptionExpiryBanner extends ConsumerWidget {
                 label: const Text('Perpanjang Langganan'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.statusWarning,
-                  foregroundColor: Colors.white,
+                  foregroundColor: Theme.of(context).colorScheme.onPrimary,
                   minimumSize: const Size(double.infinity, 44),
                 ),
               ),
@@ -766,7 +752,6 @@ class _SellerChatWorkspaceSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final totalUnread = ref.watch(totalUnreadCountProvider);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -775,13 +760,13 @@ class _SellerChatWorkspaceSection extends ConsumerWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            AppColors.primaryBlue.withValues(alpha: 0.12),
-            AppColors.primaryBlue.withValues(alpha: 0.06),
+            Theme.of(context).colorScheme.secondary.withValues(alpha: 0.12),
+            Theme.of(context).colorScheme.secondary.withValues(alpha: 0.06),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: AppColors.primaryBlue.withValues(alpha: 0.3),
+          color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.3),
           width: 1.2,
         ),
       ),
@@ -796,12 +781,12 @@ class _SellerChatWorkspaceSection extends ConsumerWidget {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppColors.primaryBlue.withValues(alpha: 0.2),
+                    color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.2),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.chat_bubble_outline,
-                    color: AppColors.primaryBlue,
+                    color: Theme.of(context).colorScheme.secondary,
                     size: 24,
                   ),
                 ),
@@ -816,20 +801,18 @@ class _SellerChatWorkspaceSection extends ConsumerWidget {
                         vertical: 2,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.primaryRed,
+                        color: Theme.of(context).colorScheme.primary,
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
-                          color: isDark
-                              ? AppColors.darkGray900
-                              : AppColors.neutralWhite,
+                          color: Theme.of(context).colorScheme.surface,
                           width: 2,
                         ),
                       ),
                       constraints: const BoxConstraints(minWidth: 18),
                       child: Text(
                         totalUnread > 99 ? '99+' : totalUnread.toString(),
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onPrimary,
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
                           height: 1.1,
@@ -851,9 +834,7 @@ class _SellerChatWorkspaceSection extends ConsumerWidget {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: isDark
-                          ? AppColors.neutralWhite
-                          : AppColors.neutralGray900,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 3),
@@ -861,7 +842,7 @@ class _SellerChatWorkspaceSection extends ConsumerWidget {
                     _getChatMessage(totalUnread),
                     style: TextStyle(
                       fontSize: 13,
-                      color: AppColors.neutralGray600,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ],
@@ -870,7 +851,7 @@ class _SellerChatWorkspaceSection extends ConsumerWidget {
             // Arrow indicator
             Icon(
               Icons.chevron_right,
-              color: AppColors.neutralGray400,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
               size: 22,
             ),
           ],
@@ -906,11 +887,9 @@ class _SellerChatWorkspaceSection extends ConsumerWidget {
 /// This addresses the PRIORITY 1 gap: seller awareness of new/pending orders
 class _SellerActionRequiredCard extends ConsumerWidget {
   final String sellerId;
-  final bool isDark;
 
   const _SellerActionRequiredCard({
     required this.sellerId,
-    required this.isDark,
   });
 
   @override
@@ -945,13 +924,13 @@ class _SellerActionRequiredCard extends ConsumerWidget {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    AppColors.primaryRed.withValues(alpha: 0.15),
-                    AppColors.primaryRed.withValues(alpha: 0.08),
+                    Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
+                    Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
                   ],
                 ),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: AppColors.primaryRed.withValues(alpha: 0.4),
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.4),
                   width: 1.5,
                 ),
               ),
@@ -966,14 +945,14 @@ class _SellerActionRequiredCard extends ConsumerWidget {
                           Container(
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                              color: AppColors.primaryRed.withValues(
+                              color: Theme.of(context).colorScheme.primary.withValues(
                                 alpha: 0.2,
                               ),
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.notifications_active,
-                              color: AppColors.primaryRed,
+                              color: Theme.of(context).colorScheme.primary,
                               size: 24,
                             ),
                           ),
@@ -985,12 +964,10 @@ class _SellerActionRequiredCard extends ConsumerWidget {
                               width: 12,
                               height: 12,
                               decoration: BoxDecoration(
-                                color: AppColors.primaryRed,
+                                color: Theme.of(context).colorScheme.primary,
                                 shape: BoxShape.circle,
                                 border: Border.all(
-                                  color: isDark
-                                      ? AppColors.darkGray900
-                                      : AppColors.neutralWhite,
+                                  color: Theme.of(context).colorScheme.surface,
                                   width: 2,
                                 ),
                               ),
@@ -1008,9 +985,7 @@ class _SellerActionRequiredCard extends ConsumerWidget {
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
-                                color: isDark
-                                    ? AppColors.neutralWhite
-                                    : AppColors.neutralGray900,
+                                color: Theme.of(context).colorScheme.onSurface,
                               ),
                             ),
                             const SizedBox(height: 4),
@@ -1021,7 +996,7 @@ class _SellerActionRequiredCard extends ConsumerWidget {
                               ),
                               style: TextStyle(
                                 fontSize: 13,
-                                color: AppColors.neutralGray600,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
                             ),
                           ],
@@ -1034,13 +1009,13 @@ class _SellerActionRequiredCard extends ConsumerWidget {
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.primaryRed,
+                          color: Theme.of(context).colorScheme.primary,
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
                           actionRequiredCount.toString(),
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onPrimary,
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
                           ),
@@ -1059,7 +1034,6 @@ class _SellerActionRequiredCard extends ConsumerWidget {
                           label: 'Pending',
                           count: pendingOrders.length,
                           color: AppColors.statusWarning,
-                          isDark: isDark,
                           onTap: () => _navigateToOrderList(
                             context,
                             OrderStatus.pending,
@@ -1072,8 +1046,7 @@ class _SellerActionRequiredCard extends ConsumerWidget {
                           icon: Icons.local_shipping,
                           label: 'Siap Kirim',
                           count: paidOrders.length,
-                          color: AppColors.primaryBlue,
-                          isDark: isDark,
+                          color: Theme.of(context).colorScheme.secondary,
                           onTap: () =>
                               _navigateToOrderList(context, OrderStatus.paid),
                         ),
@@ -1121,7 +1094,6 @@ class _ActionChip extends StatelessWidget {
   final String label;
   final int count;
   final Color color;
-  final bool isDark;
   final VoidCallback onTap;
 
   const _ActionChip({
@@ -1129,7 +1101,6 @@ class _ActionChip extends StatelessWidget {
     required this.label,
     required this.count,
     required this.color,
-    required this.isDark,
     required this.onTap,
   });
 
@@ -1145,9 +1116,7 @@ class _ActionChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: isDark
-              ? AppColors.darkGray800.withValues(alpha: 0.6)
-              : AppColors.neutralWhite.withValues(alpha: 0.8),
+          color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.8),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: color.withValues(alpha: 0.3)),
         ),
@@ -1161,9 +1130,7 @@ class _ActionChip extends StatelessWidget {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: isDark
-                    ? AppColors.neutralWhite
-                    : AppColors.neutralGray900,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const SizedBox(width: 4),
@@ -1195,12 +1162,10 @@ class _ActionChip extends StatelessWidget {
 
 class _GettingStartedSection extends ConsumerWidget {
   final String sellerId;
-  final bool isDark;
   final bool isSubscriptionExpired;
 
   const _GettingStartedSection({
     required this.sellerId,
-    required this.isDark,
     required this.isSubscriptionExpired,
   });
 
@@ -1219,7 +1184,7 @@ class _GettingStartedSection extends ConsumerWidget {
         // Only an ENDED subscription replaces getting started with expiry copy.
         // A capability-inactive seller with status 'none' is not expired.
         if (isSubscriptionExpired) {
-          return _buildExpiredSellerMessage(context, ref, isDark);
+          return _buildExpiredSellerMessage(context, ref);
         }
 
         return Container(
@@ -1229,13 +1194,13 @@ class _GettingStartedSection extends ConsumerWidget {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                AppColors.primaryRed.withValues(alpha: 0.1),
-                AppColors.primaryRed.withValues(alpha: 0.05),
+                Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
               ],
             ),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: AppColors.primaryRed.withValues(alpha: 0.3),
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
               width: 1,
             ),
           ),
@@ -1247,12 +1212,12 @@ class _GettingStartedSection extends ConsumerWidget {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppColors.primaryRed.withValues(alpha: 0.2),
+                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.rocket_launch_outlined,
-                      color: AppColors.primaryRed,
+                      color: Theme.of(context).colorScheme.primary,
                       size: 20,
                     ),
                   ),
@@ -1266,16 +1231,14 @@ class _GettingStartedSection extends ConsumerWidget {
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: isDark
-                                ? AppColors.neutralWhite
-                                : AppColors.neutralGray900,
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                         ),
                         Text(
                           '3 langkah untuk mulai mendapatkan pesanan',
                           style: TextStyle(
                             fontSize: 12,
-                            color: AppColors.neutralGray600,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ],
@@ -1289,7 +1252,6 @@ class _GettingStartedSection extends ConsumerWidget {
                 title: 'Atur Pengiriman',
                 description: 'Wajib sebelum publish forSale pertama Anda',
                 isCompleted: false,
-                isDark: isDark,
                 onTap: () => _navigateToShipping(context),
               ),
               const SizedBox(height: 12),
@@ -1298,7 +1260,6 @@ class _GettingStartedSection extends ConsumerWidget {
                 title: 'Buat ForSale',
                 description: 'Tambahkan produk yang ingin Anda jual',
                 isCompleted: false,
-                isDark: isDark,
                 onTap: () => _navigateToCreateForSale(context),
               ),
               const SizedBox(height: 12),
@@ -1307,7 +1268,6 @@ class _GettingStartedSection extends ConsumerWidget {
                 title: 'Verifikasi Akun',
                 description: 'Syarat untuk menarik dana penjualan',
                 isCompleted: false,
-                isDark: isDark,
                 onTap: () => _navigateToVerification(context),
               ),
             ],
@@ -1322,7 +1282,6 @@ class _GettingStartedSection extends ConsumerWidget {
   Widget _buildExpiredSellerMessage(
     BuildContext context,
     WidgetRef ref,
-    bool isDark,
   ) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1368,16 +1327,14 @@ class _GettingStartedSection extends ConsumerWidget {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: isDark
-                            ? AppColors.neutralWhite
-                            : AppColors.neutralGray900,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                     Text(
                       'Perbarui langganan untuk mulai jual kembali',
                       style: TextStyle(
                         fontSize: 12,
-                        color: AppColors.neutralGray600,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],
@@ -1392,7 +1349,7 @@ class _GettingStartedSection extends ConsumerWidget {
             label: const Text('Perpanjang Langganan'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.statusError,
-              foregroundColor: Colors.white,
+              foregroundColor: Theme.of(context).colorScheme.onError,
               minimumSize: const Size(double.infinity, 44),
             ),
           ),
@@ -1419,7 +1376,6 @@ class _StepItem extends StatelessWidget {
   final String title;
   final String description;
   final bool isCompleted;
-  final bool isDark;
   final VoidCallback? onTap;
 
   const _StepItem({
@@ -1427,7 +1383,6 @@ class _StepItem extends StatelessWidget {
     required this.title,
     required this.description,
     required this.isCompleted,
-    required this.isDark,
     this.onTap,
   });
 
@@ -1439,14 +1394,10 @@ class _StepItem extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isDark
-              ? AppColors.darkGray800.withValues(alpha: 0.5)
-              : AppColors.neutralWhite.withValues(alpha: 0.7),
+          color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.7),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isDark
-                ? AppColors.darkGray700.withValues(alpha: 0.5)
-                : AppColors.neutralGray200.withValues(alpha: 0.5),
+            color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
           ),
         ),
         child: Row(
@@ -1458,16 +1409,16 @@ class _StepItem extends StatelessWidget {
               decoration: BoxDecoration(
                 color: isCompleted
                     ? AppColors.successGreen
-                    : AppColors.primaryRed.withValues(alpha: 0.2),
+                    : Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
                 shape: BoxShape.circle,
               ),
               child: Center(
                 child: isCompleted
-                    ? const Icon(Icons.check, color: Colors.white, size: 18)
+                    ? Icon(Icons.check, color: Theme.of(context).colorScheme.onPrimary, size: 18)
                     : Text(
                         number.toString(),
                         style: TextStyle(
-                          color: AppColors.primaryRed,
+                          color: Theme.of(context).colorScheme.primary,
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
                         ),
@@ -1485,9 +1436,7 @@ class _StepItem extends StatelessWidget {
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 14,
-                      color: isDark
-                          ? AppColors.neutralWhite
-                          : AppColors.neutralGray900,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -1495,7 +1444,7 @@ class _StepItem extends StatelessWidget {
                     description,
                     style: TextStyle(
                       fontSize: 12,
-                      color: AppColors.neutralGray600,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ],
@@ -1505,7 +1454,7 @@ class _StepItem extends StatelessWidget {
             if (onTap != null)
               Icon(
                 Icons.chevron_right,
-                color: AppColors.neutralGray400,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 size: 20,
               ),
           ],
@@ -1521,9 +1470,8 @@ class _StepItem extends StatelessWidget {
 
 class _OrderStatsSection extends ConsumerWidget {
   final String sellerId;
-  final bool isDark;
 
-  const _OrderStatsSection({required this.sellerId, required this.isDark});
+  const _OrderStatsSection({required this.sellerId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1575,7 +1523,6 @@ class _OrderStatsSection extends ConsumerWidget {
                 value: pendingCount.toString(),
                 icon: Icons.notification_important,
                 color: AppColors.statusWarning,
-                isDark: isDark,
               ),
             ),
             const SizedBox(width: 12),
@@ -1584,8 +1531,7 @@ class _OrderStatsSection extends ConsumerWidget {
                 label: 'Diproses',
                 value: paidCount.toString(),
                 icon: Icons.inventory_2_outlined,
-                color: AppColors.primaryBlue,
-                isDark: isDark,
+                color: Theme.of(context).colorScheme.secondary,
               ),
             ),
           ],
@@ -1599,7 +1545,6 @@ class _OrderStatsSection extends ConsumerWidget {
                 value: shippedCount.toString(),
                 icon: Icons.local_shipping_outlined,
                 color: AppColors.statusInfo,
-                isDark: isDark,
               ),
             ),
             const SizedBox(width: 12),
@@ -1609,7 +1554,6 @@ class _OrderStatsSection extends ConsumerWidget {
                 value: completedCount.toString(),
                 icon: Icons.check_circle_outline,
                 color: AppColors.statusSuccess,
-                isDark: isDark,
               ),
             ),
           ],
@@ -1620,12 +1564,10 @@ class _OrderStatsSection extends ConsumerWidget {
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
+                color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: isDark
-                      ? AppColors.darkGray700
-                      : AppColors.neutralGray200,
+                  color: Theme.of(context).colorScheme.outlineVariant,
                 ),
               ),
               child: Row(
@@ -1633,7 +1575,7 @@ class _OrderStatsSection extends ConsumerWidget {
                   Icon(
                     Icons.inbox_outlined,
                     size: 32,
-                    color: AppColors.neutralGray400,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -1644,9 +1586,7 @@ class _OrderStatsSection extends ConsumerWidget {
                           'Belum Ada Pesanan',
                           style: TextStyle(
                             fontWeight: FontWeight.w600,
-                            color: isDark
-                                ? AppColors.neutralWhite
-                                : AppColors.neutralGray900,
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -1654,7 +1594,7 @@ class _OrderStatsSection extends ConsumerWidget {
                           'Pesanan masuk akan muncul di sini',
                           style: TextStyle(
                             fontSize: 12,
-                            color: AppColors.neutralGray600,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ],
@@ -1674,14 +1614,12 @@ class _StatCard extends StatelessWidget {
   final String value;
   final IconData icon;
   final Color color;
-  final bool isDark;
 
   const _StatCard({
     required this.label,
     required this.value,
     required this.icon,
     required this.color,
-    required this.isDark,
   });
 
   @override
@@ -1689,10 +1627,10 @@ class _StatCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isDark ? AppColors.darkGray700 : AppColors.neutralGray200,
+          color: Theme.of(context).colorScheme.outlineVariant,
         ),
       ),
       child: Column(
@@ -1706,7 +1644,7 @@ class _StatCard extends StatelessWidget {
                 child: Text(
                   label,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.neutralGray600,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ),
@@ -1731,9 +1669,8 @@ class _StatCard extends StatelessWidget {
 // =============================================================================
 
 class _QuickActionsSection extends ConsumerWidget {
-  final bool isDark;
 
-  const _QuickActionsSection({required this.isDark});
+  const _QuickActionsSection();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1753,8 +1690,7 @@ class _QuickActionsSection extends ConsumerWidget {
               child: _QuickActionCard(
                 icon: Icons.shopping_bag_outlined,
                 label: 'Pesanan Masuk',
-                color: AppColors.primaryRed,
-                isDark: isDark,
+                color: Theme.of(context).colorScheme.primary,
                 onTap: () => _navigateToOrders(context),
               ),
             ),
@@ -1764,7 +1700,6 @@ class _QuickActionsSection extends ConsumerWidget {
                 icon: Icons.view_list_outlined,
                 label: 'ForSale Saya',
                 color: AppColors.successGreen,
-                isDark: isDark,
                 onTap: () => _navigateToForSales(context),
               ),
             ),
@@ -1778,7 +1713,6 @@ class _QuickActionsSection extends ConsumerWidget {
                 icon: Icons.local_shipping_outlined,
                 label: 'Atur Pengiriman',
                 color: AppColors.statusInfo,
-                isDark: isDark,
                 onTap: () => _navigateToShipping(context),
               ),
             ),
@@ -1787,9 +1721,25 @@ class _QuickActionsSection extends ConsumerWidget {
               child: _QuickActionCard(
                 icon: Icons.manage_search_outlined,
                 label: 'Kelola Promosi',
-                color: AppColors.primaryBlue,
-                isDark: isDark,
+                color: Theme.of(context).colorScheme.secondary,
                 onTap: () => _navigateToCanonicalPromotions(context),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _QuickActionCard(
+                key: const Key('seller-quick-action-auctions'),
+                icon: Icons.gavel_outlined,
+                label: 'Lelang Saya',
+                color: Theme.of(context).colorScheme.secondary,
+                // Spec pins the auctions quick action onto the canonical
+                // seller inventory surface: there is no /seller/auctions
+                // route anywhere in the router.
+                onTap: () => context.push(RoutePaths.sellerForSales),
               ),
             ),
           ],
@@ -1816,7 +1766,10 @@ class _QuickActionsSection extends ConsumerWidget {
   }
 
   void _navigateToForSales(BuildContext context) {
-    Navigator.pushNamed(context, RoutePaths.sellerForSales);
+    // GoRouter authority: push by path so the location stays observable.
+    // Navigator.pushNamed here resolved the path as a route NAME and threw
+    // under MaterialApp.router (broke seller_dashboard_quick_action routes).
+    context.push(RoutePaths.sellerForSales);
   }
 }
 
@@ -1824,15 +1777,14 @@ class _QuickActionCard extends StatelessWidget {
   final IconData icon;
   final String label;
   final Color color;
-  final bool isDark;
   final VoidCallback onTap;
   final String? badgeText;
 
   const _QuickActionCard({
+    super.key,
     required this.icon,
     required this.label,
     required this.color,
-    required this.isDark,
     required this.onTap,
     this.badgeText,
   });
@@ -1845,10 +1797,10 @@ class _QuickActionCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isDark ? AppColors.darkGray700 : AppColors.neutralGray200,
+            color: Theme.of(context).colorScheme.outlineVariant,
           ),
         ),
         child: Column(
@@ -1905,9 +1857,8 @@ class _QuickActionCard extends StatelessWidget {
 // =============================================================================
 
 class _SellerHelpSection extends ConsumerWidget {
-  final bool isDark;
 
-  const _SellerHelpSection({required this.isDark});
+  const _SellerHelpSection();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1953,9 +1904,7 @@ class _SellerHelpSection extends ConsumerWidget {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: isDark
-                        ? AppColors.neutralWhite
-                        : AppColors.neutralGray900,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
               ),
@@ -1977,7 +1926,6 @@ class _SellerHelpSection extends ConsumerWidget {
                 ),
               );
             },
-            isDark: isDark,
           ),
           const SizedBox(height: 8),
           _HelpTile(
@@ -1995,7 +1943,6 @@ class _SellerHelpSection extends ConsumerWidget {
                 ),
               );
             },
-            isDark: isDark,
           ),
           const SizedBox(height: 8),
           _HelpTile(
@@ -2012,7 +1959,6 @@ class _SellerHelpSection extends ConsumerWidget {
                     );
                   }
                 : null,
-            isDark: isDark,
           ),
         ],
       ),
@@ -2025,14 +1971,12 @@ class _HelpTile extends StatelessWidget {
   final String title;
   final String description;
   final VoidCallback? onTap;
-  final bool isDark;
 
   const _HelpTile({
     required this.icon,
     required this.title,
     required this.description,
     required this.onTap,
-    required this.isDark,
   });
 
   @override
@@ -2043,9 +1987,7 @@ class _HelpTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isDark
-              ? AppColors.darkGray800.withValues(alpha: 0.5)
-              : AppColors.neutralWhite.withValues(alpha: 0.7),
+          color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.7),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
@@ -2068,16 +2010,14 @@ class _HelpTile extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: isDark
-                          ? AppColors.neutralWhite
-                          : AppColors.neutralGray900,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                   Text(
                     description,
                     style: TextStyle(
                       fontSize: 11,
-                      color: AppColors.neutralGray600,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ],
@@ -2086,7 +2026,7 @@ class _HelpTile extends StatelessWidget {
             Icon(
               Icons.chevron_right,
               size: 16,
-              color: AppColors.neutralGray400,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ],
         ),
@@ -2101,9 +2041,8 @@ class _HelpTile extends StatelessWidget {
 
 class _RecentOrdersSection extends ConsumerWidget {
   final String sellerId;
-  final bool isDark;
 
-  const _RecentOrdersSection({required this.sellerId, required this.isDark});
+  const _RecentOrdersSection({required this.sellerId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -2138,7 +2077,7 @@ class _RecentOrdersSection extends ConsumerWidget {
         recentOrdersAsync.when(
           data: (orders) {
             if (orders.isEmpty) {
-              return _buildEmptyRecentOrdersState();
+              return _buildEmptyRecentOrdersState(context);
             }
 
             return Column(
@@ -2146,7 +2085,6 @@ class _RecentOrdersSection extends ConsumerWidget {
                   .map(
                     (order) => _OrderTile(
                       order: order,
-                      isDark: isDark,
                       onTap: () => _navigateToOrderDetail(context, order.id),
                     ),
                   )
@@ -2160,21 +2098,21 @@ class _RecentOrdersSection extends ConsumerWidget {
             ),
           ),
           error: (error, __) =>
-              _buildRecentOrdersErrorState(ref, error.toString()),
+              _buildRecentOrdersErrorState(context, ref, error.toString()),
         ),
       ],
     );
   }
 
-  Widget _buildEmptyRecentOrdersState() {
+  Widget _buildEmptyRecentOrdersState(BuildContext context) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isDark ? AppColors.darkGray700 : AppColors.neutralGray200,
+          color: Theme.of(context).colorScheme.outlineVariant,
         ),
       ),
       child: Column(
@@ -2187,14 +2125,18 @@ class _RecentOrdersSection extends ConsumerWidget {
           const SizedBox(height: 4),
           Text(
             'Pesanan terbaru akan muncul di sini setelah ada pembelian.',
-            style: TextStyle(fontSize: 12, color: AppColors.neutralGray600),
+            style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildRecentOrdersErrorState(WidgetRef ref, String message) {
+  Widget _buildRecentOrdersErrorState(
+    BuildContext context,
+    WidgetRef ref,
+    String message,
+  ) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -2217,7 +2159,7 @@ class _RecentOrdersSection extends ConsumerWidget {
           const SizedBox(height: 4),
           Text(
             message,
-            style: TextStyle(fontSize: 12, color: AppColors.neutralGray700),
+            style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 12),
           TextButton(
@@ -2242,12 +2184,10 @@ class _RecentOrdersSection extends ConsumerWidget {
 
 class _OrderTile extends StatelessWidget {
   final Order order;
-  final bool isDark;
   final VoidCallback onTap;
 
   const _OrderTile({
     required this.order,
-    required this.isDark,
     required this.onTap,
   });
 
@@ -2265,25 +2205,26 @@ class _OrderTile extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isDark ? AppColors.darkGray700 : AppColors.neutralGray200,
+            color: Theme.of(context).colorScheme.outlineVariant,
           ),
         ),
         child: Row(
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: Image.network(
-                firstItem?.forSaleImage ?? '',
+              child: AppImage(
+                imageUrl: firstItem?.forSaleImage,
                 width: 48,
                 height: 48,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
+                backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                errorWidget: Container(
                   width: 48,
                   height: 48,
-                  color: AppColors.neutralGray300,
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
                   child: const Icon(Icons.image_not_supported, size: 20),
                 ),
               ),
@@ -2298,7 +2239,7 @@ class _OrderTile extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 12,
                       fontFamily: 'monospace',
-                      color: AppColors.neutralGray600,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -2316,7 +2257,7 @@ class _OrderTile extends StatelessWidget {
                           )
                         : '—',
                     style: TextStyle(
-                      color: AppColors.primaryRed,
+                      color: Theme.of(context).colorScheme.primary,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -2348,7 +2289,7 @@ class _StatusBadge extends StatelessWidget {
         label = 'Pending';
         break;
       case OrderStatus.paid:
-        color = AppColors.primaryBlue;
+        color = Theme.of(context).colorScheme.secondary;
         label = 'Diproses';
         break;
       case OrderStatus.shipped:

@@ -10,6 +10,7 @@ class SettingsUpgradeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
       decoration: BoxDecoration(
@@ -17,14 +18,14 @@ class SettingsUpgradeCard extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Color(0xFF10B981), // Emerald green
-            Color(0xFF059669), // Darker emerald
+            AppColors.primaryGreen,
+            AppColors.statusSuccess,
           ],
         ),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF10B981).withValues(alpha: 0.3),
+            color: AppColors.primaryGreen.withValues(alpha: 0.3),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -35,16 +36,16 @@ class SettingsUpgradeCard extends StatelessWidget {
         child: InkWell(
           onTap: onUpgrade,
           borderRadius: BorderRadius.circular(16),
-          child: const Padding(
-            padding: EdgeInsets.all(20),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
             child: Row(
               children: [
                 Icon(
                   Icons.store_outlined,
-                  color: AppColors.neutralWhite,
+                  color: scheme.onPrimary,
                   size: 28,
                 ),
-                SizedBox(width: 16),
+                const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -52,16 +53,16 @@ class SettingsUpgradeCard extends StatelessWidget {
                       Text(
                         'Become a Seller',
                         style: TextStyle(
-                          color: AppColors.neutralWhite,
+                          color: scheme.onPrimary,
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
                       Text(
                         'Start selling your koi products',
                         style: TextStyle(
-                          color: AppColors.neutralWhite,
+                          color: scheme.onPrimary,
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
                         ),
@@ -71,7 +72,7 @@ class SettingsUpgradeCard extends StatelessWidget {
                 ),
                 Icon(
                   Icons.arrow_forward_ios,
-                  color: AppColors.neutralWhite,
+                  color: scheme.onPrimary,
                   size: 18,
                 ),
               ],

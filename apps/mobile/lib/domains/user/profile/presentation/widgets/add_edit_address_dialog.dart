@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/domains/user/profile/domain/entities/address_entity.dart';
 import 'package:labuda/domains/user/profile/data/profile_providers.dart'
@@ -91,8 +90,8 @@ class _AddEditAddressDialogState extends ConsumerState<AddEditAddressDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isEdit = widget.address != null;
+    final scheme = Theme.of(context).colorScheme;
 
     return Dialog(
       backgroundColor: Colors.transparent,
@@ -100,7 +99,7 @@ class _AddEditAddressDialogState extends ConsumerState<AddEditAddressDialog> {
       child: Container(
         constraints: const BoxConstraints(maxWidth: 600, maxHeight: 700),
         decoration: BoxDecoration(
-          color: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
+          color: scheme.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Column(

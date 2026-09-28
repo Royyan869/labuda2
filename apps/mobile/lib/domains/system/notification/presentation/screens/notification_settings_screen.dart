@@ -1,6 +1,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:labuda/core/core.dart';
 
 /// Read-only notification settings placeholder.
 ///
@@ -11,36 +12,16 @@ class NotificationSettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final backgroundColor = isDark
-        ? const Color(0xFF0F172A)
-        : const Color(0xFFF8FAFC);
-    final surfaceColor = isDark ? const Color(0xFF1E293B) : Colors.white;
-    final headingColor = isDark ? Colors.white : const Color(0xFF0F172A);
-    final bodyColor = isDark
-        ? const Color(0xFFCBD5E1)
-        : const Color(0xFF475569);
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: backgroundColor,
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: surfaceColor,
-        foregroundColor: headingColor,
-        surfaceTintColor: Colors.transparent,
-        title: const Text('Notification Settings'),
-      ),
+      appBar: AppBar(title: const Text('Notification Settings')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _StatusBanner(
-            surfaceColor: surfaceColor,
-            headingColor: headingColor,
-            bodyColor: bodyColor,
-          ),
+          const _StatusBanner(),
           const SizedBox(height: 16),
           _SectionCard(
-            surfaceColor: surfaceColor,
             title: 'Current scope',
             children: const [
               _ReadOnlyRow(
@@ -65,14 +46,16 @@ class NotificationSettingsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           _SectionCard(
-            surfaceColor: surfaceColor,
             title: 'What changed',
             children: [
               Text(
                 'This screen is intentionally read-only for now. '
                 'It is safe to open from Settings, but it does not submit '
                 'any unsupported preference updates.',
-                style: TextStyle(color: bodyColor, height: 1.45),
+                style: TextStyle(
+                  color: colorScheme.onSurfaceVariant,
+                  height: 1.45,
+                ),
               ),
             ],
           ),
@@ -83,31 +66,25 @@ class NotificationSettingsScreen extends StatelessWidget {
 }
 
 class _StatusBanner extends StatelessWidget {
-  final Color surfaceColor;
-  final Color headingColor;
-  final Color bodyColor;
-
-  const _StatusBanner({
-    required this.surfaceColor,
-    required this.headingColor,
-    required this.bodyColor,
-  });
+  const _StatusBanner();
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: surfaceColor,
+        color: colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: const Color(0xFFF59E0B).withValues(alpha: 0.25),
+          color: AppColors.statusWarning.withValues(alpha: 0.25),
         ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.info_outline, color: Color(0xFFF59E0B)),
+          Icon(Icons.info_outline, color: AppColors.statusWarning),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -116,7 +93,7 @@ class _StatusBanner extends StatelessWidget {
                 Text(
                   'Notification settings are under development',
                   style: TextStyle(
-                    color: headingColor,
+                    color: colorScheme.onSurface,
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                   ),
@@ -125,7 +102,10 @@ class _StatusBanner extends StatelessWidget {
                 Text(
                   'You can open this page safely, but preferences are not saved '
                   'from this screen yet.',
-                  style: TextStyle(color: bodyColor, height: 1.45),
+                  style: TextStyle(
+                    color: colorScheme.onSurfaceVariant,
+                    height: 1.45,
+                  ),
                 ),
               ],
             ),
@@ -137,21 +117,18 @@ class _StatusBanner extends StatelessWidget {
 }
 
 class _SectionCard extends StatelessWidget {
-  final Color surfaceColor;
   final String title;
   final List<Widget> children;
 
-  const _SectionCard({
-    required this.surfaceColor,
-    required this.title,
-    required this.children,
-  });
+  const _SectionCard({required this.title, required this.children});
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Container(
       decoration: BoxDecoration(
-        color: surfaceColor,
+        color: colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Padding(
@@ -161,7 +138,11 @@ class _SectionCard extends StatelessWidget {
           children: [
             Text(
               title,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: colorScheme.onSurface,
+              ),
             ),
             const SizedBox(height: 12),
             ...children,

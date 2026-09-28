@@ -39,7 +39,6 @@ class _ReportDescriptionFieldState extends State<ReportDescriptionField> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final currentLength = _controller.text.length;
 
     return Column(
@@ -53,9 +52,7 @@ class _ReportDescriptionFieldState extends State<ReportDescriptionField> {
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
-                color: isDark
-                    ? AppColors.neutralWhite
-                    : AppColors.neutralGray900,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             Text(
@@ -64,7 +61,7 @@ class _ReportDescriptionFieldState extends State<ReportDescriptionField> {
                 fontSize: 12,
                 color: currentLength > _maxLength * 0.9
                     ? AppColors.warning
-                    : AppColors.neutralGray500,
+                    : Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           ],
@@ -79,55 +76,45 @@ class _ReportDescriptionFieldState extends State<ReportDescriptionField> {
           decoration: InputDecoration(
             hintText: 'Provide more context to help us understand the issue...',
             hintStyle: TextStyle(
-              color: isDark
-                  ? AppColors.neutralGray500
-                  : AppColors.neutralGray400,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
             filled: true,
-            fillColor: isDark
-                ? AppColors.darkGray700
-                : AppColors.neutralGray100,
+            fillColor: Theme.of(context).colorScheme.surfaceContainer,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                color: isDark
-                    ? AppColors.darkGray600
-                    : AppColors.neutralGray300,
+                color: Theme.of(context).colorScheme.outlineVariant,
               ),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                color: isDark
-                    ? AppColors.darkGray600
-                    : AppColors.neutralGray300,
+                color: Theme.of(context).colorScheme.outlineVariant,
               ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(
-                color: AppColors.primaryBlue,
+              borderSide: BorderSide(
+                color: Theme.of(context).colorScheme.secondary,
                 width: 2,
               ),
             ),
             disabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                color: isDark
-                    ? AppColors.darkGray700
-                    : AppColors.neutralGray200,
+                color: Theme.of(context).colorScheme.outlineVariant,
               ),
             ),
             contentPadding: const EdgeInsets.all(16),
           ),
           style: TextStyle(
-            color: isDark ? AppColors.neutralWhite : AppColors.neutralGray900,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 8),
         Text(
           'Please don\'t include personal information like phone numbers or addresses.',
-          style: TextStyle(fontSize: 12, color: AppColors.neutralGray500),
+          style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
       ],
     );

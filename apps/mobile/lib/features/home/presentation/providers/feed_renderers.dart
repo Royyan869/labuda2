@@ -24,9 +24,9 @@ import 'package:labuda/shared/shared.dart';
 import 'package:labuda/features/home/domain/domain.dart'; // R3.1: Import FeedItem from home domain
 import 'package:go_router/go_router.dart';
 import 'package:labuda/domains/social/content/domain/entities/content.dart';
+import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_marketplace_metrics.dart';
 import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/shared/widgets/carousel_video_player.dart';
-import 'package:labuda/shared/widgets/stable_network_image.dart';
 import 'package:labuda/domains/social/content/presentation/widgets/content_resource_projection_card.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 import 'package:labuda/domains/social/like/domain/entities/like.dart';
@@ -132,18 +132,23 @@ class FeedCard extends ConsumerWidget {
     final isUnavailable = item.lifecycle.isUnavailable;
 
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.symmetric(
+        horizontal: CommerceMarketplaceMetrics.gridEdgePadding,
+        vertical: CommerceMarketplaceMetrics.stackedCardMargin,
+      ),
       elevation: 0,
       color: scheme.surface,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: scheme.outlineVariant,
+        borderRadius: BorderRadius.circular(
+          CommerceMarketplaceMetrics.cardRadius,
         ),
+        side: BorderSide(color: scheme.outlineVariant),
       ),
       child: InkWell(
         onTap: isUnavailable ? null : () => _navigateToDetail(context),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(
+          CommerceMarketplaceMetrics.cardRadius,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -161,12 +166,14 @@ class FeedCard extends ConsumerWidget {
               ),
             // AUTHOR + TEXT — canonical order: identity first, then content
             Padding(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(
+                CommerceMarketplaceMetrics.contentPadding,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildAuthorInfo(context),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: CommerceMarketplaceMetrics.contentGap),
                   _buildContentText(context),
                 ],
               ),
@@ -175,7 +182,12 @@ class FeedCard extends ConsumerWidget {
             if (item.media.isNotEmpty) _buildMedia(context, item.media.first),
             if (resourceProjection != null)
               Padding(
-                padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+                padding: const EdgeInsets.fromLTRB(
+                  CommerceMarketplaceMetrics.contentPadding,
+                  CommerceMarketplaceMetrics.contentPadding,
+                  CommerceMarketplaceMetrics.contentPadding,
+                  0,
+                ),
                 child: ContentResourceProjectionCard(
                   resourceProjection: resourceProjection,
                   onTap: !isUnavailable
@@ -185,7 +197,9 @@ class FeedCard extends ConsumerWidget {
               ),
             // Footer with Like, Comment, Share — canonical icon+count
             Padding(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(
+                CommerceMarketplaceMetrics.contentPadding,
+              ),
               child: _buildHonestFooter(context, ref),
             ),
           ],
@@ -219,8 +233,8 @@ class FeedCard extends ConsumerWidget {
   /// Canonical content media renderer for the feed card.
   ///
   /// [MediaEntity.type] is the render authority:
-  /// - image — [StableNetworkImage], the shared network-media path that
-  ///   projects the reference through `resolveNetworkImageUrl`.
+  /// - image — [AppImage], the single network-media path (CloudFront URL
+  ///   as-is, cached; shimmer while loading, icon when it cannot load).
   /// - video — [CarouselVideoPlayer], the shared video primitive. A video
   ///   reference must never reach the image decoder.
   Widget _buildMedia(BuildContext context, MediaEntity media) {
@@ -237,17 +251,19 @@ class FeedCard extends ConsumerWidget {
                 onFullscreenTap: () => _navigateToDetail(context),
               ),
             )
-          : StableNetworkImage(
+          : AppImage(
               imageUrl: media.originalUrl,
               fit: BoxFit.cover,
-              fallback: _buildMediaPlaceholder(),
+              backgroundColor: Theme.of(
+                context,
+              ).colorScheme.surfaceContainerHighest,
+              errorWidget: _buildMediaPlaceholder(),
             ),
     );
   }
 
-  /// Neutral placeholder shown while the image loads and when it cannot be
-  /// loaded — the [StableNetworkImage] contract keeps one fallback for both
-  /// states (same convention as the commerce marketplace card media).
+  /// Error icon shown when the image cannot load. Loading shows the AppImage
+  /// shimmer — the two states are never the same widget.
   Widget _buildMediaPlaceholder() {
     return Builder(
       builder: (context) {
@@ -272,11 +288,7 @@ class FeedCard extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHigh,
-        border: Border(
-          bottom: BorderSide(
-            color: scheme.outlineVariant,
-          ),
-        ),
+        border: Border(bottom: BorderSide(color: scheme.outlineVariant)),
       ),
       child: Row(
         children: [
@@ -418,10 +430,7 @@ class FeedCard extends ConsumerWidget {
       item.content,
       maxLines: 3,
       overflow: TextOverflow.ellipsis,
-      style: TextStyle(
-        fontSize: 14,
-        color: scheme.onSurface,
-      ),
+      style: TextStyle(fontSize: 14, color: scheme.onSurface),
     );
   }
 
@@ -594,13 +603,9 @@ class FeedCard extends ConsumerWidget {
       }
       if (context.mounted) {
         if (result.errorCode == 'EMAIL_VERIFICATION_REQUIRED') {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Verifikasi email kamu diperlukan sebelum menyukai konten.',
-              ),
-              backgroundColor: AppColors.statusError,
-            ),
+          AppSnackBar.showError(
+            context,
+            'Verifikasi email kamu diperlukan sebelum menyukai konten.',
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -849,14 +854,17 @@ class PromotedForSaleCard extends ConsumerWidget {
         }
       },
       child: Card(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        margin: const EdgeInsets.symmetric(
+          horizontal: CommerceMarketplaceMetrics.gridEdgePadding,
+          vertical: CommerceMarketplaceMetrics.stackedCardMargin,
+        ),
         elevation: 0,
         color: scheme.surface,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: BorderSide(
-            color: scheme.outlineVariant,
+          borderRadius: BorderRadius.circular(
+            CommerceMarketplaceMetrics.cardRadius,
           ),
+          side: BorderSide(color: scheme.outlineVariant),
         ),
         child: InkWell(
           onTap: forSaleId != null
@@ -875,21 +883,24 @@ class PromotedForSaleCard extends ConsumerWidget {
                   );
                 }
               : null,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(
+            CommerceMarketplaceMetrics.cardRadius,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (imageUrl != null && imageUrl.isNotEmpty)
                 ClipRRect(
                   borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(12),
+                    top: Radius.circular(CommerceMarketplaceMetrics.cardRadius),
                   ),
-                  child: Image.network(
-                    imageUrl,
+                  child: AppImage(
+                    imageUrl: imageUrl,
                     width: double.infinity,
                     height: 180,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => Container(
+                    backgroundColor: scheme.surfaceContainerHighest,
+                    errorWidget: Container(
                       width: double.infinity,
                       height: 180,
                       color: scheme.surfaceContainerHighest,
@@ -902,12 +913,16 @@ class PromotedForSaleCard extends ConsumerWidget {
                   ),
                 ),
               Padding(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(
+                  CommerceMarketplaceMetrics.contentPadding,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const _PromotedBadge(),
-                    const SizedBox(height: 8),
+                    const SizedBox(
+                      height: CommerceMarketplaceMetrics.contentGap,
+                    ),
                     Text(
                       title,
                       maxLines: 2,
@@ -918,7 +933,9 @@ class PromotedForSaleCard extends ConsumerWidget {
                         color: scheme.onSurface,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(
+                      height: CommerceMarketplaceMetrics.contentGap,
+                    ),
                     Text(
                       _formatPrice(pricePerUnit),
                       style: TextStyle(
@@ -927,7 +944,9 @@ class PromotedForSaleCard extends ConsumerWidget {
                         color: scheme.primary,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(
+                      height: CommerceMarketplaceMetrics.contentGap,
+                    ),
                     Row(
                       children: [
                         Icon(
@@ -1011,14 +1030,17 @@ class PromotedAuctionCard extends ConsumerWidget {
         }
       },
       child: Card(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        margin: const EdgeInsets.symmetric(
+          horizontal: CommerceMarketplaceMetrics.gridEdgePadding,
+          vertical: CommerceMarketplaceMetrics.stackedCardMargin,
+        ),
         elevation: 0,
         color: scheme.surface,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: BorderSide(
-            color: scheme.outlineVariant,
+          borderRadius: BorderRadius.circular(
+            CommerceMarketplaceMetrics.cardRadius,
           ),
+          side: BorderSide(color: scheme.outlineVariant),
         ),
         child: InkWell(
           onTap: auctionId != null
@@ -1032,21 +1054,24 @@ class PromotedAuctionCard extends ConsumerWidget {
                   context.push('/auction/$auctionId');
                 }
               : null,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(
+            CommerceMarketplaceMetrics.cardRadius,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (imageUrl != null && imageUrl.isNotEmpty)
                 ClipRRect(
                   borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(12),
+                    top: Radius.circular(CommerceMarketplaceMetrics.cardRadius),
                   ),
-                  child: Image.network(
-                    imageUrl,
+                  child: AppImage(
+                    imageUrl: imageUrl,
                     width: double.infinity,
                     height: 180,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => Container(
+                    backgroundColor: scheme.surfaceContainerHighest,
+                    errorWidget: Container(
                       width: double.infinity,
                       height: 180,
                       color: scheme.surfaceContainerHighest,
@@ -1059,7 +1084,9 @@ class PromotedAuctionCard extends ConsumerWidget {
                   ),
                 ),
               Padding(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(
+                  CommerceMarketplaceMetrics.contentPadding,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -1074,7 +1101,9 @@ class PromotedAuctionCard extends ConsumerWidget {
                               vertical: 3,
                             ),
                             decoration: BoxDecoration(
-                              color: AppColors.statusWarning.withValues(alpha: 0.1),
+                              color: AppColors.statusWarning.withValues(
+                                alpha: 0.1,
+                              ),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
@@ -1088,7 +1117,9 @@ class PromotedAuctionCard extends ConsumerWidget {
                           ),
                       ],
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(
+                      height: CommerceMarketplaceMetrics.contentGap,
+                    ),
                     Text(
                       title,
                       maxLines: 2,
@@ -1099,7 +1130,9 @@ class PromotedAuctionCard extends ConsumerWidget {
                         color: scheme.onSurface,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(
+                      height: CommerceMarketplaceMetrics.contentGap,
+                    ),
                     Text(
                       priceLabel,
                       style: TextStyle(
@@ -1115,7 +1148,9 @@ class PromotedAuctionCard extends ConsumerWidget {
                         color: scheme.primary,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(
+                      height: CommerceMarketplaceMetrics.contentGap,
+                    ),
                     Row(
                       children: [
                         Icon(
@@ -1194,14 +1229,17 @@ class PromotedExternalCard extends ConsumerWidget {
         }
       },
       child: Card(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        margin: const EdgeInsets.symmetric(
+          horizontal: CommerceMarketplaceMetrics.gridEdgePadding,
+          vertical: CommerceMarketplaceMetrics.stackedCardMargin,
+        ),
         elevation: 0,
         color: scheme.surface,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: BorderSide(
-            color: scheme.outlineVariant,
+          borderRadius: BorderRadius.circular(
+            CommerceMarketplaceMetrics.cardRadius,
           ),
+          side: BorderSide(color: scheme.outlineVariant),
         ),
         child: InkWell(
           onTap: externalUrl != null
@@ -1215,30 +1253,37 @@ class PromotedExternalCard extends ConsumerWidget {
                   showExternalLinkInterstitial(context, url: externalUrl);
                 }
               : null,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(
+            CommerceMarketplaceMetrics.cardRadius,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (externalMediaUrl != null && externalMediaUrl.isNotEmpty)
                 ClipRRect(
                   borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(12),
+                    top: Radius.circular(CommerceMarketplaceMetrics.cardRadius),
                   ),
-                  child: Image.network(
-                    externalMediaUrl,
+                  child: AppImage(
+                    imageUrl: externalMediaUrl,
                     width: double.infinity,
                     height: 180,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                    backgroundColor: scheme.surfaceContainerHighest,
+                    errorWidget: const SizedBox.shrink(),
                   ),
                 ),
               Padding(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(
+                  CommerceMarketplaceMetrics.contentPadding,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const _PromotedBadge(),
-                    const SizedBox(height: 8),
+                    const SizedBox(
+                      height: CommerceMarketplaceMetrics.contentGap,
+                    ),
                     Text(
                       title,
                       maxLines: 2,
@@ -1250,7 +1295,9 @@ class PromotedExternalCard extends ConsumerWidget {
                       ),
                     ),
                     if (externalUrl != null) ...[
-                      const SizedBox(height: 6),
+                      const SizedBox(
+                        height: CommerceMarketplaceMetrics.contentGap,
+                      ),
                       Row(
                         children: [
                           Icon(

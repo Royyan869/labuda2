@@ -94,11 +94,14 @@ type AWSConfig struct {
 	SecretAccessKey string
 	S3BucketName    string
 	S3BucketRegion  string
-	// CDNBaseURL is the optional CloudFront / CDN prefix returned as read_url
-	// in media upload responses. When empty, raw S3 HTTPS URLs are used.
-	// Example: "https://d358tu61i1wrtt.cloudfront.net"
+	// CDNBaseURL is the canonical CloudFront prefix for every media read URL.
+	// Single authority: storage keys resolve to <CDNBaseURL>/<key>.
+	// Canonical: "https://d358tu61i1wrtt.cloudfront.net".
 	CDNBaseURL string
 }
+
+// CanonicalMediaCDNBaseURL is the single CloudFront truth for media reads.
+const CanonicalMediaCDNBaseURL = "https://d358tu61i1wrtt.cloudfront.net"
 
 type LoggingConfig struct {
 	Level  string
@@ -308,7 +311,7 @@ func Load() (*Config, error) {
 			SecretAccessKey: getEnv("AWS_SECRET_ACCESS_KEY", ""),
 			S3BucketName:    getEnv("S3_BUCKET_NAME", ""),
 			S3BucketRegion:  getEnv("S3_BUCKET_REGION", "ap-southeast-1"),
-			CDNBaseURL:      getEnv("CDN_BASE_URL", ""),
+			CDNBaseURL:      getEnv("CDN_BASE_URL", CanonicalMediaCDNBaseURL),
 		},
 		Logging: LoggingConfig{
 			Level:  getEnv("LOG_LEVEL", "debug"),

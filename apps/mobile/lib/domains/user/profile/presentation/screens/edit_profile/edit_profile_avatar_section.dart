@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 
 /// Avatar Section Widget for Edit Profile
 /// Shows single avatar for buyers, dual avatars (personal + farm) for sellers
@@ -36,14 +35,11 @@ class EditProfileAvatarSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     if (isSeller) {
       return Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           _AvatarItem(
-            isDark: isDark,
             label: 'Personal Avatar',
             url: avatarUrl,
             selectedPath: selectedAvatarPath,
@@ -52,7 +48,6 @@ class EditProfileAvatarSection extends StatelessWidget {
             onRemove: onRemoveAvatar,
           ),
           _AvatarItem(
-            isDark: isDark,
             label: 'Farm Photo',
             url: farmPhotoUrl,
             selectedPath: selectedStorePhotoPath,
@@ -66,7 +61,6 @@ class EditProfileAvatarSection extends StatelessWidget {
 
     return Center(
       child: _AvatarItem(
-        isDark: isDark,
         label: 'Profile Photo',
         url: avatarUrl,
         selectedPath: selectedAvatarPath,
@@ -79,7 +73,6 @@ class EditProfileAvatarSection extends StatelessWidget {
 }
 
 class _AvatarItem extends StatelessWidget {
-  final bool isDark;
   final String label;
   final String? url;
   final String? selectedPath;
@@ -88,7 +81,6 @@ class _AvatarItem extends StatelessWidget {
   final VoidCallback onRemove;
 
   const _AvatarItem({
-    required this.isDark,
     required this.label,
     this.url,
     this.selectedPath,
@@ -102,6 +94,7 @@ class _AvatarItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Column(
       children: [
         GestureDetector(
@@ -110,15 +103,13 @@ class _AvatarItem extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 60,
-                backgroundColor: isDark
-                    ? AppColors.darkGray700
-                    : AppColors.neutralGray200,
+                backgroundColor: scheme.surfaceContainerHighest,
                 backgroundImage: _getBackgroundImage(),
                 child: !_hasImage && selectedPath == null
                     ? Icon(
                         Icons.person,
                         size: 60,
-                        color: AppColors.neutralGray500,
+                        color: scheme.onSurfaceVariant,
                       )
                     : null,
               ),
@@ -127,11 +118,11 @@ class _AvatarItem extends StatelessWidget {
                 right: 0,
                 child: CircleAvatar(
                   radius: 18,
-                  backgroundColor: AppColors.primaryRed,
-                  child: const Icon(
+                  backgroundColor: scheme.primary,
+                  child: Icon(
                     Icons.camera_alt,
                     size: 18,
-                    color: Colors.white,
+                    color: scheme.onPrimary,
                   ),
                 ),
               ),
@@ -143,7 +134,7 @@ class _AvatarItem extends StatelessWidget {
           label,
           style: TextStyle(
             fontSize: 12,
-            color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray600,
+            color: scheme.onSurfaceVariant,
           ),
         ),
         if (_hasImage)
@@ -151,7 +142,7 @@ class _AvatarItem extends StatelessWidget {
             onPressed: onRemove,
             child: Text(
               'Remove',
-              style: TextStyle(color: AppColors.primaryRed, fontSize: 12),
+              style: TextStyle(color: scheme.primary, fontSize: 12),
             ),
           ),
       ],

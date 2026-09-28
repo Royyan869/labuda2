@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_colors.dart';
 import 'package:labuda/domains/user/preference/saved_item/data/repositories/saved_item_repository.dart';
 import 'package:labuda/domains/user/preference/saved_item/data/services/saved_item_service.dart';
 
@@ -28,6 +29,7 @@ class _SavedItemBadgeWidgetState extends State<SavedItemBadgeWidget> {
       future: _countFuture,
       builder: (context, snapshot) {
         final count = snapshot.data ?? 0;
+        final colorScheme = Theme.of(context).colorScheme;
         if (count <= 0) {
           return widget.child;
         }
@@ -49,11 +51,11 @@ class _SavedItemBadgeWidgetState extends State<SavedItemBadgeWidget> {
                   vertical: 2,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.red[600],
+                  color: AppColors.statusError,
                   borderRadius: BorderRadius.circular(10),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.2),
+                      color: colorScheme.shadow.withValues(alpha: 0.2),
                       blurRadius: 3,
                       offset: const Offset(0, 1),
                     ),
@@ -62,8 +64,8 @@ class _SavedItemBadgeWidgetState extends State<SavedItemBadgeWidget> {
                 constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
                 child: Text(
                   count > 99 ? '99+' : count.toString(),
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: colorScheme.onError,
                     fontSize: 9,
                     fontWeight: FontWeight.w600,
                     height: 1.1,

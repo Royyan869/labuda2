@@ -4,9 +4,11 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:labuda/shared/widgets/app_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/shared/widgets/app_snackbar.dart';
 import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/domain/domain.dart';
 import 'package:labuda/domains/social/comment/presentation/widgets/commerce_resource_picker.dart';
@@ -225,8 +227,9 @@ class _CommentInputWithCommerceReferenceState
 
   void _pickMedia() {
     if (_mediaUrls.length >= MediaUploadConfig.forComment.maxTotal) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Maksimal ${MediaUploadConfig.forComment.maxTotal} foto/video'), backgroundColor: AppColors.statusError),
+      AppSnackBar.showError(
+        context,
+        'Maksimal ${MediaUploadConfig.forComment.maxTotal} foto/video',
       );
       return;
     }
@@ -312,13 +315,13 @@ class _SelectedResourceCard extends StatelessWidget {
           ClipRRect(
             borderRadius: BorderRadius.circular(6),
             child: selection.imageUrl != null
-                ? Image.network(
-                    selection.imageUrl!,
-                    width: 45,
-                    height: 45,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => _placeholder(context),
-                  )
+      ? AppImage(
+          imageUrl: selection.imageUrl,
+          width: 45,
+          height: 45,
+          fit: BoxFit.cover,
+          errorWidget: _placeholder(context),
+        )
                 : _placeholder(context),
           ),
           const SizedBox(width: 10),

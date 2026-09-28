@@ -61,11 +61,10 @@ class _ReportSubmissionDialogState
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: SafeArea(
@@ -81,17 +80,17 @@ class _ReportSubmissionDialogState
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Header
-              _buildHeader(context, isDark),
+              _buildHeader(context),
               const SizedBox(height: 20),
 
               // Warning if not V1 supported
               if (!widget.targetType.isEnabled) ...[
-                _buildComingSoonWarning(context, isDark),
+                _buildComingSoonWarning(context),
                 const SizedBox(height: 20),
               ],
 
               // Target info
-              _buildTargetInfo(context, isDark),
+              _buildTargetInfo(context),
               const SizedBox(height: 24),
 
               // Reason selector
@@ -120,20 +119,20 @@ class _ReportSubmissionDialogState
                 child: FilledButton(
                   onPressed: _canSubmit ? _handleSubmit : null,
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primaryRed,
-                    foregroundColor: AppColors.neutralWhite,
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    foregroundColor: Theme.of(context).colorScheme.onPrimary,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                   child: _isSubmitting
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: AppColors.neutralWhite,
+                            color: Theme.of(context).colorScheme.onPrimary,
                           ),
                         )
                       : const Text(
@@ -152,7 +151,7 @@ class _ReportSubmissionDialogState
     );
   }
 
-  Widget _buildHeader(BuildContext context, bool isDark) {
+  Widget _buildHeader(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -161,31 +160,31 @@ class _ReportSubmissionDialogState
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w600,
-            color: isDark ? AppColors.neutralWhite : AppColors.neutralGray900,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
         IconButton(
           onPressed: () => context.pop(),
           icon: Icon(
             Icons.close,
-            color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray600,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildComingSoonWarning(BuildContext context, bool isDark) {
+  Widget _buildComingSoonWarning(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.primaryBlue.withValues(alpha: 0.1),
+        color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.primaryBlue),
+        border: Border.all(color: Theme.of(context).colorScheme.secondary),
       ),
       child: Row(
         children: [
-          Icon(Icons.info_outline, color: AppColors.primaryBlue, size: 20),
+          Icon(Icons.info_outline, color: Theme.of(context).colorScheme.secondary, size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -194,9 +193,7 @@ class _ReportSubmissionDialogState
                   : 'This report will be reviewed by our team. Enforcement requires manual review.',
               style: TextStyle(
                 fontSize: 13,
-                color: isDark
-                    ? AppColors.neutralGray300
-                    : AppColors.neutralGray700,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           ),
@@ -205,16 +202,16 @@ class _ReportSubmissionDialogState
     );
   }
 
-  Widget _buildTargetInfo(BuildContext context, bool isDark) {
+  Widget _buildTargetInfo(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray700 : AppColors.neutralGray100,
+        color: Theme.of(context).colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
         children: [
-          Icon(_getIconForTargetType(), color: AppColors.primaryBlue, size: 20),
+          Icon(_getIconForTargetType(), color: Theme.of(context).colorScheme.secondary, size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -224,7 +221,7 @@ class _ReportSubmissionDialogState
                   'Reporting ${widget.targetType.displayName}',
                   style: TextStyle(
                     fontSize: 12,
-                    color: AppColors.neutralGray500,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
                 if (widget.targetTitle != null) ...[
@@ -234,9 +231,7 @@ class _ReportSubmissionDialogState
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: isDark
-                          ? AppColors.neutralWhite
-                          : AppColors.neutralGray900,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,

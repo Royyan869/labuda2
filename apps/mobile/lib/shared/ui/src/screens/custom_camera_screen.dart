@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 
 /// Custom Camera Screen
 /// Supports both photo and video capture with toggle
@@ -203,9 +202,10 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
   }
 
   Widget _buildCameraScreen() {
+    final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
       key: const ValueKey('camera'),
-      backgroundColor: Colors.black,
+      backgroundColor: colorScheme.scrim,
       body: Stack(
         children: [
           // Camera Preview
@@ -223,10 +223,10 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
               ),
             )
           else
-            const Center(
+            Center(
               child: Text(
                 'Camera not available',
-                style: TextStyle(color: Colors.white),
+                style: TextStyle(color: colorScheme.onPrimary),
               ),
             ),
 
@@ -247,7 +247,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withValues(alpha: 0.7),
+                    colorScheme.scrim.withValues(alpha: 0.7),
                     Colors.transparent,
                   ],
                 ),
@@ -258,9 +258,9 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
                   // Close Button
                   IconButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.close,
-                      color: Colors.white,
+                      color: colorScheme.onPrimary,
                       size: 28,
                     ),
                   ),
@@ -269,7 +269,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
                   Container(
                     padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.5),
+                      color: colorScheme.scrim.withValues(alpha: 0.5),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Row(
@@ -284,9 +284,9 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
                   // Flip Camera Button
                   IconButton(
                     onPressed: _switchCamera,
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.flip_camera_ios,
-                      color: Colors.white,
+                      color: colorScheme.onPrimary,
                       size: 28,
                     ),
                   ),
@@ -310,7 +310,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
                   begin: Alignment.bottomCenter,
                   end: Alignment.topCenter,
                   colors: [
-                    Colors.black.withValues(alpha: 0.7),
+                    colorScheme.scrim.withValues(alpha: 0.7),
                     Colors.transparent,
                   ],
                 ),
@@ -326,22 +326,22 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
                         vertical: 8,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.primaryRed,
+                        color: colorScheme.primary,
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
                             Icons.fiber_manual_record,
-                            color: Colors.white,
+                            color: colorScheme.onPrimary,
                             size: 16,
                           ),
-                          SizedBox(width: 8),
+                          const SizedBox(width: 8),
                           Text(
                             'Recording...',
                             style: TextStyle(
-                              color: Colors.white,
+                              color: colorScheme.onPrimary,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -368,19 +368,20 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
                         height: 80,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 4),
+                          border: Border.all(
+                            color: colorScheme.onPrimary,
+                            width: 4,
+                          ),
                           color: _isRecording
-                              ? AppColors.primaryRed
+                              ? colorScheme.primary
                               : (_mode == CameraMode.video
-                                    ? AppColors.primaryRed.withValues(
-                                        alpha: 0.3,
-                                      )
+                                    ? colorScheme.primary.withValues(alpha: 0.3)
                                     : Colors.transparent),
                         ),
                         child: _isRecording
-                            ? const Icon(
+                            ? Icon(
                                 Icons.stop,
-                                color: Colors.white,
+                                color: colorScheme.onPrimary,
                                 size: 36,
                               )
                             : null,
@@ -398,18 +399,19 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
 
   Widget _buildModeButton(String label, CameraMode mode) {
     final isSelected = _mode == mode;
+    final colorScheme = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: () => setState(() => _mode = mode),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primaryRed : Colors.transparent,
+          color: isSelected ? colorScheme.primary : Colors.transparent,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: Colors.white,
+            color: colorScheme.onPrimary,
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
             fontSize: 13,
           ),
@@ -419,9 +421,10 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
   }
 
   Widget _buildPreviewScreen() {
+    final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
       key: const ValueKey('preview'),
-      backgroundColor: Colors.black,
+      backgroundColor: colorScheme.scrim,
       body: Stack(
         children: [
           // Media Preview
@@ -429,11 +432,11 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
             child: _isPhoto
                 ? Image.file(File(_capturedMediaPath!), fit: BoxFit.contain)
                 : Container(
-                    color: Colors.black,
-                    child: const Center(
+                    color: colorScheme.scrim,
+                    child: Center(
                       child: Icon(
                         Icons.play_circle_outline,
-                        color: Colors.white,
+                        color: colorScheme.onPrimary,
                         size: 80,
                       ),
                     ),
@@ -457,7 +460,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withValues(alpha: 0.7),
+                    colorScheme.scrim.withValues(alpha: 0.7),
                     Colors.transparent,
                   ],
                 ),
@@ -466,9 +469,9 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
                 children: [
                   IconButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.close,
-                      color: Colors.white,
+                      color: colorScheme.onPrimary,
                       size: 28,
                     ),
                   ),
@@ -494,7 +497,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
                   begin: Alignment.bottomCenter,
                   end: Alignment.topCenter,
                   colors: [
-                    Colors.black.withValues(alpha: 0.7),
+                    colorScheme.scrim.withValues(alpha: 0.7),
                     Colors.transparent,
                   ],
                 ),
@@ -506,13 +509,19 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: _retakeMedia,
-                      icon: const Icon(Icons.refresh, color: Colors.white),
-                      label: const Text(
+                      icon: Icon(Icons.refresh, color: colorScheme.onPrimary),
+                      label: Text(
                         'Retake',
-                        style: TextStyle(color: Colors.white, fontSize: 16),
+                        style: TextStyle(
+                          color: colorScheme.onPrimary,
+                          fontSize: 16,
+                        ),
                       ),
                       style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.white, width: 2),
+                        side: BorderSide(
+                          color: colorScheme.onPrimary,
+                          width: 2,
+                        ),
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -525,13 +534,16 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: _useMedia,
-                      icon: const Icon(Icons.check, color: Colors.white),
-                      label: const Text(
+                      icon: Icon(Icons.check, color: colorScheme.onPrimary),
+                      label: Text(
                         'Use',
-                        style: TextStyle(color: Colors.white, fontSize: 16),
+                        style: TextStyle(
+                          color: colorScheme.onPrimary,
+                          fontSize: 16,
+                        ),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryRed,
+                        backgroundColor: colorScheme.primary,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),

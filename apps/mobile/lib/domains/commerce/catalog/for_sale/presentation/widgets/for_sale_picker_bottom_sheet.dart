@@ -14,6 +14,7 @@ import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/utils/media_extensions.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/domain/domain.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart';
+import 'package:labuda/shared/widgets/app_image.dart';
 
 /// Picker intent determines which canonical ID the caller expects.
 ///
@@ -426,14 +427,13 @@ class _ForSaleTile extends StatelessWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: forSale.media.isNotEmptyUrls
-                  ? Image.network(
-                      forSale.media.firstUrl,
-                      width: 70,
-                      height: 70,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) =>
-                          _buildPlaceholder(context),
-                    )
+          ? AppImage(
+              imageUrl: forSale.media.firstUrl,
+              width: 70,
+              height: 70,
+              fit: BoxFit.cover,
+              errorWidget: _buildPlaceholder(context),
+            )
                   : _buildPlaceholder(context),
             ),
             const SizedBox(width: 12),

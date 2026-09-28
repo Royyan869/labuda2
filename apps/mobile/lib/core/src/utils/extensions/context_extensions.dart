@@ -1,4 +1,3 @@
-import 'package:labuda/core/src/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:labuda/shared/widgets/app_snackbar.dart';
 
@@ -38,21 +37,14 @@ extension BuildContextExtensions on BuildContext {
 
   void popToRoot() => Navigator.of(this).popUntil((route) => route.isFirst);
 
-  // Snackbar
+  // Snackbar — delegates to the canonical AppSnackBar authority. There is no
+  // local colour decision here: callers pick the semantic type explicitly
+  // (showErrorSnackBar / showSuccessSnackBar) or get the neutral info style.
   void showSnackBar(
     String message, {
     Duration duration = const Duration(seconds: 3),
-    SnackBarAction? action,
-    Color? backgroundColor,
   }) {
-    // Use AppSnackBar for consistency
-    if (backgroundColor == colorScheme.error) {
-      AppSnackBar.showError(this, message, duration: duration);
-    } else if (backgroundColor == AppColors.success) {
-      AppSnackBar.showSuccess(this, message, duration: duration);
-    } else {
-      AppSnackBar.showInfo(this, message, duration: duration);
-    }
+    AppSnackBar.showInfo(this, message, duration: duration);
   }
 
   void showErrorSnackBar(String message) {

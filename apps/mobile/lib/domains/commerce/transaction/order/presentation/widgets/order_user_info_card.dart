@@ -106,16 +106,18 @@ class _UserInfoTile extends ConsumerWidget {
           ),
           child: sellerAvatarUrl != null && sellerAvatarUrl!.isNotEmpty
               ? ClipOval(
-                  child: Image.network(
-                    sellerAvatarUrl!,
+                  child: AppImage(
+                    imageUrl: sellerAvatarUrl,
                     fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Icon(
-                        Icons.person_outline,
-                        color: colorScheme.primary,
-                        size: 20,
-                      );
-                    },
+                    isCircle: true,
+                    width: 40,
+                    height: 40,
+                    backgroundColor: colorScheme.primary.withValues(alpha: 0.1),
+                    errorWidget: Icon(
+                      Icons.person_outline,
+                      color: colorScheme.primary,
+                      size: 20,
+                    ),
                   ),
                 )
               : Icon(

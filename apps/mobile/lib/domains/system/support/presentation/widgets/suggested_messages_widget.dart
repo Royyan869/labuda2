@@ -5,6 +5,7 @@ library;
 /// Presentation layer - pure UI, no business logic
 
 import 'package:flutter/material.dart';
+import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/system/support/domain/domain.dart';
 
 // ============================================
@@ -24,9 +25,6 @@ class SuggestedMessagesWidgetRefactored extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
     // Combine all suggested messages
     final List<SuggestedMessage> messages = [
       // Greetings (hardcoded names for privacy)
@@ -35,7 +33,7 @@ class SuggestedMessagesWidgetRefactored extends StatelessWidget {
           text: template,
           category: 'Greeting',
           icon: Icons.waving_hand,
-          color: Colors.green,
+          color: AppColors.statusSuccess,
         ),
       ),
 
@@ -45,7 +43,7 @@ class SuggestedMessagesWidgetRefactored extends StatelessWidget {
           text: text,
           category: 'Acknowledgment',
           icon: Icons.check_circle_outline,
-          color: Colors.blue,
+          color: AppColors.statusInfo,
         ),
       ),
 
@@ -54,7 +52,7 @@ class SuggestedMessagesWidgetRefactored extends StatelessWidget {
           text: text,
           category: 'Resolved',
           icon: Icons.task_alt,
-          color: Colors.purple,
+          color: AppColors.primaryPurple,
         ),
       ),
 
@@ -63,7 +61,7 @@ class SuggestedMessagesWidgetRefactored extends StatelessWidget {
           text: text,
           category: 'Follow Up',
           icon: Icons.help_outline,
-          color: Colors.orange,
+          color: AppColors.statusWarning,
         ),
       ),
 
@@ -72,7 +70,7 @@ class SuggestedMessagesWidgetRefactored extends StatelessWidget {
           text: text,
           category: 'Closing',
           icon: Icons.thumb_up,
-          color: Colors.teal,
+          color: AppColors.primaryGreen,
         ),
       ),
     ];
@@ -81,10 +79,10 @@ class SuggestedMessagesWidgetRefactored extends StatelessWidget {
       height: 120,
       padding: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
-        color: isDark ? Colors.grey[900] : Colors.grey[100],
+        color: Theme.of(context).colorScheme.surfaceContainer,
         border: Border(
           bottom: BorderSide(
-            color: isDark ? Colors.grey[800]! : Colors.grey[300]!,
+            color: Theme.of(context).colorScheme.outlineVariant,
             width: 1,
           ),
         ),
@@ -100,7 +98,7 @@ class SuggestedMessagesWidgetRefactored extends StatelessWidget {
                 Icon(
                   Icons.tips_and_updates_outlined,
                   size: 14,
-                  color: isDark ? Colors.grey[400] : Colors.grey[600],
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
                 const SizedBox(width: 6),
                 Text(
@@ -108,7 +106,7 @@ class SuggestedMessagesWidgetRefactored extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    color: isDark ? Colors.grey[400] : Colors.grey[600],
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -125,7 +123,7 @@ class SuggestedMessagesWidgetRefactored extends StatelessWidget {
               separatorBuilder: (context, index) => const SizedBox(width: 8),
               itemBuilder: (context, index) {
                 final message = messages[index];
-                return _buildMessageChip(context, message, isDark);
+                return _buildMessageChip(context, message);
               },
             ),
           ),
@@ -137,7 +135,6 @@ class SuggestedMessagesWidgetRefactored extends StatelessWidget {
   Widget _buildMessageChip(
     BuildContext context,
     SuggestedMessage message,
-    bool isDark,
   ) {
     return InkWell(
       onTap: () => onMessageSelected(message.text),
@@ -145,7 +142,7 @@ class SuggestedMessagesWidgetRefactored extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: isDark ? Colors.grey[800] : Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: message.color.withValues(alpha: 0.3),
@@ -163,7 +160,7 @@ class SuggestedMessagesWidgetRefactored extends StatelessWidget {
                 message.text,
                 style: TextStyle(
                   fontSize: 14,
-                  color: isDark ? Colors.grey[200] : Colors.grey[800],
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,

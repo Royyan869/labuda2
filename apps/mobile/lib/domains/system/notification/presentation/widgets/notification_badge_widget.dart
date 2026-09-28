@@ -8,6 +8,7 @@ library;
 
 // Dart
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/system/notification/presentation/providers/unread_count_provider.dart';
 
 // Flutter
@@ -26,6 +27,7 @@ class NotificationBadgeWidget extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final unreadCountAsync = ref.watch(unreadCountProvider(userId));
+    final colorScheme = Theme.of(context).colorScheme;
 
     return unreadCountAsync.when(
       data: (count) {
@@ -50,11 +52,11 @@ class NotificationBadgeWidget extends ConsumerWidget {
                   vertical: 2,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.red[600],
+                  color: AppColors.statusError,
                   borderRadius: BorderRadius.circular(10),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.2),
+                      color: colorScheme.shadow.withValues(alpha: 0.2),
                       blurRadius: 3,
                       offset: const Offset(0, 1),
                     ),
@@ -66,8 +68,8 @@ class NotificationBadgeWidget extends ConsumerWidget {
                 ),
                 child: Text(
                   count > 99 ? '99+' : count.toString(),
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: colorScheme.onError,
                     fontSize: 9,
                     fontWeight: FontWeight.w600,
                     height: 1.1,

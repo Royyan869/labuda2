@@ -323,7 +323,6 @@ class _SellerRenewalScreenState extends ConsumerState<SellerRenewalScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final cfgAsync = ref.watch(config.sellerUpgradeConfigProvider);
     final sellerState = SellerState.fromAuthUser(
       ref.watch(authenticatedUserProvider),
@@ -337,7 +336,7 @@ class _SellerRenewalScreenState extends ConsumerState<SellerRenewalScreen> {
         leading: IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.of(context).pop()),
       ),
       body: cfgAsync.when(
-        data: (cfg) => _buildBody(cfg, isDark, sellerState),
+        data: (cfg) => _buildBody(cfg, sellerState),
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Gagal memuat konfigurasi: $e')),
       ),
@@ -346,9 +345,9 @@ class _SellerRenewalScreenState extends ConsumerState<SellerRenewalScreen> {
 
   Widget _buildBody(
     SellerUpgradeConfigEntity cfg,
-    bool isDark,
     SellerState sellerState,
   ) {
+    final scheme = Theme.of(context).colorScheme;
     final methods = _methods;
     // COPY-AUTHORITY mirrors build(): "Aktifkan" for sellers who never had an
     // interval, "Perpanjang" for real renewals.
@@ -373,7 +372,7 @@ class _SellerRenewalScreenState extends ConsumerState<SellerRenewalScreen> {
                   : activationMode
                       ? 'Mode aktivasi'
                       : 'Mode perpanjang dini',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: isDark ? AppColors.neutralWhite : AppColors.neutralGray900),
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: scheme.onSurface),
             ),
             const SizedBox(height: 6),
             Text(
@@ -382,23 +381,23 @@ class _SellerRenewalScreenState extends ConsumerState<SellerRenewalScreen> {
                   : activationMode
                       ? 'Profil seller terdeteksi. Aktifkan langganan untuk mulai jual dan lelang — identitas seller Anda tetap dipakai.'
                       : 'Profil seller terdeteksi. Perpanjang dini menjaga identitas seller Anda tetap utuh.',
-              style: TextStyle(fontSize: 13, color: isDark ? AppColors.neutralGray200 : AppColors.neutralGray700),
+              style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant),
             ),
           ]),
         ),
         const SizedBox(height: 16),
         Container(
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(color: isDark ? AppColors.darkGray700 : AppColors.neutralWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: isDark ? AppColors.darkGray600 : AppColors.neutralGray200)),
+          decoration: BoxDecoration(color: scheme.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: scheme.outlineVariant)),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Seller Payment Summary', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? AppColors.neutralGray200 : AppColors.neutralGray900)),
+            Text('Seller Payment Summary', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: scheme.onSurface)),
             const SizedBox(height: 16),
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('Yearly subscription', style: TextStyle(fontSize: 14, color: isDark ? AppColors.neutralGray300 : AppColors.neutralGray700)), Text(AppFormatters.formatCurrency(principal), style: const TextStyle(fontWeight: FontWeight.w600))]),
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('Yearly subscription', style: TextStyle(fontSize: 14, color: scheme.onSurfaceVariant)), Text(AppFormatters.formatCurrency(principal), style: const TextStyle(fontWeight: FontWeight.w600))]),
             const SizedBox(height: 12),
-            _buildMethodSelector(isDark),
+            _buildMethodSelector(context),
             if (sel != null) ...[
               const SizedBox(height: 12),
-              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('Payment method fee', style: TextStyle(fontSize: 14, color: isDark ? AppColors.neutralGray300 : AppColors.neutralGray700)), Text(AppFormatters.formatCurrency(fee))]),
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('Payment method fee', style: TextStyle(fontSize: 14, color: scheme.onSurfaceVariant)), Text(AppFormatters.formatCurrency(fee))]),
             ],
             const Divider(height: 24),
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('Total', style: const TextStyle(fontWeight: FontWeight.bold)), Text(sel == null ? 'Belum dipilih' : AppFormatters.formatCurrency(sel.grossAmount.toDouble()), style: const TextStyle(fontWeight: FontWeight.bold))]),
@@ -410,22 +409,23 @@ class _SellerRenewalScreenState extends ConsumerState<SellerRenewalScreen> {
     );
   }
 
-  Widget _buildMethodSelector(bool isDark) {
+  Widget _buildMethodSelector(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final methods = _methods?.methods ?? const [];
     final sel = _selected;
     final loading = _loadingMethods;
     final err = _methodsError;
     final label = loading ? 'Memuat metode pembayaran...' : methods.isEmpty ? (err ?? 'Tidak ada metode pembayaran tersedia') : (sel?.displayName ?? 'Pilih metode pembayaran');
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text('Payment method', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray600)),
+      Text('Payment method', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: scheme.onSurfaceVariant)),
       const SizedBox(height: 6),
       InkWell(
         onTap: loading ? null : methods.isEmpty ? () => _loadMethods() : () => _pickMethod(),
         borderRadius: BorderRadius.circular(8),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), border: Border.all(color: isDark ? AppColors.darkGray600 : AppColors.neutralGray300)),
-          child: Row(children: [Expanded(child: Text(label, style: TextStyle(fontSize: 14, color: methods.isEmpty && !loading ? AppColors.statusError : (isDark ? AppColors.neutralGray200 : AppColors.neutralGray900)))), if (!loading) Icon(Icons.chevron_right, size: 20, color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray600)]),
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), border: Border.all(color: scheme.outlineVariant)),
+          child: Row(children: [Expanded(child: Text(label, style: TextStyle(fontSize: 14, color: methods.isEmpty && !loading ? AppColors.statusError : scheme.onSurface))), if (!loading) Icon(Icons.chevron_right, size: 20, color: scheme.onSurfaceVariant)]),
         ),
       ),
     ]);

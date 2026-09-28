@@ -71,16 +71,16 @@ class ProfileStateView extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryRed),
+          CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(
+              Theme.of(context).colorScheme.primary,
+            ),
           ),
           const SizedBox(height: 16),
           Text(
             'Please wait...',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray600,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
         ],
@@ -89,8 +89,6 @@ class ProfileStateView extends StatelessWidget {
   }
 
   Widget _buildDefaultError(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -114,18 +112,16 @@ class ProfileStateView extends StatelessWidget {
             Text(
               error!,
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: isDark
-                    ? AppColors.neutralGray300
-                    : AppColors.neutralGray700,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               textAlign: TextAlign.center,
             ),
             if (onErrorDismiss != null) ...[
               const SizedBox(height: 24),
+              // Background colour comes from AppTheme.elevatedButtonTheme.
               ElevatedButton(
                 onPressed: onErrorDismiss,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryRed,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -140,8 +136,6 @@ class ProfileStateView extends StatelessWidget {
   }
 
   Widget _buildDefaultSuccess(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -165,9 +159,7 @@ class ProfileStateView extends StatelessWidget {
             Text(
               success!,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: isDark
-                    ? AppColors.neutralWhite
-                    : AppColors.neutralGray900,
+                color: Theme.of(context).colorScheme.onSurface,
                 fontWeight: FontWeight.bold,
               ),
               textAlign: TextAlign.center,
@@ -224,13 +216,13 @@ class ProfileStateBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(icon, color: AppColors.neutralWhite),
+          Icon(icon, color: Theme.of(context).colorScheme.onPrimary),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               message,
-              style: const TextStyle(
-                color: AppColors.neutralWhite,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onPrimary,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -238,7 +230,7 @@ class ProfileStateBanner extends StatelessWidget {
           if (onDismiss != null)
             IconButton(
               onPressed: onDismiss,
-              icon: const Icon(Icons.close, color: AppColors.neutralWhite),
+              icon: Icon(Icons.close, color: Theme.of(context).colorScheme.onPrimary),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
             ),

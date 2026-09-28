@@ -41,11 +41,18 @@ void main() {
     for (final path in _publicCards) {
       final source = _source(path);
       expect(source, contains('CommerceMarketplaceCardShell('), reason: path);
+      // Owner decision 2026-09-27: discovery cards carry NO seller identity
+      // (no username, no store name) and NO badge row under the media — chips
+      // are media overlays. That keeps For Sale, Auction and the promotion
+      // grid (which reuses both channels) geometrically identical.
       expect(
         source,
-        contains('CommerceCardSellerMetadata('),
-        reason: '$path must use the shared seller block',
+        isNot(contains('CommerceCardSellerMetadata(')),
+        reason: '$path must not render the seller block',
       );
+      expect(source, isNot(contains('sellerUsername')), reason: path);
+      expect(source, isNot(contains('sellerFarmName')), reason: path);
+      expect(source, isNot(contains('badges:')), reason: path);
       // The card may not own its frame or its media badge stack.
       expect(source, isNot(contains('return Card(')), reason: path);
       expect(source, isNot(contains('Positioned(')), reason: path);

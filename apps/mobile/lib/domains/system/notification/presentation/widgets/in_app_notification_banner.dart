@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:labuda/shared/widgets/app_image.dart';
 import 'package:flutter/services.dart';
-import 'package:labuda/core/core.dart';
 
 /// Banner Action Model
 ///
@@ -104,7 +104,7 @@ class _InAppNotificationBannerState extends State<InAppNotificationBanner>
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Positioned(
       top: 0,
@@ -133,19 +133,15 @@ class _InAppNotificationBannerState extends State<InAppNotificationBanner>
                 },
                 child: Material(
                   elevation: 8,
-                  shadowColor: Colors.black.withValues(alpha: 0.3),
+                  shadowColor: colorScheme.shadow.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(12),
-                  color: isDark
-                      ? AppColors.darkGray800
-                      : AppColors.neutralWhite,
+                  color: colorScheme.surface,
                   child: Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: isDark
-                            ? AppColors.darkGray700
-                            : AppColors.neutralGray200,
+                        color: colorScheme.outlineVariant,
                         width: 1,
                       ),
                     ),
@@ -155,14 +151,13 @@ class _InAppNotificationBannerState extends State<InAppNotificationBanner>
                         // Avatar
                         if (widget.avatarUrl != null)
                           ClipOval(
-                            child: Image.network(
-                              widget.avatarUrl!,
+                            child: AppImage(
+                              imageUrl: widget.avatarUrl,
                               width: 40,
                               height: 40,
                               fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return _buildDefaultAvatar();
-                              },
+                              isCircle: true,
+                              errorWidget: _buildDefaultAvatar(),
                             ),
                           )
                         else
@@ -182,9 +177,7 @@ class _InAppNotificationBannerState extends State<InAppNotificationBanner>
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
-                                  color: isDark
-                                      ? AppColors.neutralWhite
-                                      : AppColors.neutralGray900,
+                                  color: colorScheme.onSurface,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -197,9 +190,7 @@ class _InAppNotificationBannerState extends State<InAppNotificationBanner>
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w400,
-                                  color: isDark
-                                      ? AppColors.neutralGray300
-                                      : AppColors.neutralGray600,
+                                  color: colorScheme.onSurfaceVariant,
                                   height: 1.3,
                                 ),
                                 maxLines: 2,
@@ -214,7 +205,7 @@ class _InAppNotificationBannerState extends State<InAppNotificationBanner>
                                   children: widget.actions!.map((action) {
                                     return Padding(
                                       padding: const EdgeInsets.only(right: 8),
-                                      child: _buildActionButton(action, isDark),
+                                      child: _buildActionButton(action),
                                     );
                                   }).toList(),
                                 ),
@@ -231,17 +222,13 @@ class _InAppNotificationBannerState extends State<InAppNotificationBanner>
                           child: Container(
                             padding: const EdgeInsets.all(4),
                             decoration: BoxDecoration(
-                              color: isDark
-                                  ? AppColors.darkGray700
-                                  : AppColors.neutralGray100,
+                              color: colorScheme.surfaceContainerHighest,
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
                               Icons.close,
                               size: 16,
-                              color: isDark
-                                  ? AppColors.neutralGray400
-                                  : AppColors.neutralGray600,
+                              color: colorScheme.onSurfaceVariant,
                             ),
                           ),
                         ),
@@ -258,26 +245,27 @@ class _InAppNotificationBannerState extends State<InAppNotificationBanner>
   }
 
   Widget _buildDefaultAvatar() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
       width: 40,
       height: 40,
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray700 : AppColors.neutralGray200,
+        color: colorScheme.surfaceContainerHighest,
         shape: BoxShape.circle,
       ),
       child: Icon(
         Icons.notifications_outlined,
         size: 20,
-        color: isDark ? AppColors.neutralGray400 : AppColors.neutralGray600,
+        color: colorScheme.onSurfaceVariant,
       ),
     );
   }
 
   /// Build action button
-  Widget _buildActionButton(BannerAction action, bool isDark) {
-    final buttonColor = action.color ?? AppColors.primaryBlue;
+  Widget _buildActionButton(BannerAction action) {
+    final buttonColor =
+        action.color ?? Theme.of(context).colorScheme.primary;
 
     return GestureDetector(
       onTap: () {

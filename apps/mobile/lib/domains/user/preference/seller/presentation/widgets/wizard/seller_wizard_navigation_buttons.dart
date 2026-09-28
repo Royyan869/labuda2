@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 
 /// Navigation buttons for Seller Wizard
 /// Extracted from SellerUpgradeWizardScreen to reduce complexity
@@ -11,7 +10,6 @@ class SellerWizardNavigationButtons extends StatelessWidget {
   final VoidCallback onPrevious;
   final VoidCallback onNext;
   final VoidCallback onSubmit;
-  final bool isDark;
 
   const SellerWizardNavigationButtons({
     super.key,
@@ -22,13 +20,13 @@ class SellerWizardNavigationButtons extends StatelessWidget {
     required this.onPrevious,
     required this.onNext,
     required this.onSubmit,
-    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
     // Get bottom padding for devices with gesture navigation or navigation bar
     final bottomPadding = MediaQuery.of(context).padding.bottom;
+    final scheme = Theme.of(context).colorScheme;
 
     return Container(
       padding: EdgeInsets.only(
@@ -40,10 +38,10 @@ class SellerWizardNavigationButtons extends StatelessWidget {
             : 24, // Add extra padding if navigation bar exists
       ),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
+        color: scheme.surface,
         boxShadow: [
           BoxShadow(
-            color: (isDark ? Colors.black : Colors.grey).withValues(alpha: 0.1),
+            color: scheme.scrim.withValues(alpha: 0.1),
             blurRadius: 4,
             offset: const Offset(0, -2),
           ),
@@ -56,10 +54,7 @@ class SellerWizardNavigationButtons extends StatelessWidget {
               child: OutlinedButton(
                 onPressed: onPrevious,
                 style: OutlinedButton.styleFrom(
-                  side: const BorderSide(
-                    color: AppColors.primaryRed,
-                    width: 1.5,
-                  ),
+                  side: BorderSide(color: scheme.primary, width: 1.5),
                 ),
                 child: const Text('Kembali'),
               ),

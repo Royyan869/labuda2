@@ -62,7 +62,6 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final authState = ref.watch(authControllerProvider);
 
     return Scaffold(
@@ -74,7 +73,7 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
               success: _controller.successMessage,
               onErrorDismiss: _controller.clearError,
               onSuccessDismiss: _controller.clearSuccess,
-              content: _buildForm(context, isDark, authState.user),
+              content: _buildForm(context, authState.user),
             )
           : Center(
               child: Text(AppLocalizations.of(context)!.pleaseLoginToManage),
@@ -82,7 +81,7 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
     );
   }
 
-  Widget _buildForm(BuildContext context, bool isDark, AuthUser user) {
+  Widget _buildForm(BuildContext context, AuthUser user) {
     return SafeArea(
       child: Form(
         key: _formKey,
@@ -94,13 +93,13 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
               AppLocalizations.of(context)!.passwordManagement,
             ),
             const SizedBox(height: 16),
-            _buildPasswordSection(context, isDark),
+            _buildPasswordSection(context),
             const SizedBox(height: 32),
 
             // Security Settings Section
             _buildSectionHeader(AppLocalizations.of(context)!.advancedSecurity),
             const SizedBox(height: 16),
-            _buildSecuritySettingsSection(context, isDark),
+            _buildSecuritySettingsSection(context),
             const SizedBox(height: 32),
 
             // Account Management Section
@@ -108,24 +107,23 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
               AppLocalizations.of(context)!.accountManagement,
             ),
             const SizedBox(height: 16),
-            _buildAccountManagementSection(context, isDark),
+            _buildAccountManagementSection(context),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildPasswordSection(BuildContext context, bool isDark) {
+  Widget _buildPasswordSection(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final scheme = Theme.of(context).colorScheme;
 
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray700 : AppColors.neutralWhite,
+        color: scheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark ? AppColors.darkGray600 : AppColors.neutralGray200,
-        ),
+        border: Border.all(color: scheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -133,9 +131,7 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
           Text(
             l10n.changePassword,
             style: TextStyle(
-              color: isDark
-                  ? AppColors.neutralGray200
-                  : AppColors.neutralGray900,
+              color: scheme.onSurface,
               fontSize: 16,
               fontWeight: FontWeight.w600,
             ),
@@ -241,8 +237,8 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
                 Expanded(
                   child: Text(
                     l10n.strongPasswordMessage,
-                    style: const TextStyle(
-                      color: AppColors.neutralGray700,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontSize: 12,
                     ),
                   ),
@@ -255,17 +251,16 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
     );
   }
 
-  Widget _buildSecuritySettingsSection(BuildContext context, bool isDark) {
+  Widget _buildSecuritySettingsSection(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final scheme = Theme.of(context).colorScheme;
 
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray700 : AppColors.neutralWhite,
+        color: scheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark ? AppColors.darkGray600 : AppColors.neutralGray200,
-        ),
+        border: Border.all(color: scheme.outlineVariant),
       ),
       child: Column(
         children: [
@@ -273,9 +268,7 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
           ListTile(
             leading: Icon(
               Icons.devices_outlined,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray600,
+              color: scheme.onSurfaceVariant,
             ),
             title: Text(l10n.loginSessions),
             subtitle: Text(l10n.manageActiveSessions),
@@ -291,17 +284,16 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
     );
   }
 
-  Widget _buildAccountManagementSection(BuildContext context, bool isDark) {
+  Widget _buildAccountManagementSection(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final scheme = Theme.of(context).colorScheme;
 
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray700 : AppColors.neutralWhite,
+        color: scheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark ? AppColors.darkGray600 : AppColors.neutralGray200,
-        ),
+        border: Border.all(color: scheme.outlineVariant),
       ),
       child: Column(
         children: [
@@ -334,13 +326,12 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
   }
 
   Widget _buildSectionHeader(String title) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Text(
       title,
       style: TextStyle(
         fontSize: 18,
         fontWeight: FontWeight.bold,
-        color: isDark ? AppColors.neutralGray200 : AppColors.neutralGray900,
+        color: Theme.of(context).colorScheme.onSurface,
       ),
     );
   }
@@ -429,7 +420,9 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
                 const SizedBox(height: 8),
                 Container(
                   decoration: BoxDecoration(
-                    border: Border.all(color: AppColors.neutralGray300),
+                    border: Border.all(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                    ),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: DropdownButtonHideUnderline(
@@ -505,7 +498,7 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
                 l10n.deactivate,
                 style: TextStyle(
                   color: selectedReason.isEmpty
-                      ? AppColors.neutralGray400
+                      ? Theme.of(context).colorScheme.onSurfaceVariant
                       : AppColors.warning,
                 ),
               ),

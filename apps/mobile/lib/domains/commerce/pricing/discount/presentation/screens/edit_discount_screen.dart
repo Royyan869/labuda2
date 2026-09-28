@@ -191,7 +191,10 @@ class _EditDiscountScreenState extends ConsumerState<EditDiscountScreen> {
               Navigator.of(context).pop();
               Navigator.of(context).pop();
             },
-            child: const Text('Discard', style: TextStyle(color: Colors.red)),
+            child: const Text(
+              'Discard',
+              style: TextStyle(color: core.AppColors.error),
+            ),
           ),
         ],
       ),
@@ -205,8 +208,8 @@ class _EditDiscountScreenState extends ConsumerState<EditDiscountScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.orange.withValues(alpha: 0.1),
-        border: Border.all(color: Colors.orange),
+        color: core.AppColors.warning.withValues(alpha: 0.1),
+        border: Border.all(color: core.AppColors.warning),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -214,13 +217,13 @@ class _EditDiscountScreenState extends ConsumerState<EditDiscountScreen> {
         children: [
           Row(
             children: [
-              Icon(Icons.info_outline, color: Colors.orange[700], size: 20),
+              Icon(Icons.info_outline, color: core.AppColors.warning, size: 20),
               const SizedBox(width: 8),
               Text(
                 'Discount Already Used',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: Colors.orange[700],
+                  color: core.AppColors.warning,
                 ),
               ),
             ],
@@ -229,7 +232,7 @@ class _EditDiscountScreenState extends ConsumerState<EditDiscountScreen> {
           Text(
             'This discount has been used ${_original.currentUsageCount} times. '
             'Some fields cannot be changed to maintain data consistency.',
-            style: TextStyle(fontSize: 13, color: Colors.orange[900]),
+            style: TextStyle(fontSize: 13, color: core.AppColors.warning),
           ),
           const SizedBox(height: 12),
           Text(
@@ -237,7 +240,7 @@ class _EditDiscountScreenState extends ConsumerState<EditDiscountScreen> {
             style: TextStyle(
               fontWeight: FontWeight.w600,
               fontSize: 13,
-              color: Colors.orange[900],
+              color: core.AppColors.warning,
             ),
           ),
           const SizedBox(height: 4),
@@ -251,7 +254,7 @@ class _EditDiscountScreenState extends ConsumerState<EditDiscountScreen> {
               padding: const EdgeInsets.only(left: 8, top: 2),
               child: Text(
                 text,
-                style: TextStyle(fontSize: 12, color: Colors.orange[800]),
+                style: TextStyle(fontSize: 12, color: core.AppColors.warning),
               ),
             ),
           ),
@@ -262,8 +265,6 @@ class _EditDiscountScreenState extends ConsumerState<EditDiscountScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
@@ -275,9 +276,7 @@ class _EditDiscountScreenState extends ConsumerState<EditDiscountScreen> {
         }
       },
       child: Scaffold(
-        backgroundColor: isDark
-            ? core.AppColors.darkGray900
-            : core.AppColors.neutralGray50,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         appBar: AppBar(
           title: const Text('Edit Discount'),
           elevation: 0,
@@ -413,12 +412,12 @@ class _EditDiscountScreenState extends ConsumerState<EditDiscountScreen> {
         bottomNavigationBar: Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: isDark
-                ? core.AppColors.darkGray800
-                : core.AppColors.neutralWhite,
+            color: Theme.of(context).colorScheme.surface,
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
+                color: Theme.of(
+                  context,
+                ).colorScheme.scrim.withValues(alpha: 0.05),
                 blurRadius: 10,
                 offset: const Offset(0, -2),
               ),

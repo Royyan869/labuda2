@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/shared/widgets/app_snackbar.dart';
 import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
@@ -105,24 +106,16 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
     final scheme = Theme.of(context).colorScheme;
     final amount = parseCanonicalBidAmount(_bidController.text);
     if (amount == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text(
-            'Nominal bid harus bilangan bulat rupiah (tanpa desimal).',
-          ),
-          backgroundColor: scheme.error,
-        ),
+      AppSnackBar.showError(
+        context,
+        'Nominal bid harus bilangan bulat rupiah (tanpa desimal).',
       );
       return;
     }
     if (amount < _minimumBid) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Bid minimum: Rp ${formatGroupedAmount(_minimumBid)}',
-          ),
-          backgroundColor: scheme.error,
-        ),
+      AppSnackBar.showError(
+        context,
+        'Bid minimum: Rp ${formatGroupedAmount(_minimumBid)}',
       );
       return;
     }

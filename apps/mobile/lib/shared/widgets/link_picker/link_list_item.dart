@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/core/core.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:labuda/shared/widgets/app_image.dart';
 
 /// Reusable list item for link picker
 class LinkListItem extends StatelessWidget {
@@ -54,12 +54,13 @@ class LinkListItem extends StatelessWidget {
               if (imageUrl != null) ...[
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: CachedNetworkImage(
-                    imageUrl: imageUrl!,
+                  child: AppImage(
+                    imageUrl: imageUrl,
                     width: 60,
                     height: 60,
                     fit: BoxFit.cover,
-                    placeholder: (context, url) => Container(
+                    backgroundColor: scheme.surfaceContainerHighest,
+                    placeholder: Container(
                       width: 60,
                       height: 60,
                       color: scheme.surfaceContainerHighest,
@@ -68,7 +69,7 @@ class LinkListItem extends StatelessWidget {
                         color: scheme.onSurfaceVariant,
                       ),
                     ),
-                    errorWidget: (context, url, error) => Container(
+                    errorWidget: Container(
                       width: 60,
                       height: 60,
                       color: scheme.surfaceContainerHighest,

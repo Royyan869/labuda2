@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/widgets/app_bottom_sheet.dart';
 
 /// Collection of modal dialogs used in create post screen
@@ -61,7 +60,7 @@ class ContentModals {
                 onDiscard();
               },
               style: TextButton.styleFrom(
-                foregroundColor: AppColors.primaryRed,
+                foregroundColor: Theme.of(dialogContext).colorScheme.primary,
               ),
               child: const Text('Discard'),
             ),

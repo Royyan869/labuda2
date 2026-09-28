@@ -7,7 +7,7 @@ import 'package:labuda/shared/governance/content_lifecycle.dart';
 import 'package:labuda/shared/governance/seller_inactive_badge.dart';
 import 'package:labuda/shared/widgets/promoted_badge.dart';
 import 'package:labuda/shared/widgets/follow_button.dart';
-import 'package:labuda/shared/widgets/stable_network_image.dart';
+import 'package:labuda/shared/widgets/app_image.dart';
 
 /// Widget to display a single search result item
 class SearchResultItem extends ConsumerWidget {
@@ -108,12 +108,8 @@ class SearchResultItem extends ConsumerWidget {
 
   /// Canonical network media path for the result thumbnail.
   ///
-  /// `result.imageUrl` for content rows is the persisted Content media
-  /// reference projected by the backend (`content_media.media_url`), so it
-  /// renders through [StableNetworkImage] — the same shared widget/resolver the
-  /// converged Content media surfaces use (`resolveNetworkImageUrl`). A raw
-  /// reference is therefore never handed to the image decoder, and no
-  /// search-local URL builder exists.
+  /// `result.imageUrl` is the backend-resolved CloudFront URL, rendered
+  /// through [AppImage] as-is. No search-local URL builder exists.
   Widget _buildImage(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
 
@@ -126,10 +122,11 @@ class SearchResultItem extends ConsumerWidget {
         height: 48,
         color: scheme.surfaceContainerHighest,
         child: result.imageUrl != null
-            ? StableNetworkImage(
+            ? AppImage(
                 imageUrl: result.imageUrl,
                 fit: BoxFit.cover,
-                fallback: _buildPlaceholder(context),
+                backgroundColor: scheme.surfaceContainerHighest,
+                errorWidget: _buildPlaceholder(context),
               )
             : _buildPlaceholder(context),
       ),

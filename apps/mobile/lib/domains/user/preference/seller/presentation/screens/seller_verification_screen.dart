@@ -8,6 +8,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/shared/widgets/app_snackbar.dart';
 import 'package:labuda/domains/user/identity/verification/verification.dart';
 import 'package:labuda/domains/user/profile/presentation/screens/ktp_camera_screen.dart';
 import 'package:labuda/domains/system/support/presentation/screens/help_center_screen.dart';
@@ -58,6 +59,7 @@ class _SellerVerificationScreenState
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final authState = ref.watch(authControllerProvider);
 
     if (authState is! AuthStateAuthenticated) {
@@ -70,8 +72,8 @@ class _SellerVerificationScreenState
     return Scaffold(
       appBar: AppBar(
         title: const Text('Verifikasi Penjual'),
-        backgroundColor: AppColors.primaryRed,
-        foregroundColor: Colors.white,
+        backgroundColor: scheme.primary,
+        foregroundColor: scheme.onPrimary,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -125,10 +127,10 @@ class _SellerVerificationScreenState
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
+            Icon(
               Icons.lock_outline,
               size: 64,
-              color: AppColors.primaryRed,
+              color: Theme.of(context).colorScheme.primary,
             ),
             const SizedBox(height: 16),
             const Text(
@@ -163,16 +165,16 @@ class _SellerVerificationScreenState
             'Akun penjual Anda telah diverifikasi. Anda dapat melakukan penarikan dana.';
         break;
       case SellerVerificationStatus.pendingReview:
-        bgColor = Colors.orange.withValues(alpha: 0.1);
-        textColor = Colors.orange;
+        bgColor = AppColors.statusWarning.withValues(alpha: 0.1);
+        textColor = AppColors.statusWarning;
         icon = Icons.pending;
         title = 'Menunggu Verifikasi';
         message =
             'Dokumen Anda sedang ditinjau oleh tim kami. Proses ini biasanya memakan waktu 1-2 hari kerja.';
         break;
       case SellerVerificationStatus.needsResubmission:
-        bgColor = Colors.orange.withValues(alpha: 0.1);
-        textColor = Colors.orange;
+        bgColor = AppColors.statusWarning.withValues(alpha: 0.1);
+        textColor = AppColors.statusWarning;
         icon = Icons.edit_document;
         title = 'Perlu Pengajuan Ulang';
         message =
@@ -187,8 +189,8 @@ class _SellerVerificationScreenState
             'Mohon periksa dokumen Anda dan ajukan kembali. Pastikan dokumen terbaca dengan jelas.';
         break;
       case SellerVerificationStatus.underInvestigation:
-        bgColor = Colors.amber.withValues(alpha: 0.1);
-        textColor = Colors.amber.shade800;
+        bgColor = AppColors.primaryYellow.withValues(alpha: 0.1);
+        textColor = AppColors.primaryYellow;
         icon = Icons.manage_search;
         title = 'Dalam Investigasi';
         message =
@@ -211,8 +213,8 @@ class _SellerVerificationScreenState
             'Verifikasi penjual Anda telah dicabut secara permanen. Hubungi dukungan untuk informasi lebih lanjut.';
         break;
       case SellerVerificationStatus.notSubmitted:
-        bgColor = AppColors.neutralGray100;
-        textColor = AppColors.neutralGray700;
+        bgColor = Theme.of(context).colorScheme.surfaceContainer;
+        textColor = Theme.of(context).colorScheme.onSurfaceVariant;
         icon = Icons.info_outline;
         title = 'Belum Diverifikasi';
         message =
@@ -304,14 +306,17 @@ class _SellerVerificationScreenState
           children: [
             Row(
               children: [
-                Icon(Icons.description_outlined, color: AppColors.primaryRed),
+                Icon(
+                  Icons.description_outlined,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   'Dokumen yang Diperlukan',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.neutralGray800,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
               ],
@@ -356,10 +361,14 @@ class _SellerVerificationScreenState
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: AppColors.primaryRed.withValues(alpha: 0.1),
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, size: 20, color: AppColors.primaryRed),
+          child: Icon(
+            icon,
+            size: 20,
+            color: Theme.of(context).colorScheme.primary,
+          ),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -368,16 +377,16 @@ class _SellerVerificationScreenState
             children: [
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.w600,
-                  color: AppColors.neutralGray800,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               Text(
                 description,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: AppColors.neutralGray600,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
             ],
@@ -396,7 +405,7 @@ class _SellerVerificationScreenState
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: AppColors.neutralGray800,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 16),
@@ -452,7 +461,7 @@ class _SellerVerificationScreenState
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
-            color: AppColors.neutralGray800,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 8),
@@ -462,10 +471,10 @@ class _SellerVerificationScreenState
           child: Container(
             height: 200,
             decoration: BoxDecoration(
-              color: AppColors.neutralGray100,
+              color: Theme.of(context).colorScheme.surfaceContainer,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: AppColors.neutralGray300,
+                color: Theme.of(context).colorScheme.outlineVariant,
                 width: _ktpImage != null ? 2 : 1,
               ),
             ),
@@ -491,9 +500,14 @@ class _SellerVerificationScreenState
                               _ktpStorageKey = null;
                             });
                           },
-                          icon: const Icon(Icons.close, color: Colors.white),
+                          icon: Icon(
+                            Icons.close,
+                            color: Theme.of(context).colorScheme.onPrimary,
+                          ),
                           style: IconButton.styleFrom(
-                            backgroundColor: Colors.black54,
+                            backgroundColor: Theme.of(
+                              context,
+                            ).colorScheme.scrim.withValues(alpha: 0.54),
                           ),
                         ),
                       ),
@@ -505,19 +519,21 @@ class _SellerVerificationScreenState
                       Icon(
                         Icons.camera_alt,
                         size: 48,
-                        color: AppColors.neutralGray400,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                       const SizedBox(height: 12),
                       Text(
                         'Tap untuk ambil foto KTP',
-                        style: TextStyle(color: AppColors.neutralGray600),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         'Pastikan terbaca dengan jelas',
                         style: TextStyle(
                           fontSize: 12,
-                          color: AppColors.neutralGray400,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -537,13 +553,16 @@ class _SellerVerificationScreenState
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
-            color: AppColors.neutralGray800,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 4),
         Text(
           'Pegang KTP di depan wajah, pastikan wajah dan KTP terlihat jelas',
-          style: TextStyle(fontSize: 12, color: AppColors.neutralGray600),
+          style: TextStyle(
+            fontSize: 12,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
         ),
         const SizedBox(height: 8),
         InkWell(
@@ -552,10 +571,10 @@ class _SellerVerificationScreenState
           child: Container(
             height: 200,
             decoration: BoxDecoration(
-              color: AppColors.neutralGray100,
+              color: Theme.of(context).colorScheme.surfaceContainer,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: AppColors.neutralGray300,
+                color: Theme.of(context).colorScheme.outlineVariant,
                 width: _selfieImage != null ? 2 : 1,
               ),
             ),
@@ -581,9 +600,14 @@ class _SellerVerificationScreenState
                               _selfieStorageKey = null;
                             });
                           },
-                          icon: const Icon(Icons.close, color: Colors.white),
+                          icon: Icon(
+                            Icons.close,
+                            color: Theme.of(context).colorScheme.onPrimary,
+                          ),
                           style: IconButton.styleFrom(
-                            backgroundColor: Colors.black54,
+                            backgroundColor: Theme.of(
+                              context,
+                            ).colorScheme.scrim.withValues(alpha: 0.54),
                           ),
                         ),
                       ),
@@ -595,19 +619,21 @@ class _SellerVerificationScreenState
                       Icon(
                         Icons.face,
                         size: 48,
-                        color: AppColors.neutralGray400,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                       const SizedBox(height: 12),
                       Text(
                         'Tap untuk ambil foto selfie',
-                        style: TextStyle(color: AppColors.neutralGray600),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         'Selfie memegang KTP di depan wajah',
                         style: TextStyle(
                           fontSize: 12,
-                          color: AppColors.neutralGray400,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -623,6 +649,7 @@ class _SellerVerificationScreenState
     final hasKtp = _ktpImage != null;
     final hasSelfie = _selfieImage != null;
     final canSubmit = isFormValid && hasKtp && hasSelfie && !state.isLoading;
+    final scheme = Theme.of(context).colorScheme;
 
     return SizedBox(
       width: double.infinity,
@@ -630,14 +657,14 @@ class _SellerVerificationScreenState
         onPressed: canSubmit ? () => _submitVerification(user) : null,
         style: ElevatedButton.styleFrom(
           backgroundColor: canSubmit
-              ? AppColors.primaryRed
-              : AppColors.neutralGray400,
-          foregroundColor: Colors.white,
+              ? scheme.primary
+              : scheme.surfaceContainerHighest,
+          foregroundColor: scheme.onPrimary,
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
         child: _isUploading || state.isLoading
-            ? const Row(
+            ? Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   SizedBox(
@@ -645,11 +672,11 @@ class _SellerVerificationScreenState
                     height: 20,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: Colors.white,
+                      color: scheme.onPrimary,
                     ),
                   ),
-                  SizedBox(width: 12),
-                  Text('Memproses...'),
+                  const SizedBox(width: 12),
+                  const Text('Memproses...'),
                 ],
               )
             : const Text(
@@ -669,7 +696,7 @@ class _SellerVerificationScreenState
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
-            color: AppColors.neutralGray800,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 12),
@@ -682,7 +709,7 @@ class _SellerVerificationScreenState
                     ? AppColors.successGreen
                     : doc['status'] == 'rejected'
                     ? AppColors.error
-                    : Colors.orange,
+                    : AppColors.statusWarning,
               ),
               title: Text(_getDocumentTypeLabel(doc['document_type'])),
               subtitle: Text(_getDocumentStatusLabel(doc['status'])),
@@ -800,12 +827,7 @@ class _SellerVerificationScreenState
       if (!mounted) return;
 
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Verifikasi berhasil dikirim'),
-            backgroundColor: AppColors.successGreen,
-          ),
-        );
+        AppSnackBar.showSuccess(context, 'Verifikasi berhasil dikirim');
         setState(() {
           _ktpImage = null;
           _ktpStorageKey = null;
@@ -821,12 +843,7 @@ class _SellerVerificationScreenState
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Terjadi kesalahan. Coba lagi.'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        AppSnackBar.showError(context, 'Terjadi kesalahan. Coba lagi.');
       }
     } finally {
       if (mounted) {
@@ -843,13 +860,9 @@ class _SellerVerificationScreenState
         // Backend-rejection handler (defense-in-depth): the backend stays
         // the single authority for EMAIL_VERIFICATION_REQUIRED.
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Verifikasi email kamu diperlukan sebelum mengajukan verifikasi penjual.',
-            ),
-            backgroundColor: AppColors.error,
-          ),
+        AppSnackBar.showError(
+          context,
+          'Verifikasi email kamu diperlukan sebelum mengajukan verifikasi penjual.',
         );
         return;
       case 'ACCOUNT_SUSPENDED':
@@ -868,11 +881,9 @@ class _SellerVerificationScreenState
         return;
     }
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(state.errorMessage ?? 'Gagal mengirim verifikasi'),
-        backgroundColor: AppColors.error,
-      ),
+    AppSnackBar.showError(
+      context,
+      state.errorMessage ?? 'Gagal mengirim verifikasi',
     );
   }
 
@@ -882,13 +893,9 @@ class _SellerVerificationScreenState
         // Backend-rejection handler (defense-in-depth): the backend stays
         // the single authority for EMAIL_VERIFICATION_REQUIRED.
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Verifikasi email kamu diperlukan sebelum mengajukan verifikasi penjual.',
-            ),
-            backgroundColor: AppColors.error,
-          ),
+        AppSnackBar.showError(
+          context,
+          'Verifikasi email kamu diperlukan sebelum mengajukan verifikasi penjual.',
         );
         return;
       case 'ACCOUNT_SUSPENDED':
@@ -907,12 +914,7 @@ class _SellerVerificationScreenState
         return;
     }
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Terjadi kesalahan. Coba lagi.'),
-        backgroundColor: AppColors.error,
-      ),
-    );
+    AppSnackBar.showError(context, 'Terjadi kesalahan. Coba lagi.');
   }
 
   Future<void> _showAccountBlockedDialog({
@@ -981,7 +983,7 @@ class _SellerVerificationScreenState
               );
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryRed,
+              backgroundColor: Theme.of(context).colorScheme.primary,
             ),
             child: const Text('Lihat Panduan'),
           ),

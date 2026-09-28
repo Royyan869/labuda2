@@ -30,19 +30,6 @@ class ValiditySection extends StatelessWidget {
       initialDate: initialDate,
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: core.AppColors.primaryRed,
-              onPrimary: core.AppColors.neutralWhite,
-              surface: core.AppColors.neutralWhite,
-              onSurface: core.AppColors.neutralGray900,
-            ),
-          ),
-          child: child!,
-        );
-      },
     );
 
     if (picked != null) {
@@ -52,14 +39,10 @@ class ValiditySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark
-            ? core.AppColors.darkGray800
-            : core.AppColors.neutralWhite,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -70,9 +53,7 @@ class ValiditySection extends StatelessWidget {
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: isDark
-                  ? core.AppColors.neutralWhite
-                  : core.AppColors.neutralGray900,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 16),
@@ -86,9 +67,7 @@ class ValiditySection extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
-                  color: isDark
-                      ? core.AppColors.neutralGray300
-                      : core.AppColors.neutralGray700,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
               const SizedBox(height: 8),
@@ -103,14 +82,10 @@ class ValiditySection extends StatelessWidget {
                     vertical: 14,
                   ),
                   decoration: BoxDecoration(
-                    color: isDark
-                        ? core.AppColors.darkGray700
-                        : core.AppColors.neutralGray50,
+                    color: Theme.of(context).colorScheme.surfaceContainer,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: isDark
-                          ? core.AppColors.neutralGray700
-                          : core.AppColors.neutralGray200,
+                      color: Theme.of(context).colorScheme.outlineVariant,
                     ),
                   ),
                   child: Row(
@@ -118,9 +93,7 @@ class ValiditySection extends StatelessWidget {
                       Icon(
                         Icons.event,
                         size: 20,
-                        color: isDark
-                            ? core.AppColors.neutralGray400
-                            : core.AppColors.neutralGray600,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -128,17 +101,13 @@ class ValiditySection extends StatelessWidget {
                           _formatDate(validUntil),
                           style: TextStyle(
                             fontSize: 14,
-                            color: isDark
-                                ? core.AppColors.neutralWhite
-                                : core.AppColors.neutralGray900,
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                         ),
                       ),
                       Icon(
                         Icons.arrow_drop_down,
-                        color: isDark
-                            ? core.AppColors.neutralGray400
-                            : core.AppColors.neutralGray600,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ],
                   ),
@@ -168,9 +137,7 @@ class ValiditySection extends StatelessWidget {
                     'Discount is active immediately and expires on the selected date.',
                     style: TextStyle(
                       fontSize: 12,
-                      color: isDark
-                          ? core.AppColors.neutralGray300
-                          : core.AppColors.neutralGray700,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ),

@@ -23,7 +23,6 @@ class SellerWizardPreviewWidget extends StatelessWidget {
 
   final bool agreeToTerms;
   final ValueChanged<bool> onAgreeToTermsChanged;
-  final bool isDark;
 
   const SellerWizardPreviewWidget({
     super.key,
@@ -38,48 +37,44 @@ class SellerWizardPreviewWidget extends StatelessWidget {
     this.selectedStorePhotoPath,
     required this.agreeToTerms,
     required this.onAgreeToTermsChanged,
-    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionHeader('Preview & Confirmation', isDark),
+          _buildSectionHeader(context, 'Preview & Confirmation'),
           const SizedBox(height: 8),
           Text(
             'Review the package, account data, and store details before you continue to payment.',
             style: TextStyle(
               fontSize: 14,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray600,
+              color: scheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 24),
 
           _buildSection(
+            context,
             title: 'Package & Fee',
-            isDark: isDark,
             children: [
               _buildInfoRow(
+                context,
                 'Fee',
                 AppFormatters.formatCurrency(packageFee),
-                isDark,
               ),
-              _buildInfoRow('Duration', '$packageDurationDays days', isDark),
+              _buildInfoRow(context, 'Duration', '$packageDurationDays days'),
               const SizedBox(height: 4),
               Text(
                 'Payment is required before seller authority becomes active. KYC and bank review are handled later for payout access.',
                 style: TextStyle(
                   fontSize: 12,
                   height: 1.5,
-                  color: isDark
-                      ? AppColors.neutralGray400
-                      : AppColors.neutralGray600,
+                  color: scheme.onSurfaceVariant,
                 ),
               ),
             ],
@@ -88,25 +83,25 @@ class SellerWizardPreviewWidget extends StatelessWidget {
           const SizedBox(height: 24),
 
           _buildSection(
+            context,
             title: 'Account Prerequisites',
-            isDark: isDark,
             children: [
-              _buildInfoRow('Username', username, isDark),
+              _buildInfoRow(context, 'Username', username),
               _buildInfoRow(
+                context,
                 'Email Status',
                 emailVerified ? 'Verified' : 'Not verified',
-                isDark,
               ),
-              _buildInfoRow('Phone', phoneNumber, isDark),
-              _buildInfoRow('Sender Address', senderAddress, isDark),
+              _buildInfoRow(context, 'Phone', phoneNumber),
+              _buildInfoRow(context, 'Sender Address', senderAddress),
             ],
           ),
 
           const SizedBox(height: 24),
 
           _buildSection(
+            context,
             title: 'Store Information',
-            isDark: isDark,
             children: [
               if (selectedStorePhotoPath != null || farmPhotoUrl != null)
                 Center(
@@ -117,9 +112,7 @@ class SellerWizardPreviewWidget extends StatelessWidget {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: isDark
-                            ? AppColors.darkGray600
-                            : AppColors.neutralGray300,
+                        color: scheme.outlineVariant,
                         width: 2,
                       ),
                     ),
@@ -133,7 +126,7 @@ class SellerWizardPreviewWidget extends StatelessWidget {
                                     fit: BoxFit.cover,
                                     errorBuilder:
                                         (context, error, stackTrace) =>
-                                            _fallback(),
+                                            _fallback(context),
                                   )
                                 : Image.file(
                                     File(selectedStorePhotoPath!),
@@ -142,19 +135,19 @@ class SellerWizardPreviewWidget extends StatelessWidget {
                                     fit: BoxFit.cover,
                                     errorBuilder:
                                         (context, error, stackTrace) =>
-                                            _fallback(),
+                                            _fallback(context),
                                   ))
                           : AppImage.avatar(imageUrl: farmPhotoUrl!, size: 96),
                     ),
                   ),
                 ),
-              _buildInfoRow('Store/Farm Name', farmName, isDark),
+              _buildInfoRow(context, 'Store/Farm Name', farmName),
             ],
           ),
 
           const SizedBox(height: 24),
 
-          _buildTermsAgreement(),
+          _buildTermsAgreement(context),
 
           const SizedBox(height: 24),
 
@@ -181,9 +174,7 @@ class SellerWizardPreviewWidget extends StatelessWidget {
                     'Payment activates seller authority. KYC and bank review are handled later for payout access.',
                     style: TextStyle(
                       fontSize: 13,
-                      color: isDark
-                          ? AppColors.neutralGray300
-                          : AppColors.neutralGray700,
+                      color: scheme.onSurfaceVariant,
                     ),
                   ),
                 ),
@@ -195,31 +186,30 @@ class SellerWizardPreviewWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildSectionHeader(String title, bool isDark) {
+  Widget _buildSectionHeader(BuildContext context, String title) {
     return Text(
       title,
       style: TextStyle(
         fontSize: 20,
         fontWeight: FontWeight.bold,
-        color: isDark ? AppColors.neutralWhite : AppColors.neutralGray900,
+        color: Theme.of(context).colorScheme.onSurface,
       ),
     );
   }
 
-  Widget _buildSection({
+  Widget _buildSection(
+    BuildContext context, {
     required String title,
-    required bool isDark,
     required List<Widget> children,
   }) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray700 : AppColors.neutralWhite,
+        color: scheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark ? AppColors.darkGray600 : AppColors.neutralGray200,
-        ),
+        border: Border.all(color: scheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -229,9 +219,7 @@ class SellerWizardPreviewWidget extends StatelessWidget {
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: isDark
-                  ? AppColors.neutralGray200
-                  : AppColors.neutralGray900,
+              color: scheme.onSurface,
             ),
           ),
           const SizedBox(height: 16),
@@ -241,7 +229,8 @@ class SellerWizardPreviewWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoRow(String label, String value, bool isDark) {
+  Widget _buildInfoRow(BuildContext context, String label, String value) {
+    final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
@@ -254,9 +243,7 @@ class SellerWizardPreviewWidget extends StatelessWidget {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: isDark
-                    ? AppColors.neutralGray400
-                    : AppColors.neutralGray600,
+                color: scheme.onSurfaceVariant,
               ),
             ),
           ),
@@ -265,9 +252,7 @@ class SellerWizardPreviewWidget extends StatelessWidget {
               value,
               style: TextStyle(
                 fontSize: 13,
-                color: isDark
-                    ? AppColors.neutralGray200
-                    : AppColors.neutralGray800,
+                color: scheme.onSurface,
               ),
             ),
           ),
@@ -276,15 +261,14 @@ class SellerWizardPreviewWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildTermsAgreement() {
+  Widget _buildTermsAgreement(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray700 : AppColors.neutralWhite,
+        color: scheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDark ? AppColors.darkGray600 : AppColors.neutralGray200,
-        ),
+        border: Border.all(color: scheme.outlineVariant),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -300,9 +284,7 @@ class SellerWizardPreviewWidget extends StatelessWidget {
                 'I agree to the Seller Terms and understand that seller authority starts after payment is confirmed.',
                 style: TextStyle(
                   fontSize: 13,
-                  color: isDark
-                      ? AppColors.neutralGray300
-                      : AppColors.neutralGray700,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
             ),
@@ -312,11 +294,11 @@ class SellerWizardPreviewWidget extends StatelessWidget {
     );
   }
 
-  Widget _fallback() {
+  Widget _fallback(BuildContext context) {
     return Icon(
       Icons.store_outlined,
       size: 48,
-      color: isDark ? AppColors.neutralGray500 : AppColors.neutralGray400,
+      color: Theme.of(context).colorScheme.onSurfaceVariant,
     );
   }
 }

@@ -252,7 +252,10 @@ class _CanonicalPromotionCreateScreenState
               const SizedBox(height: 8),
               Text(
                 'Kosong = nasional (unrestricted). Isi = arbitrary city set, contoh 3204=Bandung, 3171=Jaksel.',
-                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 24),
               SizedBox(
@@ -285,15 +288,18 @@ class _ReusableFundingCard extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.neutralGray200),
-        color: Colors.white,
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+        color: Theme.of(context).colorScheme.surface,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             'Saldo promo tersedia',
-            style: TextStyle(fontSize: 12, color: AppColors.neutralGray600),
+            style: TextStyle(
+              fontSize: 12,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 6),
           balanceAsync.when(
@@ -309,7 +315,10 @@ class _ReusableFundingCard extends StatelessWidget {
               }
               return Text(
                 result.error ?? 'Gagal memuat saldo promosi',
-                style: TextStyle(fontSize: 14, color: AppColors.primaryRed),
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
               );
             },
             loading: () => const SizedBox(
@@ -319,14 +328,20 @@ class _ReusableFundingCard extends StatelessWidget {
             ),
             error: (e, _) => Text(
               e.toString(),
-              style: TextStyle(fontSize: 14, color: AppColors.primaryRed),
+              style: TextStyle(
+                fontSize: 14,
+                color: Theme.of(context).colorScheme.primary,
+              ),
             ),
           ),
           const SizedBox(height: 4),
           Text(
             'Saldo ini bisa langsung dipakai untuk membuat promosi tanpa '
             'pembayaran baru.',
-            style: TextStyle(fontSize: 12, color: AppColors.neutralGray500),
+            style: TextStyle(
+              fontSize: 12,
+              color: Theme.of(context).colorScheme.outline,
+            ),
           ),
         ],
       ),
@@ -478,8 +493,8 @@ class _PromotionFundingPaymentSheetState
         constraints: BoxConstraints(
           maxHeight: MediaQuery.of(context).size.height * 0.9,
         ),
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: SingleChildScrollView(
@@ -508,7 +523,10 @@ class _PromotionFundingPaymentSheetState
               Text(
                 'Promosi dibuat setelah kekurangan tepat ini dibayar. '
                 'Pembayaran tidak menambah saldo promo.',
-                style: TextStyle(fontSize: 12, color: AppColors.neutralGray600),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 16),
               const Text(
@@ -530,7 +548,10 @@ class _PromotionFundingPaymentSheetState
                 const SizedBox(height: 12),
                 Text(
                   _error!,
-                  style: TextStyle(fontSize: 13, color: AppColors.primaryRed),
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                 ),
               ],
               const SizedBox(height: 20),
@@ -604,7 +625,9 @@ class _PromotionFundingPaymentSheetState
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: AppColors.neutralGray300),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
         ),
         child: Row(
           children: [
@@ -617,7 +640,7 @@ class _PromotionFundingPaymentSheetState
             Icon(
               Icons.chevron_right,
               size: 20,
-              color: AppColors.neutralGray600,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ],
         ),

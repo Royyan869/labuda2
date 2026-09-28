@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:labuda/shared/widgets/app_image.dart';
 
 /// Cover photo section untuk Profile V2
 ///
@@ -42,28 +43,12 @@ class ProfileCover extends StatelessWidget {
   }
 
   Widget _buildCoverImage(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     if (coverPhotoUrl != null && coverPhotoUrl!.isNotEmpty) {
-      return Image.network(
-        coverPhotoUrl!,
+      return AppImage(
+        imageUrl: coverPhotoUrl,
         fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) =>
-            _buildGradientFallback(context),
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) return child;
-          return Stack(
-            fit: StackFit.expand,
-            children: [
-              _buildGradientFallback(context),
-              Center(
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: scheme.onPrimary.withValues(alpha: 0.7),
-                ),
-              ),
-            ],
-          );
-        },
+        errorWidget: _buildGradientFallback(context),
+        placeholder: _buildGradientFallback(context),
       );
     }
     return _buildGradientFallback(context);

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/domain/entities/for_sale.dart';
-import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_card_seller_metadata.dart';
 import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_marketplace_primitives.dart';
 import 'package:labuda/domains/social/content/domain/entities/content.dart';
 
@@ -9,15 +8,18 @@ import 'package:labuda/domains/social/content/domain/entities/content.dart';
 /// CANONICAL DESIGN (owner-locked): every public commerce card is one
 /// `CommerceMarketplaceCardShell` inside the shared `CommerceMarketplaceGrid`
 /// (2 columns). A channel may only fill slots; it may NOT re-implement the
-/// frame, typography, media badge or seller block.
+/// frame, typography or media badge stack.
 ///
-/// Slots: badges (item state) → title → value (money) → seller metadata.
-/// Channel-specific content lives in the slot data only (fixed price here,
-/// current bid on [AuctionCard]); description belongs to the detail surface.
+/// CARD CONTRACT (owner decision 2026-09-27) — IDENTICAL to [AuctionCard] so
+/// the promotion grid can reuse this exact card for both channels:
+///   media (4:5 contain, video chip OVERLAY on the media)
+///   → title (one line) → value (one line).
+/// No badge row under the media, and NO seller identity: username and store
+/// name never render on a discovery card (detail + search keep identity,
+/// redaction and the seller-trust badge).
 ///
 /// Used by every discovery / browsing surface (Marketplace, ForSaleList,
-/// ProfileStore). Seller identity is redacted when [ForSale.sellerUserLifecycle]
-/// is degraded, providing parity with SearchResultItem (E8.4).
+/// ProfileStore) and by future promoted For Sale placements.
 ///
 /// NOT for seller management surfaces — use SellerForSaleManagementCard there.
 class ForSaleCard extends StatelessWidget {
@@ -47,12 +49,6 @@ class ForSaleCard extends StatelessWidget {
       value: CommerceMarketplaceCardValue(
         value: forSale.formattedPrice,
         compact: true,
-      ),
-      metadata: CommerceCardSellerMetadata(
-        username: forSale.sellerUsername,
-        storeName: forSale.sellerFarmName,
-        sellerUserLifecycle: forSale.sellerUserLifecycle,
-        sellerTrustLifecycle: forSale.sellerTrustLifecycle,
       ),
     );
   }

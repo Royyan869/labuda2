@@ -14,7 +14,6 @@ class PersonalInformationSection extends StatelessWidget {
   final bool phoneVerified;
   final DateTime? phoneVerifiedAt;
   final VoidCallback onVerifyPhone;
-  final bool isDark;
 
   const PersonalInformationSection({
     super.key,
@@ -26,19 +25,17 @@ class PersonalInformationSection extends StatelessWidget {
     required this.phoneVerified,
     this.phoneVerifiedAt,
     required this.onVerifyPhone,
-    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray700 : AppColors.neutralWhite,
+        color: scheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark ? AppColors.darkGray600 : AppColors.neutralGray200,
-        ),
+        border: Border.all(color: scheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -47,18 +44,14 @@ class PersonalInformationSection extends StatelessWidget {
             children: [
               Icon(
                 Icons.person_outline,
-                color: isDark
-                    ? AppColors.neutralGray400
-                    : AppColors.neutralGray600,
+                color: scheme.onSurfaceVariant,
                 size: 20,
               ),
               const SizedBox(width: 8),
               Text(
                 AppLocalizations.of(context)!.contactIdentityInformation,
                 style: TextStyle(
-                  color: isDark
-                      ? AppColors.neutralGray200
-                      : AppColors.neutralGray900,
+                  color: scheme.onSurface,
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                 ),
@@ -76,18 +69,14 @@ class PersonalInformationSection extends StatelessWidget {
             children: [
               Icon(
                 Icons.contact_mail_outlined,
-                color: isDark
-                    ? AppColors.neutralGray400
-                    : AppColors.neutralGray600,
+                color: scheme.onSurfaceVariant,
                 size: 20,
               ),
               const SizedBox(width: 8),
               Text(
                 'Contact Information',
                 style: TextStyle(
-                  color: isDark
-                      ? AppColors.neutralGray200
-                      : AppColors.neutralGray900,
+                  color: scheme.onSurface,
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                 ),
@@ -108,15 +97,14 @@ class PersonalInformationSection extends StatelessWidget {
   }
 
   Widget _buildPhoneVerificationSection(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Column(
       children: [
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: isDark ? AppColors.darkGray800 : AppColors.neutralGray50,
-            border: Border.all(
-              color: isDark ? AppColors.darkGray700 : AppColors.neutralGray300,
-            ),
+            color: scheme.surfaceContainerHighest,
+            border: Border.all(color: scheme.outlineVariant),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Column(
@@ -126,9 +114,7 @@ class PersonalInformationSection extends StatelessWidget {
                 children: [
                   Icon(
                     Icons.phone_outlined,
-                    color: isDark
-                        ? AppColors.neutralGray400
-                        : AppColors.neutralGray600,
+                    color: scheme.onSurfaceVariant,
                     size: 20,
                   ),
                   const SizedBox(width: 8),
@@ -136,9 +122,7 @@ class PersonalInformationSection extends StatelessWidget {
                     'Phone Number',
                     style: TextStyle(
                       fontSize: 12,
-                      color: isDark
-                          ? AppColors.neutralGray500
-                          : AppColors.neutralGray600,
+                      color: scheme.onSurfaceVariant,
                     ),
                   ),
                   const Spacer(),
@@ -191,44 +175,18 @@ class PersonalInformationSection extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
-                  color: isDark
-                      ? AppColors.neutralWhite
-                      : AppColors.neutralGray900,
+                  color: scheme.onSurface,
                 ),
                 decoration: InputDecoration(
                   hintText: '081234567890',
                   hintStyle: TextStyle(
-                    color: isDark
-                        ? AppColors.neutralGray600.withValues(alpha: 0.5)
-                        : AppColors.neutralGray400.withValues(alpha: 0.6),
+                    color: scheme.onSurfaceVariant.withValues(alpha: 0.6),
                   ),
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 12,
                     vertical: 10,
                   ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(
-                      color: isDark
-                          ? AppColors.darkGray600
-                          : AppColors.neutralGray300,
-                    ),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(
-                      color: isDark
-                          ? AppColors.darkGray600
-                          : AppColors.neutralGray300,
-                    ),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(
-                      color: AppColors.primaryRed,
-                      width: 1.5,
-                    ),
-                  ),
+                  // Border shapes come from AppTheme.inputDecorationTheme.
                 ),
               ),
               if (phoneVerified && phoneVerifiedAt != null) ...[
@@ -237,9 +195,7 @@ class PersonalInformationSection extends StatelessWidget {
                   'Verified on ${phoneVerifiedAt!.day}/${phoneVerifiedAt!.month}/${phoneVerifiedAt!.year}',
                   style: TextStyle(
                     fontSize: 11,
-                    color: isDark
-                        ? AppColors.neutralGray500
-                        : AppColors.neutralGray600,
+                    color: scheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -266,9 +222,7 @@ class PersonalInformationSection extends StatelessWidget {
                     'Please verify your phone number',
                     style: TextStyle(
                       fontSize: 11,
-                      color: isDark
-                          ? AppColors.neutralGray400
-                          : AppColors.neutralGray700,
+                      color: scheme.onSurfaceVariant,
                     ),
                   ),
                 ),
@@ -282,25 +236,22 @@ class PersonalInformationSection extends StatelessWidget {
   }
 
   Widget _buildDateOfBirthPicker(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onSelectDateOfBirth,
       borderRadius: BorderRadius.circular(8),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
-          border: Border.all(
-            color: isDark ? AppColors.darkGray700 : AppColors.neutralGray300,
-          ),
+          color: scheme.surface,
+          border: Border.all(color: scheme.outlineVariant),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
           children: [
             Icon(
               Icons.cake_outlined,
-              color: isDark
-                  ? AppColors.neutralGray400
-                  : AppColors.neutralGray600,
+              color: scheme.onSurfaceVariant,
               size: 20,
             ),
             const SizedBox(width: 12),
@@ -312,9 +263,7 @@ class PersonalInformationSection extends StatelessWidget {
                     'Date of Birth (Optional)',
                     style: TextStyle(
                       fontSize: 12,
-                      color: isDark
-                          ? AppColors.neutralGray500
-                          : AppColors.neutralGray600,
+                      color: scheme.onSurfaceVariant,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -328,12 +277,8 @@ class PersonalInformationSection extends StatelessWidget {
                           ? FontWeight.normal
                           : FontWeight.w500,
                       color: dateOfBirth == null
-                          ? (isDark
-                                ? AppColors.neutralGray500
-                                : AppColors.neutralGray600)
-                          : (isDark
-                                ? AppColors.neutralWhite
-                                : AppColors.neutralGray900),
+                          ? scheme.onSurfaceVariant
+                          : scheme.onSurface,
                     ),
                   ),
                 ],
@@ -342,9 +287,7 @@ class PersonalInformationSection extends StatelessWidget {
             Icon(
               Icons.calendar_today,
               size: 18,
-              color: isDark
-                  ? AppColors.neutralGray500
-                  : AppColors.neutralGray600,
+              color: scheme.onSurfaceVariant,
             ),
           ],
         ),
@@ -353,24 +296,21 @@ class PersonalInformationSection extends StatelessWidget {
   }
 
   Widget _buildReadOnlyEmailField(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Column(
       children: [
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: isDark ? AppColors.darkGray800 : AppColors.neutralGray50,
-            border: Border.all(
-              color: isDark ? AppColors.darkGray700 : AppColors.neutralGray300,
-            ),
+            color: scheme.surfaceContainerHighest,
+            border: Border.all(color: scheme.outlineVariant),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Row(
             children: [
               Icon(
                 Icons.email_outlined,
-                color: isDark
-                    ? AppColors.neutralGray400
-                    : AppColors.neutralGray600,
+                color: scheme.onSurfaceVariant,
                 size: 20,
               ),
               const SizedBox(width: 12),
@@ -382,9 +322,7 @@ class PersonalInformationSection extends StatelessWidget {
                       'Login Email',
                       style: TextStyle(
                         fontSize: 12,
-                        color: isDark
-                            ? AppColors.neutralGray500
-                            : AppColors.neutralGray600,
+                        color: scheme.onSurfaceVariant,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -393,9 +331,7 @@ class PersonalInformationSection extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
-                        color: isDark
-                            ? AppColors.neutralWhite
-                            : AppColors.neutralGray900,
+                        color: scheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -403,9 +339,7 @@ class PersonalInformationSection extends StatelessWidget {
                       'Used for login and cannot be changed',
                       style: TextStyle(
                         fontSize: 11,
-                        color: isDark
-                            ? AppColors.neutralGray500
-                            : AppColors.neutralGray600,
+                        color: scheme.onSurfaceVariant,
                       ),
                     ),
                   ],

@@ -50,17 +50,18 @@ class _SellerShippingScreenState extends ConsumerState<SellerShippingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final state = ref.watch(shippingNotifierProvider);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Pengiriman'),
-        backgroundColor: AppColors.primaryRed,
-        foregroundColor: Colors.white,
+        backgroundColor: scheme.primary,
+        foregroundColor: scheme.onPrimary,
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openCreateSetup,
-        backgroundColor: AppColors.primaryRed,
+        backgroundColor: scheme.primary,
         icon: const Icon(Icons.add),
         label: const Text('Tambah Opsi'),
       ),
@@ -163,8 +164,8 @@ class _SellerShippingScreenState extends ConsumerState<SellerShippingScreen> {
           ElevatedButton(
             onPressed: () => Navigator.of(dialogCtx).pop(true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-              foregroundColor: Colors.white,
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onError,
             ),
             child: const Text('Hapus'),
           ),
@@ -199,23 +200,23 @@ class _HonestyBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.primaryBlue.withValues(alpha: 0.08),
+        color: scheme.secondary.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppColors.primaryBlue.withValues(alpha: 0.25),
+          color: scheme.secondary.withValues(alpha: 0.25),
         ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(
+          Icon(
             Icons.info_outline,
             size: 18,
-            color: AppColors.primaryBlue,
+            color: scheme.secondary,
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -227,9 +228,7 @@ class _HonestyBanner extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: isDark
-                        ? AppColors.neutralWhite
-                        : AppColors.neutralGray900,
+                    color: scheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -239,7 +238,7 @@ class _HonestyBanner extends StatelessWidget {
                   'Input biaya pengiriman beserta biaya packing jika ada.',
                   style: TextStyle(
                     fontSize: 12,
-                    color: AppColors.neutralGray600,
+                    color: scheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -257,6 +256,7 @@ class _EmptyView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(24, 80, 24, 24),
@@ -266,7 +266,7 @@ class _EmptyView extends StatelessWidget {
         Icon(
           Icons.local_shipping_outlined,
           size: 72,
-          color: AppColors.neutralGray400,
+          color: scheme.onSurfaceVariant,
         ),
         const SizedBox(height: 16),
         const Text(
@@ -281,14 +281,14 @@ class _EmptyView extends StatelessWidget {
           'pribadi untuk Anda. ForSale baru wajib memilih minimal satu opsi '
           'sebelum bisa dipublish.',
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 14, color: AppColors.neutralGray600),
+          style: TextStyle(fontSize: 14, color: scheme.onSurfaceVariant),
         ),
         const SizedBox(height: 24),
         ElevatedButton.icon(
           onPressed: onCreate,
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primaryRed,
-            foregroundColor: Colors.white,
+            backgroundColor: scheme.primary,
+            foregroundColor: scheme.onPrimary,
             padding: const EdgeInsets.symmetric(vertical: 14),
           ),
           icon: const Icon(Icons.add),
@@ -306,6 +306,7 @@ class _ErrorView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(24),
@@ -322,7 +323,7 @@ class _ErrorView extends StatelessWidget {
         Text(
           message,
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 13, color: AppColors.neutralGray600),
+          style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant),
         ),
         const SizedBox(height: 24),
         ElevatedButton(onPressed: onRetry, child: const Text('Coba Lagi')),
@@ -352,15 +353,13 @@ class _OptionRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     final note = option.internalNote?.trim() ?? '';
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: isDark ? AppColors.darkGray700 : AppColors.neutralGray200,
-        ),
+        side: BorderSide(color: scheme.outlineVariant),
       ),
       child: InkWell(
         onTap: onTap,
@@ -371,7 +370,7 @@ class _OptionRow extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 22,
-                backgroundColor: AppColors.primaryRed.withValues(alpha: 0.1),
+                backgroundColor: scheme.primary.withValues(alpha: 0.1),
                 child: Text(option.emoji, style: const TextStyle(fontSize: 22)),
               ),
               const SizedBox(width: 12),
@@ -392,7 +391,7 @@ class _OptionRow extends StatelessWidget {
                       ' · ${option.coverageAreas.length} provinsi',
                       style: TextStyle(
                         fontSize: 12,
-                        color: AppColors.neutralGray600,
+                        color: scheme.onSurfaceVariant,
                       ),
                     ),
                     // Seller-private note: visible ONLY on seller surfaces.
@@ -403,7 +402,7 @@ class _OptionRow extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 11,
                           fontStyle: FontStyle.italic,
-                          color: AppColors.neutralGray500,
+                          color: scheme.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -413,7 +412,7 @@ class _OptionRow extends StatelessWidget {
               Switch(
                 value: option.isActive,
                 onChanged: onToggle,
-                activeThumbColor: AppColors.primaryRed,
+                activeThumbColor: scheme.primary,
               ),
               PopupMenuButton<String>(
                 itemBuilder: (_) => const [

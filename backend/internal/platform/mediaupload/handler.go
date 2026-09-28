@@ -60,14 +60,14 @@ type UploadURLResponse struct {
 	UploadURL string `json:"upload_url"`
 	// ExpiresAt is the presigned URL expiry.
 	ExpiresAt time.Time `json:"expires_at"`
-	// ReadURL is the canonical read/display URL (CDN when configured, else raw S3).
+	// ReadURL is the canonical CloudFront read/display URL.
 	ReadURL string `json:"read_url"`
 }
 
 // Handler handles the general media upload-url endpoint.
 type Handler struct {
 	presignCfg s3presign.Config
-	cdnBase    string // optional CloudFront prefix; empty → raw S3 URL
+	cdnBase    string // canonical CloudFront prefix
 	log        *zap.Logger
 }
 

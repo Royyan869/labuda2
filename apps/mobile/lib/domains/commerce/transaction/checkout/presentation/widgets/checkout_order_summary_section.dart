@@ -421,19 +421,18 @@ class _OrderSummaryContent extends StatelessWidget {
               if (forSale.media.isNotEmpty)
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: Image.network(
-                    forSale.media.first.originalUrl,
+                  child: AppImage(
+                    imageUrl: forSale.media.first.originalUrl,
                     width: 60,
                     height: 60,
                     fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        width: 60,
-                        height: 60,
-                        color: colorScheme.surfaceContainerHighest,
-                        child: const Icon(Icons.image),
-                      );
-                    },
+                    backgroundColor: colorScheme.surfaceContainerHighest,
+                    errorWidget: Container(
+                      width: 60,
+                      height: 60,
+                      color: colorScheme.surfaceContainerHighest,
+                      child: const Icon(Icons.image),
+                    ),
                   ),
                 ),
               const SizedBox(width: 12),

@@ -113,15 +113,19 @@ export 'presentation/screens/personal_information_screen.dart';
 // ========================================
 export 'presentation/widgets/profile_feed_tab.dart';
 export 'presentation/widgets/profile_reviews_tab.dart';
-export 'presentation/widgets/address_card_widget.dart';
+// REMOVED: presentation/widgets/address_card_widget.dart — DEAD (zero callers;
+// AddressListScreen renders its own _buildAddressCard).
 export 'presentation/widgets/address_empty_state_widget.dart';
 export 'presentation/widgets/address_form_dialog.dart';
 export 'presentation/widgets/add_edit_address_dialog.dart';
 export 'presentation/widgets/bank_account_card_widget.dart';
 export 'presentation/widgets/bank_account_empty_state_widget.dart';
 export 'presentation/widgets/personal_information_section.dart';
-export 'presentation/widgets/ktp_upload_section.dart';
-export 'presentation/widgets/ktp_preview_section.dart';
+// REMOVED: presentation/widgets/ktp_upload_section.dart + ktp_preview_section.dart +
+// seller_wizard_step1/3_widget.dart + selfie_verification_section.dart — DEAD
+// (zero callers). The seller wizard's 5 live steps are Paket/Akun/Toko-Farm/
+// Preview/Pembayaran; identity verification lives in
+// preference/seller/.../seller_verification_screen.dart (own KTP + camera UI).
 // REMOVED: achievement_badge.dart - NO backend support, deleted in PROFILE PURGE
 // REMOVED: presentation/widgets/profile_avatar.dart - duplicate authority; canonical ProfileAvatar lives in shared/widgets/profile_avatar.dart
 export 'presentation/widgets/profile_cover.dart';

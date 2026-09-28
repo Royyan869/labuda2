@@ -1390,15 +1390,18 @@ func auctionToResponseWithSeller(
 	title := ""
 	description := ""
 	var thumbnail *string
-	// PRODUCT CONTENT BLOCK — one authority (Product), one shape, both sale
-	// channels, both list and detail. Kept non-nil so the wire never emits a
-	// null media slot (cards treat null and [] differently).
+	// PRODUCT CONTENT BLOCK — one authority (Product storage keys), one shape,
+	// both sale channels, both list and detail. Both wire slots carry the SAME
+	// resolved CloudFront URLs. Kept non-nil so the wire never emits a null
+	// media slot (cards treat null and [] differently).
 	mediaURLs := []string{}
+	var rawMediaRefs []string
 	if product != nil {
 		title = product.Title
 		description = product.Description
 		if product.MediaURLs != nil {
-			mediaURLs = product.MediaURLs
+			rawMediaRefs = product.MediaURLs
+			mediaURLs = commerceshared.ResolveReadableMediaReferences(product.MediaURLs)
 		}
 		if len(mediaURLs) > 0 {
 			t := mediaURLs[0]
@@ -1446,7 +1449,7 @@ func auctionToResponseWithSeller(
 		"seller_avatar_url": seller.AvatarURL,
 		// Product content block (see doc comment). Identical key set to
 		// for_saleToResponseWithSeller — proven by the parity contract test.
-		"media":      commerceshared.MediaWireItems(mediaURLs, a.CreatedAt),
+		"media":      commerceshared.MediaWireItems(rawMediaRefs, a.CreatedAt),
 		"media_urls": mediaURLs,
 		"auction":    auctionCard,
 	}

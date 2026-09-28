@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/shared/models/seller_identity_data.dart';
+import 'package:labuda/shared/widgets/app_image.dart';
 import 'package:labuda/shared/widgets/profile_avatar.dart';
-import 'package:labuda/shared/widgets/stable_network_image.dart';
 
 /// CANONICAL dual avatar for sellers — store/farm image as the main circle
 /// (storefront icon when no photo) with the personal [ProfileAvatar] overlaid
@@ -58,11 +58,19 @@ class SellerDualAvatar extends StatelessWidget {
               ),
               child: ClipOval(
                 child: hasStoreImage
-                    ? StableNetworkImage(
+                    ? AppImage(
+                        key: ValueKey(
+                          'store:$storeImageReloadToken:${identity.normalizedStoreImageUrl}',
+                        ),
                         imageUrl: identity.normalizedStoreImageUrl,
-                        reloadToken: storeImageReloadToken,
                         fit: BoxFit.cover,
-                        fallback: storePlaceholder,
+                        isCircle: true,
+                        width: size,
+                        height: size,
+                        backgroundColor: Theme.of(
+                          context,
+                        ).colorScheme.surfaceContainerHighest,
+                        errorWidget: storePlaceholder,
                       )
                     : storePlaceholder,
               ),

@@ -79,10 +79,10 @@ class CanonicalPromotionAnalyticsScreen extends ConsumerWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
+            Icon(
               Icons.error_outline,
               size: 64,
-              color: AppColors.primaryRed,
+              color: Theme.of(context).colorScheme.primary,
             ),
             const SizedBox(height: 16),
             Text(
@@ -90,7 +90,7 @@ class CanonicalPromotionAnalyticsScreen extends ConsumerWidget {
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: AppColors.neutralGray900,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 8),
@@ -99,7 +99,7 @@ class CanonicalPromotionAnalyticsScreen extends ConsumerWidget {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
-                color: AppColors.neutralGray600,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 24),
@@ -127,7 +127,7 @@ class CanonicalPromotionAnalyticsScreen extends ConsumerWidget {
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: AppColors.neutralGray900,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 8),
@@ -135,7 +135,7 @@ class CanonicalPromotionAnalyticsScreen extends ConsumerWidget {
             'Truthful canonical measurement from delivery events',
             style: TextStyle(
               fontSize: 14,
-              color: AppColors.neutralGray600,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 24),
@@ -146,7 +146,7 @@ class CanonicalPromotionAnalyticsScreen extends ConsumerWidget {
             value: analytics.includedCount,
             description: 'Card placed in feed responses',
             icon: Icons.visibility_outlined,
-            color: AppColors.primaryBlue,
+            color: AppColors.statusInfo,
           ),
           const SizedBox(height: 16),
           _MetricsCard(
@@ -162,7 +162,7 @@ class CanonicalPromotionAnalyticsScreen extends ConsumerWidget {
             value: analytics.clickCount,
             description: 'Client tapped the promoted card',
             icon: Icons.touch_app_outlined,
-            color: AppColors.primaryRed,
+            color: Theme.of(context).colorScheme.primary,
           ),
           const SizedBox(height: 24),
 
@@ -170,9 +170,11 @@ class CanonicalPromotionAnalyticsScreen extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.neutralGray50,
+              color: Theme.of(context).colorScheme.surfaceContainer,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.neutralGray200),
+              border: Border.all(
+                color: Theme.of(context).colorScheme.outlineVariant,
+              ),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -182,7 +184,7 @@ class CanonicalPromotionAnalyticsScreen extends ConsumerWidget {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.neutralGray900,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -191,7 +193,7 @@ class CanonicalPromotionAnalyticsScreen extends ConsumerWidget {
                   'They represent truthful measurements of your promotion\'s delivery performance.',
                   style: TextStyle(
                     fontSize: 13,
-                    color: AppColors.neutralGray600,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -224,12 +226,14 @@ class _MetricsCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.neutralGray200),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
         boxShadow: [
           BoxShadow(
-            color: AppColors.neutralGray200.withValues(alpha: 0.5),
+            color: Theme.of(
+              context,
+            ).colorScheme.outlineVariant.withValues(alpha: 0.5),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -255,7 +259,7 @@ class _MetricsCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.neutralGray600,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -264,7 +268,7 @@ class _MetricsCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.neutralGray900,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -272,7 +276,7 @@ class _MetricsCard extends StatelessWidget {
                   description,
                   style: TextStyle(
                     fontSize: 12,
-                    color: AppColors.neutralGray500,
+                    color: Theme.of(context).colorScheme.outline,
                   ),
                 ),
               ],

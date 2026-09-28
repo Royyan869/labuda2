@@ -188,7 +188,9 @@ class _FlutterImageCropperState extends State<FlutterImageCropper> {
                     margin: const EdgeInsets.symmetric(horizontal: 20),
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.black87,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.scrim.withValues(alpha: 0.87),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(

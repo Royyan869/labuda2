@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:wechat_assets_picker/wechat_assets_picker.dart';
-import 'package:labuda/core/core.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 /// Media Picker Helper
@@ -42,7 +41,7 @@ class MediaPickerHelper {
         pickerConfig: AssetPickerConfig(
           maxAssets: maxAssets,
           requestType: requestType,
-          themeColor: AppColors.primaryRed,
+          themeColor: Theme.of(context).colorScheme.primary,
           textDelegate: const EnglishAssetPickerTextDelegate(),
         ),
       );

@@ -36,7 +36,7 @@ class _ProfileQrScreenState extends ConsumerState<ProfileQrScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     if (authState is! AuthStateAuthenticated) {
       return Scaffold(
@@ -44,7 +44,7 @@ class _ProfileQrScreenState extends ConsumerState<ProfileQrScreen> {
         body: Center(
           child: Text(
             'Please login to generate QR code',
-            style: TextStyle(color: AppColors.neutralGray600),
+            style: TextStyle(color: scheme.onSurfaceVariant),
           ),
         ),
       );
@@ -58,11 +58,11 @@ class _ProfileQrScreenState extends ConsumerState<ProfileQrScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _buildQRCodeCard('@${authState.user.username}', isDark),
+              _buildQRCodeCard(context, '@${authState.user.username}'),
               const SizedBox(height: 24),
-              _buildActionButtons(),
+              _buildActionButtons(context),
               const SizedBox(height: 24),
-              _buildUseCaseInfo(isDark),
+              _buildUseCaseInfo(context),
             ],
           ),
         ),
@@ -70,15 +70,16 @@ class _ProfileQrScreenState extends ConsumerState<ProfileQrScreen> {
     );
   }
 
-  Widget _buildQRCodeCard(String displayName, bool isDark) {
+  Widget _buildQRCodeCard(BuildContext context, String displayName) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray800 : AppColors.neutralWhite,
+        color: scheme.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: AppColors.neutralGray900.withValues(alpha: 0.1),
+            color: scheme.scrim.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -86,10 +87,14 @@ class _ProfileQrScreenState extends ConsumerState<ProfileQrScreen> {
       ),
       child: Column(
         children: [
+          // Export artifact: the captured PNG (save + share) must stay
+          // black-on-white to remain scannable in any theme. Both scheme
+          // roles pin the same pixels in light and dark (onPrimary = white,
+          // scrim = black), so this never forks the theme.
           RepaintBoundary(
             key: _qrKey,
             child: Container(
-              color: Colors.white,
+              color: scheme.onPrimary,
               padding: const EdgeInsets.all(16),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -98,31 +103,34 @@ class _ProfileQrScreenState extends ConsumerState<ProfileQrScreen> {
                     data: _profileUrl,
                     version: QrVersions.auto,
                     size: 220,
-                    backgroundColor: Colors.white,
+                    backgroundColor: scheme.onPrimary,
                     errorCorrectionLevel: QrErrorCorrectLevel.H,
-                    eyeStyle: const QrEyeStyle(
+                    eyeStyle: QrEyeStyle(
                       eyeShape: QrEyeShape.square,
-                      color: Colors.black,
+                      color: scheme.scrim,
                     ),
-                    dataModuleStyle: const QrDataModuleStyle(
+                    dataModuleStyle: QrDataModuleStyle(
                       dataModuleShape: QrDataModuleShape.square,
-                      color: Colors.black,
+                      color: scheme.scrim,
                     ),
                   ),
                   const SizedBox(height: 12),
                   Text(
                     displayName,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black,
+                      color: scheme.scrim,
                     ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 4),
                   Text(
                     'Scan to visit my profile',
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: scheme.scrim.withValues(alpha: 0.6),
+                    ),
                   ),
                 ],
               ),
@@ -133,7 +141,8 @@ class _ProfileQrScreenState extends ConsumerState<ProfileQrScreen> {
     );
   }
 
-  Widget _buildActionButtons() {
+  Widget _buildActionButtons(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -148,8 +157,8 @@ class _ProfileQrScreenState extends ConsumerState<ProfileQrScreen> {
               : const Icon(Icons.download),
           label: Text(_isDownloading ? 'Saving...' : 'Save to Gallery'),
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primaryBlue,
-            foregroundColor: AppColors.neutralWhite,
+            backgroundColor: scheme.secondary,
+            foregroundColor: scheme.onSecondary,
             padding: const EdgeInsets.symmetric(vertical: 16),
           ),
         ),
@@ -166,11 +175,12 @@ class _ProfileQrScreenState extends ConsumerState<ProfileQrScreen> {
     );
   }
 
-  Widget _buildUseCaseInfo(bool isDark) {
+  Widget _buildUseCaseInfo(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkGray700 : AppColors.neutralGray100,
+        color: scheme.surfaceContainer,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -189,23 +199,22 @@ class _ProfileQrScreenState extends ConsumerState<ProfileQrScreen> {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
-                  color: isDark
-                      ? AppColors.neutralWhite
-                      : AppColors.neutralGray900,
+                  color: scheme.onSurface,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 8),
-          _buildTipItem('Print on business cards', isDark),
-          _buildTipItem('Display at your booth or farm', isDark),
-          _buildTipItem('Share on social media', isDark),
+          _buildTipItem(context, 'Print on business cards'),
+          _buildTipItem(context, 'Display at your booth or farm'),
+          _buildTipItem(context, 'Share on social media'),
         ],
       ),
     );
   }
 
-  Widget _buildTipItem(String text, bool isDark) {
+  Widget _buildTipItem(BuildContext context, String text) {
+    final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(top: 6),
       child: Row(
@@ -216,9 +225,7 @@ class _ProfileQrScreenState extends ConsumerState<ProfileQrScreen> {
             text,
             style: TextStyle(
               fontSize: 13,
-              color: isDark
-                  ? AppColors.neutralGray300
-                  : AppColors.neutralGray700,
+              color: scheme.onSurfaceVariant,
             ),
           ),
         ],

@@ -3,26 +3,19 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_blurhash/flutter_blurhash.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/core/services/blurhash_cache_service.dart';
 
 /// Image quality options for loading different image sizes
 enum MediaQuality { thumbnail, medium, high, webp }
 
-/// Reusable Image Widget dengan fallback dan loading states
+/// Canonical network-media render authority.
 ///
-/// Features:
-/// - Network image dengan fallback
-/// - Loading state dengan shimmer effect
-/// - Error state dengan icon
-/// - Customizable placeholder
-/// - Caching support
-/// - Different shapes (circle, rounded, rectangle)
-/// - Multiple resolution variants (thumbnail, medium, large, webp)
-/// - Automatic quality selection based on size
+/// Contract: [imageUrl] is the backend-resolved CloudFront URL, used as-is.
+/// Mobile never rebuilds, mutates, or strips media URLs. Loading (shimmer /
+/// blurhash) and error states are always distinct.
 class AppImage extends StatelessWidget {
   final String? imageUrl;
-  final String? blurhash; // Blurhash for smooth placeholder
+  final String? blurhash;
   final double? width;
   final double? height;
   final BoxFit fit;
@@ -32,7 +25,7 @@ class AppImage extends StatelessWidget {
   final Widget? errorWidget;
   final Color? backgroundColor;
   final VoidCallback? onTap;
-  final MediaQuality? quality; // Force specific quality
+  final MediaQuality? quality;
 
   const AppImage({
     super.key,
@@ -90,22 +83,13 @@ class AppImage extends StatelessWidget {
   }
 
   Widget _buildWebImage(BuildContext context) {
-    final optimizedUrl = _getOptimizedImageUrl(imageUrl!);
-
     return CachedNetworkImage(
-      imageUrl: optimizedUrl,
+      imageUrl: imageUrl!,
       width: width,
       height: height,
       fit: fit,
       placeholder: (context, url) => _buildBlurhashPlaceholder(context),
       errorWidget: (context, url, error) {
-        if (url.contains('firebasestorage.googleapis.com')) {
-          return _buildFirebaseImageFallback(context);
-        }
-        if (url.contains('s3.ap-southeast-1.amazonaws.com') ||
-            url.contains('cloudfront.net')) {
-          return _buildAwsS3ImageFallback(context, url);
-        }
         return _buildErrorState(context, error);
       },
       imageBuilder: (context, imageProvider) {
@@ -126,10 +110,8 @@ class AppImage extends StatelessWidget {
   }
 
   Widget _buildMobileImage(BuildContext context) {
-    final optimizedUrl = _getOptimizedImageUrl(imageUrl!);
-
     return CachedNetworkImage(
-      imageUrl: optimizedUrl,
+      imageUrl: imageUrl!,
       width: width,
       height: height,
       fit: fit,
@@ -151,27 +133,6 @@ class AppImage extends StatelessWidget {
       // Basic Settings (cache optimization disabled temporarily)
       fadeInDuration: const Duration(milliseconds: 200),
       fadeOutDuration: const Duration(milliseconds: 100),
-    );
-  }
-
-  Widget _buildFirebaseImageFallback(BuildContext context) {
-    String fallbackUrl = imageUrl!;
-    if (fallbackUrl.contains('?alt=media&token=')) {
-      fallbackUrl = '${fallbackUrl.split('?alt=media&token=').first}?alt=media';
-    }
-
-    return Image.network(
-      fallbackUrl,
-      width: width,
-      height: height,
-      fit: fit,
-      loadingBuilder: (context, child, loadingProgress) {
-        if (loadingProgress == null) return child;
-        return _buildLoadingState(context);
-      },
-      errorBuilder: (context, error, stackTrace) {
-        return _buildErrorState(context, error);
-      },
     );
   }
 
@@ -253,47 +214,6 @@ class AppImage extends StatelessWidget {
     );
   }
 
-  /// Transform S3 URLs to CloudFront and select optimal quality
-  String _getOptimizedImageUrl(String url) {
-    // Get quality-specific URL
-    String qualityUrl = _getQualitySpecificUrl(url);
-
-    // CRITICAL FIX: Do NOT mutate Signed URLs provided by Backend
-    if (qualityUrl.contains('X-Amz-Signature') || qualityUrl.contains('Expires=') || qualityUrl.contains('token=')) {
-      return qualityUrl;
-    }
-
-    // Don't transform Firebase Storage URLs - keep them as is
-    if (qualityUrl.contains('firebasestorage.googleapis.com')) {
-      return qualityUrl;
-    }
-
-    // Transform static/public S3 URLs to CloudFront if enabled
-    if (AppConstants.useCloudFront &&
-        qualityUrl.contains('s3.ap-southeast-1.amazonaws.com')) {
-      return qualityUrl.replaceFirst(
-        'https://labuda-videos.s3.ap-southeast-1.amazonaws.com',
-        AppConstants.cdnBaseUrl,
-      );
-    }
-
-    // Return quality URL if no transformation needed
-    return qualityUrl;
-  }
-
-  /// Select appropriate image quality based on display size
-  /// Note: This is a simplified version that doesn't parse MediaEntity
-  /// The actual quality selection should be done at the data layer
-  String _getQualitySpecificUrl(String url) {
-    // For now, just return the original URL
-    // TODO: Implement proper quality selection based on URL patterns
-    return url;
-  }
-
-  Widget _buildLoadingState(BuildContext context) {
-    return _buildBlurhashPlaceholder(context);
-  }
-
   Widget _buildErrorState(BuildContext context, [Object? error]) {
     if (errorWidget != null) return errorWidget!;
     final scheme = Theme.of(context).colorScheme;
@@ -318,51 +238,6 @@ class AppImage extends StatelessWidget {
               'Image Error',
               style: TextStyle(
                 fontSize: 10,
-                color: scheme.onSurfaceVariant,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAwsS3ImageFallback(
-    BuildContext context,
-    String url,
-  ) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      width: width,
-      height: height,
-      color: scheme.surfaceContainerHighest,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.cloud_off_outlined,
-            size: (width != null && height != null)
-                ? (width! < height! ? width! : height!) * 0.3
-                : 28,
-            color: AppColors.warning,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'AWS S3 CORS',
-            style: TextStyle(
-              fontSize: 8,
-              color: AppColors.warning,
-              fontWeight: FontWeight.w500,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          if (width != null && width! > 150) ...[
-            const SizedBox(height: 2),
-            Text(
-              'Configure CORS\nin S3 bucket',
-              style: TextStyle(
-                fontSize: 7,
                 color: scheme.onSurfaceVariant,
               ),
               textAlign: TextAlign.center,

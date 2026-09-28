@@ -128,6 +128,7 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final withdrawState = ref.watch(withdrawNotifierProvider);
     final verificationState = ref.watch(sellerVerificationV2NotifierProvider);
     final enteredAmount =
@@ -152,7 +153,7 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
     return AlertDialog(
       title: Row(
         children: [
-          Icon(Icons.account_balance_wallet, color: AppColors.primaryRed),
+          Icon(Icons.account_balance_wallet, color: scheme.primary),
           const SizedBox(width: 12),
           const Text('Withdraw Funds'),
         ],
@@ -166,25 +167,25 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.neutralGray100,
+                color: scheme.surfaceContainer,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'Available Balance',
                     style: TextStyle(
                       fontSize: 14,
-                      color: AppColors.neutralGray700,
+                      color: scheme.onSurfaceVariant,
                     ),
                   ),
                   Text(
                     AppFormatters.formatCurrency(widget.availableBalance),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.primaryRed,
+                      color: scheme.primary,
                     ),
                   ),
                 ],
@@ -193,12 +194,12 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
             const SizedBox(height: 20),
 
             // Amount Input
-            const Text(
+            Text(
               'Withdrawal Amount',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
-                color: AppColors.neutralGray800,
+                color: scheme.onSurface,
               ),
             ),
             const SizedBox(height: 8),
@@ -230,9 +231,9 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.neutralGray100,
+                color: scheme.surfaceContainer,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.neutralGray300, width: 1),
+                border: Border.all(color: scheme.outlineVariant, width: 1),
               ),
               child: Column(
                 children: [
@@ -266,7 +267,7 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
             if (showWithdrawalFee)
               Text(
                 'Biaya penarikan ${AppFormatters.formatCurrency(withdrawalFeeAmount)} dikenakan setiap penarikan.',
-                style: TextStyle(fontSize: 12, color: AppColors.neutralGray600),
+                style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
               ),
 
             // Quick Amount Buttons
@@ -278,9 +279,9 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.neutralGray100,
+                color: scheme.surfaceContainer,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.neutralGray300, width: 1),
+                border: Border.all(color: scheme.outlineVariant, width: 1),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -290,7 +291,7 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
                       Icon(
                         Icons.info_outline,
                         size: 16,
-                        color: AppColors.neutralGray700,
+                        color: scheme.onSurfaceVariant,
                       ),
                       const SizedBox(width: 8),
                       Text(
@@ -298,7 +299,7 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
-                          color: AppColors.neutralGray800,
+                          color: scheme.onSurface,
                         ),
                       ),
                     ],
@@ -308,7 +309,7 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
                     'Permintaan pencairan akan diproses secara manual. Dana akan ditransfer ke rekening terdaftar dalam 1-3 hari kerja setelah disetujui.',
                     style: TextStyle(
                       fontSize: 11,
-                      color: AppColors.neutralGray600,
+                      color: scheme.onSurfaceVariant,
                       height: 1.4,
                     ),
                   ),
@@ -322,7 +323,7 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.primaryRed.withValues(alpha: 0.1),
+                color: scheme.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
@@ -330,7 +331,7 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
                   Icon(
                     Icons.info_outline,
                     size: 16,
-                    color: AppColors.primaryRed,
+                    color: scheme.primary,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -338,7 +339,7 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
                       'Minimum pencairan: Rp ${formatGroupedAmount(minWithdrawAmount.round())}',
                       style: TextStyle(
                         fontSize: 12,
-                        color: AppColors.primaryRed,
+                        color: scheme.primary,
                       ),
                     ),
                   ),
@@ -441,16 +442,16 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
               ? null
               : _handleWithdraw,
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primaryRed,
-            foregroundColor: Colors.white,
+            backgroundColor: scheme.primary,
+            foregroundColor: scheme.onPrimary,
           ),
           child: withdrawState is WithdrawProcessing
-              ? const SizedBox(
+              ? SizedBox(
                   width: 16,
                   height: 16,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: Colors.white,
+                    color: scheme.onPrimary,
                   ),
                 )
               : const Text('Withdraw'),
@@ -460,19 +461,20 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
   }
 
   Widget _buildSummaryRow(String label, String value) {
+    final scheme = Theme.of(context).colorScheme;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
           label,
-          style: const TextStyle(fontSize: 13, color: AppColors.neutralGray700),
+          style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant),
         ),
         Text(
           value,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: AppColors.neutralGray900,
+            color: scheme.onSurface,
           ),
         ),
       ],
@@ -521,6 +523,7 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
     BuildContext context,
     SellerVerificationV2State verificationState,
   ) {
+    final scheme = Theme.of(context).colorScheme;
     final isRejected =
         verificationState.status == SellerVerificationStatus.rejected;
     final isPendingReview =
@@ -540,8 +543,8 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
             color: isRejected
                 ? AppColors.error
                 : isUnderInvestigation
-                ? Colors.orange
-                : AppColors.primaryRed,
+                ? AppColors.statusWarning
+                : scheme.primary,
           ),
           const SizedBox(width: 12),
           Text(
@@ -590,13 +593,13 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.orange.withValues(alpha: 0.1),
+                color: AppColors.statusWarning.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Row(
+              child: Row(
                 children: [
-                  Icon(Icons.policy, color: Colors.orange, size: 20),
-                  SizedBox(width: 8),
+                  Icon(Icons.policy, color: AppColors.statusWarning, size: 20),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Verifikasi sedang ditinjau. Penarikan dana sementara tidak tersedia.',
@@ -615,13 +618,13 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.orange.withValues(alpha: 0.1),
+                color: AppColors.statusWarning.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Row(
+              child: Row(
                 children: [
-                  Icon(Icons.pending, color: Colors.orange, size: 20),
-                  SizedBox(width: 8),
+                  Icon(Icons.pending, color: AppColors.statusWarning, size: 20),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Status saat ini: menunggu review admin.',
@@ -640,17 +643,17 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.primaryRed.withValues(alpha: 0.1),
+                color: scheme.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Row(
+              child: Row(
                 children: [
                   Icon(
                     Icons.description_outlined,
-                    color: AppColors.primaryRed,
+                    color: scheme.primary,
                     size: 20,
                   ),
-                  SizedBox(width: 8),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Siapkan KTP dan foto selfie untuk verifikasi',
@@ -677,8 +680,8 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
               context.push(RoutePaths.sellerVerification);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryRed,
-              foregroundColor: Colors.white,
+              backgroundColor: scheme.primary,
+              foregroundColor: scheme.onPrimary,
             ),
             child: const Text('Verifikasi Sekarang'),
           ),
