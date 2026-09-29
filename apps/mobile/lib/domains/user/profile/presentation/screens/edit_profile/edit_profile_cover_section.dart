@@ -5,7 +5,6 @@ import 'package:labuda/core/core.dart';
 
 /// Cover Photo Section Widget for Edit Profile
 class EditProfileCoverSection extends StatelessWidget {
-  final String userId;
   final String? coverPhotoUrl;
   final String? selectedCoverPath;
   final bool isCoverMarkedForRemoval;
@@ -14,7 +13,6 @@ class EditProfileCoverSection extends StatelessWidget {
 
   const EditProfileCoverSection({
     super.key,
-    required this.userId,
     this.coverPhotoUrl,
     this.selectedCoverPath,
     required this.isCoverMarkedForRemoval,

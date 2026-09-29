@@ -1,3 +1,4 @@
+import 'package:labuda/core/media/media_upload_orchestrator.dart';
 import 'package:labuda/domains/chat/chat/data/dto/chat_dto.dart';
 import 'package:labuda/domains/chat/chat/data/dto/message_dto.dart';
 import 'package:labuda/domains/chat/chat/data/dto/attachment_dto.dart';
@@ -9,7 +10,9 @@ import 'package:labuda/shared/governance/content_lifecycle.dart';
 ///
 /// **MESSAGE TYPE NORMALIZATION:**
 /// - When SENDING to API: Media types (image, video, file) → "text"
-/// - When PARSING from API: "text" → MessageType.text (media determined by mediaUrls presence)
+/// - When PARSING from API: the render type is DERIVED from `media_urls`
+///   (chat media is orthogonal to message_type: a foto/video message is
+///   `text + media_urls` on the wire)
 /// - Backend only recognizes: "text", "system", "negotiation_proposal"
 ///
 /// **This is intentional:** Backend treats media as attachment payload, not message type.
@@ -147,7 +150,7 @@ class ChatMapper {
       senderAvatar: dto.senderAvatar,
       content: dto.content,
       isHidden: dto.isHidden,
-      type: _stringToMessageType(dto.type),
+      type: _resolveMessageType(dto.type, dto.mediaUrls ?? const []),
       mediaUrls: dto.mediaUrls ?? const [],
       objectReference: attachments['objectReference'] as ShareReference?,
       negotiationProposal:
@@ -315,6 +318,21 @@ class ChatMapper {
   }
 
   // Message Type conversions
+  /// Resolve the RENDER type of a message.
+  ///
+  /// Chat media is orthogonal to `message_type` on the wire: a foto/video
+  /// message is stored and delivered as `text` plus `media_urls`. The bubble
+  /// therefore derives image|video from the media itself, and video detection
+  /// stays owned by the single authority (`MediaUploadOrchestrator.isVideoUrl`)
+  /// instead of being re-guessed here.
+  static MessageType _resolveMessageType(String wireType, List<String> mediaUrls) {
+    final parsed = _stringToMessageType(wireType);
+    if (mediaUrls.isEmpty) return parsed;
+    return MediaUploadOrchestrator.isVideoUrl(mediaUrls.first)
+        ? MessageType.video
+        : MessageType.image;
+  }
+
   static MessageType _stringToMessageType(String type) {
     switch (type) {
       case 'text':
@@ -336,9 +354,11 @@ class ChatMapper {
   }
 
   static String _messageTypeToString(MessageType type) {
-    // Normalize message types for API compatibility.
-    // Media types (image, video, file) are sent as "text" with mediaUrls attachment.
-    // This aligns with backend's message type truth where media is carried as attachment payload.
+    // SEND contract: media never travels as urls. A foto/video message is sent as
+    // "text" (its caption, if any) plus `media_asset_ids` — the PENDING assets
+    // registered through POST /chat/rooms/:room_id/media. The backend attaches
+    // them atomically, so `message_type` stays "text" on the wire by design;
+    // image|video is derived on READ from the projected `media_urls`.
     switch (type) {
       case MessageType.text:
       case MessageType.image:

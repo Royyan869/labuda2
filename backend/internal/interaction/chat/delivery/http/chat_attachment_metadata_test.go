@@ -33,7 +33,7 @@ func TestMessageToResponse_AttachmentMetadata_SeparateFromAttachmentJSON(t *test
 		},
 	}
 
-	resp := messageToResponse(msg, nil, sellerLifecycles)
+	resp := messageToResponse(msg, nil, sellerLifecycles, nil)
 	att, ok := resp["attachment_json"].(map[string]interface{})
 	require.True(t, ok)
 	assert.Equal(t, "shipping_quote", att["type"])

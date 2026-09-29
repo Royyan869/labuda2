@@ -418,6 +418,36 @@ func (r *roomUpdatedMockRepo) GetUnreadCountsByRoomIDs(
 var _ db.Tx = (*roomUpdatedMockTx)(nil)
 var _ OutboxInserter = (*roomUpdatedMockOutbox)(nil)
 var _ socialRepo.SocialRepository = (*roomUpdatedMockSocialRepo)(nil)
+// --- chat media asset operations (not exercised by this suite) ---
+
+func (r *roomUpdatedMockRepo) CreateMediaAsset(context.Context, interface{}, *chatEntity.ChatMediaAsset) error {
+	return nil
+}
+
+func (r *roomUpdatedMockRepo) GetMediaAssetsByIDs(context.Context, interface{}, []uuid.UUID) ([]*chatEntity.ChatMediaAsset, error) {
+	return nil, nil
+}
+
+func (r *roomUpdatedMockRepo) FinalizeMediaAsset(context.Context, interface{}, uuid.UUID, time.Time) error {
+	return nil
+}
+
+func (r *roomUpdatedMockRepo) LinkMediaAssetToMessage(context.Context, interface{}, uuid.UUID, uuid.UUID, int) error {
+	return nil
+}
+
+func (r *roomUpdatedMockRepo) MarkMessageHasMedia(context.Context, interface{}, uuid.UUID) error {
+	return nil
+}
+
+func (r *roomUpdatedMockRepo) ListMediaAssetsByMessageIDs(context.Context, interface{}, []uuid.UUID) (map[uuid.UUID][]*chatEntity.ChatMediaAsset, error) {
+	return nil, nil
+}
+
+func (r *roomUpdatedMockRepo) CleanupExpiredPendingMediaAssets(context.Context, interface{}, time.Time) (int64, error) {
+	return 0, nil
+}
+
 var _ chatRepo.Repository = (*roomUpdatedMockRepo)(nil)
 
 func TestSendMessage_EmitsRoomUpdatedOutboxEvents(t *testing.T) {

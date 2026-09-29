@@ -14,7 +14,6 @@ library;
 // Entities
 export 'entities/payment.dart';
 export 'entities/payment_intent.dart';
-export 'entities/payment_result.dart';
 // PHASE 1F: payment_status.dart removed - using unified PaymentStatus from core
 // export 'entities/payment_status.dart'; // REMOVED - use package:labuda/core/common/types/payment_types.dart
 // export 'entities/fee_config.dart'; // P11 Phase 2: Removed - fee calculations now done by backend

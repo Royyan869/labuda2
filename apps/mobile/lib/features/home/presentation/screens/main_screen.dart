@@ -90,6 +90,10 @@ class _MainScreenState extends ConsumerState<MainScreen>
             navigationRegistry,
           );
           if (marketplaceTabIndex >= 0) setState(() => _currentIndex = marketplaceTabIndex);
+          // NOT cleared here: MarketplaceScreen still has to read the sub-tab.
+          // One consumer clears per target — clearing from both sides is what
+          // made the sub-tab switch a race.
+          return;
         }
         // Clear pending switch
         Future.microtask(() {
@@ -270,16 +274,23 @@ class _MainScreenState extends ConsumerState<MainScreen>
         final navigation = ref.read(navigationHandlerProvider);
         navigation.navigateToCreateContent();
       },
+      // Create lands on the MARKETPLACE, on the tab that matches the choice.
+      // The form itself is one tap away there ("Buat Listing" / "Buat Lelang"),
+      // so creating is anchored in the surface where the listing will live.
+      // Comment/chat keep their own direct push: they are pickers that need the
+      // create screen to come back to them with a result.
       onCreateForSale: sellerCapabilityStatus == SellerCapabilityStatus.active
           ? () {
-              final navigation = ref.read(navigationHandlerProvider);
-              navigation.navigateToCreateForSale();
+              ref
+                  .read(pendingTabSwitchProvider.notifier)
+                  .setSwitch('marketplace', subTab: 0);
             }
           : null,
       onCreateAuction: sellerCapabilityStatus == SellerCapabilityStatus.active
           ? () {
-              final navigation = ref.read(navigationHandlerProvider);
-              navigation.navigateToCreateAuction();
+              ref
+                  .read(pendingTabSwitchProvider.notifier)
+                  .setSwitch('marketplace', subTab: 1);
             }
           : null,
       onStartSelling: () {

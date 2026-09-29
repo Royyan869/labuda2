@@ -38,7 +38,7 @@ func TestMessageToResponse_HiddenMessage_SuppressesBody(t *testing.T) {
 		DeletionReason: &reason,
 	}
 
-	resp := messageToResponse(msg, nil, nil)
+	resp := messageToResponse(msg, nil, nil, nil)
 
 	// Tombstone fields present
 	assert.Equal(t, true, resp["is_hidden"])
@@ -71,7 +71,7 @@ func TestMessageToResponse_NormalMessage_EmitsBody(t *testing.T) {
 		// DeletedAt is nil — not hidden
 	}
 
-	resp := messageToResponse(msg, nil, nil)
+	resp := messageToResponse(msg, nil, nil, nil)
 
 	// Body present
 	assert.Equal(t, "hello world", resp["body"])
@@ -94,7 +94,7 @@ func TestMessageToResponse_HiddenMessage_NoSenderCard(t *testing.T) {
 		DeletedAt:   &now,
 	}
 
-	resp := messageToResponse(msg, nil, nil)
+	resp := messageToResponse(msg, nil, nil, nil)
 
 	// Sender card should not be hydrated for hidden messages (early return)
 	_, hasSender := resp["sender"]

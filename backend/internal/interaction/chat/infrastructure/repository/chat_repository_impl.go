@@ -732,3 +732,204 @@ func (r *ChatRepositoryImpl) GetUnreadCountsByRoomIDs(
 
 	return out, nil
 }
+
+// ========================================================================
+// MEDIA ASSET OPERATIONS
+// ========================================================================
+
+// scanMediaAsset reads one chat media asset row in the canonical column order.
+func scanMediaAsset(scan func(dest ...interface{}) error) (*entity.ChatMediaAsset, error) {
+	var asset entity.ChatMediaAsset
+	err := scan(
+		&asset.ID, &asset.RoomID, &asset.UploaderID, &asset.MediaType, &asset.ContentType, &asset.StorageKey,
+		&asset.ThumbnailStorageKey, &asset.ByteSize, &asset.Width, &asset.Height, &asset.DurationMs,
+		&asset.Status, &asset.ExpiresAt, &asset.CreatedAt, &asset.FinalizedAt,
+		&asset.DeletedAt, &asset.DeletedBy, &asset.DeletionReason,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &asset, nil
+}
+
+// CreateMediaAsset registers a PENDING room-scoped media asset. The row is the
+// register step of register → upload → attach: it exists before any byte
+// reaches S3, which is what lets the sweep drop abandoned uploads.
+func (r *ChatRepositoryImpl) CreateMediaAsset(ctx context.Context, tx interface{}, asset *entity.ChatMediaAsset) error {
+	query := `
+		INSERT INTO chat_media_assets (
+			id, room_id, uploader_id, media_type, content_type, storage_key,
+			thumbnail_storage_key, byte_size, width, height, duration_ms,
+			status, expires_at, created_at, finalized_at
+		)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+	`
+
+	_, err := toTx(tx).Exec(ctx, query,
+		asset.ID, asset.RoomID, asset.UploaderID, asset.MediaType, asset.ContentType, asset.StorageKey,
+		asset.ThumbnailStorageKey, asset.ByteSize, asset.Width, asset.Height, asset.DurationMs,
+		asset.Status, asset.ExpiresAt, asset.CreatedAt, asset.FinalizedAt,
+	)
+	if err != nil {
+		return fmt.Errorf("create chat media asset failed: %w", err)
+	}
+	return nil
+}
+
+// GetMediaAssetsByIDs fetches assets by id. Missing ids are simply absent.
+func (r *ChatRepositoryImpl) GetMediaAssetsByIDs(ctx context.Context, tx interface{}, ids []uuid.UUID) ([]*entity.ChatMediaAsset, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+
+	query := `
+		SELECT id, room_id, uploader_id, media_type, content_type, storage_key,
+		       thumbnail_storage_key, byte_size, width, height, duration_ms,
+		       status, expires_at, created_at, finalized_at, deleted_at, deleted_by, deletion_reason
+		FROM chat_media_assets
+		WHERE id = ANY($1)
+	`
+
+	rows, err := toTx(tx).Query(ctx, query, ids)
+	if err != nil {
+		return nil, fmt.Errorf("get chat media assets failed: %w", err)
+	}
+	defer rows.Close()
+
+	var assets []*entity.ChatMediaAsset
+	for rows.Next() {
+		asset, err := scanMediaAsset(rows.Scan)
+		if err != nil {
+			return nil, fmt.Errorf("scan chat media asset failed: %w", err)
+		}
+		assets = append(assets, asset)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate chat media assets failed: %w", err)
+	}
+
+	return assets, nil
+}
+
+// FinalizeMediaAsset flips pending → finalized and extends the read lifetime.
+//
+// The `status = 'pending'` guard IS the concurrency control: a racing attach or
+// a sweep that already claimed the row makes this UPDATE affect zero rows, and
+// the caller's transaction fails with ErrMediaAssetNotAttachable instead of
+// double-attaching one asset.
+func (r *ChatRepositoryImpl) FinalizeMediaAsset(ctx context.Context, tx interface{}, assetID uuid.UUID, finalizedAt time.Time) error {
+	query := `
+		UPDATE chat_media_assets
+		SET status = $2, finalized_at = $3, expires_at = $4
+		WHERE id = $1 AND status = 'pending'
+	`
+
+	tag, err := toTx(tx).Exec(ctx, query,
+		assetID,
+		entity.ChatMediaAssetStatusFinalized,
+		finalizedAt,
+		finalizedAt.Add(entity.PermanentAssetTTL),
+	)
+	if err != nil {
+		return fmt.Errorf("finalize chat media asset failed: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return chatRepo.ErrMediaAssetNotAttachable
+	}
+	return nil
+}
+
+// LinkMediaAssetToMessage records message ↔ asset with its display order.
+// ON CONFLICT DO NOTHING keeps a retried attach idempotent.
+func (r *ChatRepositoryImpl) LinkMediaAssetToMessage(ctx context.Context, tx interface{}, messageID, assetID uuid.UUID, sortOrder int) error {
+	query := `
+		INSERT INTO chat_message_media_assets (message_id, media_asset_id, sort_order)
+		VALUES ($1,$2,$3)
+		ON CONFLICT (message_id, media_asset_id) DO NOTHING
+	`
+
+	if _, err := toTx(tx).Exec(ctx, query, messageID, assetID, sortOrder); err != nil {
+		return fmt.Errorf("link chat media asset failed: %w", err)
+	}
+	return nil
+}
+
+// MarkMessageHasMedia sets chat_messages.has_media.
+func (r *ChatRepositoryImpl) MarkMessageHasMedia(ctx context.Context, tx interface{}, messageID uuid.UUID) error {
+	const query = `UPDATE chat_messages SET has_media = true WHERE id = $1`
+	if _, err := toTx(tx).Exec(ctx, query, messageID); err != nil {
+		return fmt.Errorf("mark chat message has_media failed: %w", err)
+	}
+	return nil
+}
+
+// ListMediaAssetsByMessageIDs batch-fetches the media of a page of messages.
+//
+// One query for the whole page (no N+1). The asset's SortOrder is hydrated from
+// the LINK row: ordering is a property of "this asset inside that message", and
+// chat_media_assets itself has no sort_order column. Deleted assets are
+// excluded so a swept upload can never render.
+func (r *ChatRepositoryImpl) ListMediaAssetsByMessageIDs(ctx context.Context, tx interface{}, messageIDs []uuid.UUID) (map[uuid.UUID][]*entity.ChatMediaAsset, error) {
+	out := make(map[uuid.UUID][]*entity.ChatMediaAsset, len(messageIDs))
+	if len(messageIDs) == 0 {
+		return out, nil
+	}
+
+	query := `
+		SELECT a.id, a.room_id, a.uploader_id, a.media_type, a.content_type, a.storage_key,
+		       a.thumbnail_storage_key, a.byte_size, a.width, a.height, a.duration_ms,
+		       a.status, a.expires_at, a.created_at, a.finalized_at, a.deleted_at, a.deleted_by, a.deletion_reason,
+		       l.message_id, l.sort_order
+		FROM chat_message_media_assets l
+		JOIN chat_media_assets a ON a.id = l.media_asset_id
+		WHERE l.message_id = ANY($1) AND a.status <> 'deleted'
+		ORDER BY l.message_id, l.sort_order
+	`
+
+	rows, err := toTx(tx).Query(ctx, query, messageIDs)
+	if err != nil {
+		return nil, fmt.Errorf("list chat message media failed: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var (
+			asset     entity.ChatMediaAsset
+			messageID uuid.UUID
+			sortOrder int
+		)
+		if err := rows.Scan(
+			&asset.ID, &asset.RoomID, &asset.UploaderID, &asset.MediaType, &asset.ContentType, &asset.StorageKey,
+			&asset.ThumbnailStorageKey, &asset.ByteSize, &asset.Width, &asset.Height, &asset.DurationMs,
+			&asset.Status, &asset.ExpiresAt, &asset.CreatedAt, &asset.FinalizedAt,
+			&asset.DeletedAt, &asset.DeletedBy, &asset.DeletionReason,
+			&messageID, &sortOrder,
+		); err != nil {
+			return nil, fmt.Errorf("scan chat message media failed: %w", err)
+		}
+		asset.SortOrder = sortOrder
+		out[messageID] = append(out[messageID], &asset)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate chat message media failed: %w", err)
+	}
+
+	return out, nil
+}
+
+// CleanupExpiredPendingMediaAssets marks expired PENDING assets deleted. Only
+// pending rows are eligible — finalized assets are message content and are
+// never swept by TTL.
+func (r *ChatRepositoryImpl) CleanupExpiredPendingMediaAssets(ctx context.Context, tx interface{}, now time.Time) (int64, error) {
+	const query = `
+		UPDATE chat_media_assets
+		SET status = $1, deleted_at = $2, deletion_reason = 'expired'
+		WHERE status = 'pending' AND expires_at <= $2
+	`
+
+	tag, err := toTx(tx).Exec(ctx, query, entity.ChatMediaAssetStatusDeleted, now)
+	if err != nil {
+		return 0, fmt.Errorf("cleanup expired chat media assets failed: %w", err)
+	}
+	return tag.RowsAffected(), nil
+}

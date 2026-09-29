@@ -318,7 +318,7 @@ func insertNotificationMessageWithType(
 			idempotency_key, command_fingerprint, created_at
 		)
 		VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, $8, $9)
-	`, messageID, roomID, senderID, messageType, body, attachmentJSON, uuid.NewString(), chatEntity.ComputeCommandFingerprint(senderID, messageTypeEntity, body, parsedAttachment), createdAt)
+	`, messageID, roomID, senderID, messageType, body, attachmentJSON, uuid.NewString(), chatEntity.ComputeCommandFingerprint(senderID, messageTypeEntity, body, parsedAttachment, nil), createdAt)
 	require.NoError(t, err)
 	return messageID
 }

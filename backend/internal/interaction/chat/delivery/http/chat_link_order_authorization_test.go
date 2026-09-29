@@ -118,6 +118,36 @@ func (r *linkOrderFakeRepo) GetUnreadCountsByRoomIDs(_ context.Context, _ interf
 	return out, nil
 }
 
+// --- chat media asset operations (not exercised by this suite) ---
+
+func (r *linkOrderFakeRepo) CreateMediaAsset(context.Context, interface{}, *chatEntity.ChatMediaAsset) error {
+	return nil
+}
+
+func (r *linkOrderFakeRepo) GetMediaAssetsByIDs(context.Context, interface{}, []uuid.UUID) ([]*chatEntity.ChatMediaAsset, error) {
+	return nil, nil
+}
+
+func (r *linkOrderFakeRepo) FinalizeMediaAsset(context.Context, interface{}, uuid.UUID, time.Time) error {
+	return nil
+}
+
+func (r *linkOrderFakeRepo) LinkMediaAssetToMessage(context.Context, interface{}, uuid.UUID, uuid.UUID, int) error {
+	return nil
+}
+
+func (r *linkOrderFakeRepo) MarkMessageHasMedia(context.Context, interface{}, uuid.UUID) error {
+	return nil
+}
+
+func (r *linkOrderFakeRepo) ListMediaAssetsByMessageIDs(context.Context, interface{}, []uuid.UUID) (map[uuid.UUID][]*chatEntity.ChatMediaAsset, error) {
+	return nil, nil
+}
+
+func (r *linkOrderFakeRepo) CleanupExpiredPendingMediaAssets(context.Context, interface{}, time.Time) (int64, error) {
+	return 0, nil
+}
+
 var _ chatRepo.Repository = (*linkOrderFakeRepo)(nil)
 
 type linkOrderFakeSocialRepo struct{}

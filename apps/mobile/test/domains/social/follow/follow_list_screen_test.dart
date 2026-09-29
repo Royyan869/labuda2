@@ -50,13 +50,7 @@ class _RecordingNavigationHandler implements NavigationHandler {
   void navigateToContentDetail(String contentId) {}
 
   @override
-  void navigateToCreateAuction() {}
-
-  @override
   void navigateToCreateContent() {}
-
-  @override
-  void navigateToCreateForSale() {}
 
   @override
   void navigateToEditProfile() {}

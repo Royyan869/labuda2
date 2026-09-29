@@ -1,5 +1,41 @@
 import 'package:labuda/domains/social/comment/domain/entities/comment.dart';
 
+/// A comment the composer is still sending.
+///
+/// Deliberately NOT a [Comment]: the domain list only ever holds server truth.
+/// This is the composer's own in-flight row — the same idea as the pending media
+/// strip — so tapping Send puts the comment on screen immediately without
+/// inventing a fake domain entity, and a failed send can never masquerade as a
+/// persisted comment.
+class PendingComment {
+  final String id;
+  final String contentId;
+  final String content;
+  final String? parentId;
+  final DateTime createdAt;
+  final bool failed;
+
+  const PendingComment({
+    required this.id,
+    required this.contentId,
+    required this.content,
+    required this.createdAt,
+    this.parentId,
+    this.failed = false,
+  });
+
+  PendingComment copyWith({bool? failed}) {
+    return PendingComment(
+      id: id,
+      contentId: contentId,
+      content: content,
+      parentId: parentId,
+      createdAt: createdAt,
+      failed: failed ?? this.failed,
+    );
+  }
+}
+
 /// Comment State
 ///
 /// CONTRACT ALIGNMENT V1:
@@ -42,6 +78,12 @@ class CommentState {
   /// spinner without rebuilding the entire list as a loading state.
   final bool isLoadingMore;
 
+  /// Rows the composer is still sending, rendered after the server rows.
+  ///
+  /// Kept out of [comments] on purpose: the domain list stays server truth, and
+  /// only the composer's own row is provisional.
+  final List<PendingComment> pendingComments;
+
   const CommentState({
     this.comments = const [],
     this.isLoading = false,
@@ -51,6 +93,7 @@ class CommentState {
     this.nextCursor,
     this.hasMore = true,
     this.isLoadingMore = false,
+    this.pendingComments = const [],
   });
 
   /// Get comments for specific target (content)
@@ -79,6 +122,7 @@ class CommentState {
 
   CommentState copyWith({
     List<Comment>? comments,
+    List<PendingComment>? pendingComments,
     bool? isLoading,
     String? error,
     String? currentTargetId,
@@ -89,6 +133,7 @@ class CommentState {
   }) {
     return CommentState(
       comments: comments ?? this.comments,
+      pendingComments: pendingComments ?? this.pendingComments,
       isLoading: isLoading ?? this.isLoading,
       error: error,
       currentTargetId: currentTargetId ?? this.currentTargetId,

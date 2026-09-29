@@ -452,6 +452,12 @@ func SetupRoutes(
 			// Send a message to a room
 			chatRoutes.POST("/rooms/:room_id/messages", middleware.RequireActiveAccount(db.Pgx()), deps.ChatHandler.SendMessage)
 
+			// Register a chat media upload (step 1 of register → upload → attach).
+			// Returns a room-scoped presigned PUT URL plus the PENDING asset id the
+			// message later references via media_asset_ids. Mutation: requires an
+			// active account (same gate as sending the message itself).
+			chatRoutes.POST("/rooms/:room_id/media", middleware.RequireActiveAccount(db.Pgx()), deps.ChatHandler.RegisterMedia)
+
 			// Mark messages as read in a room
 			// Mutation: requires active account + email verification (PASS_6A / F2).
 			chatRoutes.POST("/rooms/:room_id/read", middleware.RequireActiveAccount(db.Pgx()), deps.ChatHandler.MarkAsRead)

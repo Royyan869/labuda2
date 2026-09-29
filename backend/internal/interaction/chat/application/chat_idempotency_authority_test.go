@@ -200,7 +200,7 @@ func TestChatIdempotency_CaseE_ConcurrentDuplicateConverges(t *testing.T) {
 	room := newDirectRoomFor(sender, other)
 
 	body := "racing command"
-	winner := chatEntity.NewChatMessage(room.ID, sender, chatEntity.MessageTypeText, &body, nil, "key-E")
+	winner := chatEntity.NewChatMessage(room.ID, sender, chatEntity.MessageTypeText, &body, nil, "key-E", nil)
 
 	repo := &roomUpdatedMockRepo{
 		room: room,
@@ -240,7 +240,7 @@ func TestChatIdempotency_CaseE_ConcurrentDifferentCommandConflicts(t *testing.T)
 	room := newDirectRoomFor(sender, other)
 
 	winnerBody := "winner command"
-	winner := chatEntity.NewChatMessage(room.ID, sender, chatEntity.MessageTypeText, &winnerBody, nil, "key-E2")
+	winner := chatEntity.NewChatMessage(room.ID, sender, chatEntity.MessageTypeText, &winnerBody, nil, "key-E2", nil)
 
 	repo := &roomUpdatedMockRepo{
 		room: room,

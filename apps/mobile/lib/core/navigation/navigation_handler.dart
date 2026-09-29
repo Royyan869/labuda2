@@ -39,17 +39,6 @@ abstract class NavigationHandler {
   // Dedicated creation navigation
   void navigateToCreateContent();
 
-  // ============================================================================
-  // PUBLIC PRODUCT CREATION - Use this for creating For Sale products
-  // This is the PRIMARY entry point for sellers to offer items for sale
-  // ============================================================================
-  void navigateToCreateForSale();
-
-  // ============================================================================
-  // ⚠️ INTERNAL ONLY - AUCTION CREATION ⚠️
-  // ============================================================================
-  void navigateToCreateAuction();
-
   // Chat Navigation
   void navigateToChat();
   void navigateToChatConversation(String conversationId);

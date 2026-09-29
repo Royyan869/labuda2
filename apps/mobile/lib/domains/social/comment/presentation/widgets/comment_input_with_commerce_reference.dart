@@ -16,7 +16,7 @@ import 'package:labuda/domains/social/comment/presentation/widgets/commerce_reso
 import 'package:labuda/domains/social/comment/presentation/widgets/resource_identity.dart';
 import 'package:labuda/core/media/media_upload_config.dart';
 import 'package:labuda/core/media/media_upload_orchestrator.dart';
-import 'package:labuda/shared/widgets/media_grid_uploader.dart';
+import 'package:labuda/shared/widgets/pending_media_strip.dart';
 export 'resource_identity.dart';
 
 /// Canonical comment input with commerce reference capability.
@@ -53,7 +53,9 @@ class _CommentInputWithCommerceReferenceState
   late TextEditingController _controller;
   ResourceIdentity? _selectedResource;
   CommerceResourceSelection? _selection;
-  final List<String> _mediaUrls = [];
+  /// Local, not-yet-uploaded media. Uploaded at Send (canonical deferred
+  /// upload), so a cancelled comment leaves nothing behind in S3.
+  final List<MediaPendingItem> _pending = [];
   bool _isSubmitting = false;
 
   void _handleComposerChanged() {
@@ -105,12 +107,11 @@ class _CommentInputWithCommerceReferenceState
               const SizedBox(height: 12),
             ],
             // Media strip — foto+video (1 mesin, orchestrator)
-            if (_mediaUrls.isNotEmpty) ...[
-              CompactMediaStrip(
-                mediaUrls: _mediaUrls,
-                config: MediaUploadConfig.forComment,
-                onMediaAdded: (url) => setState(() => _mediaUrls.add(url)),
-                onMediaRemoved: (i) => setState(() => _mediaUrls.removeAt(i)),
+            if (_pending.isNotEmpty) ...[
+              PendingMediaStrip(
+                items: _pending,
+                onRemove: (i) => setState(() => _pending.removeAt(i)),
+                onRetry: _retryUploads,
               ),
               const SizedBox(height: 12),
             ],
@@ -134,7 +135,7 @@ class _CommentInputWithCommerceReferenceState
                 // Canonical action row: ONE `+` entry for all attach flows
                 // (foto/video + seller commerce menu). The two old right-side
                 // icons cramped the pill — the sheet keeps both capabilities.
-                ComposerAddButton(onPressed: _showAttachMenu),
+                ComposerAddButton(onPressed: _showAttachSheet),
                 const SizedBox(width: 8),
                 // Send always visible; disabled until the composer can submit.
                 ComposerSendButton(
@@ -153,97 +154,93 @@ class _CommentInputWithCommerceReferenceState
   }
 
   bool _canSubmit() =>
-      _controller.text.trim().isNotEmpty || _selectedResource != null || _mediaUrls.isNotEmpty;
+      _controller.text.trim().isNotEmpty ||
+      _selectedResource != null ||
+      _pending.isNotEmpty;
 
   Future<void> _handleSubmit() async {
     if (!_canSubmit() || _isSubmitting) return;
     final body = _controller.text.trim();
     final resource = _selectedResource;
-    final mediaSnapshot = List<String>.from(_mediaUrls);
     setState(() => _isSubmitting = true);
     try {
+      // Upload-at-Send (canonical): picking never uploads, so an abandoned
+      // comment costs nothing. A failure stops BEFORE submit and keeps the
+      // composer intact — the next Send resumes from the file that failed
+      // instead of re-uploading the ones that already succeeded.
+      final uploaded = await MediaUploadOrchestrator.uploadPending(
+        context: context,
+        config: MediaUploadConfig.forComment,
+        items: _pending,
+        onChanged: () {
+          if (mounted) setState(() {});
+        },
+      );
+      // Nothing was sent: the strip still shows exactly which file failed, and
+      // retrying re-runs ONLY that file.
+      if (!uploaded) return;
+      final mediaUrls = _pending.map((e) => e.url!).toList();
       final success = widget.onSubmitWithMedia != null
-          ? await widget.onSubmitWithMedia!(body, resource, mediaSnapshot)
+          ? await widget.onSubmitWithMedia!(body, resource, mediaUrls)
           : await widget.onSubmit(body, resource);
       if (success && mounted) {
         _controller.clear();
         setState(() {
           _selectedResource = null;
           _selection = null;
-          _mediaUrls.clear();
+          _pending.clear();
         });
       }
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
-  }
-
-  /// Single `+` entry for the comment composer — mirrors the chat
-  /// attachment sheet (one concept, one presentation). The commerce entry
-  /// only exists for sellers.
-  void _showAttachMenu() {
-    showModalBottomSheet(
+  }  /// Re-runs the uploads the strip marks as failed. Only those files go again —
+  /// anything already holding a URL is skipped by the loop.
+  Future<void> _retryUploads() async {
+    if (_pending.isEmpty) return;
+    await MediaUploadOrchestrator.uploadPending(
       context: context,
-      builder: (sheetContext) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: const Text('Foto'),
-              subtitle: const Text('Kirim foto dari galeri'),
-              onTap: () {
-                Navigator.pop(sheetContext);
-                _pickMedia();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.videocam),
-              title: const Text('Video'),
-              subtitle: const Text('Kirim video dari galeri'),
-              onTap: () {
-                Navigator.pop(sheetContext);
-                _pickMedia();
-              },
-            ),
-            if (widget.isSeller) ...[
-              const Divider(),
-              ListTile(
-                leading: const Icon(Icons.storefront),
-                title: const Text('Lampirkan Produk'),
-                subtitle: const Text('For Sale atau Lelang'),
-                onTap: () {
-                  Navigator.pop(sheetContext);
-                  _showCommercePicker();
-                },
-              ),
-            ],
-          ],
-        ),
-      ),
+      config: MediaUploadConfig.forComment,
+      items: _pending,
+      onChanged: () {
+        if (mounted) setState(() {});
+      },
     );
   }
 
-  void _pickMedia() {
-    if (_mediaUrls.length >= MediaUploadConfig.forComment.maxTotal) {
+  /// The canonical attachment sheet — no local copy. Entries: Galeri (foto &
+  /// video, ONE system picker), Kamera, plus `Lampirkan Produk`, which is
+  /// a SELLER-only capability (a non-seller must never see it). Picking only
+  /// parks local files in the composer; upload happens at Send.
+  void _showAttachSheet() {
+    final config = MediaUploadConfig.forComment;
+    final current = MediaUploadOrchestrator.countsOfFiles(
+      _pending.map((e) => e.file),
+    );
+    if (config.remainingTotalFor(current) <= 0) {
       AppSnackBar.showError(
         context,
-        'Maksimal ${MediaUploadConfig.forComment.maxTotal} foto/video',
+        'Maksimal ${config.maxTotal} foto/video',
       );
       return;
     }
-    // canonical 1 mesin: foto+video via MediaUploadOrchestrator
-    _showMediaPicker();
-  }
-
-  void _showMediaPicker() {
-    MediaUploadOrchestrator.showPicker(
+    MediaUploadOrchestrator.showAttachSheet(
       context: context,
-      config: MediaUploadConfig.forComment,
-      currentCount: _mediaUrls.length,
-      onUploaded: (urls) async {
+      config: config,
+      current: current,
+      extraActions: widget.isSeller
+          ? [
+              MediaSheetAction(
+                icon: Icons.storefront,
+                label: 'Lampirkan Produk',
+                subtitle: 'For Sale atau Lelang',
+                onTap: _showCommercePicker,
+              ),
+            ]
+          : const [],
+      onPicked: (files) async {
         if (!mounted) return;
-        setState(() => _mediaUrls.addAll(urls));
+        setState(() => _pending.addAll(files.map(MediaPendingItem.new)));
       },
     );
   }

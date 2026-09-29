@@ -33,7 +33,35 @@
 // duplicate `SupportResult<T>` wrapper whose consumers only ever read
 // `.message`), and `share/domain/entities/share_failure.dart` (five kinds
 // riding a dartz `Either`). With dartz out of the pubspec, the app has ONE
-// result vocabulary. This
+// result vocabulary.
+//
+// A third purge wave killed the finance payment zombie — residue kept visible by
+// a barrel export and a generated freezed state that nobody read:
+//
+//  * `lib/domains/finance/transaction/payment/domain/entities/payment_result.dart`
+//    — `PaymentResult` + `PaymentResultStatus`, four factories and four
+//    predicates, constructed NOWHERE in `lib` or `test`.
+//  * `.../payment/presentation/providers/payment_state.dart` (freezed) —
+//    `PaymentState` with `paymentCreated`/`paymentLoaded`/`paymentsLoaded`/
+//    `paymentSuccess` variants and zero readers. The live flow is
+//    `PaymentInitiationNotifier` plus the canonical `PaymentWebviewScreen`.
+//  * `.../payment/presentation/providers/payment_notifier.dart` —
+//    `PaymentNotifier`, zero references outside itself; it existed only to
+//    consume the dead state.
+//
+// Their `.freezed.dart` / `.g.dart` artefacts died with the sources, and the
+// domain barrel stopped exporting the dead entity.
+//
+// A fourth wave opened the ZERO-CONSUMER SWEEP: files that no `import`/`export`/
+// `part` anywhere in `lib`+`test` names, and whose declared types are referenced
+// nowhere outside themselves. Slice 1 purged the shared-layer ghost widgets —
+// including the whole `ui/atomic/**` tree (every file dead, directories removed)
+// and the `widgets/list_item/` island (its three members were reachable only
+// through the dead barrel). Names are locked by PATH, not identifier:
+// `StatusBadge`, `CardHeader` and friends are generic UI vocabulary, and the
+// revival route for a widget is the import path.
+//
+// This
 // gate locks four things:
 //  1. The purged files stay deleted.
 //  2. No CODE names them again — not by identifier, and not by path (an
@@ -60,6 +88,40 @@ const _purgedFiles = <String>[
   'lib/core/errors/failure.dart',
   'lib/domains/system/support/domain/entities/support_failure.dart',
   'lib/domains/social/share/domain/entities/share_failure.dart',
+  'lib/domains/finance/transaction/payment/domain/entities/payment_result.dart',
+  'lib/domains/finance/transaction/payment/presentation/providers/'
+      'payment_state.dart',
+  'lib/domains/finance/transaction/payment/presentation/providers/'
+      'payment_state.freezed.dart',
+  'lib/domains/finance/transaction/payment/presentation/providers/'
+      'payment_notifier.dart',
+  'lib/domains/finance/transaction/payment/presentation/providers/'
+      'payment_notifier.g.dart',
+  // Slice 1 of the zero-consumer sweep: the shared-layer ghost widgets. Every
+  // declared type in these files had ZERO references outside its own file, and
+  // no `import`/`export`/`part` in `lib` or `test` named the file.
+  'lib/shared/ui/atomic/input/description_input_component.dart',
+  'lib/shared/ui/atomic/input/price_input_component.dart',
+  'lib/shared/ui/atomic/input/title_input_component.dart',
+  'lib/shared/ui/atomic/location/location_picker_component.dart',
+  'lib/shared/ui/atomic/settings/visibility_settings_component.dart',
+  'lib/shared/ui/atomic/tagging/user_tagging_component.dart',
+  'lib/shared/ui/src/widgets/text_input_reply_preview.dart',
+  'lib/shared/widgets/address_display_section.dart',
+  'lib/shared/widgets/base_metric_card.dart',
+  'lib/shared/widgets/card_header.dart',
+  'lib/shared/widgets/hashtag_input_widget.dart',
+  'lib/shared/widgets/map_picker/map_accuracy_indicator.dart',
+  'lib/shared/widgets/media_carousel_widget_container.dart',
+  'lib/shared/widgets/media_carousel_widget_content.dart',
+  'lib/shared/widgets/media_viewer_navigation.dart',
+  'lib/shared/widgets/payment_method_card.dart',
+  'lib/shared/widgets/polling_status_indicator.dart',
+  'lib/shared/widgets/status_badge.dart',
+  'lib/shared/widgets/list_item/list_item.dart',
+  'lib/shared/widgets/list_item/list_item_types.dart',
+  'lib/shared/widgets/list_item/list_item_trailing.dart',
+  'lib/shared/widgets/list_item/list_item_decorations.dart',
 ];
 
 /// The public vocabulary each purged file owned. Naming it again in code means
@@ -83,6 +145,21 @@ const _purgedIdentifiers = <String>[
   'AuthenticationFailure',
   'AuthorizationFailure',
   'FailureFactory',
+  // Third wave: the finance payment zombie (zero consumers, zero constructors).
+  // `PaymentResult` is locked as a STANDALONE identifier, not as a name family:
+  // commerce's live `PaymentResultState` / `PaymentResultNotifier` legitimately
+  // keep their names, so a prefix ban would break canonical code.
+  'PaymentResult',
+  'PaymentResultStatus',
+  'PaymentNotifier',
+  'PaymentState',
+  'PaymentInitial',
+  'PaymentLoading',
+  'PaymentCreated',
+  'PaymentLoaded',
+  'PaymentsLoaded',
+  'PaymentSuccess',
+  'PaymentError',
 ];
 
 /// Vocabulary families whose suffixed variants must stay dead too —
@@ -101,6 +178,31 @@ const _purgedPathFragments = <String>[
   'core/errors/failure.dart',
   'entities/support_failure.dart',
   'entities/share_failure.dart',
+  'transaction/payment/domain/entities/payment_result.dart',
+  'transaction/payment/presentation/providers/payment_state.dart',
+  'transaction/payment/presentation/providers/payment_notifier.dart',
+  'ui/atomic/input/description_input_component.dart',
+  'ui/atomic/input/price_input_component.dart',
+  'ui/atomic/input/title_input_component.dart',
+  'ui/atomic/location/location_picker_component.dart',
+  'ui/atomic/settings/visibility_settings_component.dart',
+  'ui/atomic/tagging/user_tagging_component.dart',
+  'ui/src/widgets/text_input_reply_preview.dart',
+  'widgets/address_display_section.dart',
+  'widgets/base_metric_card.dart',
+  'widgets/card_header.dart',
+  'widgets/hashtag_input_widget.dart',
+  'widgets/map_picker/map_accuracy_indicator.dart',
+  'widgets/media_carousel_widget_container.dart',
+  'widgets/media_carousel_widget_content.dart',
+  'widgets/media_viewer_navigation.dart',
+  'widgets/payment_method_card.dart',
+  'widgets/polling_status_indicator.dart',
+  'widgets/status_badge.dart',
+  'widgets/list_item/list_item.dart',
+  'widgets/list_item/list_item_types.dart',
+  'widgets/list_item/list_item_trailing.dart',
+  'widgets/list_item/list_item_decorations.dart',
 ];
 
 /// Sibling gates that detect these very names — they must state what they
@@ -122,6 +224,17 @@ const _mustSurvive = <String>[
       'payment_repository.dart',
   'lib/domains/system/support/domain/entities/support_ticket.dart',
   'lib/domains/social/share/domain/entities/share_result.dart',
+  'lib/domains/finance/transaction/payment/domain/entities/payment.dart',
+  'lib/domains/finance/transaction/payment/presentation/providers/'
+      'payment_providers.dart',
+  'lib/domains/finance/transaction/payment/presentation/providers/'
+      'payment_initiation_notifier.dart',
+  'lib/shared/ui/base/base_component.dart',
+  'lib/shared/widgets/hybrid_avatar.dart',
+  'lib/shared/widgets/base_card.dart',
+  'lib/shared/widgets/media_carousel_widget.dart',
+  'lib/shared/widgets/media_viewer_indicators.dart',
+  'lib/shared/widgets/map_picker/map_picker_widgets.dart',
 ];
 
 /// Every file whose contents are swept: all Dart under `lib`/`test`, plus the
@@ -268,6 +381,60 @@ void main() {
       _purgedPathFragments.any(supportImport.contains),
       isTrue,
       reason: 'an import of the purged support failure path must be detectable',
+    );
+
+    // Third wave: the finance payment zombie.
+    expect(_identifier('PaymentState').hasMatch('class PaymentState {'), isTrue);
+    expect(
+      _identifier(
+        'PaymentResult',
+      ).hasMatch('Future<PaymentResult> charge({required String id});'),
+      isTrue,
+    );
+    const zombieImport =
+        "import 'package:labuda/domains/finance/transaction/payment/domain/"
+        "entities/payment_result.dart';";
+    expect(
+      _purgedPathFragments.any(zombieImport.contains),
+      isTrue,
+      reason: 'an import of the purged payment_result path must be detectable',
+    );
+    // The LIVE commerce recon names must stay legal: this lock is a
+    // word-boundary identifier lock, not a prefix ban.
+    expect(
+      _identifier('PaymentResult').hasMatch('class PaymentResultState {'),
+      isFalse,
+      reason:
+          'commerce PaymentResultState/Notifier are canonical and must not be '
+          'flagged by the finance payment zombie lock',
+    );
+    expect(
+      _identifier('PaymentState').hasMatch('class PaymentStateX {'),
+      isFalse,
+      reason: 'a different name sharing the prefix must stay legal',
+    );
+
+    // Slice 1: path-only lock. The widget names themselves stay legal — their
+    // FILES must never come back.
+    const ghostWidgetImport =
+        "import 'package:labuda/shared/widgets/status_badge.dart';";
+    expect(
+      _purgedPathFragments.any(ghostWidgetImport.contains),
+      isTrue,
+      reason: 'an import of a purged shared widget must be detectable',
+    );
+    expect(
+      _purgedPathFragments.any(
+        "import 'package:labuda/shared/widgets/media_carousel_widget.dart';"
+            .contains,
+      ),
+      isFalse,
+      reason: 'the LIVE carousel widget must not match a purged fragment',
+    );
+    expect(
+      _purgedPathFragments.any("export 'list_item_types.dart';".contains),
+      isFalse,
+      reason: 'the lock keys on the real import path, not on a bare basename',
     );
   });
 }

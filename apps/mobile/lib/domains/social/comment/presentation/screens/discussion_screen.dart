@@ -218,6 +218,7 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
     // GROUPED: top-level comments with their replies
     return _CommentsBatchWidget(
       flatList: flatList,
+      contentId: widget.contentId,
       scrollController: _scrollController,
       isLoadingMore: _isLoadingMore,
       onFixedPriceSaleTap: (fixedPriceSaleId) {
@@ -533,6 +534,7 @@ class _CommentItem {
 /// envelope carried by each comment — no client-side batch preview fetching.
 class _CommentsBatchWidget extends ConsumerWidget {
   final List<_CommentItem> flatList;
+  final String contentId;
   final ScrollController scrollController;
   final bool isLoadingMore;
   final Function(String) onFixedPriceSaleTap;
@@ -543,6 +545,7 @@ class _CommentsBatchWidget extends ConsumerWidget {
 
   const _CommentsBatchWidget({
     required this.flatList,
+    required this.contentId,
     required this.scrollController,
     required this.isLoadingMore,
     required this.onFixedPriceSaleTap,
@@ -551,6 +554,52 @@ class _CommentsBatchWidget extends ConsumerWidget {
     required this.onReply,
     required this.onRefresh,
   });
+
+  /// A comment the composer is still sending.
+  ///
+  /// Styled as provisional, and when the send failed it carries its own retry:
+  /// a failure is actionable instead of a snackbar the user has already missed.
+  Widget _buildPendingRow(
+    BuildContext context,
+    WidgetRef ref,
+    PendingComment row,
+  ) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppMetrics.p16,
+        vertical: AppMetrics.p12,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Text(
+              row.content,
+              style: TextStyle(
+                fontSize: AppType.s13,
+                color: scheme.onSurface.withValues(alpha: 0.6),
+              ),
+            ),
+          ),
+          const SizedBox(width: AppMetrics.p8),
+          if (row.failed)
+            TextButton(
+              onPressed: () => ref
+                  .read(commentProvider.notifier)
+                  .retryPendingComment(row.id),
+              child: const Text('Gagal · Coba lagi'),
+            )
+          else
+            const SizedBox(
+              width: 14,
+              height: 14,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -563,15 +612,29 @@ class _CommentsBatchWidget extends ConsumerWidget {
         ? authState.user.username
         : null;
 
+    // Rows the composer is still sending. They are NOT server comments: the
+    // domain list stays server truth, so a failed send can never masquerade as a
+    // persisted comment — it stays here, marked, with its own retry.
+    final pending = ref
+        .watch(commentProvider)
+        .pendingComments
+        .where((row) => row.contentId == contentId)
+        .toList();
+
     return RefreshIndicator(
       onRefresh: onRefresh,
       child: ListView.separated(
         controller: scrollController,
         padding: const EdgeInsets.symmetric(vertical: AppMetrics.p8),
-        itemCount: flatList.length + (isLoadingMore ? 1 : 0),
+        itemCount: flatList.length + pending.length + (isLoadingMore ? 1 : 0),
         separatorBuilder: (context, index) => const Divider(height: 1),
         itemBuilder: (context, index) {
           if (index >= flatList.length) {
+            final pendingIndex = index - flatList.length;
+            if (pendingIndex < pending.length) {
+              return _buildPendingRow(context, ref, pending[pendingIndex]);
+            }
+
             return const Center(
               child: Padding(
                 padding: EdgeInsets.all(AppMetrics.p16),

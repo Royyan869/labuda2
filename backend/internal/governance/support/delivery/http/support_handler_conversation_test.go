@@ -187,7 +187,7 @@ func decodeMessageEnvelope(t *testing.T, body []byte) []map[string]interface{} {
 }
 
 func newTextMessage(roomID, senderID uuid.UUID, body string) *chatEntity.ChatMessage {
-	msg := chatEntity.NewChatMessage(roomID, senderID, chatEntity.MessageTypeText, &body, nil, uuid.New().String())
+	msg := chatEntity.NewChatMessage(roomID, senderID, chatEntity.MessageTypeText, &body, nil, uuid.New().String(), nil)
 	msg.ID = uuid.New()
 	return msg
 }

@@ -291,7 +291,12 @@ class ReplyPreviewDto extends Equatable {
 class SendMessageDto {
   final String body;
   final String messageType;
-  final List<String>? mediaUrls;
+
+  /// Chat media assets this message carries, in display order. Each id is
+  /// minted by POST /chat/rooms/:room_id/media (the register step) and attached
+  /// atomically with the message — a message never carries raw media urls, so
+  /// media can never bypass asset validation, ownership or the pending window.
+  final List<String>? mediaAssetIds;
   final AttachmentDto? attachment;
   final String? replyToId;
   final List<String>? mentionedUserIds;
@@ -305,7 +310,7 @@ class SendMessageDto {
     required this.body,
     required this.messageType,
     required this.idempotencyKey,
-    this.mediaUrls,
+    this.mediaAssetIds,
     this.attachment,
     this.replyToId,
     this.mentionedUserIds,
@@ -316,7 +321,8 @@ class SendMessageDto {
     'body': body,
     'message_type': messageType,
     'idempotency_key': idempotencyKey,
-    if (mediaUrls != null) 'media_urls': mediaUrls,
+    if (mediaAssetIds != null && mediaAssetIds!.isNotEmpty)
+      'media_asset_ids': mediaAssetIds,
     if (attachment != null) 'attachment_json': attachment!.toJson(),
     if (replyToId != null) 'reply_to_id': replyToId,
     if (mentionedUserIds != null) 'mentioned_user_ids': mentionedUserIds,

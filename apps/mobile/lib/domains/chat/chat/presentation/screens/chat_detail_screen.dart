@@ -176,6 +176,9 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   // display layer that delegates to commerce authority).
   _PendingCommerceAttachment? _pendingCommerce;
 
+  /// Local media waiting to be uploaded at Send (canonical deferred upload).
+  final List<MediaPendingItem> _pendingMedia = [];
+
   @override
   void initState() {
     super.initState();
@@ -313,14 +316,19 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     }
   }
 
+  /// Brings the thread to its newest edge.
+  ///
+  /// The list renders with `reverse: true`, so the newest message is index 0 and
+  /// sits at scroll offset 0 — the bottom edge is `minScrollExtent`. Animating
+  /// to `maxScrollExtent` did the opposite: it scrolled to the OLDEST message at
+  /// the top, landing the user in history right after they sent.
   void _scrollToBottom() {
-    if (_scrollController.hasClients) {
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: AppMotion.settled,
-        curve: Curves.easeOut,
-      );
-    }
+    if (!_scrollController.hasClients) return;
+    _scrollController.animateTo(
+      _scrollController.position.minScrollExtent,
+      duration: AppMotion.settled,
+      curve: Curves.easeOut,
+    );
   }
 
   @override
@@ -589,6 +597,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
       onPurchase: (message) =>
           _handleCommerceAction(context, message, 'purchase'),
       onProjectionBuy: _handleProjectionBuy,
+      onRetry: _handleRetrySend,
     );
   }
 
@@ -649,7 +658,28 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
       messageController: _messageController,
       onSendMessage: _handleSendMessage,
       onAttachmentTap: _handleAttachmentTap,
-      hasPendingAttachment: _pendingCommerce != null,
+      isSending: _isSendingMessage,
+      hasPendingAttachment:
+          _pendingCommerce != null || _pendingMedia.isNotEmpty,
+      pendingMedia: _pendingMedia,
+      onRemovePendingMedia: (i) =>
+          setState(() => _pendingMedia.removeAt(i)),
+      onRetryUpload: _retryUploads,
+    );
+  }
+
+  /// Re-runs the uploads the strip marks as failed. Only those files go again —
+  /// anything already holding an asset id is skipped by the loop.
+  Future<void> _retryUploads() async {
+    if (_isSendingMessage || _pendingMedia.isEmpty) return;
+    await MediaUploadOrchestrator.uploadPending(
+      context: context,
+      config: MediaUploadConfig.forChat,
+      items: _pendingMedia,
+      roomId: widget.chatId,
+      onChanged: () {
+        if (mounted) setState(() {});
+      },
     );
   }
 
@@ -658,23 +688,63 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     MessageType type = MessageType.text,
   }) async {
     final pending = _pendingCommerce;
-    // Empty text is only valid as a resource-only send (attachment present).
-    if (content.trim().isEmpty && pending == null) return;
+    final media = List<MediaPendingItem>.from(_pendingMedia);
+    // Empty text is only valid as an attachment-only send.
+    if (content.trim().isEmpty && pending == null && media.isEmpty) return;
 
     // Guard against double-tap / concurrent sends
     if (_isSendingMessage) return;
 
     try {
       _isSendingMessage = true;
+      // Register + upload at Send: each file becomes a room-scoped PENDING
+      // asset whose id the message attaches atomically. Nothing is attached
+      // until the message exists, so an abandoned composer leaves no attached
+      // media and the backend expires the pending asset on its own — a cancel
+      // costs nothing. A failure stops here and keeps the composer intact.
+      // ONE upload loop for every composer (orchestrator), not a private copy:
+      // each file reports its own state to the strip, a failure on one file does
+      // not strand the rest, and the batch is refused only if ANY file failed —
+      // which is exactly what a retry re-runs.
+      List<String> mediaAssetIds = const [];
+      if (media.isNotEmpty) {
+        final uploaded = await MediaUploadOrchestrator.uploadPending(
+          context: context,
+          config: MediaUploadConfig.forChat,
+          items: media,
+          roomId: widget.chatId,
+          onChanged: () {
+            if (mounted) setState(() {});
+          },
+        );
+        if (!uploaded) return;
+        mediaAssetIds = media
+            .map((item) => item.assetId!)
+            .toList(growable: false);
+      }
       final notifier = ref.read(chatDetailProvider(widget.chatId).notifier);
       final userId = ref.read(currentUserIdProvider);
       final user = _getCurrentUserName();
+
+      // The composer hands the draft over BEFORE the request: the optimistic
+      // bubble appears the moment Send is tapped and can be retried from the
+      // bubble itself. Media is released only now, because a failed UPLOAD has
+      // no asset to retry with — that is the one path where the files must not
+      // be dropped, and it returns above.
+      if (mounted) {
+        _messageController.clear();
+        setState(() {
+          _pendingMedia.clear();
+          _pendingCommerce = null;
+        });
+      }
 
       final result = await notifier.sendMessage(
         senderId: userId,
         senderName: user,
         content: content,
         type: type,
+        mediaAssetIds: mediaAssetIds,
         resourceOccurrence: pending == null
             ? null
             : ChatResourceOccurrenceRequest(
@@ -686,12 +756,6 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
       );
 
       if (result != null) {
-        _messageController.clear();
-        if (pending != null) {
-          setState(() {
-            _pendingCommerce = null;
-          });
-        }
         _scrollToBottom();
       } else if (mounted) {
         // Message send failed - show error to user
@@ -710,6 +774,14 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     } finally {
       _isSendingMessage = false;
     }
+  }
+
+  /// Retries a failed send from its own bubble. The notifier replays the stored
+  /// payload, so nothing has to be re-typed or re-picked.
+  Future<void> _handleRetrySend(Message message) async {
+    await ref
+        .read(chatDetailProvider(widget.chatId).notifier)
+        .retrySend(message.id);
   }
 
   String _getCurrentUserName() {
@@ -812,60 +884,32 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   }
 
   void _handleAttachmentTap() {
-    final screenContext = context;
+    // "Lampirkan Produk" is a SELLER-only capability: a non-seller must never
+    // see it (owner decision) — the same gate the comment composer applies.
+    final authState = ref.read(authControllerProvider);
+    final isSeller =
+        authState is AuthStateAuthenticated &&
+        PermissionHelper.canAccessSellerFeatures(authState.user);
 
-    showModalBottomSheet(
-      context: screenContext,
-      builder: (sheetContext) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Foto & video — 1 mesin (orchestrator) foto & video support.
-            ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: const Text('Foto'),
-              subtitle: const Text('Kirim foto dari galeri'),
-              onTap: () {
-                Navigator.pop(sheetContext);
-                _pickChatMedia();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.videocam),
-              title: const Text('Video'),
-              subtitle: const Text('Kirim video dari galeri'),
-              onTap: () {
-                Navigator.pop(sheetContext);
-                _pickChatMedia();
-              },
-            ),
-            const Divider(),
-            // Single direct-commerce entry (O4): chat only delegates to the
-            // canonical commerce resource picker — it never resolves or
-            // decides commerce data itself.
-            ListTile(
-              leading: const Icon(Icons.storefront),
-              title: const Text('Lampirkan Produk'),
-              subtitle: const Text('For Sale atau Lelang'),
-              onTap: () {
-                Navigator.pop(sheetContext);
-                _showCommercePicker();
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _pickChatMedia() {
-    MediaUploadOrchestrator.showPicker(
+    MediaUploadOrchestrator.showAttachSheet(
       context: context,
       config: MediaUploadConfig.forChat,
-      onUploaded: (urls) async {
-        for (final url in urls) {
-          await _sendMediaMessage(url);
-        }
+      current: MediaUploadOrchestrator.countsOfFiles(
+        _pendingMedia.map((e) => e.file),
+      ),
+      extraActions: isSeller
+          ? [
+              MediaSheetAction(
+                icon: Icons.storefront,
+                label: 'Lampirkan Produk',
+                subtitle: 'For Sale atau Lelang',
+                onTap: _showCommercePicker,
+              ),
+            ]
+          : const [],
+      onPicked: (files) async {
+        if (!mounted) return;
+        setState(() => _pendingMedia.addAll(files.map(MediaPendingItem.new)));
       },
     );
   }
@@ -876,6 +920,9 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   Future<void> _showCommercePicker() async {
     final authState = ref.read(authControllerProvider);
     if (authState is! AuthStateAuthenticated) return;
+    // Seller-only capability (defense in depth: the entry is not offered to
+    // non-sellers either).
+    if (!PermissionHelper.canAccessSellerFeatures(authState.user)) return;
     final currentUserId = authState.user.id;
 
     final selection = await CommerceResourcePicker.show(
@@ -982,25 +1029,6 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
         ),
       ),
     );
-  }
-
-  /// Foto+video chat — 1 mesin, S3 presigned via orchestrator.
-  /// Kini mengirim sebagai text berisi URL (preview di bubble via AppImage).
-  /// Backend chat_media_assets ready untuk evolusi ke attachment_json.
-  Future<void> _sendMediaMessage(String mediaUrl) async {
-    final authState = ref.read(authControllerProvider);
-    if (authState is! AuthStateAuthenticated) return;
-    final senderId = authState.user.id;
-    final senderName = authState.user.username.isNotEmpty ? authState.user.username : 'User';
-    final isVideo = MediaUploadOrchestrator.isVideoUrl(mediaUrl);
-    final content = isVideo ? '🎬 Video: $mediaUrl' : '📷 Foto: $mediaUrl';
-    final notifier = ref.read(chatDetailProvider(widget.chatId).notifier);
-    final result = await notifier.sendMessage(
-      senderId: senderId,
-      senderName: senderName,
-      content: content,
-    );
-    if (result != null && mounted) _scrollToBottom();
   }
 
   /// Navigate to for-sale detail screen when user taps on attachment
@@ -1807,6 +1835,9 @@ extension DateTimeComparison on DateTime {
 
 /// Message list.
 ///
+/// Ordered newest-first with `reverse: true`, so index 0 is the newest message
+/// and is rendered at the BOTTOM — index + 1 is the OLDER neighbour.
+///
 /// One message per row. Resource-bearing rows are rendered from their own
 /// payload only: the canonical `resource_projection` when the server resolved
 /// one, else the transport snapshot the message already carries. The list makes
@@ -1821,6 +1852,7 @@ class _MessageListWidget extends ConsumerWidget {
   final Function(Message) onNegotiate;
   final Function(Message) onPurchase;
   final Future<void> Function(Message) onProjectionBuy;
+  final Future<void> Function(Message) onRetry;
 
   const _MessageListWidget({
     required this.messages,
@@ -1832,6 +1864,7 @@ class _MessageListWidget extends ConsumerWidget {
     required this.onNegotiate,
     required this.onPurchase,
     required this.onProjectionBuy,
+    required this.onRetry,
   });
 
   @override
@@ -1853,15 +1886,18 @@ class _MessageListWidget extends ConsumerWidget {
         }
 
         final message = messages[index];
-        final nextMessage = index < messages.length - 1
+        // The list is newest-first, so index + 1 is the OLDER neighbour: the one
+        // rendered ABOVE this message, not the "next" one.
+        final olderMessage = index < messages.length - 1
             ? messages[index + 1]
             : null;
 
         try {
           final isFromUser = message.isFromUser(currentUserId);
           final showAvatar =
-              nextMessage == null || nextMessage.senderId != message.senderId;
-          final showDateHeader = _shouldShowDateHeader(message, nextMessage);
+              olderMessage == null ||
+              olderMessage.senderId != message.senderId;
+          final showDateHeader = _shouldShowDateHeader(message, olderMessage);
 
           return Column(
             children: [
@@ -1871,6 +1907,9 @@ class _MessageListWidget extends ConsumerWidget {
                 isFromUser: isFromUser,
                 showAvatar: showAvatar,
                 onLongPress: () => onLongPress(message),
+                onRetry: message.status == MessageStatus.failed
+                    ? () => onRetry(message)
+                    : null,
                 onTap:
                     message.objectReference?.targetType ==
                             ShareTargetType.forSale &&
@@ -1919,9 +1958,9 @@ class _MessageListWidget extends ConsumerWidget {
     );
   }
 
-  bool _shouldShowDateHeader(Message current, Message? next) {
-    if (next == null) return false;
-    return !current.createdAt.isSameDate(next.createdAt);
+  bool _shouldShowDateHeader(Message current, Message? older) {
+    if (older == null) return false;
+    return !current.createdAt.isSameDate(older.createdAt);
   }
 
   String _formatDate(DateTime dateTime) {

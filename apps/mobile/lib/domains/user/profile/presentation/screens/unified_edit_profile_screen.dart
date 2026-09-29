@@ -329,7 +329,6 @@ class _UnifiedEditProfileScreenState
                 children: [
                   // Cover Photo Section
                   EditProfileCoverSection(
-                    userId: _actualUserId,
                     coverPhotoUrl: _coverPhotoUrl,
                     selectedCoverPath: _selectedCoverPath,
                     isCoverMarkedForRemoval: _isCoverMarkedForRemoval,
@@ -437,11 +436,9 @@ color: scheme.scrim.withValues(alpha: 0.7),
   void _changeCover() {
     AvatarEditorWidget.showEditModal(
       context: context,
-      userId: _actualUserId,
       aspectRatio: 16 / 9,
       circularCrop: false,
-      cropTitle: 'Crop Cover',
-      modalTitle: 'Change Cover Photo',
+      cropTitle: 'Potong Foto Sampul',
       onAvatarUpdated: (path) {
         setState(() {
           _selectedCoverPath = path;
@@ -519,7 +516,6 @@ color: scheme.scrim.withValues(alpha: 0.7),
   void _changeAvatar() {
     AvatarEditorWidget.showEditModal(
       context: context,
-      userId: _actualUserId,
       onAvatarUpdated: (path) => setState(() {
         _selectedAvatarPath = path;
         _isAvatarMarkedForRemoval = path == null;
@@ -535,9 +531,7 @@ color: scheme.scrim.withValues(alpha: 0.7),
   void _changeStorePhoto() {
     AvatarEditorWidget.showEditModal(
       context: context,
-      userId: _actualUserId,
-      cropTitle: 'Crop Store Photo',
-      modalTitle: 'Change Store Photo',
+      cropTitle: 'Potong Foto Toko',
       onAvatarUpdated: (path) => setState(() {
         _selectedStorePhotoPath = path;
         _isStorePhotoMarkedForRemoval = path == null;

@@ -405,18 +405,20 @@ class ChatDetail extends _$ChatDetail {
 
   /// Merges the canonical latest page into local state.
   ///
-  /// [fetched] is newest-first. Local messages older than the fetched page
-  /// (already paginated in) are kept below it, deduplicated by id, so a live
-  /// refresh never collapses read history.
+  /// [fetched] wins every id collision (the server is the authority on a
+  /// message) and local messages the page does not carry are kept. Where they
+  /// end up is decided by [_mergeNewestFirst] from their timestamps — never by
+  /// where a local copy happened to sit in the list. A live refresh therefore
+  /// never collapses read history and never demotes a just-sent message to the
+  /// top of the screen when the server page predates it.
   void _mergeRefreshedMessages(List<Message> fetched) {
     final fetchedIds = fetched.map((message) => message.id).toSet();
-    final olderLocal = state.messages
-        .where((message) => !fetchedIds.contains(message.id))
-        .toList();
-    final keepOlder = olderLocal.isNotEmpty;
+    final keepOlder = state.messages.any(
+      (message) => !fetchedIds.contains(message.id),
+    );
 
     state = state.copyWith(
-      messages: [...fetched, ...olderLocal],
+      messages: _mergeNewestFirst(fetched),
       hasMoreMessages: keepOlder
           ? state.hasMoreMessages
           : fetched.length >= 50,
@@ -425,6 +427,35 @@ class ChatDetail extends _$ChatDetail {
           : _encodeMessageCursorFromMessages(fetched),
       error: null,
     );
+  }
+
+  /// The ONE way messages enter thread state.
+  ///
+  /// [incoming] wins every id collision and the result is ordered newest-first
+  /// by construction, so the canonical list order cannot depend on which side a
+  /// caller spliced a new message in from. A `reverse: true` list renders index
+  /// 0 at the BOTTOM: appending a just-sent message to the end is what parked
+  /// the newest bubble at the top of the screen until the thread was reopened.
+  List<Message> _mergeNewestFirst(List<Message> incoming, {String? dropId}) {
+    final seen = <String>{};
+    // An optimistic id being replaced by its server twin must not survive the
+    // merge, or the thread would show the same message twice.
+    if (dropId != null) seen.add(dropId);
+    final merged = <Message>[];
+    for (final message in [...incoming, ...state.messages]) {
+      if (!seen.add(message.id)) continue;
+      merged.add(message);
+    }
+    merged.sort(_byNewestFirst);
+    return merged;
+  }
+
+  /// Canonical thread order: newest first. Ties break on id descending, which is
+  /// the same tiebreak the backend applies (`ORDER BY created_at DESC, id DESC`)
+  /// and therefore the same order the keyset cursor is derived from.
+  static int _byNewestFirst(Message a, Message b) {
+    final byTime = b.createdAt.compareTo(a.createdAt);
+    return byTime != 0 ? byTime : b.id.compareTo(a.id);
   }
 
   // UseCases injected via providers
@@ -466,7 +497,7 @@ class ChatDetail extends _$ChatDetail {
         }).toList();
 
         state = state.copyWith(
-          messages: activeMessages,
+          messages: _mergeNewestFirst(activeMessages),
           hasMoreMessages: activeMessages.length == 50,
           nextMessageCursor: _encodeMessageCursorFromMessages(activeMessages),
         );
@@ -497,9 +528,8 @@ class ChatDetail extends _$ChatDetail {
       );
 
       if (result.isSuccess && result.data != null) {
-        final updatedMessages = [...state.messages, ...result.data!];
         state = state.copyWith(
-          messages: updatedMessages,
+          messages: _mergeNewestFirst(result.data!),
           hasMoreMessages: result.data!.length == 50,
           nextMessageCursor: _encodeMessageCursorFromMessages(result.data!),
         );
@@ -511,12 +541,21 @@ class ChatDetail extends _$ChatDetail {
     }
   }
 
+  /// Payloads of in-flight/failed sends, keyed by the optimistic message id, so
+  /// "Coba lagi" can replay the exact request (media asset ids included) instead
+  /// of asking the user to pick files again.
+  final Map<String, _PendingSend> _pendingSends = {};
+
   Future<Message?> sendMessage({
     required String senderId,
     required String senderName,
     required String content,
     MessageType type = MessageType.text,
-    List<String> mediaUrls = const [],
+
+    /// Canonical chat media: PENDING asset ids from the room media register
+    /// step, in display order. The message attaches them atomically — raw media
+    /// urls are never part of the send contract.
+    List<String> mediaAssetIds = const [],
     String? replyToId,
     List<String> mentionedUserIds = const [],
     ShareReference? objectReference,
@@ -526,6 +565,27 @@ class ChatDetail extends _$ChatDetail {
     // Guard against concurrent sends
     if (_isSending) return null;
 
+    // The bubble exists BEFORE the request does. A composer that only reacted
+    // after the round trip (plus every media upload ahead of it) is what made a
+    // tap on Send feel like nothing happened.
+    final localId = _beginOptimisticSend(
+      senderId: senderId,
+      senderName: senderName,
+      content: content,
+      type: type,
+      hasMedia: mediaAssetIds.isNotEmpty,
+      pending: _PendingSend(
+        senderId: senderId,
+        senderName: senderName,
+        content: content,
+        type: type,
+        mediaAssetIds: mediaAssetIds,
+        objectReference: objectReference,
+        resourceOccurrence: resourceOccurrence,
+        workflowAttachment: workflowAttachment,
+      ),
+    );
+
     try {
       _isSending = true;
       final result = await _sendMessageUseCase(
@@ -534,25 +594,113 @@ class ChatDetail extends _$ChatDetail {
         senderName: senderName,
         content: content,
         type: type,
+        mediaAssetIds: mediaAssetIds,
         objectReference: objectReference,
         resourceOccurrence: resourceOccurrence,
         workflowAttachment: workflowAttachment,
       );
 
       if (result.isSuccess && result.data != null) {
-        final updatedMessages = [...state.messages, result.data!];
-        state = state.copyWith(messages: updatedMessages);
+        // The server message REPLACES the optimistic row: one row, one order
+        // authority, and the local id never survives a successful send.
+        _pendingSends.remove(localId);
+        state = state.copyWith(
+          messages: _mergeNewestFirst([result.data!], dropId: localId),
+        );
         return result.data;
       } else {
+        _markSendFailed(localId);
         state = state.copyWith(
           error: result.error,
           errorCode: result.errorCode,
         );
         return null;
       }
+    } catch (_) {
+      // A throw is a failed send too: the row stays, marked, with its retry.
+      _markSendFailed(localId);
+      rethrow;
     } finally {
       _isSending = false;
     }
+  }
+
+  /// Retries a failed send with its exact original payload.
+  ///
+  /// The optimistic row is dropped here and re-created by the canonical send
+  /// path, so the retry never leaves a duplicate behind.
+  Future<Message?> retrySend(String localMessageId) async {
+    final pending = _pendingSends.remove(localMessageId);
+    if (pending == null) return null;
+
+    state = state.copyWith(
+      messages: state.messages
+          .where((message) => message.id != localMessageId)
+          .toList(),
+    );
+
+    return sendMessage(
+      senderId: pending.senderId,
+      senderName: pending.senderName,
+      content: pending.content,
+      type: pending.type,
+      mediaAssetIds: pending.mediaAssetIds,
+      objectReference: pending.objectReference,
+      resourceOccurrence: pending.resourceOccurrence,
+      workflowAttachment: pending.workflowAttachment,
+    );
+  }
+
+  /// Inserts the message the user just sent, marked [MessageStatus.sending].
+  ///
+  /// It rides the SAME list and the same order authority as server messages, so
+  /// an in-flight message lands at the bottom like any newest message instead of
+  /// needing a second rendering path.
+  String _beginOptimisticSend({
+    required String senderId,
+    required String senderName,
+    required String content,
+    required MessageType type,
+    required bool hasMedia,
+    required _PendingSend pending,
+  }) {
+    final localId = 'local_${DateTime.now().microsecondsSinceEpoch}';
+    _pendingSends[localId] = pending;
+
+    state = state.copyWith(
+      messages: _mergeNewestFirst([
+        Message(
+          id: localId,
+          chatId: chatId,
+          senderId: senderId,
+          senderName: senderName,
+          // A media-only send still says something while it is in flight: the
+          // real media arrives with the server message that replaces this row.
+          content: content.isEmpty && hasMedia ? 'Mengirim media…' : content,
+          type: type,
+          createdAt: DateTime.now().toUtc(),
+          status: MessageStatus.sending,
+        ),
+      ]),
+    );
+
+    return localId;
+  }
+
+  /// Keeps a failed send in the thread as an actionable row (retry), instead of
+  /// discarding it behind a transient snackbar.
+  void _markSendFailed(String localId) {
+    if (!_pendingSends.containsKey(localId)) return;
+
+    state = state.copyWith(
+      messages: state.messages
+          .map(
+            (message) => message.id == localId
+                ? message.copyWith(status: MessageStatus.failed)
+                : message,
+          )
+          .toList(),
+    );
   }
 
   Future<void> markAsRead(String userId) async {
@@ -572,13 +720,6 @@ class ChatDetail extends _$ChatDetail {
       // Non-fatal error - chat read sync should not break chat functionality
       // If notification sync fails, the chat read action still succeeds
     }
-  }
-
-  void addMessage(Message message) {
-    if (state.messages.any((msg) => msg.id == message.id)) return;
-
-    final updatedMessages = [...state.messages, message];
-    state = state.copyWith(messages: updatedMessages);
   }
 
   void updateMessage(Message updatedMessage) {
@@ -614,10 +755,18 @@ class ChatDetail extends _$ChatDetail {
     }
   }
 
+  /// Cursor for the NEXT OLDER page.
+  ///
+  /// Derived from the order itself (the oldest message), not from a list
+  /// position: a thread list that was mutated from the wrong side would
+  /// otherwise hand the server its NEWEST message as "older than this",
+  /// silently re-reading the newest page as history.
   String? _encodeMessageCursorFromMessages(List<Message> messages) {
     if (messages.isEmpty) return null;
-    final lastMessage = messages.last;
-    return '${lastMessage.createdAt.toUtc().toIso8601String()}|${lastMessage.id}';
+    final oldest = messages.reduce(
+      (a, b) => _byNewestFirst(a, b) <= 0 ? b : a,
+    );
+    return '${oldest.createdAt.toUtc().toIso8601String()}|${oldest.id}';
   }
 
   _MessageCursor? _decodeMessageCursor(String raw) {
@@ -629,6 +778,31 @@ class ChatDetail extends _$ChatDetail {
     if (createdAt == null || messageId.isEmpty) return null;
     return _MessageCursor(createdAt: createdAt, messageId: messageId);
   }
+}
+
+/// The exact payload of a send, kept so a failed message can be retried from
+/// its own bubble. Media asset ids are replayed as-is: a retry never re-uploads
+/// a file that already reached the room's pending window.
+class _PendingSend {
+  final String senderId;
+  final String senderName;
+  final String content;
+  final MessageType type;
+  final List<String> mediaAssetIds;
+  final ShareReference? objectReference;
+  final ChatResourceOccurrenceRequest? resourceOccurrence;
+  final Map<String, dynamic>? workflowAttachment;
+
+  const _PendingSend({
+    required this.senderId,
+    required this.senderName,
+    required this.content,
+    required this.type,
+    this.mediaAssetIds = const [],
+    this.objectReference,
+    this.resourceOccurrence,
+    this.workflowAttachment,
+  });
 }
 
 class _MessageCursor {

@@ -108,6 +108,36 @@ func (r *negotiationFakeChatRepo) GetUnreadCountsByRoomIDs(_ context.Context, _ 
 	return out, nil
 }
 
+// --- chat media asset operations (not exercised by this suite) ---
+
+func (r *negotiationFakeChatRepo) CreateMediaAsset(context.Context, interface{}, *chatEntity.ChatMediaAsset) error {
+	return nil
+}
+
+func (r *negotiationFakeChatRepo) GetMediaAssetsByIDs(context.Context, interface{}, []uuid.UUID) ([]*chatEntity.ChatMediaAsset, error) {
+	return nil, nil
+}
+
+func (r *negotiationFakeChatRepo) FinalizeMediaAsset(context.Context, interface{}, uuid.UUID, time.Time) error {
+	return nil
+}
+
+func (r *negotiationFakeChatRepo) LinkMediaAssetToMessage(context.Context, interface{}, uuid.UUID, uuid.UUID, int) error {
+	return nil
+}
+
+func (r *negotiationFakeChatRepo) MarkMessageHasMedia(context.Context, interface{}, uuid.UUID) error {
+	return nil
+}
+
+func (r *negotiationFakeChatRepo) ListMediaAssetsByMessageIDs(context.Context, interface{}, []uuid.UUID) (map[uuid.UUID][]*chatEntity.ChatMediaAsset, error) {
+	return nil, nil
+}
+
+func (r *negotiationFakeChatRepo) CleanupExpiredPendingMediaAssets(context.Context, interface{}, time.Time) (int64, error) {
+	return 0, nil
+}
+
 var _ chatRepo.Repository = (*negotiationFakeChatRepo)(nil)
 
 type negotiationFakeSocialRepo struct{}

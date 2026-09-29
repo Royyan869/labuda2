@@ -5,6 +5,7 @@ import 'package:labuda/core/src/localization/l10n_extension.dart';
 // dependency surface explicit. The chat-entities `MessageStatus` consumed by
 // this widget must stay the single MessageStatus in scope.
 import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:labuda/core/media/media_upload_orchestrator.dart';
 import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart';
 import 'package:labuda/domains/chat/chat/presentation/utils/chat_identity_display.dart';
 import 'package:labuda/domains/chat/chat/presentation/utils/chat_lifecycle_redaction.dart';
@@ -35,6 +36,10 @@ class MessageBubble extends ConsumerWidget {
   final VoidCallback? onProjectionBuy;
   final String? currentUserId;
 
+  /// Offered on a failed send only: the bubble itself carries the retry, so a
+  /// failure never ends as a snackbar the user has already missed.
+  final VoidCallback? onRetry;
+
   const MessageBubble({
     super.key,
     required this.message,
@@ -46,6 +51,7 @@ class MessageBubble extends ConsumerWidget {
     this.onPurchase,
     this.onProjectionBuy,
     this.currentUserId,
+    this.onRetry,
   });
 
   @override
@@ -106,10 +112,9 @@ class MessageBubble extends ConsumerWidget {
               _buildResourceProjection(context),
             if (message.type == MessageType.text)
               _buildTextMessage(context, textColor)
-            else            if (message.type == MessageType.image)
-              _buildImageMessage(context, textColor)
-            else if (message.type == MessageType.video)
-              _buildVideoMessage(context)
+            else if (message.type == MessageType.image ||
+                message.type == MessageType.video)
+              _buildMediaMessage(context, textColor)
             else if (message.type == MessageType.file)
               _buildFileMessage(context)
             else if (message.type == MessageType.system)
@@ -135,16 +140,51 @@ class MessageBubble extends ConsumerWidget {
     return SelectableText(message.content, style: TextStyle(color: textColor));
   }
 
-  Widget _buildImageMessage(BuildContext context, Color textColor) {
-    if (message.mediaUrls.isNotEmpty) {
-      final colorScheme = Theme.of(context).colorScheme;
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(AppShape.r12),
-            child: AppImage(
-              imageUrl: message.mediaUrls.first,
+  /// ONE renderer for every media message (image OR video, one or many).
+  ///
+  /// The backend projects an ordered `media_urls` list and the message type is
+  /// derived from it on read, so the bubble never needs a per-type branch: it
+  /// renders each url as a foto tile or a video tile, then the caption when the
+  /// sender wrote one. A caption-less media message simply has no body.
+  Widget _buildMediaMessage(BuildContext context, Color textColor) {
+    if (message.mediaUrls.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final url in message.mediaUrls) ...[
+          _buildMediaTile(context, url),
+          if (url != message.mediaUrls.last) const SizedBox(height: 8),
+        ],
+        if (message.content.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          _buildTextMessage(context, textColor),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildMediaTile(BuildContext context, String url) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isVideo = MediaUploadOrchestrator.isVideoUrl(url);
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(AppShape.r12),
+      child: isVideo
+          ? Container(
+              width: double.maxFinite,
+              height: 200,
+              color: colorScheme.scrim,
+              child: Center(
+                child: Icon(
+                  Icons.play_circle_outline,
+                  color: colorScheme.onPrimary,
+                  size: 48,
+                ),
+              ),
+            )
+          : AppImage(
+              imageUrl: url,
               width: double.maxFinite,
               height: 200,
               fit: BoxFit.cover,
@@ -156,32 +196,6 @@ class MessageBubble extends ConsumerWidget {
                 child: const Icon(Icons.broken_image, size: 48),
               ),
             ),
-          ),
-          if (message.content.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            _buildTextMessage(context, textColor),
-          ],
-        ],
-      );
-    }
-    return const SizedBox.shrink();
-  }
-
-  Widget _buildVideoMessage(BuildContext context) {
-    return Container(
-      width: double.maxFinite,
-      height: 200,
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.scrim,
-        borderRadius: BorderRadius.circular(AppShape.r12),
-      ),
-      child: Center(
-        child: Icon(
-          Icons.play_circle_outline,
-          color: Theme.of(context).colorScheme.onPrimary,
-          size: 48,
-        ),
-      ),
     );
   }
 
@@ -413,6 +427,22 @@ class MessageBubble extends ConsumerWidget {
         icon = Icons.error;
         iconColor = context.statusColors.error;
         break;
+    }
+
+    if (message.status == MessageStatus.failed) {
+      return InkWell(
+        onTap: onRetry,
+        borderRadius: BorderRadius.circular(AppShape.r12),
+        child: Tooltip(
+          message: onRetry == null
+              ? 'Gagal terkirim'
+              : 'Gagal terkirim · Coba lagi',
+          child: Padding(
+            padding: const EdgeInsets.all(AppMetrics.p4),
+            child: Icon(icon, size: 14, color: iconColor),
+          ),
+        ),
+      );
     }
 
     return Icon(icon, size: 14, color: iconColor);

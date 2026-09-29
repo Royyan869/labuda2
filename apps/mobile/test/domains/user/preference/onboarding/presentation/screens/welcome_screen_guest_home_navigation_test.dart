@@ -111,7 +111,7 @@ void main() {
         expect(handler.invoked, ['navigateToHome']);
 
         // NEGATIVE: no commerce/For Sale navigation helper was called
-        // (navigateToForSaleDetail / navigateToCreateForSale / ...).
+        // (navigateToForSaleDetail and friends).
         final forbiddenCommerceNav = handler.invoked.where(
           (name) =>
               name.toLowerCase().contains('forSale') ||

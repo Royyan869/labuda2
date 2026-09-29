@@ -55,7 +55,10 @@ abstract class ChatRepository {
     required String senderName,
     required String content,
     MessageType type,
-    List<String> mediaUrls,
+    /// Canonical chat media: the PENDING asset ids (register step) this message
+    /// attaches, in display order. Raw media urls are never sent — the backend
+    /// owns asset validation, ownership and the pending window.
+    List<String> mediaAssetIds,
     String? replyToId,
     List<String> mentionedUserIds,
     // Attachment fields (ShareReference for object references)

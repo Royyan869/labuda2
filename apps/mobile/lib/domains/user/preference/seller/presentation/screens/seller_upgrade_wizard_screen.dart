@@ -1813,9 +1813,7 @@ class _SellerUpgradeWizardScreenState
 
     AvatarEditorWidget.showEditModal(
       context: context,
-      userId: userId,
-      cropTitle: 'Crop Store Photo',
-      modalTitle: 'Upload Store Logo',
+      cropTitle: 'Potong Foto Toko',
       onAvatarUpdated: (localPath) async {
         if (localPath == null) {
           if (!_isCurrentPrincipalRequest(requestEpoch, userId)) return;

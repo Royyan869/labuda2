@@ -43,8 +43,10 @@ type ChatMessage struct {
 // Rules:
 // - idempotencyKey is required for duplicate prevention
 // - messageType must be valid
-// - body can be nil for non-text messages
+// - body can be nil for non-text messages (and for a media-only message)
 // - attachmentJSON stores structured data (attachments, proposals, etc.)
+// - mediaAssetIDs are the chat media assets this message carries, in attach
+//   order; they are part of the command and therefore of the fingerprint
 // - command_fingerprint is computed server-side as a canonical SHA-256
 //   of the normalized send-message command fields.
 func NewChatMessage(
@@ -53,6 +55,7 @@ func NewChatMessage(
 	body *string,
 	attachmentJSON map[string]interface{},
 	idempotencyKey string,
+	mediaAssetIDs []uuid.UUID,
 ) *ChatMessage {
 	now := time.Now()
 
@@ -64,7 +67,7 @@ func NewChatMessage(
 		Body:               body,
 		AttachmentJSON:     attachmentJSON,
 		IdempotencyKey:     idempotencyKey,
-		CommandFingerprint: ComputeCommandFingerprint(senderID, messageType, body, attachmentJSON),
+		CommandFingerprint: ComputeCommandFingerprint(senderID, messageType, body, attachmentJSON, mediaAssetIDs),
 		CreatedAt:          now,
 	}
 }
@@ -78,6 +81,7 @@ func NewTextMessage(roomID, senderID uuid.UUID, body string, idempotencyKey stri
 		&body,
 		nil,
 		idempotencyKey,
+		nil,
 	)
 }
 
@@ -89,11 +93,14 @@ func NewTextMessage(roomID, senderID uuid.UUID, body string, idempotencyKey stri
 //   - messageType: text, negotiation_proposal, or system
 //   - body: optional message body (may be nil)
 //   - attachmentJSON: optional structured attachment (may be nil)
+//   - mediaAssetIDs: optional chat media assets, in attach order (may be nil)
 //
 // The fingerprint is deterministic, idempotent, and changes only when the
 // command inputs change. It does NOT depend on the message ID or timestamp.
 // This makes it suitable for replay validation as documented in migration
-// 000032.
+// 000032. Media participates on the same rule as the body: the same
+// idempotency key with a DIFFERENT media set is a conflict, never a silent
+// replay of the older message.
 //
 // No fallback, no sentinel, no optional bypass — every message MUST carry
 // a non-empty canonical fingerprint per migration 000033.
@@ -102,12 +109,24 @@ func ComputeCommandFingerprint(
 	messageType MessageType,
 	body *string,
 	attachmentJSON map[string]interface{},
+	mediaAssetIDs []uuid.UUID,
 ) string {
 	fingerprintInput := map[string]interface{}{
 		"sender_id":       senderID.String(),
 		"message_type":    string(messageType),
 		"body":            body,
 		"attachment_json": attachmentJSON,
+	}
+
+	// Media is folded in only when present so the canonical fingerprint of a
+	// plain text message stays byte-identical to the one migration 000032/33
+	// rows were stored with (replay must keep working across this deploy).
+	if len(mediaAssetIDs) > 0 {
+		ids := make([]string, len(mediaAssetIDs))
+		for i, id := range mediaAssetIDs {
+			ids[i] = id.String()
+		}
+		fingerprintInput["media_asset_ids"] = ids
 	}
 
 	normalized, err := json.Marshal(fingerprintInput)
@@ -140,6 +159,7 @@ func NewSystemMessage(roomID uuid.UUID, actorID uuid.UUID, body string, idempote
 		&body,
 		nil,
 		idempotencyKey,
+		nil,
 	)
 }
 

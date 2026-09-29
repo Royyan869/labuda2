@@ -32,7 +32,7 @@ func TestMigration000034_RealPostgresProofs(t *testing.T) {
 		_, err := pool.Exec(ctx, `
 			INSERT INTO chat_messages (id, room_id, sender_id, message_type, body, idempotency_key, command_fingerprint, created_at)
 			VALUES ($1,$2,$3,'text','test',$4,$5,NOW())
-		`, id, room, sender, uuid.NewString(), chatEntity.ComputeCommandFingerprint(sender, chatEntity.MessageTypeText, &body, nil))
+		`, id, room, sender, uuid.NewString(), chatEntity.ComputeCommandFingerprint(sender, chatEntity.MessageTypeText, &body, nil, nil))
 		require.NoError(t, err)
 		return id
 	}

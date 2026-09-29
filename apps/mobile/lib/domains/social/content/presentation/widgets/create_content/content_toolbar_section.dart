@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:labuda/core/src/theme/app_theme.dart';
 import 'package:labuda/domains/social/content/presentation/widgets/content_toolbar_widget.dart';
+import 'package:labuda/core/media/media_upload_config.dart';
 import 'package:labuda/domains/social/content/presentation/widgets/create_content/content_event_handlers.dart';
 
 /// Widget for post creation toolbar with keyboard-aware padding
@@ -57,7 +58,10 @@ class ContentToolbarSection extends StatelessWidget {
   Future<void> _handleGalleryTap(BuildContext context) async {
     final media = await ContentEventHandlers.handleGalleryPick(
       context: context,
-      currentMediaCount: selectedImages.length + selectedVideos.length,
+      current: MediaCounts(
+        images: selectedImages.length,
+        videos: selectedVideos.length,
+      ),
     );
     if (media.isNotEmpty) {
       final categorized = ContentEventHandlers.processMediaFiles(media);
@@ -68,7 +72,10 @@ class ContentToolbarSection extends StatelessWidget {
   Future<void> _handleCameraTap(BuildContext context) async {
     final media = await ContentEventHandlers.handleCamera(
       context: context,
-      currentMediaCount: selectedImages.length + selectedVideos.length,
+      current: MediaCounts(
+        images: selectedImages.length,
+        videos: selectedVideos.length,
+      ),
     );
     if (media.isNotEmpty) {
       final categorized = ContentEventHandlers.processMediaFiles(media);

@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:labuda/core/media/media_upload_config.dart';
 import 'package:labuda/core/media/media_upload_orchestrator.dart';
 import 'package:labuda/core/src/config/google_config.dart';
 import 'package:labuda/shared/widgets/interactive_map_picker_bottom_sheet.dart';
@@ -26,22 +27,22 @@ class ContentEventHandlers {
   /// Handle gallery media selection
   static Future<List<File>> handleGalleryPick({
     required BuildContext context,
-    required int currentMediaCount,
+    required MediaCounts current,
   }) async {
     return await MediaUploadOrchestrator.forContent().pickLocalFiles(
       context: context,
-      currentCount: currentMediaCount,
+      current: current,
     );
   }
 
   /// Handle camera capture
   static Future<List<File>> handleCamera({
     required BuildContext context,
-    required int currentMediaCount,
+    required MediaCounts current,
   }) async {
     return await MediaUploadOrchestrator.forContent().openCameraLocal(
       context: context,
-      currentCount: currentMediaCount,
+      current: current,
     );
   }
 

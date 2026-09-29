@@ -7,6 +7,29 @@ import 'package:labuda/domains/social/comment/domain/repositories/comment_reposi
 
 part 'comment_notifier.g.dart';
 
+/// The exact request behind a pending comment row, replayed on retry.
+class _PendingCommentPayload {
+  final String targetId;
+  final CommentTargetType targetType;
+  final String content;
+  final String? parentId;
+  final List<String> mentionedUserIds;
+  final List<String> mediaUrls;
+  final String? resourceType;
+  final String? resourceId;
+
+  const _PendingCommentPayload({
+    required this.targetId,
+    required this.targetType,
+    required this.content,
+    this.parentId,
+    this.mentionedUserIds = const [],
+    this.mediaUrls = const [],
+    this.resourceType,
+    this.resourceId,
+  });
+}
+
 /// Comment Notifier
 ///
 /// CONTRACT ALIGNMENT V1:
@@ -17,6 +40,11 @@ part 'comment_notifier.g.dart';
 @riverpod
 class CommentNotifier extends _$CommentNotifier {
   bool _isLoading = false;
+
+  /// Payloads of in-flight/failed comments, keyed by the pending row id, so
+  /// "Coba lagi" replays the exact same request.
+  final Map<String, _PendingCommentPayload> _pendingCommentPayloads = {};
+  int _pendingCommentSeq = 0;
 
   @override
   CommentState build() {
@@ -180,6 +208,18 @@ class CommentNotifier extends _$CommentNotifier {
       }
     }
 
+    // The row exists BEFORE the request does: a list that looks unchanged after
+    // Send is what made the first tap feel ignored. It is dropped the moment the
+    // server row arrives, and kept (marked failed) when the send fails.
+    final pendingId = _beginPendingComment(
+      targetId: targetId,
+      targetType: targetType,
+      content: content,
+      parentId: parentId,
+      mentionedUserIds: mentionedUserIds,
+      mediaUrls: mediaUrls,
+    );
+
     final result = await _repository.createComment(
       targetId: targetId,
       targetType: targetType,
@@ -194,7 +234,10 @@ class CommentNotifier extends _$CommentNotifier {
 
       // C-ORDER — append at the tail to preserve backend ASC (oldest-first)
       // ordering; the comment is the newest row and belongs at the end.
-      state = state.copyWith(comments: [...state.comments, newComment]);
+      state = state.copyWith(
+        pendingComments: _withoutPendingComment(pendingId),
+        comments: [...state.comments, newComment],
+      );
 
       // NOTE: Notification logic would require user info which is NOT embedded
       // in the canonical Comment entity. This is a V1 limitation.
@@ -203,7 +246,103 @@ class CommentNotifier extends _$CommentNotifier {
       return Result.success(newComment);
     }
 
+    _markPendingCommentFailed(pendingId);
     return result;
+  }
+
+  /// Retries a failed comment from its own pending row.
+  ///
+  /// The row is dropped here and re-created by the canonical create path, so a
+  /// retry never leaves a duplicate behind.
+  Future<Result<Comment>> retryPendingComment(String pendingId) async {
+    final payload = _pendingCommentPayloads.remove(pendingId);
+    if (payload == null) {
+      return Result.error('Tidak ada komentar untuk dikirim ulang');
+    }
+
+    state = state.copyWith(
+      pendingComments: _withoutPendingComment(pendingId),
+    );
+
+    if (payload.resourceType != null && payload.resourceId != null) {
+      return createCommerceReferenceComment(
+        contentId: payload.targetId,
+        resourceType: payload.resourceType!,
+        resourceId: payload.resourceId!,
+        body: payload.content.isEmpty ? null : payload.content,
+      );
+    }
+
+    return createComment(
+      targetId: payload.targetId,
+      targetType: payload.targetType,
+      content: payload.content,
+      parentId: payload.parentId,
+      mentionedUserIds: payload.mentionedUserIds,
+      mediaUrls: payload.mediaUrls,
+    );
+  }
+
+  /// Shows the comment the user is sending, before the server confirms it.
+  String _beginPendingComment({
+    required String targetId,
+    required CommentTargetType targetType,
+    required String content,
+    String? parentId,
+    List<String> mentionedUserIds = const [],
+    List<String> mediaUrls = const [],
+    String? resourceType,
+    String? resourceId,
+    String? pendingLabel,
+  }) {
+    final pendingId =
+        'pending_${DateTime.now().microsecondsSinceEpoch}_${_pendingCommentSeq++}';
+
+    _pendingCommentPayloads[pendingId] = _PendingCommentPayload(
+      targetId: targetId,
+      targetType: targetType,
+      content: content,
+      parentId: parentId,
+      mentionedUserIds: mentionedUserIds,
+      mediaUrls: mediaUrls,
+      resourceType: resourceType,
+      resourceId: resourceId,
+    );
+
+    state = state.copyWith(
+      pendingComments: [
+        ...state.pendingComments,
+        PendingComment(
+          id: pendingId,
+          contentId: targetId,
+          // A media-only comment still says something while it is in flight.
+          content: content.isEmpty ? (pendingLabel ?? 'Lampiran') : content,
+          parentId: parentId,
+          createdAt: DateTime.now(),
+        ),
+      ],
+    );
+
+    return pendingId;
+  }
+
+  List<PendingComment> _withoutPendingComment(String pendingId) => state
+      .pendingComments
+      .where((row) => row.id != pendingId)
+      .toList();
+
+  /// Keeps a failed comment on screen as an actionable row instead of dropping it
+  /// behind a transient message.
+  void _markPendingCommentFailed(String pendingId) {
+    if (!_pendingCommentPayloads.containsKey(pendingId)) return;
+
+    state = state.copyWith(
+      pendingComments: state.pendingComments
+          .map(
+            (row) => row.id == pendingId ? row.copyWith(failed: true) : row,
+          )
+          .toList(),
+    );
   }
 
   /// Create a commerce reference comment (seller response).
@@ -213,6 +352,17 @@ class CommentNotifier extends _$CommentNotifier {
     required String resourceId,
     String? body,
   }) async {
+    // Same provisional row as a normal comment: the seller's attach flow must not
+    // look inert either.
+    final pendingId = _beginPendingComment(
+      targetId: contentId,
+      targetType: CommentTargetType.content,
+      content: body ?? '',
+      resourceType: resourceType,
+      resourceId: resourceId,
+      pendingLabel: 'Lampiran produk',
+    );
+
     final result = await _repository.createCommerceReferenceComment(
       contentId: contentId,
       resourceType: resourceType,
@@ -224,11 +374,15 @@ class CommentNotifier extends _$CommentNotifier {
       final newComment = result.data!;
 
       // C-ORDER — append at the tail (ASC), same as normal comment create.
-      state = state.copyWith(comments: [...state.comments, newComment]);
+      state = state.copyWith(
+        pendingComments: _withoutPendingComment(pendingId),
+        comments: [...state.comments, newComment],
+      );
 
       return Result.success(newComment);
     }
 
+    _markPendingCommentFailed(pendingId);
     return result;
   }
 

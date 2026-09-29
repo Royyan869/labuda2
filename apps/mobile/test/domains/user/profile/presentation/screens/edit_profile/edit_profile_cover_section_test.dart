@@ -169,7 +169,6 @@ void main() {
       const MaterialApp(
         home: Scaffold(
           body: EditProfileCoverSection(
-            userId: 'user-1',
             coverPhotoUrl: coverUrl,
             isCoverMarkedForRemoval: false,
             onChangeCover: _noop,
@@ -192,7 +191,6 @@ void main() {
       const MaterialApp(
         home: Scaffold(
           body: EditProfileCoverSection(
-            userId: 'user-1',
             coverPhotoUrl: null,
             isCoverMarkedForRemoval: false,
             onChangeCover: _noop,

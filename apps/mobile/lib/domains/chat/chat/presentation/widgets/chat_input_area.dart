@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/core/media/media_upload_orchestrator.dart';
 import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart';
 import 'package:labuda/domains/chat/chat/presentation/providers/chat_providers.dart';
 import 'package:labuda/domains/commerce/negotiation/negotiation/domain/entities/negotiation.dart';
 import 'package:labuda/domains/commerce/negotiation/negotiation/presentation/providers/negotiation_providers.dart';
 import 'package:labuda/shared/widgets/composer_action_buttons.dart';
+import 'package:labuda/shared/widgets/pending_media_strip.dart';
 
 /// Chat Input Area Widget
 ///
@@ -21,11 +23,27 @@ class ChatInputArea extends ConsumerStatefulWidget {
   final Future<void> Function(String content, {MessageType type}) onSendMessage;
   final VoidCallback onAttachmentTap;
 
+  /// True while a send is in flight, uploads included. Drives the send button's
+  /// visible state: a locked, spinning button instead of a silent guard that
+  /// swallowed the taps it was meant to prevent.
+  final bool isSending;
+
+  /// Re-runs the uploads the strip marks as failed. Only those files are
+  /// re-uploaded — anything that already holds an asset id is skipped.
+  final VoidCallback? onRetryUpload;
+
   /// True while the composer holds a pending commerce attachment. Enables
   /// resource-only sends: the always-visible send button stays enabled and
   /// submits even with an empty draft (attachment + optional text = one
   /// message).
   final bool hasPendingAttachment;
+
+  /// Local attachments waiting to be uploaded at Send. Each item carries its own
+  /// lifecycle, so the strip shows which file is uploading, done, or failed.
+  final List<MediaPendingItem> pendingMedia;
+
+  /// Removes one pending media item by index.
+  final void Function(int index)? onRemovePendingMedia;
 
   const ChatInputArea({
     super.key,
@@ -33,7 +51,11 @@ class ChatInputArea extends ConsumerStatefulWidget {
     required this.messageController,
     required this.onSendMessage,
     required this.onAttachmentTap,
+    this.isSending = false,
+    this.onRetryUpload,
     this.hasPendingAttachment = false,
+    this.pendingMedia = const [],
+    this.onRemovePendingMedia,
   });
 
   @override
@@ -124,6 +146,15 @@ class _ChatInputAreaState extends ConsumerState<ChatInputArea> {
             // Commerce actions gated by room-level context were removed;
             // per-message resource projections are the canonical source.
             if (_replyToMessageId != null) _buildReplyPreview(context),
+            if (widget.pendingMedia.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppMetrics.p8),
+                child: PendingMediaStrip(
+                  items: widget.pendingMedia,
+                  onRemove: (i) => widget.onRemovePendingMedia?.call(i),
+                  onRetry: widget.onRetryUpload,
+                ),
+              ),
             // Canonical action row: [pill] [+] [send]. The `+` lives to the
             // right of the textarea (never left), send is always visible.
             Row(
@@ -331,6 +362,9 @@ class _ChatInputAreaState extends ConsumerState<ChatInputArea> {
   Widget _buildSendButton(bool canSend) {
     final hasDraft = widget.messageController.text.trim().isNotEmpty;
     return ComposerSendButton(
+      // Locked + spinner while in flight: the first tap must LOOK like it did
+      // something, and a second must be impossible rather than swallowed.
+      loading: widget.isSending,
       onPressed: (canSend && (hasDraft || widget.hasPendingAttachment))
           ? _handleSendMessage
           : null,

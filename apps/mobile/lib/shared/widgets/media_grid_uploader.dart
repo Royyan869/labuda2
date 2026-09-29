@@ -30,7 +30,7 @@ class MediaGridUploader extends StatelessWidget {
     MediaUploadOrchestrator.showPicker(
       context: context,
       config: config,
-      currentCount: mediaUrls.length,
+      current: MediaUploadOrchestrator.countsOfUrls(mediaUrls),
       onUploaded: (urls) async {
         for (final u in urls) {
           onMediaAdded(u);
@@ -147,99 +147,5 @@ class MediaGridUploader extends StatelessWidget {
           return const SizedBox.shrink(key: ValueKey('media-add-disabled'));
         },
       );
-  }
-}
-
-/// Compact variant for komentar/chat (max 5, row preview)
-class CompactMediaStrip extends StatelessWidget {
-  final List<String> mediaUrls;
-  final void Function(String url) onMediaAdded;
-  final void Function(int index) onMediaRemoved;
-  final MediaUploadConfig config;
-
-  const CompactMediaStrip({
-    super.key,
-    required this.mediaUrls,
-    required this.onMediaAdded,
-    required this.onMediaRemoved,
-    this.config = MediaUploadConfig.forChat,
-  });
-
-  void _openPicker(BuildContext context) {
-    MediaUploadOrchestrator.showPicker(
-      context: context,
-      config: config,
-      currentCount: mediaUrls.length,
-      onUploaded: (urls) async {
-        for (final u in urls) {
-          onMediaAdded(u);
-        }
-      },
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (mediaUrls.isNotEmpty)
-          SizedBox(
-            height: 72,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: mediaUrls.length,
-              separatorBuilder: (_, _) => const SizedBox(width: 8),
-              itemBuilder: (ctx, i) {
-                final url = mediaUrls[i];
-                final isVideo = MediaUploadOrchestrator.isVideoUrl(url);
-                return Stack(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(AppShape.r8),
-                      child: isVideo
-                          ? Container(
-                              width: 72,
-                              height: 72,
-                              color: scheme.scrim,
-                              child: Icon(
-                                Icons.videocam,
-                                color: scheme.onPrimary,
-                              ),
-                            )
-                          : AppImage(imageUrl: url, width: 72, height: 72, fit: BoxFit.cover, errorWidget: const Icon(Icons.broken_image)),
-                    ),
-                    Positioned(
-                      top: 2, right: 2,
-                      child: GestureDetector(
-                        onTap: () => onMediaRemoved(i),
-                        child: Container(
-                          padding: const EdgeInsets.all(AppMetrics.p2),
-                          decoration: BoxDecoration(
-                            color: scheme.scrim.withValues(alpha: 0.54),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            Icons.close,
-                            size: 12,
-                            color: scheme.onPrimary,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                );
-              },
-            ),
-          ),
-        if (mediaUrls.isNotEmpty) const SizedBox(height: 8),
-        OutlinedButton.icon(
-          onPressed: mediaUrls.length >= config.maxTotal ? null : () => _openPicker(context),
-          icon: const Icon(Icons.add_photo_alternate, size: 18),
-          label: Text(mediaUrls.isEmpty ? 'Tambah foto/video' : 'Tambah lagi (${mediaUrls.length}/${config.maxTotal})'),
-        ),
-      ],
-    );
   }
 }

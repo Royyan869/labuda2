@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -21,7 +22,9 @@ import (
 	chatRepo "github.com/labuda/backend/internal/interaction/chat/repository"
 	"github.com/labuda/backend/internal/pkg/blockcheck"
 	"github.com/labuda/backend/internal/pkg/publiccard"
+	"github.com/labuda/backend/internal/platform/mediaresolve"
 	"github.com/labuda/backend/internal/platform/response"
+	"github.com/labuda/backend/internal/platform/s3presign"
 	"github.com/labuda/backend/pkg/db"
 	"go.uber.org/zap"
 )
@@ -45,6 +48,12 @@ type Handler struct {
 	db                         *db.DB
 	log                        *zap.Logger
 	resourceProjectionResolver chatApp.ResourceProjectionResolver
+
+	// mediaPresign is the canonical S3 presign configuration for chat media.
+	// When AccessKey is empty (CI / unconfigured env) the register endpoint
+	// answers 503 instead of minting an unusable URL.
+	mediaPresign    s3presign.Config
+	mediaCDNBaseURL string
 }
 
 // NewHandler creates a new chat handler.
@@ -76,6 +85,16 @@ func (h *Handler) SetResourceProjectionResolver(r chatApp.ResourceProjectionReso
 	h.resourceProjectionResolver = r
 }
 
+// SetMediaPresigner injects the S3 presign configuration used by the chat media
+// register endpoint. Call once during handler wiring; an empty AccessKey leaves
+// the endpoint answering 503 (same contract as the general media upload
+// handler). The CDN base is shared with mediaresolve so the read_url the client
+// gets at register time is the same URL every later read resolves to.
+func (h *Handler) SetMediaPresigner(cfg s3presign.Config, cdnBaseURL string) {
+	h.mediaPresign = cfg
+	h.mediaCDNBaseURL = strings.TrimRight(strings.TrimSpace(cdnBaseURL), "/")
+}
+
 // ========================================================================
 // REQUEST DTOs
 // ========================================================================
@@ -85,7 +104,12 @@ type SendMessageRequest struct {
 	MessageType    string                 `json:"message_type" binding:"required,oneof=text negotiation_proposal system"`
 	Body           string                 `json:"body"`
 	AttachmentJSON map[string]interface{} `json:"attachment_json"`
-	IdempotencyKey string                 `json:"idempotency_key" binding:"required"`
+	// MediaAssetIDs are the chat media assets this message carries, in display
+	// order. Each id comes from POST /chat/rooms/:room_id/media (register step)
+	// and is attached ATOMICALLY with the message: either the message exists
+	// with all of its media, or it does not exist at all.
+	MediaAssetIDs  []uuid.UUID `json:"media_asset_ids"`
+	IdempotencyKey string      `json:"idempotency_key" binding:"required"`
 
 	// ResourceOccurrence is the optional communication reference carried by
 	// the message (the resource the message is about). Preview/snapshot data
@@ -234,6 +258,10 @@ func (h *Handler) ListRooms(c *gin.Context) {
 	for _, msg := range latestMessageByRoom {
 		latestMessages = append(latestMessages, msg)
 	}
+
+	// Chat media hydration for the preview: "🙏đ Foto" in a room list comes from
+	// the message's media, not from its text.
+	latestMedia := h.hydrateMessageMedia(ctx, latestMessages)
 	latestProjections, projErr := h.resolveMessageProjections(ctx, userID, latestMessages)
 	if projErr != nil {
 		h.log.Warn("chat: list-rooms failed to resolve resource projections",
@@ -249,7 +277,12 @@ func (h *Handler) ListRooms(c *gin.Context) {
 		latestMessage := latestMessageByRoom[room.ID]
 		unreadCount := unreadCountByRoom[room.ID]
 
-		data[i] = roomListItemResponse(room, userID, participantCards, latestMessage, unreadCount, latestProjections)
+		var latestMediaURLs []string
+		if latestMessage != nil {
+			latestMediaURLs = latestMedia[latestMessage.ID]
+		}
+
+		data[i] = roomListItemResponse(room, userID, participantCards, latestMessage, unreadCount, latestProjections, latestMediaURLs)
 	}
 
 	response.Success(c, gin.H{
@@ -364,6 +397,11 @@ func (h *Handler) GetRoom(c *gin.Context) {
 		}
 	}
 
+	var latestMediaURLs []string
+	if latestMessage != nil {
+		latestMediaURLs = h.hydrateMessageMedia(ctx, []*chatEntity.ChatMessage{latestMessage})[latestMessage.ID]
+	}
+
 	response.Success(c, roomListItemResponse(
 		room,
 		userID,
@@ -371,6 +409,7 @@ func (h *Handler) GetRoom(c *gin.Context) {
 		latestMessage,
 		unreadCountByRoom[room.ID],
 		projections,
+		latestMediaURLs,
 	))
 }
 
@@ -497,10 +536,14 @@ func (h *Handler) GetRoomByOrderID(c *gin.Context) {
 	senderCards := h.hydrateMessageSenders(ctx, messages)
 	sellerLifecycles := h.hydrateAttachmentSellerLifecycles(ctx, messages)
 
+	// Media hydration: ONE batch query for the page, resolved through the same
+	// read authority (mediaresolve) every other media surface uses.
+	mediaByMessage := h.hydrateMessageMedia(ctx, messages)
+
 	// Convert messages to response
 	messageData := make([]map[string]interface{}, len(messages))
 	for i, msg := range messages {
-		messageData[i] = messageToResponse(msg, senderCards, sellerLifecycles)
+		messageData[i] = messageToResponse(msg, senderCards, sellerLifecycles, mediaByMessage[msg.ID])
 	}
 
 	// Build response with room and messages
@@ -694,10 +737,13 @@ func (h *Handler) ListMessages(c *gin.Context) {
 	senderCards := h.hydrateMessageSenders(ctx, messages)
 	sellerLifecycles := h.hydrateAttachmentSellerLifecycles(ctx, messages)
 
+	// Media hydration: ONE batch query for the page (no N+1).
+	mediaByMessage := h.hydrateMessageMedia(ctx, messages)
+
 	// Convert to response
 	data := make([]map[string]interface{}, len(messages))
 	for i, msg := range messages {
-		data[i] = messageToResponse(msg, senderCards, sellerLifecycles)
+		data[i] = messageToResponse(msg, senderCards, sellerLifecycles, mediaByMessage[msg.ID])
 	}
 
 	// Resource projection hydration: batch-fetch occurrences, resolve via the
@@ -773,14 +819,17 @@ func (h *Handler) SendMessage(c *gin.Context) {
 		return
 	}
 
-	// For text messages, body is required
+	// A text message must carry a body OR media: a caption-less foto/video
+	// message is legitimate, an entirely empty message is not.
 	var body *string
 	if messageType == chatEntity.MessageTypeText {
-		if req.Body == "" {
-			response.BadRequest(c, "Body is required for text messages")
+		if req.Body == "" && len(req.MediaAssetIDs) == 0 {
+			response.BadRequest(c, "Body is required for text messages without media")
 			return
 		}
-		body = &req.Body
+		if req.Body != "" {
+			body = &req.Body
+		}
 	} else if req.Body != "" {
 		body = &req.Body
 	}
@@ -823,6 +872,7 @@ func (h *Handler) SendMessage(c *gin.Context) {
 			body,
 			req.AttachmentJSON,
 			req.IdempotencyKey,
+			req.MediaAssetIDs,
 			occurrence,
 		)
 		return svcErr
@@ -851,6 +901,23 @@ func (h *Handler) SendMessage(c *gin.Context) {
 		}
 		if err == chatRepo.ErrRoomNotFound {
 			response.NotFound(c, "Room not found")
+			return
+		}
+		if err == chatRepo.ErrTooManyMediaAssets {
+			response.BadRequest(c, "A message can carry at most 5 media items")
+			return
+		}
+		if err == chatRepo.ErrMediaAssetNotFound {
+			response.BadRequest(c, "Unknown media attachment")
+			return
+		}
+		if err == chatRepo.ErrMediaAssetForbidden {
+			response.Forbidden(c, "Media attachment does not belong to you or this room")
+			return
+		}
+		if err == chatRepo.ErrMediaAssetNotAttachable {
+			response.Error(c, 409, "MEDIA_ASSET_NOT_ATTACHABLE",
+				"Media upload expired or was already attached. Please upload it again.")
 			return
 		}
 		if err == chatRepo.ErrRateLimited {
@@ -896,7 +963,8 @@ func (h *Handler) SendMessage(c *gin.Context) {
 
 	senderCards := h.hydrateMessageSenders(ctx, []*chatEntity.ChatMessage{message})
 	sellerLifecycles := h.hydrateAttachmentSellerLifecycles(ctx, []*chatEntity.ChatMessage{message})
-	resp := messageToResponse(message, senderCards, sellerLifecycles)
+	mediaURLs := h.hydrateMessageMedia(ctx, []*chatEntity.ChatMessage{message})
+	resp := messageToResponse(message, senderCards, sellerLifecycles, mediaURLs[message.ID])
 
 	// Attach the viewer-aware resource projection when the message carries a
 	// resource occurrence. Projection is communication-surface representation
@@ -1075,10 +1143,11 @@ func roomListItemResponse(
 	lastMessage *chatEntity.ChatMessage,
 	unreadCount int,
 	projections map[uuid.UUID]*commerceshared.ResourceProjection,
+	mediaURLs []string,
 ) map[string]interface{} {
 	resp := roomToResponse(room, userID, participantCards)
 	if lastMessage != nil {
-		last := messageToResponse(lastMessage, nil, nil)
+		last := messageToResponse(lastMessage, nil, nil, mediaURLs)
 		if proj, ok := projections[lastMessage.ID]; ok {
 			last["resource_projection"] = proj
 		}
@@ -1159,10 +1228,201 @@ func (h *Handler) batchLatestMessages(
 // of attachment_json (seller_user_lifecycle, seller_trust_lifecycle). This
 // enables mobile to show SellerInactiveBadge on embedded commerce cards and
 // gate CTAs without a separate item fetch.
+// ChatMediaUploadTTL is the lifetime of a chat media presigned PUT URL. The
+// PENDING asset row outlives it (chatEntity.PendingAssetTTL), so a slow link
+// never turns a registered upload into a lost one — the client can re-register.
+const ChatMediaUploadTTL = 15 * time.Minute
+
+// RegisterMediaRequest is the body for POST /api/v1/chat/rooms/:room_id/media.
+type RegisterMediaRequest struct {
+	// ContentType must be image/jpeg, image/png, image/webp, image/gif or
+	// video/mp4 — the canonical chat media vocabulary.
+	ContentType string `json:"content_type" binding:"required"`
+	// ByteSize is the file size in bytes. The server enforces the per-type
+	// ceiling (10 MB foto / 100 MB video), so a client that lies about its own
+	// picker limits is rejected here.
+	ByteSize int64 `json:"byte_size" binding:"required,min=1"`
+}
+
+// RegisterMediaResponse is the register step of register → upload → attach.
+type RegisterMediaResponse struct {
+	// AssetID is the id to send back in media_asset_ids on the message.
+	AssetID string `json:"asset_id"`
+	// StorageKey is the S3 object key the presigned PUT targets.
+	StorageKey string `json:"storage_key"`
+	// MediaType is image or video — the asset's canonical type.
+	MediaType string `json:"media_type"`
+	// UploadURL is the presigned PUT URL (expires per ChatMediaUploadTTL). The
+	// PUT must carry a Content-Type matching content_type.
+	UploadURL string `json:"upload_url"`
+	// ReadURL is the canonical CDN read URL the object will be served at.
+	ReadURL string `json:"read_url"`
+	// ExpiresAt is the UTC expiry of the PENDING window: after this moment the
+	// asset is swept and must be registered again.
+	ExpiresAt time.Time `json:"expires_at"`
+}
+
+// RegisterMedia handles POST /api/v1/chat/rooms/:room_id/media.
+//
+// Step 1 of the canonical chat media pipeline:
+//
+//	1. POST here → {asset_id, storage_key, upload_url}
+//	2. PUT the bytes to upload_url with a matching Content-Type
+//	3. POST /chat/rooms/:room_id/messages with media_asset_ids: [asset_id, ...]
+//
+// The asset stays PENDING until a message references it. An upload that is
+// never attached expires (24h) and is swept — that is what makes "pilih media
+// lalu batal" cost nothing and leave no orphan authority behind.
+//
+// Returns:
+//   - 200: {asset_id, storage_key, upload_url, read_url, expires_at}
+//   - 400: invalid content_type or byte_size
+//   - 403: caller is not a participant of the room
+//   - 404: room not found
+//   - 503: AWS not configured
+func (h *Handler) RegisterMedia(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	if h.mediaPresign.AccessKey == "" {
+		h.log.Error("chat media register: AWS not configured")
+		response.Error(c, 503, "UPLOAD_NOT_CONFIGURED", "Media upload service not configured")
+		return
+	}
+
+	userIDVal, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+	uploaderID, ok := userIDVal.(uuid.UUID)
+	if !ok {
+		response.InternalServerError(c, "Invalid user ID in context")
+		return
+	}
+
+	roomID, err := uuid.Parse(c.Param("room_id"))
+	if err != nil {
+		response.BadRequest(c, "Invalid room ID")
+		return
+	}
+
+	var req RegisterMediaRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, err.Error())
+		return
+	}
+
+	asset, svcErr := h.chatService.CreatePendingMediaAsset(ctx, roomID, uploaderID, req.ContentType, req.ByteSize)
+	if svcErr != nil {
+		switch {
+		case errors.Is(svcErr, chatRepo.ErrParticipantMismatch):
+			response.Forbidden(c, "You are not a participant in this room")
+		case errors.Is(svcErr, chatRepo.ErrRoomNotFound):
+			response.NotFound(c, "Room not found")
+		case errors.Is(svcErr, chatRepo.ErrMediaContentTypeRejected):
+			response.Error(c, 400, "INVALID_CONTENT_TYPE",
+				"content_type must be one of "+strings.Join(chatEntity.AllowedChatMediaContentTypes(), ", "))
+		case errors.Is(svcErr, chatRepo.ErrMediaSizeExceeded):
+			response.Error(c, 400, "INVALID_FILE_SIZE",
+				"byte_size must be within the limit fotos 10MB / video 100MB")
+		default:
+			h.log.Error("chat media register: failed to create pending asset",
+				zap.String("room_id", roomID.String()),
+				zap.String("uploader_id", uploaderID.String()),
+				zap.Error(svcErr),
+			)
+			response.InternalServerError(c, "Failed to register media")
+		}
+		return
+	}
+
+	uploadURL, presignErr := s3presign.PresignPUT(h.mediaPresign, asset.StorageKey, asset.ContentType, ChatMediaUploadTTL)
+	if presignErr != nil {
+		h.log.Error("chat media register: presign failed",
+			zap.String("asset_id", asset.ID.String()),
+			zap.Error(presignErr),
+		)
+		response.InternalServerError(c, "Failed to generate upload URL")
+		return
+	}
+
+	readURL := fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s",
+		h.mediaPresign.Bucket, h.mediaPresign.Region, asset.StorageKey)
+	if h.mediaCDNBaseURL != "" {
+		readURL = h.mediaCDNBaseURL + "/" + asset.StorageKey
+	}
+
+	response.Success(c, RegisterMediaResponse{
+		AssetID:    asset.ID.String(),
+		StorageKey: asset.StorageKey,
+		MediaType:  string(asset.MediaType),
+		UploadURL:  uploadURL,
+		ReadURL:    readURL,
+		ExpiresAt:  asset.ExpiresAt,
+	})
+}
+
+// hydrateMessageMedia batch-loads the media of a page of messages and maps each
+// message id to its ordered, ready-to-render URLs.
+//
+// ONE query per page (no N+1) and ONE resolution authority: mediaresolve turns
+// the stored storage_key into the CDN read URL (or a presigned GET when no CDN
+// is configured), exactly like every other media surface.
+//
+// Media is a PROJECTION of a message, never a reason to fail a page: a hydration
+// or resolution error degrades to "no media" and is logged.
+func (h *Handler) hydrateMessageMedia(ctx context.Context, messages []*chatEntity.ChatMessage) map[uuid.UUID][]string {
+	out := make(map[uuid.UUID][]string, len(messages))
+	if len(messages) == 0 {
+		return out
+	}
+
+	ids := make([]uuid.UUID, 0, len(messages))
+	for _, msg := range messages {
+		if msg != nil {
+			ids = append(ids, msg.ID)
+		}
+	}
+	if len(ids) == 0 {
+		return out
+	}
+
+	mediaByMessage, err := h.chatService.ListMessageMedia(ctx, ids)
+	if err != nil {
+		h.log.Warn("chat: failed to hydrate message media", zap.Error(err))
+		return out
+	}
+
+	for messageID, assets := range mediaByMessage {
+		urls := make([]string, 0, len(assets))
+		for _, asset := range assets {
+			if asset == nil || asset.StorageKey == "" {
+				continue
+			}
+			resolved, resolveErr := mediaresolve.ResolveMediaReadURL(asset.StorageKey)
+			if resolveErr != nil {
+				h.log.Warn("chat: failed to resolve media read url",
+					zap.String("message_id", messageID.String()),
+					zap.String("storage_key", asset.StorageKey),
+					zap.Error(resolveErr),
+				)
+				continue
+			}
+			urls = append(urls, resolved)
+		}
+		if len(urls) > 0 {
+			out[messageID] = urls
+		}
+	}
+
+	return out
+}
+
 func messageToResponse(
 	msg *chatEntity.ChatMessage,
 	senderCards map[uuid.UUID]publiccard.UserCard,
 	sellerLifecycles map[string]attachmentSellerLifecycle,
+	mediaURLs []string,
 ) map[string]interface{} {
 	resp := map[string]interface{}{
 		"id":           msg.ID.String(),
@@ -1181,6 +1441,15 @@ func messageToResponse(
 
 	if msg.Body != nil {
 		resp["body"] = *msg.Body
+	}
+
+	// Canonical chat media projection. Media is ORTHOGONAL to message_type — the
+	// asset rows carry image|video, the message carries the ordered list — so a
+	// photo/video message is "text + media_urls", and has_media mirrors the
+	// chat_messages.has_media flag a room list reads for its preview.
+	if len(mediaURLs) > 0 {
+		resp["media_urls"] = mediaURLs
+		resp["has_media"] = true
 	}
 
 	if msg.AttachmentJSON != nil {

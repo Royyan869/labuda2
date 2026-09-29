@@ -7,73 +7,27 @@ import 'package:labuda/shared/shared.dart';
 import 'web_image_cropper.dart';
 import 'flutter_crop_image.dart';
 
-/// Single crop authority: pick (OS single-shot camera/gallery) → crop
-/// (crop_your_image on mobile, canvas on web) → cropped local path.
-/// Upload is the caller's job (S3 fixed key via the domain service).
+/// Single CROP authority: local file → crop (crop_your_image on mobile, canvas
+/// on web) → cropped local path.
+///
+/// Picking is NOT here. Every surface (avatar, cover, store photo, media
+/// attachments) picks through `MediaUploadOrchestrator`; this class only runs
+/// the crop step, and upload stays the caller's job.
 class AvatarImageProcessor {
-  /// Pick and process image from given source
-  static Future<void> pickAndCropImage(
+  static Future<void> cropImage(
     BuildContext context,
-    ImageSource source,
-    String userId,
-    Function(String? avatarUrl) onAvatarUpdated, {
+    File file,
+    Function(String?) onCropped, {
     double aspectRatio = 1.0,
     bool circularCrop = true,
-    String cropTitle = 'Crop Avatar',
-  }) async {
-    try {
-      if (kIsWeb && source == ImageSource.camera) {
-        if (context.mounted) {
-          AppSnackBar.showError(
-            context,
-            'Camera not supported on web. Please use gallery.',
-          );
-        }
-        return;
-      }
-
-      final ImagePicker picker = ImagePicker();
-      final XFile? image = await picker.pickImage(
-        source: source,
-        maxWidth: 2048,
-        maxHeight: 2048,
-        imageQuality: 95,
-      );
-
-      if (image != null && context.mounted) {
-        await _handleImagePicked(
-          context,
-          image,
-          userId,
-          onAvatarUpdated,
-          aspectRatio: aspectRatio,
-          circularCrop: circularCrop,
-          cropTitle: cropTitle,
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        AppSnackBar.showError(context, 'Failed to pick image: $e');
-      }
-    }
-  }
-
-  static Future<void> _handleImagePicked(
-    BuildContext context,
-    XFile image,
-    String userId,
-    Function(String? avatarUrl) onAvatarUpdated, {
-    double aspectRatio = 1.0,
-    bool circularCrop = true,
-    String cropTitle = 'Crop Avatar',
+    String cropTitle = 'Crop Foto',
   }) async {
     try {
       if (kIsWeb) {
         await _showWebCropper(
           context,
-          image,
-          userId,
-          onAvatarUpdated,
+          XFile(file.path),
+          onCropped,
           aspectRatio: aspectRatio,
           circularCrop: circularCrop,
           cropTitle: cropTitle,
@@ -81,9 +35,8 @@ class AvatarImageProcessor {
       } else {
         await _showMobileCropper(
           context,
-          image,
-          userId,
-          onAvatarUpdated,
+          XFile(file.path),
+          onCropped,
           aspectRatio: aspectRatio,
           circularCrop: circularCrop,
           cropTitle: cropTitle,
@@ -91,19 +44,19 @@ class AvatarImageProcessor {
       }
     } catch (e) {
       if (context.mounted) {
-        AppSnackBar.showError(context, 'Failed to crop image: $e');
+        AppSnackBar.showError(context, 'Gagal memotong gambar: $e');
       }
+      onCropped(null);
     }
   }
 
   static Future<void> _showWebCropper(
     BuildContext context,
     XFile imageFile,
-    String userId,
-    Function(String? avatarUrl) onAvatarUpdated, {
+    Function(String?) onCropped, {
     double aspectRatio = 1.0,
     bool circularCrop = true,
-    String cropTitle = 'Crop Avatar',
+    String cropTitle = 'Crop Foto',
   }) async {
     if (!context.mounted) return;
 
@@ -120,7 +73,7 @@ class AvatarImageProcessor {
             // For web, convert cropped bytes to data URL for preview
             final base64String = base64Encode(croppedBytes);
             final dataUrl = 'data:image/png;base64,$base64String';
-            onAvatarUpdated(dataUrl);
+            onCropped(dataUrl);
           },
           onCancel: () => Navigator.of(context).pop(),
         ),
@@ -131,11 +84,10 @@ class AvatarImageProcessor {
   static Future<void> _showMobileCropper(
     BuildContext context,
     XFile imageFile,
-    String userId,
-    Function(String? avatarUrl) onAvatarUpdated, {
+    Function(String?) onCropped, {
     double aspectRatio = 1.0,
     bool circularCrop = true,
-    String cropTitle = 'Crop Avatar',
+    String cropTitle = 'Crop Foto',
   }) async {
     if (!context.mounted) return;
 
@@ -149,18 +101,14 @@ class AvatarImageProcessor {
           title: cropTitle,
           onCropped: (croppedBytes) async {
             try {
-              // Save cropped bytes to temp file and return local path
-              final tempPath = await _saveCroppedBytesToTempFile(
-                croppedBytes,
-                userId,
-              );
-              // DON'T pop here - FlutterImageCropper already pops itself (line 105)
-              onAvatarUpdated(tempPath);
+              final tempPath = await _saveCroppedBytesToTempFile(croppedBytes);
+              // DON'T pop here - FlutterImageCropper already pops itself.
+              onCropped(tempPath);
             } catch (e) {
               if (context.mounted) {
                 AppSnackBar.showError(context, 'Gagal menyimpan gambar: $e');
               }
-              onAvatarUpdated(null);
+              onCropped(null);
             }
           },
         ),
@@ -168,23 +116,18 @@ class AvatarImageProcessor {
     );
   }
 
-  /// Save cropped bytes to temporary file and return path
+  /// Save cropped bytes to a temporary file and return its path.
   static Future<String> _saveCroppedBytesToTempFile(
     Uint8List croppedBytes,
-    String userId,
   ) async {
     try {
-      final directory = await Directory.systemTemp.createTemp('avatar_');
-
+      final directory = await Directory.systemTemp.createTemp('labuda_crop_');
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final tempFile = File('${directory.path}/cropped_$timestamp.jpg');
-
       await tempFile.writeAsBytes(croppedBytes);
-
       return tempFile.path;
     } catch (e) {
       throw Exception('Failed to save cropped image: $e');
     }
   }
-
 }

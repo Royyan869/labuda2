@@ -120,7 +120,7 @@ func (f *chatProjectionHTTPFixture) seedMessage(
 	if attachmentJSON != nil {
 		_ = json.Unmarshal(attachmentJSON, &parsedAttachment)
 	}
-	fingerprint := chatEntity.ComputeCommandFingerprint(senderID, chatEntity.MessageTypeText, body, parsedAttachment)
+	fingerprint := chatEntity.ComputeCommandFingerprint(senderID, chatEntity.MessageTypeText, body, parsedAttachment, nil)
 	_, err := f.appDB.Pool().Exec(context.Background(), `
 		INSERT INTO chat_messages (
 			id, room_id, sender_id, message_type, body, attachment_json,

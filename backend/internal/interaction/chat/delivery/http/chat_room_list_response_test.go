@@ -25,7 +25,7 @@ func TestRoomListItemResponse_IncludesLastMessage(t *testing.T) {
 		CreatedAt:   time.Now(),
 	}
 
-	resp := roomListItemResponse(room, userID, nil, msg, 3, nil)
+	resp := roomListItemResponse(room, userID, nil, msg, 3, nil, nil)
 	last, ok := resp["last_message"].(map[string]interface{})
 	assert.True(t, ok)
 	assert.Equal(t, "text", last["message_type"])
@@ -49,7 +49,7 @@ func TestRoomListItemResponse_HiddenLastMessage_Tombstone(t *testing.T) {
 		DeletedAt:   &now,
 	}
 
-	resp := roomListItemResponse(room, userID, nil, msg, 0, nil)
+	resp := roomListItemResponse(room, userID, nil, msg, 0, nil, nil)
 	last := resp["last_message"].(map[string]interface{})
 	assert.Equal(t, true, last["is_hidden"])
 	_, hasBody := last["body"]
@@ -63,7 +63,7 @@ func TestRoomListItemResponse_HiddenLastMessage_Tombstone(t *testing.T) {
 func TestRoomListItemResponse_NoMessage_NullLastMessage(t *testing.T) {
 	room := chatEntity.NewChatRoom(chatEntity.RoomTypeDirect, uuid.New(), uuid.New())
 	room.LastMessageAt = time.Now()
-	resp := roomListItemResponse(room, room.ParticipantA, nil, nil, 0, nil)
+	resp := roomListItemResponse(room, room.ParticipantA, nil, nil, 0, nil, nil)
 	assert.Nil(t, resp["last_message"])
 	assert.Equal(t, 0, resp["unread_count"])
 }
@@ -92,7 +92,7 @@ func TestRoomListItemResponse_AttachesResourceProjectionToLastMessage(t *testing
 	)
 	assert.NoError(t, err)
 
-	resp := roomListItemResponse(room, userID, nil, msg, 0, map[uuid.UUID]*chatApp.ResourceProjection{msg.ID: &proj})
+	resp := roomListItemResponse(room, userID, nil, msg, 0, map[uuid.UUID]*chatApp.ResourceProjection{msg.ID: &proj}, nil)
 	last := resp["last_message"].(map[string]interface{})
 	assert.NotNil(t, last["resource_projection"])
 }

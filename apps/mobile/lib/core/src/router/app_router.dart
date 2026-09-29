@@ -507,9 +507,6 @@ class AppRouter implements NavigationHandler {
       _currentRouter?.push('/auction/$auctionId');
 
   @override
-  void navigateToCreateAuction() => _currentRouter?.push('/create/auction');
-
-  @override
   void navigateToChat() => _currentRouter?.push('/chat');
 
   @override
@@ -564,10 +561,6 @@ class AppRouter implements NavigationHandler {
       forSaleId,
     ),
   );
-
-  @override
-  void navigateToCreateForSale() =>
-      _currentRouter?.push(RoutePaths.createForSale);
 
   @override
   void navigateToAuction(String auctionId) =>

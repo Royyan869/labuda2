@@ -171,6 +171,13 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
 
       if (result.isSuccess && result.data != null) {
         final forSale = result.data!;
+
+        // The marketplace list is a cached FutureProvider watched by a tab that
+        // is alive (IndexedStack). Without this the listing you just published
+        // would be invisible the moment you land back on its tab. Auction does
+        // the same on its own create path.
+        ref.invalidate(forSalesProvider);
+
         // Show success and navigate back with forSale data
         AppSnackBar.showSuccess(
           context,

@@ -405,6 +405,7 @@ func (s *Service) SendSupportMessage(
 		&body,
 		nil,
 		idempotencyKey,
+		nil, // support replies carry no media attachments
 		nil,
 		false,
 	)
@@ -694,14 +695,17 @@ func (s *Service) SendMessage(
 	attachmentJSON map[string]interface{},
 	idempotencyKey string,
 ) (*chatEntity.ChatMessage, error) {
-	return s.sendMessage(ctx, roomID, senderID, messageType, body, attachmentJSON, idempotencyKey, nil, true)
+	return s.sendMessage(ctx, roomID, senderID, messageType, body, attachmentJSON, idempotencyKey, nil, nil, true)
 }
 
 // SendMessageWithResourceOccurrence sends a message that additionally records a
 // resource occurrence (communication reference) for the referenced
-// profile/content/for_sale/auction. The occurrence is persisted atomically
-// with the message. Chat stores identity + operation + a server-built display
-// fallback only — never Commerce business authority.
+// profile/content/for_sale/auction, and optionally attaches media assets.
+//
+// Both companions are persisted atomically with the message: the occurrence
+// stores identity + operation + a server-built display fallback (never
+// Commerce business authority), and mediaAssetIDs attach pending room-scoped
+// assets in the order given (they define display order).
 func (s *Service) SendMessageWithResourceOccurrence(
 	ctx context.Context,
 	roomID, senderID uuid.UUID,
@@ -709,9 +713,146 @@ func (s *Service) SendMessageWithResourceOccurrence(
 	body *string,
 	attachmentJSON map[string]interface{},
 	idempotencyKey string,
+	mediaAssetIDs []uuid.UUID,
 	resourceOccurrence *chatEntity.ResourceOccurrenceIdentity,
 ) (*chatEntity.ChatMessage, error) {
-	return s.sendMessage(ctx, roomID, senderID, messageType, body, attachmentJSON, idempotencyKey, resourceOccurrence, true)
+	return s.sendMessage(ctx, roomID, senderID, messageType, body, attachmentJSON, idempotencyKey, mediaAssetIDs, resourceOccurrence, true)
+}
+
+// ========================================================================
+// CHAT MEDIA — register → upload → attach
+// ========================================================================
+
+// CreatePendingMediaAsset registers the upload authority for ONE chat media
+// file and returns the PENDING asset. The caller (HTTP layer) presigns the PUT
+// for asset.StorageKey; nothing reaches a message until the sender references
+// the asset id on send.
+//
+// Rules enforced here (server-side authority — the mobile picker limits are a
+// client experience, not the gate):
+//   - the uploader must be a participant of the room
+//   - content_type must be in the canonical chat media vocabulary
+//   - byte_size must be > 0 and within the per-type ceiling
+func (s *Service) CreatePendingMediaAsset(
+	ctx context.Context,
+	roomID, uploaderID uuid.UUID,
+	contentType string,
+	byteSize int64,
+) (*chatEntity.ChatMediaAsset, error) {
+	mediaType, err := chatEntity.MediaTypeForContentType(contentType)
+	if err != nil {
+		return nil, chatRepo.ErrMediaContentTypeRejected
+	}
+	if byteSize <= 0 || byteSize > mediaType.MaxBytes() {
+		return nil, chatRepo.ErrMediaSizeExceeded
+	}
+
+	var asset *chatEntity.ChatMediaAsset
+	err = s.db.WithTx(ctx, func(tx db.Tx) error {
+		room, err := s.repo.GetRoomByID(ctx, tx, roomID)
+		if err != nil {
+			return fmt.Errorf("room not found: %w", err)
+		}
+		if !room.HasParticipant(uploaderID) {
+			return chatRepo.ErrParticipantMismatch
+		}
+
+		now := time.Now().UTC()
+		pending, err := chatEntity.NewChatMediaAsset(
+			roomID,
+			uploaderID,
+			mediaType,
+			contentType,
+			chatEntity.StorageKeyForRoomMedia(roomID, uploaderID, mediaType, contentType, now),
+			byteSize,
+			now.Add(chatEntity.PendingAssetTTL),
+		)
+		if err != nil {
+			return err
+		}
+		if err := s.repo.CreateMediaAsset(ctx, tx, pending); err != nil {
+			return err
+		}
+		asset = pending
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return asset, nil
+}
+
+// attachMediaAssets validates and attaches the referenced media assets to a
+// freshly created message, inside the caller's transaction.
+//
+// Every asset must be pending, unexpired, minted for THIS room and uploaded by
+// THIS sender. Ownership violations are FORBIDDEN and lifecycle violations are
+// NOT ATTACHABLE — kept distinct so a client knows whether to re-upload. The
+// order of mediaAssetIDs IS the display order.
+func (s *Service) attachMediaAssets(
+	ctx context.Context,
+	tx interface{},
+	messageID, roomID, senderID uuid.UUID,
+	mediaAssetIDs []uuid.UUID,
+) error {
+	if len(mediaAssetIDs) == 0 {
+		return nil
+	}
+	if len(mediaAssetIDs) > chatEntity.MaxMediaPerMessage {
+		return chatRepo.ErrTooManyMediaAssets
+	}
+
+	// The same asset twice in one message has no meaning and would collide on
+	// the (message_id, media_asset_id) primary key — reject it explicitly.
+	seen := make(map[uuid.UUID]struct{}, len(mediaAssetIDs))
+	for _, assetID := range mediaAssetIDs {
+		if assetID == uuid.Nil {
+			return chatRepo.ErrMediaAssetNotFound
+		}
+		if _, duplicate := seen[assetID]; duplicate {
+			return chatRepo.ErrMediaAssetForbidden
+		}
+		seen[assetID] = struct{}{}
+	}
+
+	assets, err := s.repo.GetMediaAssetsByIDs(ctx, tx, mediaAssetIDs)
+	if err != nil {
+		return fmt.Errorf("load chat media assets failed: %w", err)
+	}
+	if len(assets) != len(mediaAssetIDs) {
+		return chatRepo.ErrMediaAssetNotFound
+	}
+	byID := make(map[uuid.UUID]*chatEntity.ChatMediaAsset, len(assets))
+	for _, asset := range assets {
+		byID[asset.ID] = asset
+	}
+
+	now := time.Now().UTC()
+	for sortOrder, assetID := range mediaAssetIDs {
+		asset, ok := byID[assetID]
+		if !ok {
+			return chatRepo.ErrMediaAssetNotFound
+		}
+		switch asset.Attachable(roomID, senderID, now) {
+		case "":
+			// Attachable — fall through to finalize.
+		case chatEntity.MediaAttachRejectionRoomMismatch, chatEntity.MediaAttachRejectionUploaderMismatch:
+			return chatRepo.ErrMediaAssetForbidden
+		default:
+			return chatRepo.ErrMediaAssetNotAttachable
+		}
+
+		// Finalize is guarded by `status = 'pending'` in SQL: a concurrent
+		// attach or sweep loses the race instead of double-attaching one asset.
+		if err := s.repo.FinalizeMediaAsset(ctx, tx, assetID, now); err != nil {
+			return err
+		}
+		if err := s.repo.LinkMediaAssetToMessage(ctx, tx, messageID, assetID, sortOrder); err != nil {
+			return err
+		}
+	}
+
+	return s.repo.MarkMessageHasMedia(ctx, tx, messageID)
 }
 
 // sendMessage is the single canonical implementation behind SendMessage and
@@ -723,6 +864,10 @@ func (s *Service) sendMessage(
 	body *string,
 	attachmentJSON map[string]interface{},
 	idempotencyKey string,
+	// mediaAssetIDs are the pending chat media assets this message carries, in
+	// display order. They are attached inside the same transaction as the
+	// message: either the message exists with all of its media, or neither.
+	mediaAssetIDs []uuid.UUID,
 	resourceOccurrence *chatEntity.ResourceOccurrenceIdentity,
 	// requireParticipant enforces the standard chat participant check. Support
 	// rooms set this to false because agent authorization is owned by the
@@ -755,6 +900,12 @@ func (s *Service) sendMessage(
 		return nil, chatRepo.ErrInvalidMessageType
 	}
 
+	// Media attach policy is checked before any read or write so an oversized
+	// request fails fast and cheap.
+	if len(mediaAssetIDs) > chatEntity.MaxMediaPerMessage {
+		return nil, chatRepo.ErrTooManyMediaAssets
+	}
+
 	// Validate body length for text messages
 	if messageType == chatEntity.MessageTypeText && body != nil {
 		if len(*body) == 0 {
@@ -765,9 +916,10 @@ func (s *Service) sendMessage(
 		}
 	}
 
-	// For text messages, body is required
-	if messageType == chatEntity.MessageTypeText && body == nil {
-		return nil, fmt.Errorf("text message requires a body")
+	// A text message must carry SOMETHING: a body, or media. A media-only
+	// message (caption-less foto/video) is legitimate and has no body.
+	if messageType == chatEntity.MessageTypeText && body == nil && len(mediaAssetIDs) == 0 {
+		return nil, fmt.Errorf("text message requires a body or media")
 	}
 
 	// Account status enforcement: sender must be active before any persistence.
@@ -817,7 +969,7 @@ func (s *Service) sendMessage(
 		// migration 000032. The incoming command fingerprint (computed with the
 		// same canonical formula used to persist the row) decides replay vs
 		// conflict for that pair.
-		incomingFingerprint := chatEntity.ComputeCommandFingerprint(senderID, messageType, body, attachmentJSON)
+		incomingFingerprint := chatEntity.ComputeCommandFingerprint(senderID, messageType, body, attachmentJSON, mediaAssetIDs)
 
 		existingMessage, err := s.repo.GetMessageByIdempotencyKey(ctx, tx, senderID, idempotencyKey)
 		if err == nil {
@@ -840,6 +992,7 @@ func (s *Service) sendMessage(
 			body,
 			attachmentJSON,
 			idempotencyKey,
+			mediaAssetIDs,
 		)
 
 		if err := s.repo.CreateMessage(ctx, tx, newMessage); err != nil {
@@ -858,6 +1011,17 @@ func (s *Service) sendMessage(
 				return nil
 			}
 			return fmt.Errorf("failed to create message: %w", err)
+		}
+
+		// Attach media INSIDE the same transaction: a message with media is one
+		// unit — either it exists with all of its media, or it does not exist.
+		// The pending → finalized flip is also the ownership proof: only an
+		// asset that is still pending in THIS room for THIS uploader can be
+		// attached, so a storage_key can never be stolen or reused.
+		if len(mediaAssetIDs) > 0 {
+			if err := s.attachMediaAssets(ctx, tx, newMessage.ID, roomID, senderID, mediaAssetIDs); err != nil {
+				return err
+			}
 		}
 
 		// Persist the resource occurrence (communication reference) for this
@@ -1103,6 +1267,31 @@ func (s *Service) ListMessages(
 	}
 
 	return messages, nil
+}
+
+// ListMessageMedia returns the media of the given messages keyed by message id,
+// in display order. This is the read path a message page uses to hydrate
+// media_urls in ONE query — no N+1, and no per-message ownership question:
+// the page was already authorized by ListMessages.
+func (s *Service) ListMessageMedia(ctx context.Context, messageIDs []uuid.UUID) (map[uuid.UUID][]*chatEntity.ChatMediaAsset, error) {
+	out := make(map[uuid.UUID][]*chatEntity.ChatMediaAsset, len(messageIDs))
+	if len(messageIDs) == 0 {
+		return out, nil
+	}
+
+	err := s.db.WithTx(ctx, func(tx db.Tx) error {
+		media, err := s.repo.ListMediaAssetsByMessageIDs(ctx, tx, messageIDs)
+		if err != nil {
+			return err
+		}
+		out = media
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return out, nil
 }
 
 // ========================================================================

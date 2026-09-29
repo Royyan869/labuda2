@@ -42,6 +42,13 @@ const _auctionId = '00000000-0000-0000-0000-000000005555';
 const _productId = '00000000-0000-0000-0000-000000006666';
 
 class _FakeAuthController extends AuthController {
+  /// Seller is the DEFAULT here: this file exercises the direct-commerce attach
+  /// capability, and "Lampirkan Produk" is a SELLER-only entry (owner decision).
+  /// `seller: false` proves the entry is absent for a non-seller.
+  _FakeAuthController({this.seller = true});
+
+  final bool seller;
+
   @override
   AuthState build() {
     final now = DateTime.utc(2026, 7, 30, 8);
@@ -53,9 +60,11 @@ class _FakeAuthController extends AuthController {
       username: 'me',
       isEmailVerified: true,
       accountStatus: AccountStatus.active,
-      hasSellerProfile: false,
-      hasMarketAuthority: false,
-      sellerSubscriptionStatus: 'none',
+      hasSellerProfile: seller,
+      hasMarketAuthority: seller,
+      sellerSubscriptionStatus: seller ? 'active' : 'none',
+      // Seller-ness is backend-derived `hasMarketAuthority`, NOT a role: there
+      // is no UserRole.seller in the canonical vocabulary.
       roles: const [UserRole.user],
       provider: AuthProvider.email,
       lifecycle: ContentLifecycle.active,
@@ -396,6 +405,7 @@ ProviderScope _buildScope({
   required Widget child,
   ChatDetailState? initialState,
   _FakeChatDetailNotifier? notifier,
+  bool seller = true,
 }) {
   final chatNotifier =
       notifier ??
@@ -407,7 +417,9 @@ ProviderScope _buildScope({
 
   return ProviderScope(
     overrides: [
-      authControllerProvider.overrideWith(_FakeAuthController.new),
+      authControllerProvider.overrideWith(
+        () => _FakeAuthController(seller: seller),
+      ),
       currentUserIdProvider.overrideWith((ref) => _currentUserId),
       isUserBlockedProvider(_otherUserId).overrideWith((ref) => false),
       negotiationNotifierProvider.overrideWith(_FakeNegotiationNotifier.new),
@@ -513,7 +525,27 @@ class _ChatCreateForSaleRoute extends StatelessWidget {
 }
 
 void main() {
-  testWidgets('attachment menu exposes direct commerce entry only', (
+  testWidgets('non-seller is never offered the commerce entry', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _buildScope(
+        seller: false,
+        child: const ChatDetailScreen(chatId: _chatId),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await tester.tap(find.byIcon(Icons.add_circle));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.text('Galeri'), findsOneWidget);
+    expect(find.text('Kamera'), findsOneWidget);
+    expect(find.text('Lampirkan Produk'), findsNothing);
+  });
+
+  testWidgets('attachment sheet exposes galeri, kamera and commerce entry', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -525,8 +557,13 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
 
-    expect(find.text('Foto'), findsOneWidget);
-    expect(find.text('Video'), findsOneWidget);
+    // ONE attachment sheet: Galeri carries foto AND video (one system picker),
+    // so the old fake 'Foto' / 'Video' split is gone, and the commerce entry is
+    // a seller-only capability.
+    expect(find.text('Galeri'), findsOneWidget);
+    expect(find.text('Kamera'), findsOneWidget);
+    expect(find.text('Foto'), findsNothing);
+    expect(find.text('Video'), findsNothing);
     expect(find.text('Lampirkan Produk'), findsOneWidget);
     expect(find.text('Bagikan ForSale'), findsNothing);
 

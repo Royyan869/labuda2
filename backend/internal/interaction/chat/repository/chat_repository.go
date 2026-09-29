@@ -92,6 +92,50 @@ type Repository interface {
 	GetMessageByIdempotencyKey(ctx context.Context, tx interface{}, senderID uuid.UUID, idempotencyKey string) (*entity.ChatMessage, error)
 
 	// ========================================================================
+	// MEDIA ASSET OPERATIONS
+	//
+	// The chat media pipeline is register → upload → attach:
+	//   1. CreateMediaAsset registers a PENDING, room-scoped asset; the HTTP
+	//      layer presigns the PUT for the returned storage_key.
+	//   2. FinalizeMediaAsset + LinkMediaAssetToMessage attach it inside the
+	//      send transaction (pending → finalized, has_media set).
+	//   3. ListMediaAssetsByMessageIDs hydrates a page of messages in ONE query.
+	//   4. CleanupExpiredPendingMediaAssets sweeps uploads that were never
+	//      attached — that is what makes "upload lalu batal" cost nothing.
+	// ========================================================================
+
+	// CreateMediaAsset registers a pending room-scoped media asset.
+	CreateMediaAsset(ctx context.Context, tx interface{}, asset *entity.ChatMediaAsset) error
+
+	// GetMediaAssetsByIDs fetches assets by id. Missing ids are simply absent
+	// from the result — the caller decides how to report a gap.
+	GetMediaAssetsByIDs(ctx context.Context, tx interface{}, ids []uuid.UUID) ([]*entity.ChatMediaAsset, error)
+
+	// FinalizeMediaAsset flips a PENDING asset to finalized and extends its read
+	// lifetime. The UPDATE is guarded by `WHERE status = 'pending'`, so the
+	// pending check and the write are atomic: a concurrent attach or sweep can
+	// never double-finalize. Returns ErrMediaAssetNotAttachable otherwise.
+	FinalizeMediaAsset(ctx context.Context, tx interface{}, assetID uuid.UUID, finalizedAt time.Time) error
+
+	// LinkMediaAssetToMessage records message ↔ asset with its display order.
+	LinkMediaAssetToMessage(ctx context.Context, tx interface{}, messageID, assetID uuid.UUID, sortOrder int) error
+
+	// MarkMessageHasMedia sets chat_messages.has_media — the canonical fast flag
+	// a room list reads to preview "📷 Foto" without touching the join table.
+	MarkMessageHasMedia(ctx context.Context, tx interface{}, messageID uuid.UUID) error
+
+	// ListMediaAssetsByMessageIDs batch-fetches the media of a page of messages
+	// and returns it keyed by message id, ordered by sort_order so the client
+	// renders in the order the sender arranged them. One query, no N+1. Messages
+	// without media are simply absent from the map.
+	ListMediaAssetsByMessageIDs(ctx context.Context, tx interface{}, messageIDs []uuid.UUID) (map[uuid.UUID][]*entity.ChatMediaAsset, error)
+
+	// CleanupExpiredPendingMediaAssets marks expired PENDING assets deleted
+	// (deletion_reason = 'expired') and returns how many rows were swept.
+	// Finalized assets are never touched.
+	CleanupExpiredPendingMediaAssets(ctx context.Context, tx interface{}, now time.Time) (int64, error)
+
+	// ========================================================================
 	// MODERATION OPERATIONS
 	// ========================================================================
 
@@ -234,6 +278,34 @@ var (
 	ErrResourceNotFound      = errorString("resource not found")
 	ErrResourceNotAccessible = errorString("resource not accessible")
 	ErrResourceNotPromotable = errorString("resource not promotable")
+
+	// ------ Chat media asset sentinels (register → upload → attach) ------
+
+	// ErrMediaAssetNotFound is returned when a referenced chat media asset does
+	// not exist.
+	ErrMediaAssetNotFound = errorString("chat media asset not found")
+
+	// ErrMediaAssetForbidden is returned when a media asset belongs to another
+	// room or was uploaded by another user — the ownership rule that makes
+	// reusing someone else's storage_key impossible.
+	ErrMediaAssetForbidden = errorString("chat media asset is not owned by this room participant")
+
+	// ErrMediaAssetNotAttachable is returned when an asset can no longer be
+	// attached: it is not pending anymore (already attached or swept) or its
+	// upload window expired.
+	ErrMediaAssetNotAttachable = errorString("chat media asset can no longer be attached")
+
+	// ErrTooManyMediaAssets is returned when a message carries more media than
+	// the product cap allows.
+	ErrTooManyMediaAssets = errorString("message carries too many media assets")
+
+	// ErrMediaContentTypeRejected is returned when an upload MIME type is not in
+	// the canonical chat media vocabulary.
+	ErrMediaContentTypeRejected = errorString("chat media content type is not allowed")
+
+	// ErrMediaSizeExceeded is returned when a declared file size exceeds the
+	// per-type ceiling.
+	ErrMediaSizeExceeded = errorString("chat media file is too large")
 )
 
 // errorString is a string type that implements error.

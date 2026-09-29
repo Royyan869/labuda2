@@ -329,15 +329,14 @@ void main() {
     test('thousand separators are implemented once, not per widget', () {
       // A hand-rolled grouping regex is the fingerprint of a second money
       // authority: five widgets had its own copy before this ratchet. The
-      // canonical formatter groups with a loop; the only tolerated regex is
-      // the price input mask, which groups with ',' while the user types and
-      // parses that ',' back out.
-      const allowed = {'lib/shared/ui/atomic/input/price_input_component.dart'};
+      // canonical formatter groups with a loop, so no file may carry the
+      // grouping regex at all. The last tolerated exception — the price input
+      // mask in the orphaned `ui/atomic/**` tree — was purged as dead code, and
+      // the allowlist died with it: this ratchet now has no exceptions.
       final offenders = <String>[];
       for (final entity in Directory('lib').listSync(recursive: true)) {
         if (entity is! File || !entity.path.endsWith('.dart')) continue;
         final path = entity.path.replaceAll('\\', '/');
-        if (allowed.contains(path)) continue;
         if (entity.readAsStringSync().contains(r'(?=(\d{3})+(?!\d))')) {
           offenders.add(path);
         }

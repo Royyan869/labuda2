@@ -332,6 +332,7 @@ type Dependencies struct {
 	WithdrawalMonitoringWorker       Worker // PAYOUT MONITORING - read-only alert on stuck withdrawals
 	PushRetryWorker                  Worker // Z6: PUSH RELIABILITY - retries failed FCM pushes with exponential backoff
 	NotificationCleanupWorker        Worker // Z6: PUSH HYGIENE - deletes old delivery logs + expired retry entries
+	ChatMediaCleanupWorker           Worker // CHAT MEDIA HYGIENE - sweeps expired PENDING chat media assets (uploads never attached)
 	EscrowIntegrityWorker            Worker // ESCROW RECONCILIATION - shadow-rollout periodic escrow vs order check
 	TotalMoneyInvariantWorker        Worker // TOTAL MONEY INVARIANT - shadow-rollout periodic ledger sum check
 	SellerMetricsWorker              Worker // SELLER MEASUREMENT - daily seller_monthly_metrics snapshot (measurement only)
@@ -1500,6 +1501,25 @@ func InitServices(
 		_ = idempotencyCleanupWorker
 	}
 
+	// Z6-4. ChatMediaCleanupWorker — marks expired PENDING chat media assets
+	// deleted. Chat media is register → upload → attach, so an upload that was
+	// never attached is the only garbage class this sweep removes; FINALIZED
+	// assets are message content and are never touched.
+	// Default ON: without it an abandoned upload keeps a pending authority row
+	// forever, and every read path has to trust that it will never be attached.
+	// Disable: DISABLE_CHAT_MEDIA_CLEANUP_WORKER=true
+	chatMediaCleanupWorker := worker.NewChatMediaCleanupWorker(db.Pgx(), log.Logger)
+	if workerEnabled("CHAT_MEDIA_CLEANUP_WORKER", true, log.Logger) {
+		workerStartups = append(workerStartups, func() {
+			chatMediaCleanupWorker.Start()
+			log.Info("ChatMediaCleanupWorker started (chat media hygiene layer)",
+				zap.Duration("interval", worker.DefaultChatMediaCleanupInterval),
+			)
+		})
+	} else {
+		_ = chatMediaCleanupWorker
+	}
+
 	// 4.2. Create notification HTTP handlers
 	notificationHandler := notificationHTTP.NewNotificationHandlerWithDefaults(db.Pgx(), log.Logger)
 	fcmTokenHandler := notificationHTTP.NewFCMTokenHandler(db.Pgx(), log.Logger)
@@ -2338,6 +2358,11 @@ func InitServices(
 		adminVerificationHandler.SetPresigner(kycPresigner)
 	}
 	mediaUploadHandler := mediauploadHTTP.NewHandler(awsPresignCfg, cfg.AWS.CDNBaseURL, log.Logger)
+
+	// Chat media shares the SAME presign configuration and CDN base as general
+	// media upload: chat owns the room-scoped asset lifecycle (register → attach
+	// → sweep), not a second presign implementation.
+	chatHandler.SetMediaPresigner(awsPresignCfg, cfg.AWS.CDNBaseURL)
 
 	// Configure the shared media read-resolution authority (mediaresolve) once
 	// at bootstrap so persisted storage keys resolve to CDN (or presigned GET)
@@ -3305,6 +3330,7 @@ func InitServices(
 		WithdrawalMonitoringWorker:       withdrawalMonitoringWorker,       // Z4-4: PAYOUT MONITORING
 		PushRetryWorker:                  pushRetryWorker,                  // Z6-1: PUSH RELIABILITY
 		NotificationCleanupWorker:        notificationCleanupWorker,        // Z6-2: PUSH HYGIENE
+		ChatMediaCleanupWorker:           chatMediaCleanupWorker,           // Z6-4: CHAT MEDIA HYGIENE
 		EscrowIntegrityWorker:            escrowIntegrityWorker,            // ESCROW RECONCILIATION (shadow default)
 		TotalMoneyInvariantWorker:        totalMoneyInvariantWorker,        // TOTAL MONEY INVARIANT (shadow default)
 		SellerMetricsWorker:              sellerMetricsWorker,              // SELLER MEASUREMENT - daily fulfillment snapshot

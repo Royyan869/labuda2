@@ -229,6 +229,14 @@ class S3Service {
     }
   }
 
+  /// Byte progress of the CURRENT presigned PUT, or null when nobody asked.
+  ///
+  /// Every upload helper funnels into `_putToPresignedUrl`, so this is the ONE
+  /// place upload progress exists — image, video, chat media, KYC, grid. It is
+  /// installed for the length of a batch and cleared in `finally` by the
+  /// orchestrator, so it can never outlive the batch it belongs to.
+  void Function(int sent, int total)? onPutProgress;
+
   /// PUT file bytes to an S3 presigned URL. Returns `Result<void>` preserving
   /// HTTP status on failure. No GET/HEAD verification is performed.
   Future<Result<void>> _putToPresignedUrl(
@@ -241,6 +249,7 @@ class S3Service {
         presignedUrl,
         data: bytes,
         options: Options(headers: {'Content-Type': contentType}),
+        onSendProgress: onPutProgress,
       );
       final code = resp.statusCode;
       if (code == 200 || code == 204) {
@@ -267,6 +276,103 @@ class S3Service {
     } catch (e) {
       return Result.error('Upload error: ${e.toString()}');
     }
+  }
+
+  /// Registers AND uploads ONE chat media file, returning the asset id the
+  /// message must reference.
+  ///
+  /// This is the canonical chat media pipeline (register → upload → attach):
+  ///   1. POST /chat/rooms/:room_id/media creates a PENDING, room-scoped asset
+  ///      and returns the presigned PUT URL for its server-minted key.
+  ///   2. The bytes are PUT to that URL here.
+  ///   3. The caller sends the message with `media_asset_ids: [assetId, ...]`.
+  ///
+  /// Nothing is attached by uploading: an abandoned composer leaves a PENDING
+  /// asset that expires on its own, so a cancel costs nothing and no orphan
+  /// authority survives.
+  Future<Result<ChatMediaUpload>> uploadChatMedia({
+    required String roomId,
+    required File file,
+  }) async {
+    try {
+      if (file.path.startsWith('blob:')) {
+        return Result.error(
+          'Web upload temporarily disabled. Please use mobile app for media upload.',
+        );
+      }
+      final contentType = _extractExtension(file.path);
+      final mimeType = contentType == null
+          ? null
+          : _contentTypeFromExt(contentType);
+      if (mimeType == null) {
+        return Result.error('Tipe media tidak didukung');
+      }
+      final byteSize = await file.length();
+
+      final resp = await _apiClient.post<Map<String, dynamic>>(
+        '/chat/rooms/$roomId/media',
+        data: {'content_type': mimeType, 'byte_size': byteSize},
+      );
+      final raw = resp.data;
+      if (raw is Map<String, dynamic>) {
+        final success = raw['success'] as bool?;
+        if (success == false && raw['error'] is Map<String, dynamic>) {
+          final err = raw['error'] as Map<String, dynamic>;
+          return Result.error(
+            err['message'] as String? ?? 'Gagal mendaftarkan media',
+            code: err['code'] as String?,
+            statusCode: resp.statusCode,
+          );
+        }
+      }
+
+      final data = raw?['data'] as Map<String, dynamic>?;
+      final assetId = data?['asset_id'] as String?;
+      final uploadUrl = data?['upload_url'] as String?;
+      final readUrl = data?['read_url'] as String?;
+      if (assetId == null || uploadUrl == null || readUrl == null) {
+        return Result.error(
+          'Respons pendaftaran media tidak valid',
+          code: 'INVALID_RESPONSE',
+          statusCode: resp.statusCode,
+        );
+      }
+
+      final putResult = await _putToPresignedUrl(
+        uploadUrl,
+        await file.readAsBytes(),
+        mimeType,
+      );
+      if (putResult.isError) {
+        return Result.error(
+          putResult.error ?? 'Upload media gagal',
+          code: putResult.errorCode,
+          statusCode: putResult.statusCode,
+        );
+      }
+
+      return Result.success(ChatMediaUpload(assetId: assetId, readUrl: readUrl));
+    } on DioException catch (e) {
+      final ex = _extractApiException(e);
+      return Result.error(
+        ex.message,
+        code: ex.code,
+        statusCode: ex.statusCode,
+        details: ex.details is Map<String, dynamic>
+            ? ex.details as Map<String, dynamic>
+            : null,
+      );
+    } catch (e) {
+      return Result.error('Gagal upload media: ${e.toString()}');
+    }
+  }
+
+  /// Lowercased file extension without the dot, or null when absent.
+  static String? _extractExtension(String path) {
+    final name = path.split('/').last;
+    final dot = name.lastIndexOf('.');
+    if (dot < 0 || dot == name.length - 1) return null;
+    return name.substring(dot + 1).toLowerCase();
   }
 
   /// Upload video file to S3 (web blob not supported).
@@ -654,6 +760,15 @@ class S3Service {
       // Blurhash is optional — never throw.
     }
   }
+}
+
+/// Result of the canonical chat media register+upload step: the asset the
+/// message must reference, plus the read URL for the local preview/optimism.
+class ChatMediaUpload {
+  final String assetId;
+  final String readUrl;
+
+  const ChatMediaUpload({required this.assetId, required this.readUrl});
 }
 
 /// Internal result of a backend media presign request.

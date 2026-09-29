@@ -45,6 +45,14 @@ class ChatListState extends Equatable {
 /// Chat Detail State
 class ChatDetailState extends Equatable {
   final Chat? chat;
+
+  /// Thread messages in the canonical order: **newest-first** (descending
+  /// `createdAt`), so index 0 is the newest message.
+  ///
+  /// The detail list renders with `reverse: true`, which puts index 0 at the
+  /// BOTTOM of the screen. That makes the order load-bearing: appending a
+  /// just-sent message to the end parks the newest bubble at the TOP until the
+  /// thread is re-read. Mutate this list only through the notifier's merge.
   final List<Message> messages;
   final bool hasMoreMessages;
   final String? nextMessageCursor;
