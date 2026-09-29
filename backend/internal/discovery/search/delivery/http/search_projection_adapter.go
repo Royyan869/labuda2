@@ -52,8 +52,8 @@ func (searchProjectionAdapter) forSalePreviewsToResponse(
 		media := buildMediaRefs(mediaURLs)
 
 		var thumbnail *string
-		if len(mediaURLs) > 0 {
-			t := mediaURLs[0]
+		if len(l.MediaURLs) > 0 {
+			t := commerceshared.ResolveReadableThumbnailURL(l.MediaURLs[0])
 			thumbnail = &t
 		}
 
@@ -201,7 +201,7 @@ func (searchProjectionAdapter) auctionPreviewsToResponse(
 
 		var resolvedThumbnail *string
 		if a.ThumbnailURL != nil && strings.TrimSpace(*a.ThumbnailURL) != "" {
-			t := commerceshared.ResolveReadableMediaReference(*a.ThumbnailURL)
+			t := commerceshared.ResolveReadableThumbnailURL(*a.ThumbnailURL)
 			resolvedThumbnail = &t
 		}
 		media := make([]mediaref.MediaRef, 0, 1)

@@ -260,7 +260,6 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
     ForSale forSale,
     ForSaleStatus newStatus,
   ) async {
-    final scheme = Theme.of(context).colorScheme;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -275,10 +274,6 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              foregroundColor: Theme.of(context).colorScheme.onPrimary,
-            ),
             child: const Text('Ya, Ubah'),
           ),
         ],
@@ -355,10 +350,6 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
                     ),
                   );
                 },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: scheme.primary,
-                  foregroundColor: scheme.onPrimary,
-                ),
                 child: const Text('Edit For Sale'),
               ),
             ],
@@ -388,7 +379,6 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.error,
-              foregroundColor: Theme.of(context).colorScheme.onPrimary,
             ),
             child: const Text('Ya, Hapus'),
           ),

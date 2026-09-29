@@ -123,13 +123,8 @@ class _CheckoutBottomBar extends StatelessWidget {
               child: ElevatedButton(
                 onPressed: isDisabled ? null : onCreateOrder,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: colorScheme.primary,
-                  foregroundColor: colorScheme.onPrimary,
                   disabledBackgroundColor: colorScheme.onSurface.withValues(
                     alpha: 0.12,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppShape.r8),
                   ),
                 ),
                 child: isCreatingOrder

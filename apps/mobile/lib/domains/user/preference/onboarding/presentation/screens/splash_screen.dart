@@ -257,13 +257,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                     },
                     icon: const Icon(Icons.refresh),
                     label: const Text('Coba Lagi'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: scheme.primary,
-                      foregroundColor: scheme.onPrimary,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppShape.r12),
-                      ),
-                    ),
                   ),
                 ),
                 const SizedBox(height: 12),

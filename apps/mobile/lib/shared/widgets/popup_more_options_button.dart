@@ -168,8 +168,10 @@ class PopupMoreOptionsButton extends StatelessWidget {
       }
     }
 
-    // Delete option (for creator)
-    if (isCreator) {
+    // Delete option (for creator) — canonical rule: an optional action must
+    // not render when its callback is null (mirrors the onEdit guard above;
+    // a visible-but-dead Delete is a bug, not a disabled affordance).
+    if (isCreator && onDelete != null) {
       items.add(
         PopupMenuItem<String>(
           value: 'delete',

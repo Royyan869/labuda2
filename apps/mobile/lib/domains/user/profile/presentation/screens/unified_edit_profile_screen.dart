@@ -483,21 +483,31 @@ color: scheme.scrim.withValues(alpha: 0.7),
         child: Row(
           children: [
             Expanded(
-              child: AppButton.secondary(
-                text: 'Cancel',
+              child: OutlinedButton(
                 onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancel'),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: AppButton.primary(
-                text: 'Save',
+              child: ElevatedButton(
                 // Stage 4D: guard against double-submit. The save flow runs
                 // two async phases (personal + profile fields) with a
                 // Navigator.pop at the end; an unguarded onPressed would let a
                 // rapid second tap re-enter save() and duplicate uploads.
                 onPressed: _isLoading ? null : save,
-                isLoading: _isLoading,
+                child: _isLoading
+                    ? SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation(
+                            Theme.of(context).colorScheme.onPrimary,
+                          ),
+                        ),
+                      )
+                    : const Text('Save'),
               ),
             ),
           ],

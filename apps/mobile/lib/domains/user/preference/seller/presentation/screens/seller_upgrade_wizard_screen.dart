@@ -1644,7 +1644,7 @@ class _SellerUpgradeWizardScreenState
         Text(
           amountText,
           style: TextStyle(
-            fontSize: isBold ? 16 : 14,
+            fontSize: isBold ? AppType.s16 : AppType.s14,
             fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
             color: Theme.of(context).colorScheme.onSurface,
           ),

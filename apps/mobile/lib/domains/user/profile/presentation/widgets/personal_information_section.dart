@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/shared.dart';
 import 'package:labuda/generated/app_localizations.dart';
 
 /// Personal Information Section (Contact Info Only)
@@ -226,7 +225,10 @@ class PersonalInformationSection extends StatelessWidget {
                     ),
                   ),
                 ),
-                AppButton.text(text: 'Verify', onPressed: onVerifyPhone),
+                TextButton(
+                  onPressed: onVerifyPhone,
+                  child: const Text('Verify'),
+                ),
               ],
             ),
           ),

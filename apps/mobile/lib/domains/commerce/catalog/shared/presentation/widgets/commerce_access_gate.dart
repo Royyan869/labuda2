@@ -69,8 +69,6 @@ class CommerceAccessGate extends StatelessWidget {
               ElevatedButton(
                 onPressed: onAction,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: scheme.primary,
-                  foregroundColor: scheme.onPrimary,
                   padding: const EdgeInsets.symmetric(
                     horizontal: AppMetrics.p24,
                     vertical: AppMetrics.p14,

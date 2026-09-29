@@ -1,4 +1,3 @@
-import 'package:dartz/dartz.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/social/follow/domain/repositories/i_follow_repository.dart';
 
@@ -17,11 +16,9 @@ class UnfollowUserUseCase {
 
   const UnfollowUserUseCase(this._repository);
 
-  Future<Either<Failure, bool>> execute(UnfollowUserParams params) async {
+  Future<Result<bool>> execute(UnfollowUserParams params) async {
     if (params.followerId == params.followingId) {
-      return const Left(
-        ValidationFailure(message: 'Tidak dapat unfollow diri sendiri'),
-      );
+      return Result.error('Tidak dapat unfollow diri sendiri');
     }
 
     final result = await _repository.unfollowUser(
@@ -29,9 +26,6 @@ class UnfollowUserUseCase {
       followingId: params.followingId,
     );
 
-    return result.fold(
-      (error) => Left(UnknownFailure(message: error)),
-      (data) => Right(data),
-    );
+    return result;
   }
 }

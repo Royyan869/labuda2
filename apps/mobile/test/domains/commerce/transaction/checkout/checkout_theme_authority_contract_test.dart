@@ -229,6 +229,24 @@ ElevatedButton _submitButton(WidgetTester tester) => tester
       (b) => b.child is Text && (b.child! as Text).data!.startsWith('Buat'),
     );
 
+/// Effective button style: AppTheme.elevatedButtonTheme first, local
+/// ButtonStyle on top.
+///
+/// The colour authority lives in the THEME ("call sites may only express
+/// variants, never re-state these defaults" — app_theme.dart). The checkout
+/// submit button therefore sets only disabledBackgroundColor locally; its
+/// enabled primary/onPrimary come from elevatedButtonTheme. Reading the
+/// widget's local style alone asserts the mechanism, not the rendered
+/// outcome, and contradicts that doctrine.
+ButtonStyle _effectiveButtonStyle(WidgetTester tester, ElevatedButton button) {
+  final themeStyle =
+      Theme.of(tester.element(find.byWidget(button)))
+          .elevatedButtonTheme
+          .style ??
+      const ButtonStyle();
+  return themeStyle.merge(button.style);
+}
+
 void main() {
   // NOTE: dark and light live in SEPARATE testWidgets. A second pumpWidget
   // in one test does not reliably re-theme the tree (proven by probe: the
@@ -283,12 +301,13 @@ void main() {
       // Enabled primary action: canonical primary + onPrimary.
       final darkSubmit = _submitButton(tester);
       expect(darkSubmit.onPressed, isNotNull);
+      final darkEffective = _effectiveButtonStyle(tester, darkSubmit);
       expect(
-        darkSubmit.style?.backgroundColor?.resolve({}),
+        darkEffective.backgroundColor?.resolve({}),
         dark.primary,
       );
       expect(
-        darkSubmit.style?.foregroundColor?.resolve({}),
+        darkEffective.foregroundColor?.resolve({}),
         dark.onPrimary,
       );
 
@@ -338,7 +357,7 @@ void main() {
 
       final lightSubmit = _submitButton(tester);
       expect(
-        lightSubmit.style?.backgroundColor?.resolve({}),
+        _effectiveButtonStyle(tester, lightSubmit).backgroundColor?.resolve({}),
         light.primary,
       );
     },

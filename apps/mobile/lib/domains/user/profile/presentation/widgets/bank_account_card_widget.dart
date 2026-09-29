@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/shared.dart';
 import 'package:labuda/domains/user/profile/domain/entities/bank_account_entity.dart';
 
 class BankAccountCardWidget extends StatelessWidget {
@@ -191,18 +190,24 @@ class BankAccountCardWidget extends StatelessWidget {
       children: [
         if (!account.isDefault)
           Expanded(
-            child: AppButton.secondary(
-              text: 'Set as Primary',
+            child: OutlinedButton(
               onPressed: onSetPrimary,
+              child: const Text('Set as Primary'),
             ),
           ),
         if (!account.isDefault) const SizedBox(width: 8),
         Expanded(
-          child: AppButton.secondary(text: 'Edit', onPressed: onEdit),
+          child: OutlinedButton(
+            onPressed: onEdit,
+            child: const Text('Edit'),
+          ),
         ),
         const SizedBox(width: 8),
         Expanded(
-          child: AppButton.secondary(text: 'Delete', onPressed: onDelete),
+          child: OutlinedButton(
+            onPressed: onDelete,
+            child: const Text('Delete'),
+          ),
         ),
       ],
     );

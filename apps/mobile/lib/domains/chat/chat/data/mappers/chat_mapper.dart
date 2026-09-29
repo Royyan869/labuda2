@@ -8,7 +8,7 @@ import 'package:labuda/shared/governance/content_lifecycle.dart';
 /// Chat Mapper - Entity ↔ DTO conversion
 ///
 /// **MESSAGE TYPE NORMALIZATION:**
-/// - When SENDING to API: Media types (image, video, audio, file) → "text"
+/// - When SENDING to API: Media types (image, video, file) → "text"
 /// - When PARSING from API: "text" → MessageType.text (media determined by mediaUrls presence)
 /// - Backend only recognizes: "text", "system", "negotiation_proposal"
 ///
@@ -323,8 +323,6 @@ class ChatMapper {
         return MessageType.image;
       case 'video':
         return MessageType.video;
-      case 'audio':
-        return MessageType.audio;
       case 'file':
         return MessageType.file;
       case 'system':
@@ -339,13 +337,12 @@ class ChatMapper {
 
   static String _messageTypeToString(MessageType type) {
     // Normalize message types for API compatibility.
-    // Media types (image, video, audio, file) are sent as "text" with mediaUrls attachment.
+    // Media types (image, video, file) are sent as "text" with mediaUrls attachment.
     // This aligns with backend's message type truth where media is carried as attachment payload.
     switch (type) {
       case MessageType.text:
       case MessageType.image:
       case MessageType.video:
-      case MessageType.audio:
       case MessageType.file:
         return 'text';
       case MessageType.system:

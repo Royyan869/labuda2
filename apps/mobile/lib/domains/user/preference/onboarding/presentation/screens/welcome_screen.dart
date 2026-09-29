@@ -289,16 +289,6 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
           height: 52,
           child: OutlinedButton(
             onPressed: _navigateToSignUp,
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Theme.of(context).colorScheme.primary,
-              side: BorderSide(
-                color: Theme.of(context).colorScheme.primary,
-                width: 2,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppShape.r12),
-              ),
-            ),
             child: const Text(
               'Join Now',
               style: TextStyle(fontSize: AppType.s16, fontWeight: FontWeight.w600),
@@ -315,13 +305,9 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
           child: OutlinedButton(
             onPressed: _navigateToSignIn,
             style: OutlinedButton.styleFrom(
-              foregroundColor: Theme.of(context).colorScheme.onSurface,
               side: BorderSide(
                 color: Theme.of(context).colorScheme.outline,
                 width: 1.5,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppShape.r12),
               ),
             ),
             child: const Text(

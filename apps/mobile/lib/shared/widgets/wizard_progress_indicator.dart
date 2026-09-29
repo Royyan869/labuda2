@@ -150,7 +150,7 @@ class WizardProgressIndicator extends StatelessWidget {
           child: Text(
             stepLabels[index],
             style: TextStyle(
-              fontSize: isActive ? 10 : 8.5,
+              fontSize: isActive ? AppType.s10 : AppType.s8_5,
               color: isActive
                   ? scheme.onSurface
                   : scheme.onSurfaceVariant,

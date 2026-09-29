@@ -6,7 +6,6 @@ library;
 
 import 'dart:async';
 
-import 'package:labuda/core/api/api_error_codes.dart';
 import 'package:labuda/core/common/result.dart';
 import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
 import 'package:labuda/domains/system/support/data/datasources/support_api_datasource.dart';
@@ -16,8 +15,7 @@ import 'package:labuda/domains/system/support/domain/domain.dart';
 ///
 /// This class:
 /// - Uses SupportApiDatasource for Go API operations
-/// - Converts `Result<T>` to SupportResult
-/// - Returns `SupportResult<T>` for all operations
+/// - Returns the canonical `Result<T>` with all error channels intact
 /// - Knows nothing about Firebase/Firestore
 class SupportRepositoryApi implements SupportRepository {
   final SupportApiDatasource _datasource;
@@ -34,7 +32,7 @@ class SupportRepositoryApi implements SupportRepository {
   // ============================================================
 
   @override
-  Future<SupportResult<String>> createTicket({
+  Future<Result<String>> createTicket({
     required String userId,
     required String userName,
     String? userAvatar,
@@ -61,14 +59,12 @@ class SupportRepositoryApi implements SupportRepository {
 
       if (result.isError) {
         _logger?.error('Failed to create support ticket: ${result.error}');
-        return SupportResult.failure(_mapApiErrorToFailure(result));
+        return _forwardError(result);
       }
-      return SupportResult.success(result.data!.id);
+      return Result.success(result.data!.id);
     } catch (e, stackTrace) {
       _logger?.error('Error creating support ticket', stackTrace: stackTrace);
-      return SupportResult.failure(
-        const SupportFailureNetwork(message: 'Failed to create support ticket'),
-      );
+      return Result.error('Failed to create support ticket');
     }
   }
 
@@ -77,46 +73,40 @@ class SupportRepositoryApi implements SupportRepository {
   // ============================================================
 
   @override
-  Future<SupportResult<SupportTicket>> getTicket(String ticketId) async {
+  Future<Result<SupportTicket>> getTicket(String ticketId) async {
     try {
       final result = await _datasource.getTicket(ticketId);
 
       if (result.isError) {
-        return SupportResult.failure(_mapApiErrorToFailure(result));
+        return _forwardError(result);
       }
       final dto = result.data;
       if (dto == null) {
-        return SupportResult.failure(
-          const SupportFailureNotFound(message: 'Support ticket not found'),
-        );
+      return Result.error('Support ticket not found');
       }
-      return SupportResult.success(dto.toEntity());
+      return Result.success(dto.toEntity());
     } catch (e, stackTrace) {
       _logger?.error('Error getting ticket', stackTrace: stackTrace);
-      return SupportResult.failure(
-        SupportFailureUnknown(message: e.toString(), originalError: e),
-      );
+      return Result.error(e.toString());
     }
   }
 
   @override
-  Future<SupportResult<List<SupportTicket>>> getMyTickets({
+  Future<Result<List<SupportTicket>>> getMyTickets({
     int limit = 50,
   }) async {
     try {
       final result = await _datasource.getMyTickets(limit: limit);
 
       if (result.isError) {
-        return SupportResult.failure(_mapApiErrorToFailure(result));
+        return _forwardError(result);
       }
-      return SupportResult.success(
+      return Result.success(
         result.data!.map((dto) => dto.toEntity()).toList(),
       );
     } catch (e, stackTrace) {
       _logger?.error('Error listing my tickets', stackTrace: stackTrace);
-      return SupportResult.failure(
-        SupportFailureUnknown(message: e.toString(), originalError: e),
-      );
+      return Result.error(e.toString());
     }
   }
 
@@ -135,7 +125,7 @@ class SupportRepositoryApi implements SupportRepository {
   // REMOVED: resolveTicket() - Admin-only endpoint
 
   @override
-  Future<SupportResult<void>> reopenTicket(ReopenTicketRequest request) async {
+  Future<Result<void>> reopenTicket(ReopenTicketRequest request) async {
     try {
       final result = await _datasource.reopenTicket(
         ticketId: request.ticketId,
@@ -143,14 +133,12 @@ class SupportRepositoryApi implements SupportRepository {
       );
 
       if (result.isError) {
-        return SupportResult.failure(_mapApiErrorToFailure(result));
+        return _forwardError(result);
       }
-      return SupportResult.success(null);
+      return Result.success(null);
     } catch (e, stackTrace) {
       _logger?.error('Error reopening ticket', stackTrace: stackTrace);
-      return SupportResult.failure(
-        SupportFailureUnknown(message: e.toString(), originalError: e),
-      );
+      return Result.error(e.toString());
     }
   }
 
@@ -170,7 +158,7 @@ class SupportRepositoryApi implements SupportRepository {
   // ============================================================
 
   @override
-  Future<SupportResult<List<SupportMessage>>> getMessages(
+  Future<Result<List<SupportMessage>>> getMessages(
     String ticketId, {
     int limit = 100,
   }) async {
@@ -178,29 +166,25 @@ class SupportRepositoryApi implements SupportRepository {
       final result = await _datasource.getMessages(ticketId, limit: limit);
 
       if (result.isError) {
-        return SupportResult.failure(_mapApiErrorToFailure(result));
+        return _forwardError(result);
       }
-      return SupportResult.success(
+      return Result.success(
         result.data!.map((dto) => dto.toEntity()).toList(),
       );
     } catch (e, stackTrace) {
       _logger?.error('Error getting ticket messages', stackTrace: stackTrace);
-      return SupportResult.failure(
-        SupportFailureUnknown(message: e.toString(), originalError: e),
-      );
+      return Result.error(e.toString());
     }
   }
 
   @override
-  Future<SupportResult<void>> sendMessage({
+  Future<Result<void>> sendMessage({
     required String ticketId,
     required String message,
   }) async {
     final trimmed = message.trim();
     if (trimmed.isEmpty) {
-      return SupportResult.failure(
-        const SupportFailureValidation(message: 'Message cannot be empty'),
-      );
+      return Result.error('Message cannot be empty');
     }
 
     try {
@@ -210,19 +194,17 @@ class SupportRepositoryApi implements SupportRepository {
       );
 
       if (result.isError) {
-        return SupportResult.failure(_mapApiErrorToFailure(result));
+        return _forwardError(result);
       }
-      return SupportResult.success(null);
+      return Result.success(null);
     } catch (e, stackTrace) {
       _logger?.error('Error sending ticket message', stackTrace: stackTrace);
-      return SupportResult.failure(
-        SupportFailureUnknown(message: e.toString(), originalError: e),
-      );
+      return Result.error(e.toString());
     }
   }
 
   @override
-  Future<SupportResult<List<SupportEvent>>> getEvents(
+  Future<Result<List<SupportEvent>>> getEvents(
     String ticketId, {
     int limit = 100,
   }) async {
@@ -230,16 +212,14 @@ class SupportRepositoryApi implements SupportRepository {
       final result = await _datasource.getEvents(ticketId, limit: limit);
 
       if (result.isError) {
-        return SupportResult.failure(_mapApiErrorToFailure(result));
+        return _forwardError(result);
       }
-      return SupportResult.success(
+      return Result.success(
         result.data!.map((dto) => dto.toEntity()).toList(),
       );
     } catch (e, stackTrace) {
       _logger?.error('Error getting ticket events', stackTrace: stackTrace);
-      return SupportResult.failure(
-        SupportFailureUnknown(message: e.toString(), originalError: e),
-      );
+      return Result.error(e.toString());
     }
   }
 
@@ -247,41 +227,16 @@ class SupportRepositoryApi implements SupportRepository {
   // HELPER METHODS
   // ============================================================
 
-  /// Classify a failed `Result` into a [SupportFailure].
-  ///
-  /// The classification branches on the two machine-readable channels the API
-  /// layer preserved — `Result.statusCode` (HTTP envelope) and
-  /// `Result.errorCode` (backend/transport code) — never on the human message.
-  /// Message-text matching (`'already assigned'`, `'network'`, …) silently
-  /// mislabels every failure whose wording drifts, and it can never see a
-  /// transport failure at all: those carry a transport code from
-  /// `api_error_codes.dart`, never a connectivity word in the message.
-  SupportFailure _mapApiErrorToFailure(Result<Object?> result) {
-    final error = result.error ?? 'Request failed';
-    final code = result.errorCode;
-
-    // Transport failures are decided by the canonical transport predicate,
-    // NOT by whether the message happens to contain a connectivity word.
-    if (isTransportFailureCode(code)) {
-      return SupportFailureNetwork(message: error, originalError: code);
-    }
-
-    switch (result.statusCode) {
-      case 401:
-      case 403:
-        return SupportFailurePermission(message: error, originalError: code);
-      case 404:
-        return SupportFailureNotFound(message: error, originalError: code);
-      case 409:
-        return SupportFailureAlreadyAssigned(
-          message: error,
-          originalError: code,
-        );
-      case 400:
-      case 422:
-        return SupportFailureValidation(message: error, originalError: code);
-      default:
-        return SupportFailureUnknown(message: error, originalError: code);
-    }
-  }
+  /// Forward a failed datasource `Result` with ALL canonical error channels
+  /// intact — message, machine-readable code, HTTP status, structured details.
+  ///  /// The old duplicate result wrapper with its typed-failure family died in
+  /// the one-vocabulary convergence: no consumer ever branched on the type,
+  /// and every channel it kept (the machine code) is already carried by the
+  /// canonical Result — which additionally preserves the HTTP status it dropped.
+  Result<T> _forwardError<T>(Result<Object?> result) => Result.error(
+    result.error ?? 'Request failed',
+    code: result.errorCode,
+    statusCode: result.statusCode,
+    details: result.errorDetails,
+  );
 }

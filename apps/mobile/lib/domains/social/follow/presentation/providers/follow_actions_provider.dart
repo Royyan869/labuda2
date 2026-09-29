@@ -49,10 +49,10 @@ class FollowActionsNotifier extends _$FollowActionsNotifier {
     final result = await _followUserUseCase.execute(params);
 
     return result.fold(
-      (failure) {
+      (error) {
         state = state.copyWith(
           isFollowProcessing: false,
-          error: failure.message,
+          error: error,
         );
         return false;
       },
@@ -91,10 +91,10 @@ class FollowActionsNotifier extends _$FollowActionsNotifier {
     final result = await _unfollowUserUseCase.execute(params);
 
     return result.fold(
-      (failure) {
+      (error) {
         state = state.copyWith(
           isFollowProcessing: false,
-          error: failure.message,
+          error: error,
         );
         return false;
       },

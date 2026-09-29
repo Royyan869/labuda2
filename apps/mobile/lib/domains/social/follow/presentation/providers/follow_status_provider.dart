@@ -122,10 +122,10 @@ class FollowStatusNotifier extends _$FollowStatusNotifier {
     if (!ref.mounted) return;
 
     result.fold(
-      (failure) {
+      (error) {
         state = state.copyWith(
           isFollowProcessing: false,
-          error: failure.message,
+          error: error,
         );
       },
       (success) {
@@ -164,10 +164,10 @@ class FollowStatusNotifier extends _$FollowStatusNotifier {
     if (!ref.mounted) return;
 
     result.fold(
-      (failure) {
+      (error) {
         state = state.copyWith(
           isFollowProcessing: false,
-          error: failure.message,
+          error: error,
         );
       },
       (success) {

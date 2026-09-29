@@ -60,8 +60,8 @@ class FollowStatsNotifier extends _$FollowStatsNotifier {
     final result = await _getFollowStatsUseCase.execute(params);
 
     result.fold(
-      (failure) {
-        state = state.copyWith(isLoading: false, error: failure.message);
+      (error) {
+        state = state.copyWith(isLoading: false, error: error);
       },
       (stats) {
         final updatedStats = Map<String, FollowStats>.from(state.followStats);

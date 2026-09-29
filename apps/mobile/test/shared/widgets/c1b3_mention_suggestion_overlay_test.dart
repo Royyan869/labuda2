@@ -141,7 +141,9 @@ void main() {
     });
     testWidgets('avatar correct', (t) async {
       await t.pumpWidget(_w(users:[_u('user-42','bob', avatarUrl:'https://i.e/b.jpg')], q:'bob', onSel:(_){}));
-      await t.pumpAndSettle();
+      // Never pumpAndSettle: the avatar's AppImage shimmer skeleton animates
+      // forever by design — bounded pump instead (test follows codebase).
+      await t.pump(const Duration(milliseconds: 400));
       final a = t.widget<HybridAvatar>(find.byType(HybridAvatar));
       expect(a.userId, 'user-42');
     });

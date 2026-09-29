@@ -121,11 +121,6 @@ class ProfileStateView extends StatelessWidget {
               // Background colour comes from AppTheme.elevatedButtonTheme.
               ElevatedButton(
                 onPressed: onErrorDismiss,
-                style: ElevatedButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppShape.r12),
-                  ),
-                ),
                 child: const Text('Try Again'),
               ),
             ],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:labuda/core/core.dart';
 import 'package:labuda/features/home/domain/entities/feed_item.dart';
 import 'package:labuda/features/home/presentation/providers/feed_renderers.dart';
 import 'package:visibility_detector/visibility_detector.dart';
@@ -40,9 +41,53 @@ FeedItem _baseItem({
   );
 }
 
+class _NoopApiClient implements ApiClient {
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _NoopLogger implements ILoggerService {
+  @override
+  Future<Result<void>> info(String message, {Map<String, dynamic>? extra}) async =>
+      Result.success(null);
+
+  @override
+  Future<Result<void>> warning(String message, {Map<String, dynamic>? extra}) async =>
+      Result.success(null);
+
+  @override
+  Future<Result<void>> error(
+    String message, {
+    Map<String, dynamic>? extra,
+    StackTrace? stackTrace,
+  }) async => Result.success(null);
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _GuestAuthController extends AuthController {
+  @override
+  AuthState build() => const AuthState.unauthenticated();
+}
+
 Future<void> _pumpFactory(WidgetTester tester, FeedItem item) async {
-  await tester.pumpWidget(ProviderScope(child: _FactoryHost(item: item)));
-  await tester.pumpAndSettle();
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [
+        // Guest auth — the default AuthController.build() walks into the
+        // deliberate throwing placeholders (storage/session); the sibling
+        // feed render test uses the same guest override.
+        authControllerProvider.overrideWith(_GuestAuthController.new),
+        apiClientProvider.overrideWithValue(_NoopApiClient()),
+        loggerServiceProvider.overrideWithValue(_NoopLogger()),
+      ],
+      child: _FactoryHost(item: item),
+    ),
+  );
+  // Never pumpAndSettle: feed cards carry AppImage shimmer skeletons that
+  // animate forever by design — bounded pump instead (test follows codebase).
+  await tester.pump(const Duration(milliseconds: 400));
 }
 
 void main() {

@@ -587,12 +587,7 @@ class HelpCenterScreen extends StatelessWidget {
             child: ElevatedButton(
               onPressed: () => _navigateToSupportForm(context),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.primary,
-                foregroundColor: Theme.of(context).colorScheme.onPrimary,
                 padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppShape.r10),
-                ),
               ),
               child: Text(_Strings.contactSupport),
             ),

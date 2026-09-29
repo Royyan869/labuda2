@@ -114,7 +114,7 @@ class _PreChatFormSheetRefactoredState
       if (!mounted) return;
 
       if (result.isSuccess) {
-        final ticketId = result.dataOrThrow;
+        final ticketId = result.data!;
 
         // Close bottom sheet
         Navigator.pop(context);
@@ -140,7 +140,7 @@ class _PreChatFormSheetRefactoredState
 
         AppSnackBar.showError(
           context,
-          result.failure?.message ?? 'Failed to create support chat',
+          result.error ?? 'Failed to create support chat',
           duration: const Duration(seconds: 4),
         );
       }
@@ -280,11 +280,6 @@ class _PreChatFormSheetRefactoredState
                       : _submitForm,
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppShape.r12),
-                    ),
-                    backgroundColor: Theme.of(context).colorScheme.primary,
-                    foregroundColor: Theme.of(context).colorScheme.onPrimary,
                     disabledBackgroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
                     disabledForegroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),

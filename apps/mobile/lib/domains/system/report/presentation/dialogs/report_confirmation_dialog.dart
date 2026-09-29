@@ -164,11 +164,7 @@ class ReportConfirmationDialog extends StatelessWidget {
                 onPressed: () => context.pop(),
                 style: FilledButton.styleFrom(
                   backgroundColor: Theme.of(context).colorScheme.secondary,
-                  foregroundColor: Theme.of(context).colorScheme.onPrimary,
                   padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppShape.r10),
-                  ),
                 ),
                 child: const Text('Got it'),
               ),

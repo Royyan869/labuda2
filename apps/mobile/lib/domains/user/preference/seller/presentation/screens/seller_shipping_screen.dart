@@ -287,8 +287,6 @@ class _EmptyView extends StatelessWidget {
         ElevatedButton.icon(
           onPressed: onCreate,
           style: ElevatedButton.styleFrom(
-            backgroundColor: scheme.primary,
-            foregroundColor: scheme.onPrimary,
             padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
           ),
           icon: const Icon(Icons.add),

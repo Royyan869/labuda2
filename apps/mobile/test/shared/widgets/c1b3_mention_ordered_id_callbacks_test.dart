@@ -3,6 +3,7 @@
 // Pumps production MentionTextField and captures exact onMentionsChanged
 // callback values through the real parser→resolver path.
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -11,10 +12,6 @@ import 'package:labuda/domains/user/profile/data/datasources/user_api_datasource
 import 'package:labuda/domains/user/profile/data/profile_providers.dart'
     show avatarCacheServiceProvider;
 import 'package:labuda/domains/user/profile/data/services/avatar_cache_service.dart';
-import 'package:labuda/features/search/search/data/dto/search_dto.dart';
-import 'package:labuda/features/search/search/data/remote/search_api_service.dart';
-import 'package:labuda/features/search/search/presentation/providers/providers.dart'
-    show searchApiServiceProvider;
 import 'package:labuda/shared/providers/auth_status_providers.dart'
     show currentUserIdProvider;
 import 'package:labuda/shared/widgets/mentions/mention_text_field.dart';
@@ -23,7 +20,52 @@ import 'package:labuda/shared/widgets/mentions/mention_text_field.dart';
 // Fake dependencies
 // =============================================================================
 
-class _FakeApiClient extends Fake implements ApiClient {}
+/// Canned ApiClient at the PRODUCTION seam (`apiClientProvider`): the
+/// mention resolver (`MentionResolver`) calls
+/// `ApiClient.get('/users/search', limit: 1)` per uncached username. The
+/// old `SearchApiService` override was a stale seam from before the backend
+/// rewiring — it never fired, so the real provider threw
+/// `UnimplementedError` (test follows codebase).
+class _FakeApiClient extends Fake implements ApiClient {
+  _FakeApiClient({this.users = const [], this.emptyFor = const {}});
+
+  /// Canned backend rows (`id`/`username` exactly as the Go API returns).
+  final List<Map<String, dynamic>> users;
+
+  /// Queries the backend must answer with an empty user list — the
+  /// resolver's fail-closed path: empty page → null → no invented ID.
+  final Set<String> emptyFor;
+
+  /// Every `q` that hit the wire — for call-count proofs.
+  final List<String> queries = [];
+
+  @override
+  Future<Response<T>> get<T>(
+    String path, {
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+    CancelToken? cancelToken,
+  }) async {
+    final q = '${queryParameters?['q'] ?? ''}'.toLowerCase().trim();
+    queries.add(q);
+    if (emptyFor.contains(q)) {
+      return Response<T>(
+        requestOptions: RequestOptions(path: path),
+        data: <String, dynamic>{'users': const []} as T,
+      );
+    }
+    final limit = int.tryParse('${queryParameters?['limit'] ?? ''}') ?? 20;
+    final matches = users
+        .where((u) => '${u['username'] ?? ''}'.toLowerCase().contains(q))
+        .take(limit)
+        .toList();
+    return Response<T>(
+      requestOptions: RequestOptions(path: path),
+      data: <String, dynamic>{'users': matches} as T,
+    );
+  }
+}
+
 class _FakeUserApiDatasource extends Fake implements UserApiDatasource {}
 
 class _StubLogger extends Fake implements ILoggerService {
@@ -43,46 +85,14 @@ class _FakeAuthController extends AuthController {
 AuthUser _au(String id) => AuthUser(id:id, createdAt:DateTime(2025), updatedAt:DateTime(2025),
   email:'$id@t.com', username:id, isEmailVerified:true, roles:const[UserRole.user], provider:AuthProvider.email);
 
-/// Fake SearchApiService that returns canned pages for resolver.
-class _FakeSearchApiService extends SearchApiService {
-  final List<UserSearchResultDto> _users;
-  _FakeSearchApiService(this._users) : super(_FakeApiClient());
-  @override
-  Future<UserSearchResponseDto> searchUsers({required String query, int limit=20, int offset=0}) async {
-    final filtered = _users.where((u) {
-      final n = u.username;
-      return n.isNotEmpty && n.length >= 3 && RegExp(r'^[a-z0-9_]+$').hasMatch(n.toLowerCase());
-    }).toList();
-    return UserSearchResponseDto(query:query, users:filtered, total:filtered.length, limit:limit, offset:offset);
-  }
-}
+/// One canned backend row.
+Map<String, dynamic> _u(String id, String username) => {'id': id, 'username': username};
 
-UserSearchResultDto _d(String id, String u) => UserSearchResultDto(id:id, username:u);
-
-/// Service that fails for a specific query (triggers PaginationIntegrityException
-/// via empty page + hasMore=true) and succeeds for others.
-class _FailingSearchApiService extends SearchApiService {
-  final String failQuery;
-  final List<UserSearchResultDto> successUsers;
-  _FailingSearchApiService({required this.failQuery, required this.successUsers}) : super(_FakeApiClient());
-  @override
-  Future<UserSearchResponseDto> searchUsers({required String query, int limit=20, int offset=0}) async {
-    if (query == failQuery) {
-      // Empty page + hasMore=true + total not scanned → PaginationIntegrityException
-      return UserSearchResponseDto(query:query, users:[], total:100, limit:limit, offset:offset);
-    }
-    final filtered = successUsers.where((u) {
-      final n = u.username; return n.isNotEmpty && n.length >= 3;
-    }).toList();
-    return UserSearchResponseDto(query:query, users:filtered, total:filtered.length, limit:limit, offset:offset);
-  }
-}
-
-Widget _wf({required SearchApiService svc, required TextEditingController c,
+Widget _wf({required _FakeApiClient api, required TextEditingController c,
   void Function(List<String>)? omc, String uid='v-1'}) {
   final au=_au(uid);
   return ProviderScope(overrides:[
-    searchApiServiceProvider.overrideWith((ref)=>svc),
+    apiClientProvider.overrideWith((ref)=>api),
     currentUserIdProvider.overrideWith((ref)=>uid),
     loggerServiceProvider.overrideWith((ref)=>_StubLogger()),
     authControllerProvider.overrideWith(()=>_FakeAuthController(AuthState.authenticated(au, emailVerified:true))),
@@ -102,11 +112,11 @@ Future<void> _setText(WidgetTester t, TextEditingController c, String text) asyn
 void main() {
   group('C1B3 Ordered ID callbacks', () {
     testWidgets('single @alice → [aliceId]', (t) async {
-      final svc = _FakeSearchApiService([_d('id-alice','alice')]);
+      final api = _FakeApiClient(users: [_u('id-alice','alice')]);
       final c = TextEditingController();
       final calls = <List<String>>[];
 
-      await t.pumpWidget(_wf(svc:svc, c:c, omc: (ids) => calls.add(List.of(ids))));
+      await t.pumpWidget(_wf(api:api, c:c, omc: (ids) => calls.add(List.of(ids))));
       await _setText(t, c, '@alice');
 
       // Should emit callback with resolved alice ID.
@@ -117,11 +127,11 @@ void main() {
     });
 
     testWidgets('two @alice tokens → one aliceId', (t) async {
-      final svc = _FakeSearchApiService([_d('id-alice','alice')]);
+      final api = _FakeApiClient(users: [_u('id-alice','alice')]);
       final c = TextEditingController();
       final calls = <List<String>>[];
 
-      await t.pumpWidget(_wf(svc:svc, c:c, omc: (ids) => calls.add(List.of(ids))));
+      await t.pumpWidget(_wf(api:api, c:c, omc: (ids) => calls.add(List.of(ids))));
       await _setText(t, c, '@alice @alice');
 
       final last = calls.last;
@@ -131,11 +141,11 @@ void main() {
     });
 
     testWidgets('@Alice + @alice → one canonical aliceId', (t) async {
-      final svc = _FakeSearchApiService([_d('id-alice','alice')]);
+      final api = _FakeApiClient(users: [_u('id-alice','alice')]);
       final c = TextEditingController();
       final calls = <List<String>>[];
 
-      await t.pumpWidget(_wf(svc:svc, c:c, omc: (ids) => calls.add(List.of(ids))));
+      await t.pumpWidget(_wf(api:api, c:c, omc: (ids) => calls.add(List.of(ids))));
       await _setText(t, c, '@Alice @alice');
 
       final last = calls.last;
@@ -144,11 +154,11 @@ void main() {
     });
 
     testWidgets('remove one duplicate → ID remains', (t) async {
-      final svc = _FakeSearchApiService([_d('id-alice','alice')]);
+      final api = _FakeApiClient(users: [_u('id-alice','alice')]);
       final c = TextEditingController();
       final calls = <List<String>>[];
 
-      await t.pumpWidget(_wf(svc:svc, c:c, omc: (ids) => calls.add(List.of(ids))));
+      await t.pumpWidget(_wf(api:api, c:c, omc: (ids) => calls.add(List.of(ids))));
       // Start with two tokens.
       await _setText(t, c, '@alice @alice');
 
@@ -164,11 +174,11 @@ void main() {
     });
 
     testWidgets('remove final token → []', (t) async {
-      final svc = _FakeSearchApiService([_d('id-alice','alice')]);
+      final api = _FakeApiClient(users: [_u('id-alice','alice')]);
       final c = TextEditingController();
       final calls = <List<String>>[];
 
-      await t.pumpWidget(_wf(svc:svc, c:c, omc: (ids) => calls.add(List.of(ids))));
+      await t.pumpWidget(_wf(api:api, c:c, omc: (ids) => calls.add(List.of(ids))));
       await _setText(t, c, '@alice');
 
       final first = calls.last;
@@ -182,11 +192,11 @@ void main() {
     });
 
     testWidgets('@alice @bob → [aliceId, bobId]', (t) async {
-      final svc = _FakeSearchApiService([_d('id-alice','alice'), _d('id-bob','bob')]);
+      final api = _FakeApiClient(users: [_u('id-alice','alice'), _u('id-bob','bob')]);
       final c = TextEditingController();
       final calls = <List<String>>[];
 
-      await t.pumpWidget(_wf(svc:svc, c:c, omc: (ids) => calls.add(List.of(ids))));
+      await t.pumpWidget(_wf(api:api, c:c, omc: (ids) => calls.add(List.of(ids))));
       await _setText(t, c, '@alice @bob');
 
       final last = calls.last;
@@ -196,11 +206,11 @@ void main() {
     });
 
     testWidgets('@bob @alice → [bobId, aliceId]', (t) async {
-      final svc = _FakeSearchApiService([_d('id-alice','alice'), _d('id-bob','bob')]);
+      final api = _FakeApiClient(users: [_u('id-alice','alice'), _u('id-bob','bob')]);
       final c = TextEditingController();
       final calls = <List<String>>[];
 
-      await t.pumpWidget(_wf(svc:svc, c:c, omc: (ids) => calls.add(List.of(ids))));
+      await t.pumpWidget(_wf(api:api, c:c, omc: (ids) => calls.add(List.of(ids))));
       await _setText(t, c, '@bob @alice');
 
       final last = calls.last;
@@ -211,14 +221,14 @@ void main() {
 
     testWidgets('stable-ID collision → one shared ID', (t) async {
       // Both alice and alice_alias resolve to the same stable ID.
-      final svc = _FakeSearchApiService([
-        _d('shared-id','alice'),
-        _d('shared-id','alice_alias'),
+      final api = _FakeApiClient(users: [
+        _u('shared-id','alice'),
+        _u('shared-id','alice_alias'),
       ]);
       final c = TextEditingController();
       final calls = <List<String>>[];
 
-      await t.pumpWidget(_wf(svc:svc, c:c, omc: (ids) => calls.add(List.of(ids))));
+      await t.pumpWidget(_wf(api:api, c:c, omc: (ids) => calls.add(List.of(ids))));
       await _setText(t, c, '@alice @alice_alias');
 
       final last = calls.last;
@@ -227,11 +237,11 @@ void main() {
     });
 
     testWidgets('invalid username → no ID', (t) async {
-      final svc = _FakeSearchApiService([]);
+      final api = _FakeApiClient(users: []);
       final c = TextEditingController();
       final calls = <List<String>>[];
 
-      await t.pumpWidget(_wf(svc:svc, c:c, omc: (ids) => calls.add(List.of(ids))));
+      await t.pumpWidget(_wf(api:api, c:c, omc: (ids) => calls.add(List.of(ids))));
       // '@@' is not a valid mention pattern — parser won't match it.
       // But 'Hi @@' just contains a bare @ trigger with no query.
       await _setText(t, c, 'Hi there');
@@ -239,19 +249,20 @@ void main() {
       final last = calls.last;
       // No valid mention tokens → empty list.
       expect(last, isEmpty);
+      expect(api.queries, isEmpty, reason: 'no mention token must not hit the API');
     });
 
     testWidgets('partial fail-closed: alice fails, bob succeeds → [id-bob]', (t) async {
-      // Alice throws PaginationIntegrityException (empty page + hasMore=true).
-      // Bob resolves to id-bob. Only bob's ID appears.
-      final svc = _FailingSearchApiService(
-        failQuery: 'alice',
-        successUsers: [_d('id-bob','bob')],
+      // The backend answers alice's query with an empty page — the resolver
+      // fails closed (null) and only bob's ID appears.
+      final api = _FakeApiClient(
+        users: [_u('id-bob','bob')],
+        emptyFor: {'alice'},
       );
       final c = TextEditingController();
       final calls = <List<String>>[];
 
-      await t.pumpWidget(_wf(svc:svc, c:c, omc: (ids) => calls.add(List.of(ids))));
+      await t.pumpWidget(_wf(api:api, c:c, omc: (ids) => calls.add(List.of(ids))));
       await _setText(t, c, '@alice @bob');
 
       final last = calls.last;
@@ -261,14 +272,14 @@ void main() {
     });
 
     testWidgets('partial fail-closed inverse: @bob @alice → [id-bob]', (t) async {
-      final svc = _FailingSearchApiService(
-        failQuery: 'alice',
-        successUsers: [_d('id-bob','bob')],
+      final api = _FakeApiClient(
+        users: [_u('id-bob','bob')],
+        emptyFor: {'alice'},
       );
       final c = TextEditingController();
       final calls = <List<String>>[];
 
-      await t.pumpWidget(_wf(svc:svc, c:c, omc: (ids) => calls.add(List.of(ids))));
+      await t.pumpWidget(_wf(api:api, c:c, omc: (ids) => calls.add(List.of(ids))));
       await _setText(t, c, '@bob @alice');
 
       final last = calls.last;
@@ -277,15 +288,15 @@ void main() {
     });
 
     testWidgets('@everyone unchanged in text but not resolved', (t) async {
-      final svc = _FakeSearchApiService([]);
+      final api = _FakeApiClient(users: []);
       final c = TextEditingController();
       final calls = <List<String>>[];
 
-      await t.pumpWidget(_wf(svc:svc, c:c, omc: (ids) => calls.add(List.of(ids))));
+      await t.pumpWidget(_wf(api:api, c:c, omc: (ids) => calls.add(List.of(ids))));
       await _setText(t, c, '@everyone');
 
-      // @everyone is extracted by MentionParser but classified as special
-      // and excluded from regular mention IDs.
+      // @everyone is excluded from regular mention IDs — the resolver may
+      // probe the API for it, but it must never emit an ID for it.
       final last = calls.last;
       expect(last, isEmpty);
     });

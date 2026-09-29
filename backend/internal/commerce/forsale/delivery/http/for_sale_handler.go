@@ -1038,12 +1038,19 @@ func for_saleToResponseWithSeller(
 
 	// Canonical media authority is Product.MediaURLs (storage keys). Both wire
 	// slots carry the SAME resolved CloudFront URLs: `media` (typed) and
-	// `media_urls` (flat). They are projections of one source, never raw keys.
+	// `media_urls` (flat, originals). They are projections of one source,
+	// never raw keys. The card thumbnail is the Lambda thumbnail variant of
+	// the first ref — list surfaces render it, detail renders originals.
 	mediaURLs := []string{}
 	var renderedMedia []map[string]interface{}
+	var thumbnail *string
 	if product != nil {
 		mediaURLs = commerceshared.ResolveReadableMediaReferences(product.MediaURLs)
 		renderedMedia = commerceshared.MediaWireItems(product.MediaURLs, l.CreatedAt)
+		if len(product.MediaURLs) > 0 {
+			t := commerceshared.ResolveReadableThumbnailURL(product.MediaURLs[0])
+			thumbnail = &t
+		}
 	} else {
 		renderedMedia = []map[string]interface{}{}
 	}
@@ -1052,11 +1059,6 @@ func for_saleToResponseWithSeller(
 	// Carries the coarsened public lifecycle vocabulary {active, sold,
 	// unavailable, removed} via entity.ForSaleStatus.PublicLifecycle(); raw
 	// enum (draft, withdrawn) is intentionally NEVER read by the card.
-	var thumbnail *string
-	if len(mediaURLs) > 0 {
-		t := mediaURLs[0]
-		thumbnail = &t
-	}
 	var sellerAvatarPtr *string
 	if seller.AvatarURL != "" {
 		a := seller.AvatarURL

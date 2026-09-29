@@ -78,6 +78,7 @@ Map<String, dynamic> _feedContentItem({
   return <String, dynamic>{
     'type': 'post',
     'id': id,
+    'author_id': authorId,
     'status': 'active',
     'body': body,
     'created_at': createdAt,

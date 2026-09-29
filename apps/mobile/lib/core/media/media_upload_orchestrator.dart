@@ -127,7 +127,15 @@ class MediaUploadOrchestrator {
     int fail = 0;
     for (final f in files) {
       final isVideo = isVideoFile(f);
-      final res = isVideo ? await s3.uploadVideo(f) : await s3.uploadImage(f);
+      final res = isVideo
+          ? await s3.uploadVideo(
+              f,
+              folder: config.videoFolder,
+            )
+          : await s3.uploadImage(
+              f,
+              folder: config.imageFolder,
+            );
       if (res.isSuccess && res.data != null) {
         urls.add(res.data!);
       } else {

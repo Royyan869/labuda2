@@ -76,8 +76,8 @@ class FollowListsNotifier extends _$FollowListsNotifier {
     final result = await _getFollowersUseCase.execute(params);
 
     result.fold(
-      (failure) {
-        state = state.copyWith(isLoading: false, error: failure.message);
+      (error) {
+        state = state.copyWith(isLoading: false, error: error);
       },
       (followers) {
         final updatedFollowersMap = Map<String, List<FollowableUser>>.from(
@@ -118,8 +118,8 @@ class FollowListsNotifier extends _$FollowListsNotifier {
     final result = await _getFollowingUseCase.execute(params);
 
     result.fold(
-      (failure) {
-        state = state.copyWith(isLoading: false, error: failure.message);
+      (error) {
+        state = state.copyWith(isLoading: false, error: error);
       },
       (following) {
         final updatedFollowingMap = Map<String, List<FollowableUser>>.from(

@@ -37,7 +37,6 @@ import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/commerce/catalog/auction/auction.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/domain/domain.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart';
-import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_marketplace_primitives.dart';
 import 'package:labuda/domains/social/like/domain/entities/like.dart';
 import 'package:labuda/domains/social/like/domain/repositories/like_repository.dart';
 import 'package:labuda/domains/social/like/presentation/providers/like_notifier.dart';
@@ -494,25 +493,27 @@ Future<void> _pump(WidgetTester tester) async {
 // Tap helper — finds the tappable area of a promoted card
 // ============================================================================
 
+/// Taps the promoted card itself.
+///
+/// PromotedForSaleCard / PromotedAuctionCard render `Card > InkWell` directly
+/// (they no longer go through CommerceMarketplaceCardShell), so a helper that
+/// only looks for the shell silently taps NOTHING — every scenario then dies
+/// with 0 click acks and no navigation. Target the card's own InkWell.
 Future<void> _tapPromotedCard(WidgetTester tester) async {
-  final shell = find.byType(CommerceMarketplaceCardShell);
-  if (shell.evaluate().isNotEmpty) {
-    await tester.tap(shell);
+  for (final cardType in [
+    PromotedForSaleCard,
+    PromotedAuctionCard,
+    PromotedExternalCard,
+  ]) {
+    final card = find.byType(cardType);
+    if (card.evaluate().isEmpty) continue;
+    final inkWell = find.descendant(of: card, matching: find.byType(InkWell));
+    if (inkWell.evaluate().isEmpty) continue;
+    await tester.tap(inkWell.first);
     await _pump(tester);
     return;
   }
-  final externalCard = find.byType(PromotedExternalCard);
-  if (externalCard.evaluate().isNotEmpty) {
-    final inkWell = find.descendant(
-      of: externalCard,
-      matching: find.byType(InkWell),
-    );
-    if (inkWell.evaluate().isNotEmpty) {
-      await tester.tap(inkWell.first);
-      await _pump(tester);
-      return;
-    }
-  }
+  fail('no promoted card with an InkWell found to tap');
 }
 
 // ============================================================================
@@ -1142,8 +1143,12 @@ void main() {
         tester.element(find.byType(PromotedForSaleCard)),
       );
 
-      final shells = find.byType(CommerceMarketplaceCardShell);
-      await tester.tap(shells.first);
+      // Promoted cards render their own Card > InkWell (no shell wrapper).
+      final listingInkWell = find.descendant(
+        of: find.byType(PromotedForSaleCard),
+        matching: find.byType(InkWell),
+      );
+      await tester.tap(listingInkWell.first);
       await _pump(tester);
 
       final listingClick = adapter.clickPosts.first;
@@ -1153,8 +1158,11 @@ void main() {
       router.go('/');
       await _pump(tester);
 
-      final shells2 = find.byType(CommerceMarketplaceCardShell);
-      await tester.tap(shells2.last);
+      final auctionInkWell = find.descendant(
+        of: find.byType(PromotedAuctionCard),
+        matching: find.byType(InkWell),
+      );
+      await tester.tap(auctionInkWell.first);
       await _pump(tester);
 
       final auctionClick = adapter.clickPosts.last;

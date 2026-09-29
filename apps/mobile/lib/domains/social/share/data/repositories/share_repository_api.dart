@@ -1,8 +1,7 @@
 // Share Repository API Implementation
 // Implements ShareRepository using Go Backend API
 
-import 'package:dartz/dartz.dart';
-import 'package:labuda/core/api/api.dart';
+import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/social/share/data/datasources/share_api_datasource.dart';
 import 'package:labuda/domains/social/share/data/remote/native_share_service.dart';
 import 'package:labuda/domains/social/share/domain/domain.dart';
@@ -37,47 +36,43 @@ class ShareRepositoryApi implements ShareRepository {
   // ==========================================================================
 
   @override
-  Future<Either<ShareFailure, ShareResult>> shareViaExternal({
+  Future<Result<ShareResult>> shareViaExternal({
     required ShareTarget target,
     required ShareDestinationType destination,
   }) async {
     // Validate destination
     if (_isInternalDestination(destination)) {
-      return Left(
-        ShareFailure.invalidDestination(
-          'Use internal share methods for $destination',
-        ),
-      );
+      return Result.error('Use internal share methods for $destination');
     }
 
     // Route to appropriate native share method
     final result = await _routeToNativeService(target, destination);
 
     return result.fold(
-      (failure) => Left(failure),
+      (error) => Result.error(error),
       (success) => success
-          ? Right(ShareResult.success(destination))
-          : Right(ShareResult.failure(destination, 'Share failed')),
+          ? Result.success(ShareResult.success(destination))
+          : Result.success(ShareResult.failure(destination, 'Share failed')),
     );
   }
 
   @override
-  Future<Either<ShareFailure, String>> shareAsPost({
+  Future<Result<String>> shareAsPost({
     required ShareTarget target,
     required String authorId,
     String? caption,
   }) async {
     // Validation
     if (authorId.trim().isEmpty) {
-      return Left(ShareFailure.invalidTarget('Author ID is required'));
+      return Result.error('Author ID is required');
     }
 
     if (caption != null && caption.trim().isEmpty) {
-      return Left(ShareFailure.invalidTarget('Caption cannot be empty'));
+      return Result.error('Caption cannot be empty');
     }
 
     if (caption != null && caption.length > 5000) {
-      return Left(ShareFailure.invalidTarget('Caption too long (max 5000)'));
+      return Result.error('Caption too long (max 5000)');
     }
 
     try {
@@ -102,27 +97,25 @@ class ShareRepositoryApi implements ShareRepository {
 
       final postId = response['id'] as String?;
       if (postId == null || postId.isEmpty) {
-        return Left(
-          ShareFailure.unknown('Failed to get post ID from response'),
-        );
+        return Result.error('Failed to get post ID from response');
       }
 
-      return Right(postId);
+      return Result.success(postId);
     } on ApiException catch (e) {
-      return Left(ShareFailure.network(e.message));
+      return Result.error(e.message);
     } catch (e) {
-      return Left(ShareFailure.unknown(_mapApiError(e)));
+      return Result.error(_mapApiError(e));
     }
   }
 
   @override
-  Future<Either<ShareFailure, ShareResult>> sendToChat({
+  Future<Result<ShareResult>> sendToChat({
     required ShareTarget target,
     required String recipientUserId,
     String? message,
   }) async {
     // Coming soon - will integrate with chat module
-    return Right(
+    return Result.success(
       ShareResult.failure(ShareDestinationType.sendToChat, 'Coming soon'),
     );
   }
@@ -136,7 +129,7 @@ class ShareRepositoryApi implements ShareRepository {
         destination == ShareDestinationType.sendToChat;
   }
 
-  Future<Either<ShareFailure, bool>> _routeToNativeService(
+  Future<Result<bool>> _routeToNativeService(
     ShareTarget target,
     ShareDestinationType destination,
   ) async {
@@ -149,9 +142,7 @@ class ShareRepositoryApi implements ShareRepository {
 
       case ShareDestinationType.instagram:
         if (target.imageUrl == null) {
-          return Left(
-            ShareFailure.invalidTarget('Image required for Instagram'),
-          );
+          return Result.error('Image required for Instagram');
         }
         return _nativeShareService.shareToInstagramStory(
           imageUrl: target.imageUrl!,
@@ -173,10 +164,10 @@ class ShareRepositoryApi implements ShareRepository {
         );
 
       case ShareDestinationType.shareToFeed:
-        return Left(ShareFailure.invalidDestination('Use shareAsPost instead'));
+        return Result.error('Use shareAsPost instead');
 
       case ShareDestinationType.sendToChat:
-        return Left(ShareFailure.invalidDestination('Use sendToChat instead'));
+        return Result.error('Use sendToChat instead');
     }
   }
 

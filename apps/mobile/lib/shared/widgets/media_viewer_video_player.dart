@@ -223,14 +223,6 @@ class _MediaViewerVideoPlayerState extends State<MediaViewerVideoPlayer> {
               },
               icon: const Icon(Icons.refresh, size: 20),
               label: const Text('Retry'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: scheme.primary,
-                foregroundColor: scheme.onPrimary,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppMetrics.p24,
-                  vertical: AppMetrics.p12,
-                ),
-              ),
             ),
           ],
         ),

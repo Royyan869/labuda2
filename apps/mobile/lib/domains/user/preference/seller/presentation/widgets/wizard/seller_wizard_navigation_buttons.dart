@@ -54,9 +54,6 @@ class SellerWizardNavigationButtons extends StatelessWidget {
             Expanded(
               child: OutlinedButton(
                 onPressed: onPrevious,
-                style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: scheme.primary, width: 1.5),
-                ),
                 child: const Text('Kembali'),
               ),
             ),

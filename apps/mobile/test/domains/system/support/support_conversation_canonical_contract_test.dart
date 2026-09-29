@@ -88,8 +88,8 @@ void main() {
 
       final result = await repository.getMessages('ticket-1');
 
-      expect(result.isSuccess, isTrue, reason: result.failure?.message ?? '');
-      final messages = result.dataOrThrow;
+      expect(result.isSuccess, isTrue, reason: result.error ?? '');
+      final messages = result.data!;
       expect(messages, hasLength(2));
 
       expect(messages[0].senderType, SupportSenderType.user);
@@ -127,7 +127,7 @@ void main() {
           },
         },
       );
-      expect((await _repository(nested).getMessages('t1')).dataOrThrow,
+      expect((await _repository(nested).getMessages('t1')).data!,
           hasLength(1));
 
       final bare = _CapturingSupportAdapter(
@@ -147,7 +147,7 @@ void main() {
         },
       );
       expect(
-        (await _repository(bare).getMessages('t1')).dataOrThrow,
+        (await _repository(bare).getMessages('t1')).data!,
         hasLength(1),
       );
     });
@@ -176,7 +176,7 @@ void main() {
         message: 'Sudah saya coba, masih gagal.',
       );
 
-      expect(result.isSuccess, isTrue, reason: result.failure?.message ?? '');
+      expect(result.isSuccess, isTrue, reason: result.error ?? '');
 
       final request = adapter.requests.single;
       expect(request.method, 'POST');
@@ -204,7 +204,7 @@ void main() {
         ticketId: 'ticket-1',
         message: '   ',
       );
-      expect(empty.isFailure, isTrue);
+      expect(empty.isError, isTrue);
       expect(adapter.requests, isEmpty,
           reason: 'an empty reply must never hit the API');
 

@@ -877,8 +877,11 @@ void main() {
     },
   );
 
+  // Design note: SettingsScreen no longer hosts any SwitchListTile (the
+  // 'Show Online Status' toggle was removed from the settings design), so the
+  // refresh contract for /settings is screen + router IDENTITY preservation.
   testWidgets(
-    '/settings preserves local toggles after same-principal refresh',
+    '/settings keeps screen and router identity after same-principal refresh',
     (tester) async {
       final user = _buildUser(
         id: _profileUserId,
@@ -900,30 +903,12 @@ void main() {
 
       expect(find.byType(SettingsScreen), findsOneWidget);
       final settingsState = tester.state(find.byType(SettingsScreen));
-      final onlineStatusTile = find.widgetWithText(
-        SwitchListTile,
-        'Show Online Status',
-      );
-
-      expect(onlineStatusTile, findsOneWidget);
-      final valueBeforeTap =
-          tester.widget<SwitchListTile>(onlineStatusTile).value;
-      await tester.tap(onlineStatusTile);
-      await tester.pump();
-
-      final valueAfterTap =
-          tester.widget<SwitchListTile>(onlineStatusTile).value;
-      expect(valueAfterTap, isNot(valueBeforeTap));
       final routerBefore = container.read(goRouterProvider);
 
       await _refreshSamePrincipal(tester, container);
 
       expect(container.read(goRouterProvider), same(routerBefore));
       expect(tester.state(find.byType(SettingsScreen)), same(settingsState));
-      expect(
-        tester.widget<SwitchListTile>(onlineStatusTile).value,
-        valueAfterTap,
-      );
     },
   );
 

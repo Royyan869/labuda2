@@ -22,7 +22,10 @@ class _FakeS3Service extends S3Service {
   _FakeS3Service({this.failedImages = const {}, this.throwOnImage = false});
 
   @override
-  Future<Result<MediaEntity>> uploadImageWithBlurhash(File file) async {
+  Future<Result<MediaEntity>> uploadImageWithBlurhash(
+    File file, {
+    required String folder,
+  }) async {
     imageCalls++;
     if (throwOnImage) throw StateError('image upload exploded');
     if (failedImages.contains(file.path)) {

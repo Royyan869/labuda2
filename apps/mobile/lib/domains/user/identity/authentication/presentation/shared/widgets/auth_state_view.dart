@@ -119,13 +119,6 @@ class AuthStateView extends StatelessWidget {
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: onErrorDismiss,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: scheme.primary,
-                  foregroundColor: scheme.onPrimary,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppShape.r12),
-                  ),
-                ),
                 child: const Text('Try Again'),
               ),
             ],

@@ -27,7 +27,7 @@ class SupportTicketsListScreen extends ConsumerStatefulWidget {
 
 class _SupportTicketsListScreenState
     extends ConsumerState<SupportTicketsListScreen> {
-  late Future<SupportResult<List<SupportTicket>>> _ticketsFuture;
+  late Future<Result<List<SupportTicket>>> _ticketsFuture;
 
   @override
   void initState() {
@@ -35,7 +35,7 @@ class _SupportTicketsListScreenState
     _ticketsFuture = _loadTickets();
   }
 
-  Future<SupportResult<List<SupportTicket>>> _loadTickets() {
+  Future<Result<List<SupportTicket>>> _loadTickets() {
     return ref.read(supportRepositoryProvider).getMyTickets();
   }
 
@@ -88,7 +88,7 @@ class _SupportTicketsListScreenState
   }
 
   Widget _buildTicketsList() {
-    return FutureBuilder<SupportResult<List<SupportTicket>>>(
+    return FutureBuilder<Result<List<SupportTicket>>>(
       future: _ticketsFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == flutter.ConnectionState.waiting) {
@@ -96,7 +96,7 @@ class _SupportTicketsListScreenState
         }
 
         final result = snapshot.data;
-        if (snapshot.hasError || result == null || result.isFailure) {
+        if (snapshot.hasError || result == null || result.isError) {
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -108,7 +108,7 @@ class _SupportTicketsListScreenState
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  result?.failure?.message ?? 'Failed to load tickets',
+                  result?.error ?? 'Failed to load tickets',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: context.statusColors.error),
                 ),
@@ -122,7 +122,7 @@ class _SupportTicketsListScreenState
           );
         }
 
-        final tickets = result.dataOrThrow;
+        final tickets = result.data!;
 
         if (tickets.isEmpty) {
           return Center(
@@ -158,10 +158,6 @@ class _SupportTicketsListScreenState
                   ),
                   icon: const Icon(Icons.add),
                   label: const Text('Create Ticket'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).colorScheme.primary,
-                    foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                  ),
                 ),
               ],
             ),
@@ -283,9 +279,6 @@ class _SupportTicketListItem extends StatelessWidget {
                 label: const Text('View Ticket'),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: AppMetrics.p8),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppShape.r8),
-                  ),
                 ),
               ),
             ],

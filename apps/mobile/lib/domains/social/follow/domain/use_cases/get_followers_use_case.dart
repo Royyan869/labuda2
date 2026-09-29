@@ -1,4 +1,3 @@
-import 'package:dartz/dartz.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/social/follow/domain/entities/follow_entity.dart';
 import 'package:labuda/domains/social/follow/domain/repositories/i_follow_repository.dart';
@@ -20,11 +19,9 @@ class GetFollowersUseCase {
 
   const GetFollowersUseCase(this._repository);
 
-  Future<Either<Failure, List<FollowableUser>>> execute(
-    GetFollowersParams params,
-  ) async {
+  Future<Result<List<FollowableUser>>> execute(GetFollowersParams params) async {
     if (params.limit <= 0 || params.limit > 100) {
-      return const Left(ValidationFailure(message: 'Limit harus antara 1-100'));
+      return Result.error('Limit harus antara 1-100');
     }
 
     final result = await _repository.getFollowers(
@@ -33,9 +30,6 @@ class GetFollowersUseCase {
       lastFollowId: params.lastFollowId,
     );
 
-    return result.fold(
-      (error) => Left(UnknownFailure(message: error)),
-      (data) => Right(data),
-    );
+    return result;
   }
 }

@@ -598,7 +598,6 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
                 onPressed: _isSubmitting ? null : _submitForm,
                 style: ElevatedButton.styleFrom(
                   minimumSize: const Size.fromHeight(50),
-                  backgroundColor: scheme.primary,
                   disabledBackgroundColor: scheme.surfaceContainerHighest,
                   disabledForegroundColor: scheme.onSurfaceVariant,
                 ),

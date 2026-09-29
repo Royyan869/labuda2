@@ -105,6 +105,42 @@ void main() {
     },
   );
 
+  testWidgets('content card renders the thumbnail variant when present', (
+    tester,
+  ) async {
+    const originalUrl =
+        'https://d358tu61i1wrtt.cloudfront.net/images/1749600000000_author.jpg';
+    const thumbnailUrl =
+        'https://d358tu61i1wrtt.cloudfront.net/images/thumbnail/1749600000000_author.jpg';
+
+    await tester.pumpWidget(
+      _wrap(
+        FeedCard(
+          item: _itemWithMedia(
+            media: [
+              _media(
+                url: originalUrl,
+                type: MediaType.image,
+                position: 0,
+              ).copyWith(
+                variants: const {'thumbnail': thumbnailUrl},
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.byType(AppImage), findsOneWidget);
+    final appImage = tester.widget<AppImage>(find.byType(AppImage));
+    expect(
+      appImage.imageUrl,
+      thumbnailUrl,
+      reason: 'list surfaces render the Lambda thumbnail, never the original',
+    );
+  });
+
   testWidgets('content card video media is never handed to the image widget', (
     tester,
   ) async {

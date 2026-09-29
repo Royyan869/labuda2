@@ -310,9 +310,6 @@ Widget? buildListItemTrailing(ListItemTrailing config, ColorScheme scheme) {
             padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12),
             backgroundColor: scheme.primary,
             foregroundColor: scheme.onPrimary,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppShape.r6),
-            ),
           ),
           child: Text(
             config.buttonText ?? '',

@@ -259,10 +259,6 @@ class _ShippingQuoteCreationModalState
         ),
         ElevatedButton(
           onPressed: _isSubmitting ? null : _handleSubmit,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: colorScheme.primary,
-            foregroundColor: colorScheme.onPrimary,
-          ),
           child: _isSubmitting
               ? SizedBox(
                   width: 16,

@@ -1297,9 +1297,6 @@ icon: Icon(
               Navigator.pop(context);
               _handleBlockUser();
             },
-            style: FilledButton.styleFrom(
-              backgroundColor: scheme.primary,
-            ),
             child: const Text('Block User'),
           ),
         ],

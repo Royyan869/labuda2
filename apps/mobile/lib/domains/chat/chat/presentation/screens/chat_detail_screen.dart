@@ -1633,9 +1633,6 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
               Navigator.pop(context);
               _handleBlockUser(context, targetUserId, targetUserName);
             },
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.primary,
-            ),
             child: const Text('Block User'),
           ),
         ],

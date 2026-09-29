@@ -258,12 +258,22 @@ class _PersonalInformationScreenState
               const SizedBox(height: 24),
 
               // Save Button
-              AppButton(
-                text: 'Save Changes',
+              ElevatedButton(
                 onPressed: _controller.isLoading
                     ? null
                     : _savePersonalInformation,
-                isLoading: _controller.isLoading,
+                child: _controller.isLoading
+                    ? SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation(
+                            Theme.of(context).colorScheme.onPrimary,
+                          ),
+                        ),
+                      )
+                    : const Text('Save Changes'),
               ),
             ],
           ),

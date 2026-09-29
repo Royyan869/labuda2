@@ -1,7 +1,7 @@
 package entity
 
 // MessageType represents the type of chat message.
-// Media messages (image, video, audio, file) are sent as "text" with mediaUrls attachment.
+// Media messages (image, video, file) are sent as "text" with mediaUrls attachment.
 type MessageType string
 
 const (

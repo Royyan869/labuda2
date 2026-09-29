@@ -249,15 +249,6 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
                     },
                     icon: const Icon(Icons.storefront, size: 18),
                     label: const Text('Mulai Jualan'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).colorScheme.primary,
-                      foregroundColor:
-                          Theme.of(context).colorScheme.onPrimary,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppMetrics.p24,
-                        vertical: AppMetrics.p12,
-                      ),
-                    ),
                   ),
                 ],
               ),
@@ -719,7 +710,6 @@ class _SubscriptionExpiryBanner extends ConsumerWidget {
                 label: const Text('Perpanjang Langganan'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: context.statusColors.warning,
-                  foregroundColor: Theme.of(context).colorScheme.onPrimary,
                   minimumSize: const Size(double.infinity, 44),
                 ),
               ),

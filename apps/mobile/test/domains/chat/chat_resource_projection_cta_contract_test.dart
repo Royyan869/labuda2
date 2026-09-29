@@ -174,7 +174,10 @@ Future<void> _pumpCard(
   );
 
   await tester.pumpWidget(MaterialApp.router(routerConfig: router));
-  await tester.pumpAndSettle();
+  // Never pumpAndSettle here: the card's AppImage shimmer skeletons animate
+  // forever BY DESIGN — bounded pump instead (the test follows the codebase,
+  // not the other way round).
+  await tester.pump(const Duration(milliseconds: 400));
 }
 
 void main() {
@@ -193,9 +196,9 @@ void main() {
       expect(find.text('Beli Sekarang'), findsOneWidget);
 
       await tester.ensureVisible(find.text('Beli Sekarang'));
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 400));
       await tester.tap(find.text('Beli Sekarang'));
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 400));
 
       expect(delegated, 1);
       // The CTA must not silently degrade into a plain card-body navigation.
@@ -212,9 +215,13 @@ void main() {
       );
 
       await tester.ensureVisible(find.text('Beli Sekarang'));
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 400));
       await tester.tap(find.text('Beli Sekarang'));
-      await tester.pumpAndSettle();
+      // Route materialisation needs two frames: one to process the router
+      // notification, one to finish the transition. Never pumpAndSettle —
+      // the card's shimmer skeletons animate forever by design.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
 
       expect(find.text('detail destination'), findsOneWidget);
     });
@@ -279,9 +286,10 @@ void main() {
       expect(find.text('Bid'), findsOneWidget);
 
       await tester.ensureVisible(find.text('Bid'));
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 400));
       await tester.tap(find.text('Bid'));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
 
       expect(find.text('bid destination'), findsOneWidget);
     });

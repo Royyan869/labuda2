@@ -186,6 +186,7 @@ class ForSaleSearchResult {
   final String variety;
   final num? price;
   final List<String> mediaUrls;
+  final String? thumbnailUrl;
   final String sellerId;
   final DateTime createdAt;
 
@@ -209,6 +210,7 @@ class ForSaleSearchResult {
     required this.variety,
     this.price,
     required this.mediaUrls,
+    this.thumbnailUrl,
     required this.sellerId,
     required this.createdAt,
     this.sellerUsername,

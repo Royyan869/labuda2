@@ -9,6 +9,7 @@ import 'package:labuda/domains/social/share/domain/entities/share_target.dart';
 import 'package:labuda/features/search/search/domain/entities/user_search.dart'
     show UserSearch;
 import 'package:labuda/shared/shared.dart';
+import 'package:labuda/shared/widgets/composer_action_buttons.dart';
 import 'package:labuda/shared/helpers/user_identity_formatter.dart';
 import 'share_preview_card.dart';
 
@@ -90,7 +91,6 @@ class _ShareToChatDialogState extends ConsumerState<ShareToChatDialog> {
     final dividerColor = scheme.outlineVariant;
     final textColor = scheme.onSurface;
     final searchAsync = ref.watch(newChatUserSearchProvider(_searchQuery));
-    final canSend = !_isSending && _selectedRecipient != null;
 
     return SafeArea(
       child: Padding(
@@ -162,7 +162,7 @@ class _ShareToChatDialogState extends ConsumerState<ShareToChatDialog> {
                       const SizedBox(height: 12),
                       if (_selectedRecipient != null) _buildSelectedRecipient(),
                       const SizedBox(height: 12),
-                      _buildComposerField(context, borderColor, textColor),
+                      _buildComposerField(context, textColor),
                       const SizedBox(height: 16),
                       Text(
                         'Pick one recipient. The message is sent only when you press Send.',
@@ -176,65 +176,8 @@ class _ShareToChatDialogState extends ConsumerState<ShareToChatDialog> {
                   ),
                 ),
               ),
-              Divider(height: 1, color: dividerColor),
-              Padding(
-                padding: const EdgeInsets.all(AppMetrics.p20),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: _isSending
-                            ? null
-                            : () => Navigator.pop(context),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
-                          side: BorderSide(color: borderColor),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(AppShape.r12),
-                          ),
-                        ),
-                        child: Text(
-                          'Cancel',
-                          style: AppTypography.button.copyWith(
-                            color: textColor,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: canSend ? _handleSend : null,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: scheme.primary,
-                          foregroundColor: scheme.onPrimary,
-                          padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(AppShape.r12),
-                          ),
-                        ),
-                        child: _isSending
-                            ? SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    scheme.onPrimary,
-                                  ),
-                                ),
-                              )
-                            : Text(
-                                'Send',
-                                style: AppTypography.button.copyWith(
-                                  color: scheme.onPrimary,
-                                ),
-                              ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              // Send lives in the composer row (canonical action row) —
+              // header X is the only dismissal control.
             ],
           ),
         ),
@@ -294,31 +237,32 @@ class _ShareToChatDialogState extends ConsumerState<ShareToChatDialog> {
     );
   }
 
-  Widget _buildComposerField(BuildContext context, Color borderColor, Color textColor) {
+  Widget _buildComposerField(BuildContext context, Color textColor) {
     final scheme = Theme.of(context).colorScheme;
-    return TextField(
-      controller: _messageController,
-      maxLines: 4,
-      minLines: 1,
-      style: AppTypography.bodyMedium.copyWith(color: textColor),
-      decoration: InputDecoration(
-        hintText: 'Write a message (optional)',
-        hintStyle: AppTypography.bodyMedium.copyWith(
-          color: scheme.onSurfaceVariant,
+    // Canonical action row: [pill] [send]. The message stays optional —
+    // sendability is gated by recipient selection, not by draft text.
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Expanded(
+          child: TextField(
+            controller: _messageController,
+            maxLines: 4,
+            minLines: 1,
+            style: AppTypography.bodyMedium.copyWith(color: textColor),
+            decoration: AppTheme.composerDecoration(
+              scheme,
+              hintText: 'Write a message (optional)',
+            ),
+          ),
         ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppShape.r12),
-          borderSide: BorderSide(color: borderColor),
+        const SizedBox(width: 8),
+        ComposerSendButton(
+          key: const ValueKey('share-send-button'),
+          loading: _isSending,
+          onPressed: _selectedRecipient != null ? _handleSend : null,
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppShape.r12),
-          borderSide: BorderSide(color: borderColor),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppShape.r12),
-          borderSide: BorderSide(color: scheme.primary, width: 2),
-        ),
-      ),
+      ],
     );
   }
 

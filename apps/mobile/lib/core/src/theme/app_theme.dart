@@ -126,6 +126,9 @@ class AppType {
   AppType._();
 
   static const double s8 = 8;
+  /// Half-step used by the wizard progress label (was an inline `8.5`
+  /// literal; tokenized so the fontSize gate can stay literal-free).
+  static const double s8_5 = 8.5;
   static const double s9 = 9;
   static const double s10 = 10;
   static const double s11 = 11;
@@ -323,6 +326,32 @@ class AppTheme {
         systemNavigationBarIconBrightness: Brightness.light,
       );
 
+  /// THE composer decoration — one factory, one pill, four consumers.
+  ///
+  /// Message-entry fields (chat composer, comment composer, share-to-chat
+  /// message, support thread reply) share ONE spec: radius [AppShape.r24],
+  /// fill `surfaceContainerHigh`, [AppMetrics.inputPadding], no border. Form
+  /// fields stay on [ThemeData.inputDecorationTheme] (box r12) — composer and
+  /// data-entry form are different classes and must not drift into each
+  /// other. The scheme is passed in (island rule): this file binds the
+  /// scheme pair, never widget-side colours.
+  static InputDecoration composerDecoration(
+    ColorScheme scheme, {
+    required String hintText,
+  }) =>
+      InputDecoration(
+        hintText: hintText,
+        hintStyle: TextStyle(color: scheme.onSurfaceVariant),
+        filled: true,
+        fillColor: scheme.surfaceContainerHigh,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppShape.r24),
+          borderSide: BorderSide.none,
+        ),
+        contentPadding: AppMetrics.inputPadding,
+        counterText: '',
+      );
+
   /// THE one ThemeData builder. Both modes flow through here, so any component
   /// theme or scale defined below is automatically correct in light and dark.
   static ThemeData _build(ColorScheme scheme, AppStatusColors status) {
@@ -372,6 +401,44 @@ class AppTheme {
       // Elevated button theme
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
+          backgroundColor: scheme.primary,
+          foregroundColor: scheme.onPrimary,
+          shape: const RoundedRectangleBorder(
+            borderRadius: AppShape.buttonRadius,
+          ),
+          padding: AppMetrics.buttonPadding,
+        ),
+      ),
+
+      // Outlined button — CANONICAL NEUTRAL secondary action (scope: button
+      // authority): onSurface ink on an outlineVariant border. Call sites may
+      // only express VARIANTS (e.g. destructive via context.statusColors),
+      // never re-state these defaults.
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: scheme.onSurface,
+          side: BorderSide(color: scheme.outlineVariant),
+          shape: const RoundedRectangleBorder(
+            borderRadius: AppShape.buttonRadius,
+          ),
+          padding: AppMetrics.buttonPadding,
+        ),
+      ),
+
+      // Text button — tertiary action, brand ink.
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: scheme.primary,
+          shape: const RoundedRectangleBorder(
+            borderRadius: AppShape.buttonRadius,
+          ),
+          padding: AppMetrics.buttonPadding,
+        ),
+      ),
+
+      // Filled button — same canonical pair as the elevated theme.
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
           backgroundColor: scheme.primary,
           foregroundColor: scheme.onPrimary,
           shape: const RoundedRectangleBorder(

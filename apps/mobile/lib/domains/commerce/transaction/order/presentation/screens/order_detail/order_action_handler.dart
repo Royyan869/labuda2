@@ -180,7 +180,6 @@ class OrderActionHandler {
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: context.statusColors.success,
-                foregroundColor: Theme.of(dialogContext).colorScheme.onPrimary,
               ),
               child: const Text('Ya, Terima Pesanan'),
             ),
@@ -240,7 +239,6 @@ class OrderActionHandler {
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: context.statusColors.warning,
-                foregroundColor: Theme.of(dialogContext).colorScheme.onPrimary,
               ),
               child: const Text('Ya, Terima Barang'),
             ),
@@ -475,9 +473,6 @@ class OrderActionHandler {
                   ),
                 );
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.primary,
-              ),
               child: const Text('Konfirmasi Pengiriman'),
             ),
           ],

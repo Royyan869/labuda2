@@ -6,6 +6,8 @@ class MediaUploadConfig {
   final int maxTotal;
   final int maxImageSizeMb;
   final int maxVideoSizeMb;
+  final String imageFolder;
+  final String videoFolder;
 
   const MediaUploadConfig({
     required this.maxImages,
@@ -13,6 +15,8 @@ class MediaUploadConfig {
     required this.maxTotal,
     this.maxImageSizeMb = 10,
     this.maxVideoSizeMb = 100,
+    required this.imageFolder,
+    required this.videoFolder,
   });
 
   int get maxMedia => maxTotal;
@@ -23,6 +27,8 @@ class MediaUploadConfig {
     maxTotal: 20,
     maxImageSizeMb: 10,
     maxVideoSizeMb: 100,
+    imageFolder: 'images/content',
+    videoFolder: 'videos/content',
   );
 
   static const forCommerce = MediaUploadConfig(
@@ -31,6 +37,8 @@ class MediaUploadConfig {
     maxTotal: 10,
     maxImageSizeMb: 10,
     maxVideoSizeMb: 100,
+    imageFolder: 'images/commerce',
+    videoFolder: 'videos/commerce',
   );
 
   static const forComment = MediaUploadConfig(
@@ -39,6 +47,8 @@ class MediaUploadConfig {
     maxTotal: 5,
     maxImageSizeMb: 10,
     maxVideoSizeMb: 100,
+    imageFolder: 'images/content',
+    videoFolder: 'videos/content',
   );
 
   static const forChat = MediaUploadConfig(
@@ -47,6 +57,8 @@ class MediaUploadConfig {
     maxTotal: 5,
     maxImageSizeMb: 10,
     maxVideoSizeMb: 100,
+    imageFolder: 'images/chat',
+    videoFolder: 'videos/chat',
   );
 
   /// Evidence (dispute/refund): 1 required video + up to 5 photos.
@@ -57,6 +69,8 @@ class MediaUploadConfig {
     maxTotal: 6,
     maxImageSizeMb: 10,
     maxVideoSizeMb: 100,
+    imageFolder: 'images/evidence',
+    videoFolder: 'videos/evidence',
   );
 
   int remaining(int currentCount) {

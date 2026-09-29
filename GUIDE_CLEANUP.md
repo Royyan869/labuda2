@@ -4,6 +4,31 @@
 
 **Status:** ACTIVE / CANONICAL
 
+1. jangan menebak sebelum punya bukti (pemborosan terbesar)
+   Kasus hang refresh(): grep AuthInterceptor → cek repository → cek datasource → cek CPU → baca source Dio → baru bikin repro. Padahal langkah yang benar (yang dipakai Claude/Codex): bikin repro 10 baris dulu → kalau repro-nya hang, masalahnya ada di mikro-detik itu, bukan di 400 baris interceptor. Saya habiskan ~15 tool call untuk sesuatu yang 1 repro bisa mematikan.
+
+2. Run test yang salah & terlalu besar
+   jangan jalankan test tanpa timeout wrapper → hang 240 detik hilang percuma.
+   Sekali tebak path file yang tidak ada → satu batch 550 detik terbuang hanya untuk pesan "Does not exist".
+   jangan menjalankan whole file (280s) padahal yang dicurigai cuma 1 test — harusnya --plain-name + timeout 60s.
+   Total kesalahan run itu ~15+ menit murni buang waktu, dan itu salah
+
+3. Fix sedikit → tunggu test → fix lagi → tunggu lagi
+   Pola yang ditegaskan: analisa semua → fix, fix, fix → SATU run → kalau error baru fix → run → lapor. Saya baru disiplin di blok terakhir (saved_item + 2 router digabung jadi 1 run; checkout 2 run). Blok sebelumnya jangan potong-potong, setiap potong = +40 detik startup flutter test + waktu jalan.
+
+4. Output kecil, tool call banyak
+   jangan ambil file per 60 baris, grep satu-satu, baca ulang yang sudah dibaca. Setiap tool call di environment ini ada latency — 70 call kecil = 70× latency. Claude/Codex cenderung baca konteks besar sekali, tulis edit besar sekali.
+
+5. Friction environment (bukan alasan, tapi fakta)
+   rg rusak (harus grep), CRLF, dan flutter test butuh ~30–40 detik startup tiap kali. Ini berlaku untuk semua agent — yang salah adalah tidak menghitungnya ke dalam rencana (setiap run harus dijadwalkan seperti langkah mahal).
+
+Aturan yang dikunci sekarang
+Repro minimal dulu sebelum membaca rantai panjang.
+Semua analisa dikumpulkan → batch fix → 1 run verifikasi.
+Setiap run wajib timeout + --plain-name + target sesempat mungkin.
+Grep/glob dulu (milidetik) untuk cari path — jangan pernah menebak path lewat test run.
+Kalau 3 upaya diagnostik gagal → berhenti, tulis test repro minimal, jangan lanjut menebak.
+
 ## 1. CURRENT APP CONDITION — FACTUAL AUTHORITY
 
 Labuda is currently being built **from zero**.
@@ -324,6 +349,23 @@ Once authority is proven, unnecessary work includes:
 
 > **Think deeply only until the truth is clear. Then execute aggressively and mechanically.**
 
+### 12.1 BATCH EXECUTION & RUN DISCIPLINE (owner-enforced)
+
+Required pattern (the "Claude pattern" the owner explicitly demanded):
+
+> analyze → find root cause → fix, fix, fix → ONE test run → if error: fix → run = green → report
+
+Rules:
+
+1. Gather ALL analysis first, apply ALL fixes in one batch, THEN run tests once.
+2. No fix-one-then-test. One run proves the whole batch.
+3. Every run MUST be wrapped in `timeout` and targeted as narrowly as possible (`--plain-name` for one test, per-folder for suites). `flutter test` startup alone costs 30–40s — treat each run as a paid step.
+4. NEVER guess a file path through a test run. Locate paths with grep/glob (milliseconds) first.
+5. There are no "safety" runs. A run exists only to prove a batch.
+6. On failure: read error → fix → rerun. Max 3 attempts per issue, then STOP and report.
+7. Read large files ONCE (full or wide window); do not re-read what was already read. For hang/race bugs, build a 10-line minimal repro BEFORE reading long chains.
+8. After every few valid tasks: REPORT with evidence numbers (`+N ALL PASS`), then continue. No multi-hour silent stretches.
+
 ---
 
 ## 13. ONE ACTIVE SCOPE
@@ -383,18 +425,22 @@ Preserving obsolete code after replacement is proven is not caution. It is delay
 For any artifact:
 
 ### A. Does it represent current canonical business/technical truth?
+
 - YES → keep and correct if needed.
 - NO → continue.
 
 ### B. Is it required by the new canonical implementation?
+
 - YES → rework it into canonical form.
 - NO → delete it.
 
 ### C. Does deletion create errors?
+
 - YES → fix concrete references/errors.
 - NO → deletion stands.
 
 ### D. Is there an explicit current compatibility requirement?
+
 - YES → implement only the minimum required compatibility.
 - NO → do not preserve compatibility.
 

@@ -803,10 +803,6 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
               Navigator.of(context).pop();
               _fetchPreview(isManualRefresh: true);
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              foregroundColor: Theme.of(context).colorScheme.onPrimary,
-            ),
             child: const Text('Refresh Harga'),
           ),
         ],
@@ -891,10 +887,6 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
               Navigator.of(context).pop();
               Navigator.of(context).pop(); // Go back to forSale
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              foregroundColor: Theme.of(context).colorScheme.onPrimary,
-            ),
             child: const Text('Kembali ke ForSale'),
           ),
         ],
@@ -941,10 +933,6 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
               Navigator.of(dialogCtx).pop();
               _openChatWithSeller();
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              foregroundColor: Theme.of(context).colorScheme.onPrimary,
-            ),
             child: const Text('Hubungi Penjual'),
           ),
         ],
@@ -1030,10 +1018,6 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
               Navigator.of(context).pop();
               _fetchPreview(isManualRefresh: true);
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              foregroundColor: Theme.of(context).colorScheme.onPrimary,
-            ),
             child: const Text('Refresh Harga'),
           ),
         ],

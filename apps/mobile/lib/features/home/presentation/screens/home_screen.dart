@@ -232,7 +232,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     required String label,
     required VoidCallback onTap,
   }) {
-    final scheme = Theme.of(context).colorScheme;
     return SizedBox(
       width: 280,
       child: FilledButton.icon(
@@ -243,12 +242,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
         onPressed: onTap,
         style: FilledButton.styleFrom(
-          backgroundColor: scheme.primary,
-          foregroundColor: scheme.onPrimary,
           padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16, horizontal: AppMetrics.p24),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppShape.r14),
-          ),
         ),
       ),
     );
@@ -276,14 +270,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
         onPressed: onTap,
         style: OutlinedButton.styleFrom(
-          foregroundColor: scheme.onSurface,
-          side: BorderSide(
-            color: scheme.outlineVariant,
-          ),
           padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14, horizontal: AppMetrics.p24),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppShape.r14),
-          ),
         ),
       ),
     );

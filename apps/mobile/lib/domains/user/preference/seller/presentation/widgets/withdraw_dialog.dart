@@ -441,10 +441,6 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
           onPressed: withdrawState is WithdrawProcessing || !_isValid
               ? null
               : _handleWithdraw,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: scheme.primary,
-            foregroundColor: scheme.onPrimary,
-          ),
           child: withdrawState is WithdrawProcessing
               ? SizedBox(
                   width: 16,
@@ -679,10 +675,6 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
               Navigator.of(context).pop();
               context.push(RoutePaths.sellerVerification);
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: scheme.primary,
-              foregroundColor: scheme.onPrimary,
-            ),
             child: const Text('Verifikasi Sekarang'),
           ),
       ],

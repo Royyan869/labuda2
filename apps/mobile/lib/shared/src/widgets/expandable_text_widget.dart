@@ -122,7 +122,7 @@ class _ExpandableTextWidgetState extends State<ExpandableTextWidget>
                   : (widget.seeMoreText ?? 'See more'),
               style: TextStyle(
                 color: effectiveLinkColor,
-                fontSize: widget.style?.fontSize ?? 14,
+                fontSize: widget.style?.fontSize ?? AppType.s14,
                 fontWeight: FontWeight.w500,
               ),
             ),

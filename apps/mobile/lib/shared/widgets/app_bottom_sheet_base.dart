@@ -110,11 +110,7 @@ color: scheme.outlineVariant,
                   child: ElevatedButton(
                     onPressed: onSave,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: scheme.primary,
                       minimumSize: const Size(double.infinity, 48),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppShape.r12),
-                      ),
                     ),
                     child: Text(
                       saveButtonText,

@@ -85,6 +85,7 @@ extension ForSaleSearchResultDtoX on ForSaleSearchResultDto {
       variety: variety,
       price: price,
       mediaUrls: mediaUrls,
+      thumbnailUrl: thumbnailUrl,
       sellerId: sellerId,
       sellerUsername: sellerUsername,
       sellerFarmName: sellerFarmName,

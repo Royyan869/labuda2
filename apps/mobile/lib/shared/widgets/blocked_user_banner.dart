@@ -48,7 +48,6 @@ class BlockedUserBanner extends StatelessWidget {
             TextButton(
               onPressed: isLoading ? null : onUnblock,
               style: TextButton.styleFrom(
-                foregroundColor: scheme.primary,
                 padding: const EdgeInsets.symmetric(
                   horizontal: AppMetrics.p12,
                   vertical: AppMetrics.p6,

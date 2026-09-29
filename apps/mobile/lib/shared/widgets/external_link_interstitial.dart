@@ -136,9 +136,6 @@ class _ExternalLinkDialog extends StatelessWidget {
           style: ElevatedButton.styleFrom(
             backgroundColor: scheme.secondary,
             foregroundColor: scheme.onSecondary,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppShape.r8),
-            ),
           ),
         ),
       ],

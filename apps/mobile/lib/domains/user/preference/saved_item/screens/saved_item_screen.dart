@@ -1,54 +1,37 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/domains/user/preference/saved_item/models/saved_item_model.dart';
-import 'package:labuda/domains/user/preference/saved_item/data/services/saved_item_service.dart';
-import 'package:labuda/domains/user/preference/saved_item/data/repositories/saved_item_repository.dart';
+import 'package:labuda/domains/user/preference/saved_item/data/providers/saved_item_query_providers.dart';
+import 'package:labuda/domains/user/preference/saved_item/data/repositories/saved_item_repository_provider.dart';
 import 'package:labuda/core/src/theme/app_theme.dart';
 
-class SavedItemScreen extends StatefulWidget {
+/// Saved-items authority screen.
+///
+/// The list is driven by [savedItemsProvider] — the canonical seam that
+/// CommerceSavedItemActionButton invalidates after every save/unsave — so the
+/// page refreshes itself from ONE source instead of owning a private
+/// repository instance and its own manual reload loop.
+class SavedItemScreen extends ConsumerStatefulWidget {
   const SavedItemScreen({super.key});
 
   @override
-  State<SavedItemScreen> createState() => _SavedItemScreenState();
+  ConsumerState<SavedItemScreen> createState() => _SavedItemScreenState();
 }
 
-class _SavedItemScreenState extends State<SavedItemScreen> {
-  final SavedItemService _savedItemService = SavedItemService(
-    repository: SavedItemRepository(),
-  );
-
-  List<SavedItemModel> _savedItems = [];
-  bool _isLoading = true;
+class _SavedItemScreenState extends ConsumerState<SavedItemScreen> {
   String? _selectedType;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadSavedItems();
-  }
-
-  Future<void> _loadSavedItems() async {
-    setState(() => _isLoading = true);
-
-    try {
-      final items = await _savedItemService.getSavedItems(type: _selectedType);
-      setState(() => _savedItems = items);
-    } catch (e) {
-      // Handle error
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
 
   Future<void> _removeItem(SavedItemModel item) async {
     try {
-      await _savedItemService.removeSavedItem(
+      await ref.read(savedItemRepositoryProvider).removeSavedItem(
         targetType: item.targetType == TargetType.forSale
             ? 'for_sale'
             : 'auction',
         targetId: item.targetId,
       );
-      await _loadSavedItems();
+      ref.invalidate(savedItemsProvider);
+      ref.invalidate(savedItemsCountProvider);
     } catch (e) {
       // Handle error
     }
@@ -63,8 +46,8 @@ class _SavedItemScreenState extends State<SavedItemScreen> {
           PopupMenuButton<String?>(
             initialValue: _selectedType,
             onSelected: (value) {
+              // Client-side filter over the canonical saved-items list.
               setState(() => _selectedType = value);
-              _loadSavedItems();
             },
             itemBuilder: (context) => [
               const PopupMenuItem(value: null, child: Text('Semua')),
@@ -74,17 +57,32 @@ class _SavedItemScreenState extends State<SavedItemScreen> {
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _savedItems.isEmpty
-          ? const Center(child: Text('Belum ada item yang disimpan'))
-          : ListView.builder(
-              itemCount: _savedItems.length,
-              itemBuilder: (context, index) {
-                final item = _savedItems[index];
-                return _buildSavedItemCard(item);
-              },
-            ),
+      body: ref.watch(savedItemsProvider).when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, stackTrace) =>
+            const Center(child: Text('Belum ada item yang disimpan')),
+        data: (allItems) {
+          final items = _selectedType == null
+              ? allItems
+              : allItems
+                    .where(
+                      (item) =>
+                          (item.targetType == TargetType.forSale
+                              ? 'for_sale'
+                              : 'auction') ==
+                          _selectedType,
+                    )
+                    .toList();
+          if (items.isEmpty) {
+            return const Center(child: Text('Belum ada item yang disimpan'));
+          }
+          return ListView.builder(
+            itemCount: items.length,
+            itemBuilder: (context, index) =>
+                _buildSavedItemCard(items[index]),
+          );
+        },
+      ),
     );
   }
 

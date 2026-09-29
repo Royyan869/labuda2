@@ -5,6 +5,31 @@ import 'package:labuda/core/core.dart';
 import 'package:labuda/generated/app_localizations.dart';
 import 'package:labuda/features/home/presentation/widgets/main_drawer/main_drawer.dart';
 
+class _NoopApiClient implements ApiClient {
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _NoopLogger implements ILoggerService {
+  @override
+  Future<Result<void>> info(String message, {Map<String, dynamic>? extra}) async =>
+      Result.success(null);
+
+  @override
+  Future<Result<void>> warning(String message, {Map<String, dynamic>? extra}) async =>
+      Result.success(null);
+
+  @override
+  Future<Result<void>> error(
+    String message, {
+    Map<String, dynamic>? extra,
+    StackTrace? stackTrace,
+  }) async => Result.success(null);
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
 class _FakeAuthController extends AuthController {
   _FakeAuthController(this._state);
 
@@ -59,7 +84,14 @@ AuthUser _buyer({
 
 Widget _wrap(AuthController controller) {
   return ProviderScope(
-    overrides: [authControllerProvider.overrideWith(() => controller)],
+    overrides: [
+      authControllerProvider.overrideWith(() => controller),
+      // The avatar fetch chain reaches apiClientProvider + loggerServiceProvider
+      // — deliberate throwing placeholders that main.dart overrides in
+      // production.
+      apiClientProvider.overrideWithValue(_NoopApiClient()),
+      loggerServiceProvider.overrideWithValue(_NoopLogger()),
+    ],
     child: MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,

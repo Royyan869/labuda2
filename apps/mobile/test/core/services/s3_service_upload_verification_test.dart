@@ -235,7 +235,7 @@ void main() {
       // Presign payload contract.
       expect(adapter.lastPresignBody, isNotNull);
       expect(adapter.lastPresignBody!['content_type'], 'image/jpeg');
-      expect(adapter.lastPresignBody!['folder'], 'images');
+      expect(adapter.lastPresignBody!['folder'], 'images/stores');
       expect(
         adapter.lastPresignBody!['storage_key'],
         'images/stores/user-1.jpg',
@@ -292,18 +292,19 @@ void main() {
   test('generic uploadImage uses read_url (no public_url fallback)', () async {
     adapter.reset();
     final file = await writeJpegFixture();
-    final result = await s3Service.uploadImage(file);
+    final result = await s3Service.uploadImage(file, folder: 'images/content');
     expect(result.isSuccess, isTrue);
     expect(result.data, 'https://cdn.example.com/images/stores/user-1.jpg');
     // Presign must NOT have been called with a storage_key override.
-    // Adapter defaults to stored key when not provided; ensure presign body folder is images.
-    expect(adapter.lastPresignBody!['folder'], 'images');
+    // Adapter defaults to stored key when not provided; folder is the
+    // namespaced content prefix.
+    expect(adapter.lastPresignBody!['folder'], 'images/content');
   });
 
   test('uploadImageWithMeta returns S3UploadResult with key and read_url', () async {
     adapter.reset();
     final file = await writeJpegFixture();
-    final result = await s3Service.uploadImageWithMeta(file);
+    final result = await s3Service.uploadImageWithMeta(file, folder: 'images/commerce');
     expect(result.isSuccess, isTrue);
     expect(result.data!.key, isNotEmpty);
     expect(result.data!.url, startsWith('https://cdn.example.com/'));
@@ -321,7 +322,7 @@ void main() {
     expect(result.data!.key, 'images/avatars/user-1.jpg');
     expect(result.data!.url, 'https://cdn.example.com/images/avatars/user-1.jpg');
     expect(adapter.lastPresignBody!['storage_key'], 'images/avatars/user-1.jpg');
-    expect(adapter.lastPresignBody!['folder'], 'images');
+    expect(adapter.lastPresignBody!['folder'], 'images/avatars');
   });
 
   test('presign error envelope preserves structured code and message (INVALID_STORAGE_KEY)', () async {
@@ -345,7 +346,7 @@ void main() {
     adapter.presignErrorCode = 'UPLOAD_NOT_CONFIGURED';
     adapter.presignErrorMessage = 'Media upload service not configured';
     final file = await writeJpegFixture();
-    final result = await s3Service.uploadImage(file);
+    final result = await s3Service.uploadImage(file, folder: 'images/content');
     expect(result.isError, isTrue);
     expect(result.errorCode, 'UPLOAD_NOT_CONFIGURED');
     expect(result.statusCode, 503);
@@ -355,7 +356,7 @@ void main() {
     adapter.reset();
     adapter.putStatus = 500;
     final file = await writeJpegFixture();
-    final result = await s3Service.uploadImage(file);
+    final result = await s3Service.uploadImage(file, folder: 'images/content');
     expect(result.isError, isTrue);
     expect(result.statusCode, 500);
   });

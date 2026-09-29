@@ -208,7 +208,6 @@ class _BuyerEscalationButton extends StatelessWidget {
           backgroundColor: colorScheme.secondary,
           foregroundColor: colorScheme.onSecondary,
           padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(core.AppShape.r8)),
         ),
         icon: const Icon(Icons.gavel_rounded, size: 18),
         label: const Text('Ajukan ke Admin (Eskalasi)'),
@@ -240,9 +239,6 @@ class _SellerDecisionButtons extends StatelessWidget {
               foregroundColor: context.statusColors.error,
               side: BorderSide(color: context.statusColors.error),
               padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(core.AppShape.r8),
-              ),
             ),
             icon: const Icon(Icons.cancel_outlined, size: 18),
             label: const Text('Tolak'),
@@ -254,11 +250,7 @@ class _SellerDecisionButtons extends StatelessWidget {
             onPressed: onApprove,
             style: ElevatedButton.styleFrom(
               backgroundColor: context.statusColors.success,
-              foregroundColor: Theme.of(context).colorScheme.onPrimary,
               padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(core.AppShape.r8),
-              ),
             ),
             icon: const Icon(Icons.check_circle_outline, size: 18),
             label: const Text('Setujui'),

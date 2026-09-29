@@ -199,7 +199,7 @@ class PaymentInitiationNotifier extends _$PaymentInitiationNotifier {
   /// like an empty payment ID) falls back to the authority's message.
   ///
   /// The previous version branched on client-invented failure *types*
-  /// (`is NetworkFailure`, `is PaymentExpiredFailure`, …) that the repository
+  /// (a network class, a payment-expired class, …) that the repository
   /// derived by grepping the error text for 'network' / 'expired', so those
   /// branches could only fire by accident.
   String _getUserFriendlyErrorMessage(String? code, String message) {

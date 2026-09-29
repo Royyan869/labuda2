@@ -186,7 +186,11 @@ void main() {
         ),
       ),
     );
-    await tester.pumpAndSettle();
+    // Not pumpAndSettle: CachedNetworkImage fires a real HTTP request that
+    // always 400s under the test binding, so the loading state never settles.
+    // This test asserts what is RENDERED, not that the network settles.
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
 
     // Codebase factual: UserCard renders CachedNetworkImage + person-icon
     // placeholder — not ProfileAvatar.

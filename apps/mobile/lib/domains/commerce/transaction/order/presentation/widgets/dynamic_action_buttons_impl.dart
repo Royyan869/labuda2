@@ -165,9 +165,6 @@ class _ActionButtonsContainer extends StatelessWidget {
                 onPressed: callbacks.onChatSeller,
                 icon: const Icon(Icons.chat_bubble_outline, size: 16),
                 label: const Text('Chat Penjual'),
-                style: TextButton.styleFrom(
-                  foregroundColor: colorScheme.primary,
-                ),
               ),
           ],
         ),
@@ -185,14 +182,10 @@ class _PrimaryActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     return ElevatedButton.icon(
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
-        backgroundColor: colorScheme.primary,
-        foregroundColor: colorScheme.onPrimary,
         padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p16),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(core.AppShape.r8)),
       ),
       icon: _getIconForAction(action.type),
       label: Text(
@@ -304,7 +297,6 @@ class _SecondaryActionButton extends StatelessWidget {
                 : colorScheme.outlineVariant,
           ),
           padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(core.AppShape.r8)),
         ),
         icon: _getIconForAction(action.type),
         label: Text(

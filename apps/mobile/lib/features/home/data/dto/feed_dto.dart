@@ -304,11 +304,14 @@ class FeedMediaDto {
   final String url;
   final String type; // "image" or "video"
   final int position;
+  @JsonKey(name: 'thumbnail_url')
+  final String? thumbnailUrl;
 
   const FeedMediaDto({
     required this.url,
     required this.type,
     required this.position,
+    this.thumbnailUrl,
   });
 
   factory FeedMediaDto.fromJson(Map<String, dynamic> json) =>
@@ -322,6 +325,10 @@ class FeedMediaDto {
       originalUrl: url,
       type: type == 'image' ? MediaType.image : MediaType.video,
       createdAt: DateTime.now(),
+      variants: {
+        if (thumbnailUrl != null && thumbnailUrl!.isNotEmpty)
+          'thumbnail': thumbnailUrl!,
+      },
     );
   }
 }

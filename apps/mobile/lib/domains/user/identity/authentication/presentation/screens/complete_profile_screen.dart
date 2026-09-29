@@ -274,14 +274,9 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
                           ? _submitProfile
                           : null,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: scheme.primary,
-                        foregroundColor: scheme.onPrimary,
                         disabledBackgroundColor:
                             scheme.surfaceContainerHighest,
                         padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppShape.r12),
-                        ),
                       ),
                       child: _isSubmitting
                           ? SizedBox(

@@ -24,7 +24,16 @@
 //    `domains/finance/...`, finance imports `domains/commerce/...`).
 //
 // A dead file is not neutral. It is a capability claim a future reader adopts,
-// and `FinanceResult` was a sixth result vocabulary waiting to be revived. This
+// and `FinanceResult` was a sixth result vocabulary waiting to be revived.
+//
+// A second purge wave killed the FAILURE-side vocabulary: `core/errors/failure.dart`
+// (a `Failure` base plus seven typed subclasses, consumed by nothing but six use
+// cases that have since converged onto the authority `Result`),
+// `support/domain/entities/support_failure.dart` (a typed family behind a
+// duplicate `SupportResult<T>` wrapper whose consumers only ever read
+// `.message`), and `share/domain/entities/share_failure.dart` (five kinds
+// riding a dartz `Either`). With dartz out of the pubspec, the app has ONE
+// result vocabulary. This
 // gate locks four things:
 //  1. The purged files stay deleted.
 //  2. No CODE names them again — not by identifier, and not by path (an
@@ -48,6 +57,9 @@ const _purgedFiles = <String>[
   'lib/core/utils/retry_helper.dart',
   'lib/domains/finance/finance_gateway.dart',
   'lib/core/dependencies/provider_scope_reader.dart',
+  'lib/core/errors/failure.dart',
+  'lib/domains/system/support/domain/entities/support_failure.dart',
+  'lib/domains/social/share/domain/entities/share_failure.dart',
 ];
 
 /// The public vocabulary each purged file owned. Naming it again in code means
@@ -61,7 +73,24 @@ const _purgedIdentifiers = <String>[
   'FinanceResult',
   'FinanceException',
   '_ProviderScopeHolder',
+  'SupportResult',
+  'ShareFailureType',
+  'ValidationFailure',
+  'UnknownFailure',
+  'NetworkFailure',
+  'ServerFailure',
+  'CacheFailure',
+  'AuthenticationFailure',
+  'AuthorizationFailure',
+  'FailureFactory',
 ];
+
+/// Vocabulary families whose suffixed variants must stay dead too —
+/// word-boundary prefix, so `SupportFailureNetwork` / `ShareFailureType` are
+/// caught while names that merely start the same are not.
+const _purgedNameFamilies = <String>['SupportFailure', 'ShareFailure'];
+
+RegExp _family(String prefix) => RegExp('\\b$prefix\\w*');
 
 /// Path fragments, because identifier matching alone misses the real
 /// resurrection route: `import 'package:labuda/core/utils/retry_helper.dart';`.
@@ -69,6 +98,18 @@ const _purgedPathFragments = <String>[
   'utils/retry_helper.dart',
   'finance/finance_gateway.dart',
   'dependencies/provider_scope_reader.dart',
+  'core/errors/failure.dart',
+  'entities/support_failure.dart',
+  'entities/share_failure.dart',
+];
+
+/// Sibling gates that detect these very names — they must state what they
+/// detect (prose about a purge cannot resurrect compiled code, and a scanner
+/// naming its target is the detector, not a use site). Only non-gate code
+/// counts against this lock.
+const _gatePeers = <String>[
+  'test/core/result_authority_contract_test.dart',
+  'test/core/domain_boundary_contract_test.dart',
 ];
 
 /// Live files that must survive the purge — proof that two files died, not two
@@ -76,8 +117,11 @@ const _purgedPathFragments = <String>[
 const _mustSurvive = <String>[
   'lib/core/utils/polling_monitor.dart',
   'lib/core/utils/notification_navigation_handler.dart',
+  'lib/core/core.dart',
   'lib/domains/finance/transaction/payment/domain/repositories/'
       'payment_repository.dart',
+  'lib/domains/system/support/domain/entities/support_ticket.dart',
+  'lib/domains/social/share/domain/entities/share_result.dart',
 ];
 
 /// Every file whose contents are swept: all Dart under `lib`/`test`, plus the
@@ -117,11 +161,16 @@ void main() {
     final offenders = <String>[];
     for (final file in _sweptFiles()) {
       final path = file.path.replaceAll(r'\', '/');
-      if (path == _selfPath) continue;
+      if (path == _selfPath || _gatePeers.contains(path)) continue;
       final source = file.readAsStringSync();
       for (final name in _purgedIdentifiers) {
         if (_identifier(name).hasMatch(source)) {
           offenders.add('$path names $name');
+        }
+      }
+      for (final prefix in _purgedNameFamilies) {
+        if (_family(prefix).hasMatch(source)) {
+          offenders.add('$path names the $prefix family');
         }
       }
       for (final fragment in _purgedPathFragments) {
@@ -198,6 +247,27 @@ void main() {
       _purgedPathFragments.any(holderImport.contains),
       isTrue,
       reason: 'an import of the purged path must be detectable',
+    );
+
+    // The second-wave corpses: names, subclass families, and import paths.
+    expect(_identifier('SupportResult').hasMatch('class SupportResult<T> {'),
+        isTrue);
+    expect(
+      _identifier('SupportResult').hasMatch('SupportResultBanner'),
+      isFalse,
+      reason: 'a different name sharing the prefix must stay legal',
+    );
+    expect(_family('SupportFailure').hasMatch('const SupportFailureNetwork()'),
+        isTrue);
+    expect(_family('ShareFailure').hasMatch('enum ShareFailureType {'), isTrue);
+    expect(_family('SupportFailure').hasMatch('NotSupportFailure'), isFalse);
+    const supportImport =
+        "import 'package:labuda/domains/system/support/domain/entities/"
+        "support_failure.dart';";
+    expect(
+      _purgedPathFragments.any(supportImport.contains),
+      isTrue,
+      reason: 'an import of the purged support failure path must be detectable',
     );
   });
 }

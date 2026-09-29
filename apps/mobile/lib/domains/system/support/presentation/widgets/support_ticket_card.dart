@@ -217,7 +217,6 @@ class SupportTicketCardRefactored extends ConsumerWidget {
         label: Text(label),
         style: OutlinedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: AppMetrics.p12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppShape.r8)),
         ),
       ),
     );

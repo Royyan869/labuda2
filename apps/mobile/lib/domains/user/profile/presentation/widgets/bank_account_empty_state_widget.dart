@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/core/core.dart';
-import 'package:labuda/shared/shared.dart';
 
 class BankAccountEmptyStateWidget extends StatelessWidget {
   final VoidCallback onAddAccount;
@@ -55,9 +54,9 @@ class BankAccountEmptyStateWidget extends StatelessWidget {
           const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,
-            child: AppButton.primary(
-              text: 'Add Bank Account',
+            child: ElevatedButton(
               onPressed: onAddAccount,
+              child: const Text('Add Bank Account'),
             ),
           ),
           const SizedBox(height: 16),

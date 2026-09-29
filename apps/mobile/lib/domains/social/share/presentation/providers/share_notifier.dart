@@ -33,7 +33,7 @@ class ShareNotifier extends Notifier<ShareState> {
     );
 
     result.fold(
-      (failure) => state = ShareError(failure),
+      (error) => state = ShareError(error),
       (shareResult) => state = ShareSuccess(result: shareResult),
     );
   }
@@ -57,7 +57,7 @@ class ShareNotifier extends Notifier<ShareState> {
 
     String? postId;
 
-    result.fold((failure) => state = ShareError(failure), (createdPostId) {
+    result.fold((error) => state = ShareError(error), (createdPostId) {
       postId = createdPostId;
       state = ShareSuccess(
         result: ShareResult.success(ShareDestinationType.shareToFeed),
@@ -84,7 +84,7 @@ class ShareNotifier extends Notifier<ShareState> {
     );
 
     result.fold(
-      (failure) => state = ShareError(failure),
+      (error) => state = ShareError(error),
       (shareResult) => state = ShareSuccess(result: shareResult),
     );
   }

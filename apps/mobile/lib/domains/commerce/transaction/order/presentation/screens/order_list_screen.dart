@@ -336,8 +336,6 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: colorScheme.primary,
-                    foregroundColor: colorScheme.onPrimary,
                     padding: const EdgeInsets.symmetric(
                       horizontal: core.AppMetrics.p20,
                       vertical: core.AppMetrics.p10,
@@ -497,14 +495,9 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
                 ),
                 onPressed: () => _handleEmptyStateAction(context, isSeller),
                 style: FilledButton.styleFrom(
-                  backgroundColor: colorScheme.primary,
-                  foregroundColor: colorScheme.onPrimary,
                   padding: const EdgeInsets.symmetric(
                     vertical: core.AppMetrics.p14,
                     horizontal: core.AppMetrics.p24,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(core.AppShape.r12),
                   ),
                 ),
               ),

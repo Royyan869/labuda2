@@ -38,7 +38,6 @@ export 'widgets/seller_dual_avatar.dart'; // ⭐ Dual seller avatar (store + per
 export 'widgets/seller_identity_view.dart'; // ⭐ Seller identity composite (profile/drawer/detail)
 export 'widgets/seller_avatar.dart'; // ⭐ Seller-aware avatar composite + online badge
 export 'widgets/follow_button.dart'; // ⭐ Follow button component
-export 'widgets/app_button.dart'; // ⭐ Modern buttons
 export 'widgets/app_text_field.dart'; // ⭐ Modern text fields
 export 'widgets/app_dropdown.dart'; // ⭐ Modern dropdown fields
 export 'widgets/app_date_picker.dart'; // ⭐ Modern date picker
@@ -112,7 +111,6 @@ export 'ui/src/screens/custom_camera_screen.dart'; // ⭐ Custom camera screen
 export 'src/widgets/upload_progress_widget.dart'; // ⭐ Upload progress component
 export 'src/widgets/upload_task_utils.dart'; // ⭐ Upload task utilities
 export 'widgets/empty_state.dart'; // ⭐ Reusable empty state component (canonical; EmptyStateWidget purged)
-// export 'widgets/common_button.dart';        // ✅ Removed - use AppButton
 // export 'widgets/common_text_field.dart';    // ✅ Removed - use AppTextField
 // export 'widgets/image_picker_widget.dart';
 // export 'widgets/bottom_sheet_widget.dart';

@@ -37,17 +37,17 @@ class ShareSuccess extends ShareState {
 
 /// Error state - operation failed
 class ShareError extends ShareState {
-  final ShareFailure failure;
+  final String message;
 
-  const ShareError(this.failure);
+  const ShareError(this.message);
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is ShareError &&
           runtimeType == other.runtimeType &&
-          failure == other.failure;
+          message == other.message;
 
   @override
-  int get hashCode => failure.hashCode;
+  int get hashCode => message.hashCode;
 }

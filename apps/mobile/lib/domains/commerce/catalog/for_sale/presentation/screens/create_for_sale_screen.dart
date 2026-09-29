@@ -431,8 +431,6 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
               onPressed: _canSubmit ? _submitForm : null,
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size.fromHeight(50),
-                backgroundColor: scheme.primary,
-                foregroundColor: scheme.onPrimary,
                 disabledBackgroundColor: scheme.surfaceContainerHighest,
                 disabledForegroundColor: scheme.onSurfaceVariant,
               ),

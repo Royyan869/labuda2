@@ -252,7 +252,7 @@ class FeedCard extends ConsumerWidget {
               ),
             )
           : AppImage(
-              imageUrl: media.originalUrl,
+              imageUrl: media.thumbnailUrl,
               fit: BoxFit.cover,
               cacheWidth: 800,
               backgroundColor: Theme.of(

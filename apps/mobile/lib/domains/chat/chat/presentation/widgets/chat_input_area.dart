@@ -5,6 +5,7 @@ import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart';
 import 'package:labuda/domains/chat/chat/presentation/providers/chat_providers.dart';
 import 'package:labuda/domains/commerce/negotiation/negotiation/domain/entities/negotiation.dart';
 import 'package:labuda/domains/commerce/negotiation/negotiation/presentation/providers/negotiation_providers.dart';
+import 'package:labuda/shared/widgets/composer_action_buttons.dart';
 
 /// Chat Input Area Widget
 ///
@@ -21,8 +22,9 @@ class ChatInputArea extends ConsumerStatefulWidget {
   final VoidCallback onAttachmentTap;
 
   /// True while the composer holds a pending commerce attachment. Enables
-  /// resource-only sends: the send button shows and submits even with an
-  /// empty draft (attachment + optional text = one message).
+  /// resource-only sends: the always-visible send button stays enabled and
+  /// submits even with an empty draft (attachment + optional text = one
+  /// message).
   final bool hasPendingAttachment;
 
   const ChatInputArea({
@@ -39,7 +41,6 @@ class ChatInputArea extends ConsumerStatefulWidget {
 }
 
 class _ChatInputAreaState extends ConsumerState<ChatInputArea> {
-  bool _isTyping = false;
   String? _replyToMessageId;
 
   @override
@@ -54,13 +55,10 @@ class _ChatInputAreaState extends ConsumerState<ChatInputArea> {
     super.dispose();
   }
 
+  // Rebuild on every draft change so the always-visible send button can
+  // toggle its disabled state (canonical composer action row).
   void _onTextChanged() {
-    final isTyping = widget.messageController.text.isNotEmpty;
-    if (_isTyping != isTyping) {
-      setState(() {
-        _isTyping = isTyping;
-      });
-    }
+    if (mounted) setState(() {});
   }
 
   Future<void> _handleSendMessage() async {
@@ -71,9 +69,6 @@ class _ChatInputAreaState extends ConsumerState<ChatInputArea> {
 
     if (mounted) {
       widget.messageController.clear();
-      setState(() {
-        _isTyping = false;
-      });
       _clearReply();
     }
   }
@@ -129,13 +124,16 @@ class _ChatInputAreaState extends ConsumerState<ChatInputArea> {
             // Commerce actions gated by room-level context were removed;
             // per-message resource projections are the canonical source.
             if (_replyToMessageId != null) _buildReplyPreview(context),
+            // Canonical action row: [pill] [+] [send]. The `+` lives to the
+            // right of the textarea (never left), send is always visible.
             Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                _buildAttachmentButton(context),
-                const SizedBox(width: 8),
                 Expanded(child: _buildTextField(context, canSend)),
                 const SizedBox(width: 8),
-                _buildSendButton(context, canSend),
+                _buildAttachmentButton(context),
+                const SizedBox(width: 8),
+                _buildSendButton(canSend),
               ],
             ),
           ],
@@ -307,54 +305,35 @@ class _ChatInputAreaState extends ConsumerState<ChatInputArea> {
     );
   }
 
-  /// Enhanced Commerce Actions
-  ///
-  /// Shows fixed-price sale context with improved CTA clarity:
-  /// - Visual prioritization of actions
+  /// Attach entry (`+`) of the canonical composer action row — opens the
+  /// media/commerce attachment sheet owned by the chat screen.
   Widget _buildAttachmentButton(BuildContext context) {
-    return IconButton(
-      icon: Icon(
-        Icons.add_circle,
-        color: Theme.of(context).colorScheme.primary,
-        size: 28,
-      ),
-      onPressed: _handleAttachmentTap,
-    );
+    return ComposerAddButton(onPressed: _handleAttachmentTap);
   }
 
   Widget _buildTextField(BuildContext context, bool canSend) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(AppShape.r24),
+    return TextField(
+      controller: widget.messageController,
+      maxLines: 4,
+      minLines: 1,
+      enabled: canSend,
+      decoration: AppTheme.composerDecoration(
+        Theme.of(context).colorScheme,
+        hintText: 'Type a message...',
       ),
-      child: TextField(
-        controller: widget.messageController,
-        maxLines: 4,
-        minLines: 1,
-        enabled: canSend,
-        decoration: const InputDecoration(
-          hintText: 'Type a message...',
-          border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p8),
-        ),
-        textCapitalization: TextCapitalization.sentences,
-        onSubmitted: canSend ? (_) => _handleSendMessage() : null,
-      ),
+      textCapitalization: TextCapitalization.sentences,
+      onSubmitted: canSend ? (_) => _handleSendMessage() : null,
     );
   }
 
-  Widget _buildSendButton(BuildContext context, bool canSend) {
-    final showSend = _isTyping || widget.hasPendingAttachment;
-    return IconButton(
-      icon: Icon(
-        showSend ? Icons.send : Icons.mic,
-        color: canSend
-            ? Theme.of(context).colorScheme.primary
-            : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.38),
-        size: 28,
-      ),
-      onPressed: canSend && showSend ? _handleSendMessage : null,
+  /// Canonical send: always visible, disabled until the draft holds content
+  /// (or a pending attachment). Voice messages do not exist (kill order).
+  Widget _buildSendButton(bool canSend) {
+    final hasDraft = widget.messageController.text.trim().isNotEmpty;
+    return ComposerSendButton(
+      onPressed: (canSend && (hasDraft || widget.hasPendingAttachment))
+          ? _handleSendMessage
+          : null,
     );
   }
 }

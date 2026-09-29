@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/shared/shared.dart';
 import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Action buttons for add/edit address dialog
@@ -33,14 +32,27 @@ class AddressDialogActions extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: AppButton.secondary(text: 'Cancel', onPressed: onCancel),
+            child: OutlinedButton(
+              onPressed: onCancel,
+              child: const Text('Cancel'),
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: AppButton.primary(
-              text: isEdit ? 'Update' : 'Add Address',
+            child: ElevatedButton(
               onPressed: isLoading ? null : onSubmit,
-              isLoading: isLoading,
+              child: isLoading
+                  ? SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation(
+                          Theme.of(context).colorScheme.onPrimary,
+                        ),
+                      ),
+                    )
+                  : Text(isEdit ? 'Update' : 'Add Address'),
             ),
           ),
         ],

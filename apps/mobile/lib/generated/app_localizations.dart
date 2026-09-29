@@ -410,41 +410,11 @@ abstract class AppLocalizations {
   /// **'Privacy & Security'**
   String get privacySecurity;
 
-  /// Public profile setting
-  ///
-  /// In en, this message translates to:
-  /// **'Public Profile'**
-  String get publicProfile;
-
-  /// Public profile description
-  ///
-  /// In en, this message translates to:
-  /// **'Make your profile visible to all users'**
-  String get makeProfileVisible;
-
-  /// Online status setting
-  ///
-  /// In en, this message translates to:
-  /// **'Show Online Status'**
-  String get showOnlineStatus;
-
-  /// Online status description
-  ///
-  /// In en, this message translates to:
-  /// **'Let others see when you\'re online'**
-  String get letOthersSeeOnline;
-
   /// Messages setting
   ///
   /// In en, this message translates to:
   /// **'Allow Messages'**
   String get allowMessages;
-
-  /// Messages description
-  ///
-  /// In en, this message translates to:
-  /// **'Receive messages from other users'**
-  String get receiveMessagesFromOthers;
 
   /// Blocked users setting
   ///

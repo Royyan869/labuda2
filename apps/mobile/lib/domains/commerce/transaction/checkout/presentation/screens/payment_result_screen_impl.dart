@@ -286,12 +286,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
               style: TextStyle(fontSize: core.AppType.s16, fontWeight: FontWeight.w600),
             ),
             style: OutlinedButton.styleFrom(
-              foregroundColor: colorScheme.onSurface,
               padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(core.AppShape.r8),
-              ),
-              side: BorderSide(color: colorScheme.outlineVariant),
             ),
           ),
         ),
@@ -310,12 +305,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
                 style: TextStyle(fontSize: core.AppType.s16, fontWeight: FontWeight.w600),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: colorScheme.primary,
-                foregroundColor: colorScheme.onPrimary,
                 padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(core.AppShape.r8),
-                ),
               ),
             ),
           ),
@@ -397,12 +387,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
           child: ElevatedButton(
             onPressed: _goToOrderDetail,
             style: ElevatedButton.styleFrom(
-              backgroundColor: colorScheme.primary,
-              foregroundColor: colorScheme.onPrimary,
               padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(core.AppShape.r8),
-              ),
             ),
             child: const Text(
               'Lihat Pesanan',
@@ -424,14 +409,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
                 style: TextStyle(fontSize: core.AppType.s16, fontWeight: FontWeight.w600),
               ),
               style: OutlinedButton.styleFrom(
-                foregroundColor: colorScheme.primary,
                 padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(core.AppShape.r8),
-                ),
-                side: BorderSide(
-                  color: colorScheme.primary.withValues(alpha: 0.5),
-                ),
               ),
             ),
           ),
@@ -440,12 +418,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
           child: OutlinedButton(
             onPressed: _goToHome,
             style: OutlinedButton.styleFrom(
-              foregroundColor: colorScheme.onSurface,
               padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(core.AppShape.r8),
-              ),
-              side: BorderSide(color: colorScheme.outlineVariant),
             ),
             child: const Text(
               'Kembali ke Beranda',
@@ -602,12 +575,11 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
                           : null,
                       icon: const Icon(Icons.support_agent, size: 16),
                       label: const Text('Support'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: context.statusColors.warning,
-                        foregroundColor: colorScheme.onPrimary,
-                        padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p8),
-                        textStyle: const TextStyle(fontSize: core.AppType.s12),
-                      ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: context.statusColors.warning,
+                padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p8),
+                textStyle: const TextStyle(fontSize: core.AppType.s12),
+              ),
                     ),
                   ),
                 ],
@@ -623,12 +595,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
           child: ElevatedButton(
             onPressed: _goToOrderDetail,
             style: ElevatedButton.styleFrom(
-              backgroundColor: colorScheme.primary,
-              foregroundColor: colorScheme.onPrimary,
               padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(core.AppShape.r8),
-              ),
             ),
             child: const Text(
               'Lihat Detail Pesanan',
@@ -642,12 +609,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
           child: OutlinedButton(
             onPressed: _goToHome,
             style: OutlinedButton.styleFrom(
-              foregroundColor: colorScheme.onSurface,
               padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(core.AppShape.r8),
-              ),
-              side: BorderSide(color: colorScheme.outlineVariant),
             ),
             child: const Text(
               'Kembali ke Beranda',
@@ -741,12 +703,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
           child: ElevatedButton(
             onPressed: _handleStatusCheck,
             style: ElevatedButton.styleFrom(
-              backgroundColor: colorScheme.primary,
-              foregroundColor: colorScheme.onPrimary,
               padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(core.AppShape.r8),
-              ),
             ),
             child: const Text(
               'Cek Status Lagi',
@@ -769,14 +726,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
                 style: TextStyle(fontSize: core.AppType.s16, fontWeight: FontWeight.w600),
               ),
               style: OutlinedButton.styleFrom(
-                foregroundColor: colorScheme.primary,
                 padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(core.AppShape.r8),
-                ),
-                side: BorderSide(
-                  color: colorScheme.primary.withValues(alpha: 0.5),
-                ),
               ),
             ),
           ),
@@ -788,12 +738,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
           child: OutlinedButton(
             onPressed: _goToOrderDetail,
             style: OutlinedButton.styleFrom(
-              foregroundColor: colorScheme.onSurface,
               padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(core.AppShape.r8),
-              ),
-              side: BorderSide(color: colorScheme.outlineVariant),
             ),
             child: const Text(
               'Lihat Detail Pesanan',
@@ -873,12 +818,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
           child: ElevatedButton(
             onPressed: _handleStatusCheck,
             style: ElevatedButton.styleFrom(
-              backgroundColor: colorScheme.primary,
-              foregroundColor: colorScheme.onPrimary,
               padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(core.AppShape.r8),
-              ),
             ),
             child: const Text(
               'Coba Lagi',
@@ -901,14 +841,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
                 style: TextStyle(fontSize: core.AppType.s16, fontWeight: FontWeight.w600),
               ),
               style: OutlinedButton.styleFrom(
-                foregroundColor: colorScheme.primary,
                 padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(core.AppShape.r8),
-                ),
-                side: BorderSide(
-                  color: colorScheme.primary.withValues(alpha: 0.5),
-                ),
               ),
             ),
           ),
@@ -920,12 +853,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
           child: OutlinedButton(
             onPressed: _goToOrderDetail,
             style: OutlinedButton.styleFrom(
-              foregroundColor: colorScheme.onSurface,
               padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(core.AppShape.r8),
-              ),
-              side: BorderSide(color: colorScheme.outlineVariant),
             ),
             child: const Text(
               'Lihat Detail Pesanan',

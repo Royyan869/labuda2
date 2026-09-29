@@ -5,8 +5,7 @@
   "main": "index.js",
   "dependencies": {
     "aws-sdk": "^2.1450.0",
-    "sharp": "^0.32.6",
-    "blurhash": "^2.0.5"
+    "sharp": "^0.32.6"
   },
   "engines": {
     "node": ">=18.0.0"

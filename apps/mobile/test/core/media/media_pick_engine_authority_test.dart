@@ -94,6 +94,27 @@ void main() {
       );
     });
 
+    test('no flat upload folders — every presign names a domain namespace', () {
+      final source = File(
+        'lib/core/services/s3_service.dart',
+      ).readAsStringSync();
+      for (final banned in [
+        "_requestMediaPresignURL(contentType, 'images')",
+        '_requestMediaPresignURL(contentType, "images")',
+        "_requestMediaPresignURL(contentType, 'videos')",
+        '_requestMediaPresignURL(contentType, "videos")',
+      ]) {
+        expect(
+          source.contains(banned),
+          isFalse,
+          reason:
+              'flat images//videos roots are rejected by the backend; every '
+              'upload names images/content|commerce|chat|evidence or '
+              'videos/content|commerce|chat|evidence. Found: $banned',
+        );
+      }
+    });
+
     test('no local video-extension sniffing outside the engine', () {
       final offenders = <String>[];
       for (final file in dartFiles()) {

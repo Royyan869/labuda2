@@ -279,14 +279,9 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
                   label: const Text('Mulai Chat'),
                   onPressed: () => _showNewChatDialog(context),
                   style: FilledButton.styleFrom(
-                    backgroundColor: Theme.of(context).colorScheme.primary,
-                    foregroundColor: Theme.of(context).colorScheme.onPrimary,
                     padding: const EdgeInsets.symmetric(
                       vertical: AppMetrics.p14,
                       horizontal: AppMetrics.p24,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppShape.r12),
                     ),
                   ),
                 ),

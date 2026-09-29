@@ -1,11 +1,9 @@
 import 'package:dio/dio.dart';
-import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:labuda/core/api/api_client.dart';
+import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/social/share/data/datasources/share_api_datasource.dart';
 import 'package:labuda/domains/social/share/data/remote/native_share_service.dart';
 import 'package:labuda/domains/social/share/data/repositories/share_repository_api.dart';
-import 'package:labuda/domains/social/share/domain/entities/share_failure.dart';
 import 'package:labuda/domains/social/share/domain/entities/share_destination.dart';
 import 'package:labuda/domains/social/share/domain/entities/share_target.dart';
 
@@ -41,35 +39,22 @@ class _StubNativeShareService implements NativeShareService {
   String? lastCopiedText;
 
   @override
-  Future<Either<ShareFailure, bool>> copyToClipboard({
-    required String text,
-  }) async {
+  Future<Result<bool>> copyToClipboard({required String text}) async {
     lastCopiedText = text;
-    return Right(true);
+    return Result.success(true);
   }
 
   @override
-  Future<Either<ShareFailure, bool>> shareViaDialog({
+  Future<Result<bool>> shareViaDialog({
     required String text,
     String? subject,
-  }) async => Right(true);
+  }) async => Result.success(true);
 
   @override
-  Future<Either<ShareFailure, bool>> shareViaEmail({
+  Future<Result<bool>> shareViaEmail({
     required String subject,
     required String body,
-  }) async => Right(true);
-
-  @override
-  Future<Either<ShareFailure, bool>> shareViaWhatsApp({
-    required String text,
-    String? phoneNumber,
-  }) async => Right(true);
-
-  @override
-  Future<Either<ShareFailure, bool>> shareViaInstagram({
-    required String text,
-  }) async => Right(true);
+  }) async => Result.success(true);
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -180,7 +165,7 @@ void main() {
         );
 
         result.fold(
-          (failure) => fail('unexpected failure: ${failure.message}'),
+          (error) => fail('unexpected failure: $error'),
           (value) => expect(value, 'repost-id'),
         );
 
@@ -206,7 +191,7 @@ void main() {
         message: 'hello',
       );
 
-      result.fold((failure) => fail('unexpected failure: ${failure.message}'), (
+      result.fold((error) => fail('unexpected failure: $error'), (
         shareResult,
       ) {
         expect(shareResult.success, isFalse);
@@ -232,7 +217,7 @@ void main() {
         destination: ShareDestinationType.copyLink,
       );
 
-      result.fold((failure) => fail('unexpected failure: ${failure.message}'), (
+      result.fold((error) => fail('unexpected failure: $error'), (
         shareResult,
       ) {
         expect(shareResult.success, isTrue);

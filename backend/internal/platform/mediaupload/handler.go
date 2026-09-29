@@ -32,18 +32,27 @@ var allowedContentTypes = map[string]string{
 	"video/mp4":  ".mp4",
 }
 
-// allowedFolders is the set of top-level S3 key prefixes the mobile client
-// may request. Prevents path traversal via unexpected folder values.
+// allowedFolders is the exact set of domain-namespaced S3 key prefixes the
+// mobile client may request. One prefix per domain owned the objects under
+// it; flat images//videos roots are rejected. Prevents path traversal via
+// unexpected folder values.
 var allowedFolders = map[string]bool{
-	"images": true,
-	"videos": true,
+	"images/content":  true,
+	"images/commerce": true,
+	"images/chat":     true,
+	"images/evidence": true,
+	"videos/content":  true,
+	"videos/commerce": true,
+	"videos/chat":     true,
+	"videos/evidence": true,
 }
 
 // UploadURLRequest is the request body for POST /api/v1/media/upload-url.
 type UploadURLRequest struct {
 	// ContentType is the MIME type of the file being uploaded.
 	ContentType string `json:"content_type" binding:"required"`
-	// Folder is the top-level S3 key prefix: "images" or "videos".
+	// Folder is the domain-namespaced S3 key prefix, e.g.
+	// "images/content" or "videos/commerce".
 	Folder string `json:"folder" binding:"required"`
 	// StorageKey, when provided, must be a canonical owned fixed key
 	// (images/avatars/{user_id}.jpg|.png, images/stores/{user_id}.jpg,
@@ -116,20 +125,21 @@ func (h *Handler) RequestUploadURL(c *gin.Context) {
 		return
 	}
 
-	if !allowedFolders[req.Folder] {
-		response.Error(c, 400, "INVALID_FOLDER", "folder must be 'images' or 'videos'")
-		return
-	}
-
 	storageKey := req.StorageKey
 	if storageKey != "" {
 		// Fixed-key upload: validate ownership against the canonical allowlist
 		// so a caller can never claim another user's avatar/store/cover key.
+		// The folder hint is irrelevant here (no key is minted) and is not
+		// validated — the fixed key itself is the authority.
 		if err := validateFixedStorageKey(storageKey, req.ContentType, userID); err != nil {
 			response.Error(c, 400, "INVALID_STORAGE_KEY", err.Error())
 			return
 		}
 	} else {
+		if !allowedFolders[req.Folder] {
+			response.Error(c, 400, "INVALID_FOLDER", "folder must be one of images/content, images/commerce, images/chat, images/evidence, videos/content, videos/commerce, videos/chat, videos/evidence")
+			return
+		}
 		ts := time.Now().UnixMilli()
 		ext := allowedContentTypes[req.ContentType]
 		storageKey = fmt.Sprintf("%s/%d_%s%s", req.Folder, ts, userID, ext)

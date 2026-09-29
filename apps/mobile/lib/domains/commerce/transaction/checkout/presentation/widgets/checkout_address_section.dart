@@ -57,7 +57,6 @@ class _SavedAddressPickerSectionState
                 icon: const Icon(Icons.add, size: 16),
                 label: const Text('Kelola'),
                 style: TextButton.styleFrom(
-                  foregroundColor: colorScheme.primary,
                   padding: const EdgeInsets.symmetric(
                     horizontal: AppMetrics.p8,
                     vertical: AppMetrics.p4,
@@ -150,10 +149,6 @@ class _EmptyAddressPrompt extends StatelessWidget {
             onPressed: () => context.push(RoutePaths.addresses),
             icon: const Icon(Icons.add, size: 16),
             label: const Text('Tambah Alamat'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: colorScheme.primary,
-              foregroundColor: colorScheme.onPrimary,
-            ),
           ),
         ],
       ),

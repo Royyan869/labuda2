@@ -1,6 +1,5 @@
 import 'package:labuda/core/core.dart';
 import 'package:flutter/material.dart';
-import 'package:labuda/shared/shared.dart';
 
 /// Phone verification field widget
 class PhoneVerificationField extends StatelessWidget {
@@ -175,7 +174,10 @@ borderSide: BorderSide(
               ),
             ),
           ),
-          AppButton.text(text: 'Verify', onPressed: onVerifyPhone),
+          TextButton(
+            onPressed: onVerifyPhone,
+            child: const Text('Verify'),
+          ),
         ],
       ),
     );

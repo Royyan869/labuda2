@@ -220,7 +220,6 @@ class _SellerRefundDecisionDialogState
             backgroundColor: _isApprove
                 ? context.statusColors.success
                 : context.statusColors.error,
-            foregroundColor: colorScheme.onPrimary,
             disabledBackgroundColor: colorScheme.surfaceContainerHighest,
           ),
           child: _isSubmitting

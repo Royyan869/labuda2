@@ -167,22 +167,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get privacySecurity => 'Privacy & Security';
 
   @override
-  String get publicProfile => 'Public Profile';
-
-  @override
-  String get makeProfileVisible => 'Make your profile visible to all users';
-
-  @override
-  String get showOnlineStatus => 'Show Online Status';
-
-  @override
-  String get letOthersSeeOnline => 'Let others see when you\'re online';
-
-  @override
   String get allowMessages => 'Allow Messages';
-
-  @override
-  String get receiveMessagesFromOthers => 'Receive messages from other users';
 
   @override
   String get blockedUsers => 'Blocked Users';

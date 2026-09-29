@@ -196,7 +196,6 @@ class _TokenValidityIndicator extends StatelessWidget {
             onPressed: onRefresh,
             style: ElevatedButton.styleFrom(
               backgroundColor: accent,
-              foregroundColor: colorScheme.onPrimary,
               padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p8),
               textStyle: const TextStyle(fontSize: AppType.s12),
             ),
@@ -281,7 +280,6 @@ class _TokenValidityIndicator extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p8),
               minimumSize: const Size(0, 32),
               textStyle: const TextStyle(fontSize: AppType.s12),
-              side: BorderSide(color: colorScheme.outlineVariant),
             ),
             icon: const Icon(Icons.refresh, size: 16),
             label: const Text('Refresh'),
@@ -579,7 +577,7 @@ class _PriceRow extends StatelessWidget {
                   Text(
                     label,
                     style: TextStyle(
-                      fontSize: isTotal ? 16 : 14,
+                      fontSize: isTotal ? AppType.s16 : AppType.s14,
                       fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
                       color: isTotal ? colorScheme.primary : null,
                     ),
@@ -598,7 +596,7 @@ class _PriceRow extends StatelessWidget {
             Text(
               AppFormatters.formatCurrency(total),
               style: TextStyle(
-                fontSize: isTotal ? 18 : 14,
+                fontSize: isTotal ? AppType.s18 : AppType.s14,
                 fontWeight: isTotal ? FontWeight.bold : FontWeight.w600,
                 color: isTotal ? colorScheme.primary : null,
               ),

@@ -136,9 +136,6 @@ class AuthButton extends StatelessWidget {
                 ? scheme.onPrimary
                 : scheme.onSurfaceVariant,
             elevation: AppElevation.none,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppShape.r12),
-            ),
           ),
           child: child,
         );
@@ -153,9 +150,6 @@ class AuthButton extends StatelessWidget {
             side: BorderSide(
               color: scheme.outlineVariant,
               width: 1.5,
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppShape.r12),
             ),
           ),
           child: child,

@@ -243,9 +243,6 @@ class _CoinBalanceCardState extends State<CoinBalanceCard> {
                     width: 1.5,
                   ),
                   padding: const EdgeInsets.symmetric(vertical: AppMetrics.p10),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppShape.r8),
-                  ),
                 ),
               ),
             ),

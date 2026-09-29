@@ -178,8 +178,6 @@ class AuthGuard extends ConsumerWidget {
                 icon: const Icon(Icons.refresh),
                 label: const Text('Retry'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: scheme.primary,
-                  foregroundColor: scheme.onPrimary,
                   padding: const EdgeInsets.symmetric(
                     horizontal: AppMetrics.p32,
                     vertical: AppMetrics.p12,
@@ -262,8 +260,6 @@ class AuthGuard extends ConsumerWidget {
                       icon: const Icon(Icons.person_add),
                       label: const Text('Register'),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: scheme.primary,
-                        side: BorderSide(color: scheme.primary),
                         padding: const EdgeInsets.symmetric(vertical: AppMetrics.p12),
                       ),
                     ),
@@ -277,8 +273,6 @@ class AuthGuard extends ConsumerWidget {
                       icon: const Icon(Icons.login),
                       label: const Text('Login'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: scheme.primary,
-                        foregroundColor: scheme.onPrimary,
                         padding: const EdgeInsets.symmetric(vertical: AppMetrics.p12),
                       ),
                     ),
@@ -396,8 +390,6 @@ class RoleGuard extends ConsumerWidget {
                 icon: const Icon(Icons.arrow_back),
                 label: const Text('Back'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: scheme.primary,
-                  foregroundColor: scheme.onPrimary,
                   padding: const EdgeInsets.symmetric(
                     horizontal: AppMetrics.p32,
                     vertical: AppMetrics.p12,
@@ -562,8 +554,6 @@ class SellerGuard extends ConsumerWidget {
                 icon: const Icon(Icons.arrow_back),
                 label: const Text('Back'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: scheme.primary,
-                  foregroundColor: scheme.onPrimary,
                   padding: const EdgeInsets.symmetric(
                     horizontal: AppMetrics.p32,
                     vertical: AppMetrics.p12,

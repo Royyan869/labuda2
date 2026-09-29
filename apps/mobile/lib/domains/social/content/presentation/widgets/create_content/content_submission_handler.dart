@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/core/media/media_upload_config.dart';
 import 'package:labuda/domains/social/content/content.dart';
 import 'package:labuda/shared/entities/post_location.dart' as loc;
 import 'package:labuda/shared/src/providers/upload_progress_provider.dart';
@@ -41,7 +42,10 @@ class ContentSubmissionHandler {
     // Upload images using canonical MediaEntity upload method.
     // Abort on first failure — partial media is not a valid content.
     for (final image in selectedImages) {
-      final result = await s3Service.uploadImageWithBlurhash(image);
+      final result = await s3Service.uploadImageWithBlurhash(
+        image,
+        folder: MediaUploadConfig.forContent.imageFolder,
+      );
       if (!result.isSuccess) {
         throw Exception('Image upload failed: ${result.error}');
       }
@@ -51,7 +55,10 @@ class ContentSubmissionHandler {
     // Upload videos and create MediaEntity from URL.
     // Abort on first failure — partial media is not a valid content.
     for (final video in selectedVideos) {
-      final result = await s3Service.uploadVideo(video);
+      final result = await s3Service.uploadVideo(
+        video,
+        folder: MediaUploadConfig.forContent.videoFolder,
+      );
       if (!result.isSuccess) {
         throw Exception('Video upload failed: ${result.error}');
       }

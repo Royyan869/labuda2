@@ -187,7 +187,6 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: context.statusColors.success,
-              foregroundColor: Theme.of(context).colorScheme.onPrimary,
             ),
             child: const Text('Konfirmasi'),
           ),
@@ -323,11 +322,7 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
             onPressed: sellerInactive ? null : _handlePlaceBid,
             style: ElevatedButton.styleFrom(
               backgroundColor: context.statusColors.success,
-              foregroundColor: scheme.onPrimary,
               padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppShape.r8),
-              ),
             ),
             child: const Text(
               'Pasang Bid',
@@ -347,9 +342,6 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
               style: OutlinedButton.styleFrom(
                 foregroundColor: scheme.secondary,
                 padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppShape.r8),
-                ),
                 side: BorderSide(color: scheme.secondary),
               ),
               child: Text(

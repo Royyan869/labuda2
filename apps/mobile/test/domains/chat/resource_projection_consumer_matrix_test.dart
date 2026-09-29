@@ -476,7 +476,7 @@ void main() {
       );
 
       await tester.pumpWidget(MaterialApp.router(routerConfig: router));
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 400));
 
       expect(find.text('@alice'), findsOneWidget);
       expect(find.text('Toko Alice'), findsOneWidget);
@@ -484,7 +484,8 @@ void main() {
       expect(find.text('LIVE'), findsWidgets);
 
       await tester.tap(find.byType(CommerceMarketplaceCardShell));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
 
       expect(find.text('profile destination'), findsOneWidget);
     });

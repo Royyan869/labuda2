@@ -442,8 +442,6 @@ class MapConfirmButton extends StatelessWidget {
         child: FilledButton(
           onPressed: canConfirm ? onConfirm : null,
           style: FilledButton.styleFrom(
-            backgroundColor: scheme.primary,
-            foregroundColor: scheme.onPrimary,
             padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
           ),
           child: const Text(

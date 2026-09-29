@@ -119,12 +119,7 @@ class _ReportSubmissionDialogState
                 child: FilledButton(
                   onPressed: _canSubmit ? _handleSubmit : null,
                   style: FilledButton.styleFrom(
-                    backgroundColor: Theme.of(context).colorScheme.primary,
-                    foregroundColor: Theme.of(context).colorScheme.onPrimary,
                     padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppShape.r12),
-                    ),
                   ),
                   child: _isSubmitting
                       ? SizedBox(

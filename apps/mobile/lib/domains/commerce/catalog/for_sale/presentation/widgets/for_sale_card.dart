@@ -37,7 +37,7 @@ class ForSaleCard extends StatelessWidget {
       onTap: onTap,
       semanticLabel: forSale.title,
       media: CommerceMarketplaceCardMedia(
-        imageUrl: media?.originalUrl,
+        imageUrl: media?.thumbnailUrl,
         mediaType: media?.type ?? MediaType.image,
         fallback: Icon(
           Icons.image_outlined,

@@ -293,18 +293,16 @@ class _WebImageCropperState extends State<WebImageCropper> {
                         Row(
                           children: [
                             Expanded(
-                              child: AppButton(
-                                text: 'Cancel',
+                              child: OutlinedButton(
                                 onPressed: widget.onCancel,
-                                type: AppButtonType.secondary,
+                                child: const Text('Cancel'),
                               ),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
-                              child: AppButton(
-                                text: 'Crop',
+                              child: ElevatedButton(
                                 onPressed: _cropAndSave,
-                                type: AppButtonType.primary,
+                                child: const Text('Crop'),
                               ),
                             ),
                           ],

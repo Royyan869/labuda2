@@ -14,6 +14,7 @@ import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/system/support/domain/domain.dart';
 import 'package:labuda/domains/system/support/presentation/providers/support_providers.dart';
 import 'package:labuda/shared/shared.dart';
+import 'package:labuda/shared/widgets/composer_action_buttons.dart';
 
 class SupportTicketThreadScreen extends ConsumerStatefulWidget {
   final String ticketId;
@@ -28,22 +29,30 @@ class SupportTicketThreadScreen extends ConsumerStatefulWidget {
 class _SupportTicketThreadScreenState
     extends ConsumerState<SupportTicketThreadScreen> {
   final TextEditingController _messageController = TextEditingController();
-  late Future<SupportResult<List<SupportMessage>>> _messagesFuture;
+  late Future<Result<List<SupportMessage>>> _messagesFuture;
   bool _isSending = false;
 
   @override
   void initState() {
     super.initState();
     _messagesFuture = _loadMessages();
+    _messageController.addListener(_handleComposerChanged);
+  }
+
+  // Rebuild on every draft change so the always-visible send button can
+  // toggle its disabled state (canonical composer action row).
+  void _handleComposerChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
+    _messageController.removeListener(_handleComposerChanged);
     _messageController.dispose();
     super.dispose();
   }
 
-  Future<SupportResult<List<SupportMessage>>> _loadMessages() {
+  Future<Result<List<SupportMessage>>> _loadMessages() {
     return ref.read(supportRepositoryProvider).getMessages(widget.ticketId);
   }
 
@@ -68,10 +77,10 @@ class _SupportTicketThreadScreenState
     if (!mounted) return;
     setState(() => _isSending = false);
 
-    if (result.isFailure) {
+    if (result.isError) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(result.failure?.message ?? 'Gagal mengirim pesan'),
+          content: Text(result.error ?? 'Gagal mengirim pesan'),
         ),
       );
       return;
@@ -205,7 +214,7 @@ class _SupportTicketThreadScreenState
   }
 
   Widget _buildMessagesList(AsyncValue<SupportTicket?> ticketAsync) {
-    return FutureBuilder<SupportResult<List<SupportMessage>>>(
+    return FutureBuilder<Result<List<SupportMessage>>>(
       future: _messagesFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == flutter.ConnectionState.waiting) {
@@ -233,7 +242,7 @@ class _SupportTicketThreadScreenState
           );
         }
 
-        if (!snapshot.hasData || snapshot.data!.isFailure) {
+        if (!snapshot.hasData || snapshot.data!.isError) {
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -245,7 +254,7 @@ class _SupportTicketThreadScreenState
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  snapshot.data?.failure?.message ?? 'Failed to load messages',
+                  snapshot.data?.error ?? 'Failed to load messages',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: context.statusColors.error),
                 ),
@@ -254,7 +263,7 @@ class _SupportTicketThreadScreenState
           );
         }
 
-        final messages = snapshot.data!.dataOrThrow;
+        final messages = snapshot.data!.data!;
 
         // If no messages, show initial placeholder
         if (messages.isEmpty) {
@@ -325,37 +334,21 @@ class _SupportTicketThreadScreenState
               minLines: 1,
               maxLines: 4,
               textInputAction: TextInputAction.newline,
-              decoration: InputDecoration(
+              decoration: AppTheme.composerDecoration(
+                Theme.of(context).colorScheme,
                 hintText: 'Tulis balasan...',
-                isDense: true,
-                filled: true,
-                fillColor: Theme.of(context).colorScheme.surfaceContainer,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppShape.r12),
-                  borderSide: BorderSide.none,
-                ),
               ),
             ),
           ),
           const SizedBox(width: 8),
-          _isSending
-              ? const SizedBox(
-                  width: 44,
-                  height: 44,
-                  child: Center(
-                    child: SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  ),
-                )
-              : IconButton(
-                  onPressed: _sendMessage,
-                  icon: const Icon(Icons.send),
-                  color: Theme.of(context).colorScheme.primary,
-                  tooltip: 'Kirim',
-                ),
+          // Canonical action row: send always visible — disabled while the
+          // draft is empty, spinner while the send is in flight.
+          ComposerSendButton(
+            loading: _isSending,
+            onPressed: _messageController.text.trim().isNotEmpty
+                ? _sendMessage
+                : null,
+          ),
         ],
       ),
     );

@@ -6,7 +6,7 @@ enum DetailChipSize { small, medium, large }
 
 /// Theme role that supplies a chip's default tint when the caller does not
 /// bind one — resolved in build, so the widget never owns a colour decision.
-enum DetailChipTone { primary, success, warning }
+enum DetailChipTone { primary, success, warning, tertiary }
 
 /// Style options untuk DetailChipWidget
 enum DetailChipStyle {

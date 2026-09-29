@@ -216,7 +216,7 @@ class ShareBottomSheet extends ConsumerWidget {
       } else if (shareState is ShareError) {
         AppSnackBar.showError(
           context,
-          shareState.failure.message,
+          shareState.message,
           duration: const Duration(seconds: 4),
         );
       } else {

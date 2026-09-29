@@ -12,6 +12,7 @@ import 'package:labuda/domains/commerce/pricing/promotion/domain/entities/extern
 import 'package:labuda/domains/commerce/pricing/promotion/domain/entities/external_product_media.dart';
 import 'package:labuda/domains/commerce/pricing/promotion/domain/entities/external_product_review_status.dart';
 import 'package:labuda/domains/commerce/pricing/promotion/presentation/providers/canonical_external_product_providers.dart';
+import 'package:labuda/core/media/media_upload_config.dart';
 import 'package:labuda/core/media/media_upload_orchestrator.dart';
 
 class ExternalProductDetailScreen extends ConsumerStatefulWidget {
@@ -157,7 +158,6 @@ class _ExternalProductDetailScreenState
         onPressed: _isSubmitting ? null : onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: color,
-          foregroundColor: Theme.of(context).colorScheme.onPrimary,
         ),
         child: _isSubmitting ? const CircularProgressIndicator() : Text(label),
       ),
@@ -403,9 +403,15 @@ class _ExternalProductDetailScreenState
     final s3 = ref.read(s3ServiceProvider);
     final Result<S3UploadResult> uploadResult;
     if (mediaType == 'image') {
-      uploadResult = await s3.uploadImageWithMeta(file);
+      uploadResult = await s3.uploadImageWithMeta(
+        file,
+        folder: MediaUploadConfig.forCommerce.imageFolder,
+      );
     } else {
-      uploadResult = await s3.uploadVideoWithMeta(file);
+      uploadResult = await s3.uploadVideoWithMeta(
+        file,
+        folder: MediaUploadConfig.forCommerce.videoFolder,
+      );
     }
 
     if (!context.mounted) return;
@@ -415,7 +421,7 @@ class _ExternalProductDetailScreenState
     }
 
     // Attach uploaded media to external product
-    // storageKey = raw S3 object key (e.g. images/1234_photo.jpg)
+    // storageKey = namespaced S3 object key (e.g. images/commerce/1234_photo.jpg)
     // url = public CDN URL for display
     final controller = ref.read(externalProductControllerProvider);
     final result = await controller.attachExternalProductMedia(

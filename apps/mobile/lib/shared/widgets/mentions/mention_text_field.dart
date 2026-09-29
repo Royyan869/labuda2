@@ -121,8 +121,10 @@ class _MentionTextFieldState extends ConsumerState<MentionTextField> {
     final resolver = ref.read(mentionResolverProvider);
     final usernameToId = await resolver.resolveUsernames(usernames);
 
-    // Get only valid user IDs
-    final userIds = usernameToId.values.toList();
+    // Ordered unique ID-set (contract): one user = one ID, first appearance
+    // wins — parents forward this list verbatim into mention payloads, so a
+    // duplicate here would ship duplicate mention IDs to the backend.
+    final userIds = usernameToId.values.toSet().toList();
 
     widget.onMentionsChanged!(userIds);
   }
@@ -301,13 +303,9 @@ class _MentionTextFieldState extends ConsumerState<MentionTextField> {
       focusNode: _focusNode,
       decoration:
           widget.decoration ??
-          InputDecoration(
-            hintText: widget.hintText,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppShape.r24)),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: AppMetrics.p16,
-              vertical: AppMetrics.p12,
-            ),
+          AppTheme.composerDecoration(
+            Theme.of(context).colorScheme,
+            hintText: widget.hintText ?? '',
           ),
       maxLines: widget.maxLines,
       minLines: widget.minLines,

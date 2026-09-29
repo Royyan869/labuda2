@@ -165,6 +165,59 @@ void main() {
               .color,
           s.primary.withValues(alpha: 0.7),
         );
+        // Button family: one geometry, one ink per variant. The neutral
+        // outlined pair (onSurface / outlineVariant) is the canonical
+        // secondary — a site re-stating it is a competing authority.
+        expect(
+          theme.outlinedButtonTheme.style?.foregroundColor?.resolve(
+            const <WidgetState>{},
+          ),
+          s.onSurface,
+        );
+        expect(
+          theme.outlinedButtonTheme.style
+              ?.side
+              ?.resolve(const <WidgetState>{})
+              ?.color,
+          s.outlineVariant,
+        );
+        expect(
+          theme.textButtonTheme.style?.foregroundColor?.resolve(
+            const <WidgetState>{},
+          ),
+          s.primary,
+        );
+        expect(
+          theme.filledButtonTheme.style?.backgroundColor?.resolve(
+            const <WidgetState>{},
+          ),
+          s.primary,
+        );
+        expect(
+          theme.filledButtonTheme.style?.foregroundColor?.resolve(
+            const <WidgetState>{},
+          ),
+          s.onPrimary,
+        );
+        // ALL four button families share the one canonical radius.
+        for (final (name, style) in <(String, ButtonStyle?)>[
+          ('elevated', theme.elevatedButtonTheme.style),
+          ('outlined', theme.outlinedButtonTheme.style),
+          ('text', theme.textButtonTheme.style),
+          ('filled', theme.filledButtonTheme.style),
+        ]) {
+          final shape = style?.shape?.resolve(const <WidgetState>{});
+          expect(
+            shape,
+            isA<RoundedRectangleBorder>(),
+            reason: '$name button shape must be a rounded rectangle',
+          );
+          expect(
+            (shape! as RoundedRectangleBorder).borderRadius,
+            AppShape.buttonRadius,
+            reason: '$name button must use the canonical button radius',
+          );
+        }
         // Text defaults resolve to the scheme surface ink in both modes.
         expect(theme.textTheme.bodyLarge?.color, s.onSurface);
         expect(theme.textTheme.labelLarge?.color, s.onSurface);
@@ -311,6 +364,107 @@ void main() {
       );
     });
 
+    test('composer fields share one pill factory (five consumers)', () {
+      // ONE composer spec: r24 pill, surfaceContainerHigh fill,
+      // inputPadding, borderless — chat, comment, share-to-chat, support,
+      // mention field. The old reality was two mechanisms (Container-wrap
+      // vs decoration-fill) that had already drifted in fill and padding.
+      for (final theme in [AppTheme.lightTheme, AppTheme.darkTheme]) {
+        final scheme = theme.colorScheme;
+        final d = AppTheme.composerDecoration(scheme, hintText: 'x');
+        expect(
+          (d.border! as OutlineInputBorder).borderRadius,
+          const BorderRadius.all(Radius.circular(AppShape.r24)),
+        );
+        expect((d.border! as OutlineInputBorder).borderSide, BorderSide.none);
+        expect(d.filled, isTrue);
+        expect(d.fillColor, scheme.surfaceContainerHigh);
+        expect(d.contentPadding, AppMetrics.inputPadding);
+        expect(d.counterText, '');
+      }
+      // Consumers consume the factory; none may restate the pill radius.
+      final consumers = <String>[
+        'lib/domains/chat/chat/presentation/widgets/chat_input_area.dart',
+        'lib/domains/social/comment/presentation/widgets/comment_input_with_commerce_reference.dart',
+        'lib/domains/social/share/presentation/widgets/share_to_chat_dialog.dart',
+        'lib/domains/system/support/presentation/screens/support_ticket_thread_screen.dart',
+        'lib/shared/widgets/mentions/mention_text_field.dart',
+      ];
+      for (final path in consumers) {
+        final src = File(path).readAsStringSync();
+        expect(
+          src.contains('composerDecoration('),
+          isTrue,
+          reason: '$path must consume the composer factory',
+        );
+        expect(
+          src.contains('AppShape.r24'),
+          isFalse,
+          reason: '$path must not restate the pill radius',
+        );
+      }
+    });
+
+    test('composer action row is canonical (send always visible, + on the right)', () {
+      // ONE action row spec: [pill] [ComposerAddButton?] [ComposerSendButton].
+      // The send glyph lives only in the shared widget — consumers may not
+      // draw their own — and nothing may hide the send button while typing
+      // (the old showSend conditional caused layout shift).
+      final canonical = File(
+        'lib/shared/widgets/composer_action_buttons.dart',
+      ).readAsStringSync();
+      expect(
+        canonical.contains('Icons.send'),
+        isTrue,
+        reason: 'the shared widget owns the send glyph',
+      );
+      expect(canonical.contains('ComposerAddButton'), isTrue);
+
+      const chat =
+          'lib/domains/chat/chat/presentation/widgets/chat_input_area.dart';
+      const comment =
+          'lib/domains/social/comment/presentation/widgets/comment_input_with_commerce_reference.dart';
+      const share =
+          'lib/domains/social/share/presentation/widgets/share_to_chat_dialog.dart';
+      const support =
+          'lib/domains/system/support/presentation/screens/support_ticket_thread_screen.dart';
+
+      for (final path in const [chat, comment, share, support]) {
+        final src = File(path).readAsStringSync();
+        expect(
+          src.contains('ComposerSendButton('),
+          isTrue,
+          reason: '$path must use the canonical send button',
+        );
+        expect(
+          src.contains('Icons.send'),
+          isFalse,
+          reason: '$path may not draw its own send glyph',
+        );
+      }
+
+      // The attach `+` exists only where an attach flow exists.
+      for (final path in const [chat, comment]) {
+        expect(
+          File(path).readAsStringSync().contains('ComposerAddButton('),
+          isTrue,
+          reason: '$path must expose the canonical attach button',
+        );
+      }
+      for (final path in const [share, support]) {
+        expect(
+          File(path).readAsStringSync().contains('ComposerAddButton('),
+          isFalse,
+          reason: '$path has no attach flow — no `+` row slot',
+        );
+      }
+
+      // Chat used to hide send until typing; that conditional is gone.
+      final chatSrc = File(chat).readAsStringSync();
+      expect(chatSrc.contains('showSend'), isFalse);
+      expect(chatSrc.contains('_isTyping'), isFalse);
+    });
+
     test('elevation and density are explicit theme data', () {
       for (final theme in [AppTheme.lightTheme, AppTheme.darkTheme]) {
         expect(theme.appBarTheme.elevation, AppElevation.none);
@@ -420,6 +574,7 @@ void main() {
       // Stages 4 & 5: every inline size/padding became a step with the SAME
       // value, so these pins are what make those migrations pixel-identical.
       expect(AppType.s8, 8);
+      expect(AppType.s8_5, 8.5);
       expect(AppType.s9, 9);
       expect(AppType.s10, 10);
       expect(AppType.s11, 11);
@@ -580,6 +735,17 @@ void main() {
         // Stage 4 & 5 (type size / spacing): same rule.
         'fontSize: 14,',
         'margin: const EdgeInsets.only(left: 8),',
+        // The literal hiding inside a ternary / null-coalesce — the hole this
+        // scope closed (7 sites migrated onto AppType, pixel-identical).
+        'fontSize: isTotal ? 18 : 14,',
+        'fontSize: widget.style?.fontSize ?? 14,',
+        'fontSize: isActive ? 10 : 8.5,',
+        // Scheme-role token bound directly instead of through colorScheme.
+        'color: AppColors.primaryPurple,',
+        // The killed second category-colour map (chat_card's statusColors
+        // switch) — CategoryConfig is the one authority.
+        'SupportCategory.dispute => context.statusColors.error,',
+        'SupportCategory.other || null =>\n          Theme.of(context).colorScheme.onSurfaceVariant,',
       ]) {
         expect(
           themeForbiddenColour.hasMatch(resurrection),
@@ -598,7 +764,16 @@ void main() {
         'duration: AppMotion.settled,',
         'borderRadius: BorderRadius.circular(AppShape.r12),',
         'fontSize: AppType.s14,',
+        'fontSize: core.AppType.s14,',
         'margin: const EdgeInsets.only(left: AppMetrics.p8),',
+        // Computed proportional geometry is not a size decision.
+        'fontSize: stepSize * 0.42,',
+        'fontSize: handleSize,',
+        // Brand/identity hues with no scheme role stay bindable.
+        'color: AppColors.primaryYellow,',
+        'color: AppColors.koiGold,',
+        // Icon/label switches over the category enum are not colour maps.
+        'SupportCategory.paymentIssue => Icons.payment,',
       ]) {
         expect(
           themeForbiddenColour.hasMatch(legitimate),
@@ -606,6 +781,53 @@ void main() {
           reason: 'gate would false-positive: $legitimate',
         );
       }
+    });
+
+    test('button geometry is theme-owned, never restated at the call site', () {
+      // The canonical radius decision (container 12 / button 8) lives in
+      // AppShape.buttonRadius and flows through the four button themes.
+      // A call site that re-states a shape forks the geometry authority —
+      // the exact split (r12 sites vs r8 sites) this scope killed.
+      final violations = <String>[];
+      final ctors = <String>[
+        'ElevatedButton.styleFrom(',
+        'OutlinedButton.styleFrom(',
+        'TextButton.styleFrom(',
+        'FilledButton.styleFrom(',
+      ];
+      for (final path in themeAuthorityDartFiles()) {
+        if (themeAuthorityFiles.contains(path)) continue;
+        final src = File(path).readAsStringSync();
+        for (final ctor in ctors) {
+          var from = 0;
+          while (true) {
+            final idx = src.indexOf(ctor, from);
+            if (idx < 0) break;
+            var depth = 0;
+            var end = idx + ctor.length - 1;
+            for (; end < src.length; end++) {
+              final ch = src[end];
+              if (ch == '(') depth++;
+              if (ch == ')') {
+                depth--;
+                if (depth == 0) break;
+              }
+            }
+            final block = src.substring(idx, end + 1);
+            if (block.contains('BorderRadius') || block.contains('shape:')) {
+              final line = src.substring(0, idx).split('\n').length + 1;
+              violations.add('$path:$line');
+            }
+            from = idx + 1;
+          }
+        }
+      }
+      expect(
+        violations,
+        isEmpty,
+        reason: 'button shape must come from the theme, found at:\n'
+            '${violations.join('\n')}',
+      );
     });
 
     test('no file outside the authority owns a colour decision', () {

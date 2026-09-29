@@ -25,9 +25,11 @@
 //     canonical `fold` order (onError first) cannot silently flip back.
 //  4. Payment's failure vocabulary stays dead and the repository forwards the
 //     backend's code instead of re-deriving a kind from the error text.
-//  5. Support classifies failures from `Result.errorCode`/`statusCode` — never
-//     from the human message — and search carries the API failure code across
-//     its throw boundary in exactly one place.
+//  5. Support forwards the canonical error channels untouched — no typed
+//     failure family, no message matching — and search carries the API
+//     failure code across its throw boundary in exactly one place.
+//  6. dartz's `Either` and the support/share typed-failure wrappers are gone
+//     from lib/, test/ and the pubspec: one result vocabulary, period.
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -77,7 +79,8 @@ String _rel(File file) => file.path.replaceAll(r'\', '/');
 /// Matches a top-level declaration of one of the result types.
 final _declaration = RegExp(
   r'^(?:abstract |sealed |final |base |mixin )?(?:class|typedef) '
-  r'(RepositoryResult|ContentRepositoryResult|ApiResult|Result)\b',
+  r'(RepositoryResult|ContentRepositoryResult|ApiResult|Result|'
+  r'SupportResult|ShareFailure)\b',
 );
 
 /// Result name -> the files that declare it.
@@ -119,13 +122,23 @@ void main() {
       reason:
           'RepositoryResult was converged away — every repository returns '
           'Result<T> from $_authorityFile.',
-    );
-    expect(
+    );    expect(
       homes['ApiResult'],
       isNull,
-      reason:
-          'ApiResult was converged away — search and support return Result<T> '
+      reason: 'ApiResult was converged away — search and support return Result<T> '
           'from $_authorityFile, which carries errorCode/statusCode.',
+    );
+    expect(
+      homes['SupportResult'],
+      isNull,
+      reason: 'SupportResult was converged away — the support domain returns '
+          'Result<T> from $_authorityFile.',
+    );
+    expect(
+      homes['ShareFailure'],
+      isNull,
+      reason: 'ShareFailure was converged away — the share domain returns '
+          'Result<T> from $_authorityFile.',
     );
   });
 
@@ -140,28 +153,31 @@ void main() {
     }
   });
 
-  test('support classifies a failure by its code, never by its message', () {
+  test('support forwards the canonical error channels, never re-classifies',
+      () {
     final source = File(
       'lib/domains/system/support/data/repositories/support_repository_api.dart',
     ).readAsStringSync();
 
-    // Positive proof: the transport family comes from the canonical predicate,
-    // and the HTTP family from the status code the API layer preserved.
-    expect(
-      source.contains('isTransportFailureCode(code)'),
-      isTrue,
-      reason:
-          'support stopped asking the transport authority what failed and is '
-          'back to guessing from the message',
-    );
-    expect(
-      source.contains('result.statusCode'),
-      isTrue,
-      reason: 'support stopped branching on the HTTP status code',
-    );
+    // Positive proof: the failure IS the canonical Result — the machine code,
+    // the HTTP status and the structured details all travel from the
+    // datasource untouched, so no caller needs a typed family to branch on.
+    for (final needle in [
+      'result.errorCode',
+      'statusCode: result.statusCode',
+      'details: result.errorDetails',
+    ]) {
+      expect(
+        source.contains(needle),
+        isTrue,
+        reason:
+            'support stopped forwarding `$needle` — flattening an error '
+            'channel forces callers back onto message matching.',
+      );
+    }
 
-    // Negative proof: text classification and status-code-as-string are the
-    // exact shapes that made a drifted message mislabel a failure.
+    // Negative proof: no classifier can grow back — not message matching,
+    // not status-code cases, and not the old typed-failure mapper.
     expect(
       source.contains('error.contains('),
       isFalse,
@@ -177,6 +193,68 @@ void main() {
           "the HTTP status is an int on Result.statusCode; a '404' string case "
           'is the dead ApiResult code channel coming back',
     );
+    expect(
+      source.contains('_mapApiErrorToFailure'),
+      isFalse,
+      reason:
+          'a failure classifier that re-types the canonical error is the '
+          'duplicate result vocabulary coming back',
+    );
+  });
+
+  test('the foreign result container is gone — dartz has no foothold', () {
+    // Directive-scoped: an import/export of the package is what brings the
+    // container back; prose may still mention it.
+    final importLine = RegExp(
+      r"""^\s*(?:import|export)\s+['"]package:dartz/""",
+      multiLine: true,
+    );
+    final offenders = <String>[];
+    for (final root in ['lib', 'test']) {
+      for (final file in _dartFiles(root)) {
+        if (importLine.hasMatch(file.readAsStringSync())) {
+          offenders.add('${_rel(file)} imports package:dartz');
+        }
+      }
+    }
+    expect(
+      offenders,
+      isEmpty,
+      reason:
+          'dartz Either is a second result container next to Result<T> — its '
+          'fold order and Left/Right shape drift from the authority:\n'
+          '${offenders.join('\n')}',
+    );
+
+    // The dependency must not linger in the pubspec either: an unused dep is
+    // how the container comes back without a visible import commit.
+    final pubspec = File('pubspec.yaml').readAsStringSync();
+    expect(
+      RegExp(r'^\s+dartz:', multiLine: true).hasMatch(pubspec),
+      isFalse,
+      reason: 'dartz is still a declared dependency in pubspec.yaml',
+    );
+
+    // `Either<` in lib/ would be a usage even without a direct import line
+    // (barrels re-export). Zero tolerance in compiled code.
+    final eitherOffenders = <String>[];
+    for (final file in _dartFiles('lib')) {
+      if (file.readAsStringSync().contains('Either<')) {
+        eitherOffenders.add(_rel(file));
+      }
+    }
+    expect(
+      eitherOffenders,
+      isEmpty,
+      reason: 'Either< is back in lib/: ${eitherOffenders.join(', ')}',
+    );
+
+    // Negative proof: the detector fires on a planted resurrection and stays
+    // quiet on a package that merely starts the same.
+    expect(importLine.hasMatch("import 'package:dartz/dartz.dart';"), isTrue);
+    expect(importLine.hasMatch("export 'package:dartz/dartz.dart';"), isTrue);
+    expect(importLine.hasMatch("import 'package:dartzx/dartz.dart';"), isFalse);
+    expect(importLine.hasMatch("// prose: package:dartz was removed"), isFalse);
   });
 
   test('search carries the API failure code across its throw boundary', () {
@@ -352,6 +430,8 @@ void main() {
         isTrue,
         reason: 'a second Result declaration is a duplicate authority too',
       );
+      expect(_declaration.hasMatch('class SupportResult<T> {'), isTrue);
+      expect(_declaration.hasMatch('class ShareFailure {'), isTrue);
 
       expect(
         _declaration.hasMatch('final result = Result.success(1);'),

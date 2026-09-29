@@ -240,9 +240,6 @@ class AuctionDetailBottomBar extends StatelessWidget {
               disabledBackgroundColor: scheme.surfaceContainerHighest,
               disabledForegroundColor: scheme.onSurfaceVariant,
               padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppShape.r8),
-              ),
             ),
             child: Text(
               _mainActionLabel,
@@ -258,9 +255,6 @@ class AuctionDetailBottomBar extends StatelessWidget {
             backgroundColor: scheme.secondary,
             foregroundColor: scheme.onSecondary,
             padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p14),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppShape.r8),
-            ),
           ),
           child: const Text(
             'Lihat Lelang Lain',
@@ -292,13 +286,9 @@ class AuctionDetailBottomBar extends StatelessWidget {
             onPressed: _mainActionCallback,
             style: ElevatedButton.styleFrom(
               backgroundColor: _mainActionColor(context, scheme),
-              foregroundColor: scheme.onPrimary,
               disabledBackgroundColor: scheme.surfaceContainerHighest,
               disabledForegroundColor: scheme.onSurfaceVariant,
               padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppShape.r8),
-              ),
             ),
             child: Text(
               _mainActionLabel,

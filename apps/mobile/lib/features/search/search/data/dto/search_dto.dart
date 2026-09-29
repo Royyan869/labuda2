@@ -717,6 +717,7 @@ class ForSaleSearchResultDto extends Equatable {
   final String variety;
   final num? price;
   final List<String> mediaUrls;
+  final String? thumbnailUrl;
   final String sellerId;
   final DateTime createdAt;
 
@@ -747,6 +748,7 @@ class ForSaleSearchResultDto extends Equatable {
     required this.variety,
     this.price,
     required this.mediaUrls,
+    this.thumbnailUrl,
     required this.sellerId,
     required this.createdAt,
     this.sellerUsername,
@@ -768,6 +770,7 @@ class ForSaleSearchResultDto extends Equatable {
               ?.map((e) => e.toString())
               .toList() ??
           const <String>[],
+      thumbnailUrl: (json['for_sale'] as Map<String, dynamic>?)?['thumbnail_url'] as String?,
       sellerId: json['seller_id'] as String? ?? '',
       createdAt: DateTime.parse(json['created_at'] as String),
       sellerUsername: json['seller_username'] as String?,
@@ -785,6 +788,7 @@ class ForSaleSearchResultDto extends Equatable {
     'variety': variety,
     if (price != null) 'price': price,
     'media_urls': mediaUrls,
+    if (thumbnailUrl != null) 'thumbnail_url': thumbnailUrl,
     'seller_id': sellerId,
     'created_at': createdAt.toIso8601String(),
     if (sellerUsername != null) 'seller_username': sellerUsername,

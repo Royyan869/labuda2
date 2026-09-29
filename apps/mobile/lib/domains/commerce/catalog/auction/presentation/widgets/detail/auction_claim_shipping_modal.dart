@@ -843,9 +843,6 @@ class _AuctionClaimShippingModalState
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
                   side: BorderSide(color: scheme.outline),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppShape.r8),
-                  ),
                 ),
                 child: const Text('Batal'),
               ),
@@ -857,14 +854,9 @@ class _AuctionClaimShippingModalState
               child: ElevatedButton(
                 onPressed: canClaim ? _handleClaim : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: scheme.primary,
-                  foregroundColor: scheme.onPrimary,
                   disabledBackgroundColor: scheme.surfaceContainerHighest,
                   disabledForegroundColor: scheme.onSurfaceVariant,
                   padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppShape.r8),
-                  ),
                 ),
                 child: _isClaiming
                     ? SizedBox(

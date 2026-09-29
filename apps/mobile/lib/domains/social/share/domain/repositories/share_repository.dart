@@ -1,10 +1,10 @@
 // Share Repository Interface
 
+import 'package:labuda/core/core.dart';
+
 import '../entities/share_target.dart';
 import '../entities/share_destination.dart';
 import '../entities/share_result.dart';
-import '../entities/share_failure.dart';
-import 'package:dartz/dartz.dart';
 
 /// Repository interface for share operations
 /// Following Clean Architecture principles
@@ -12,7 +12,7 @@ import 'package:dartz/dartz.dart';
 abstract class ShareRepository {
   /// Share content via external platforms (WhatsApp, Instagram, etc.)
   /// Uses native OS share dialog or platform-specific APIs
-  Future<Either<ShareFailure, ShareResult>> shareViaExternal({
+  Future<Result<ShareResult>> shareViaExternal({
     required ShareTarget target,
     required ShareDestinationType destination,
   });
@@ -20,14 +20,14 @@ abstract class ShareRepository {
   /// Share content as new Post in feed (Repost)
   /// Creates a new Post with shared content embedded
   /// Returns the created Post ID or failure
-  Future<Either<ShareFailure, String>> shareAsPost({
+  Future<Result<String>> shareAsPost({
     required ShareTarget target,
     required String authorId,
     String? caption,
   });
 
   /// Send content via LABUDA internal chat
-  Future<Either<ShareFailure, ShareResult>> sendToChat({
+  Future<Result<ShareResult>> sendToChat({
     required ShareTarget target,
     required String recipientUserId,
     String? message,

@@ -306,7 +306,6 @@ class _ForSalePickerBottomSheetState
   }
 
   Widget _buildCreateNewForSaleButton(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16),
       child: SizedBox(
@@ -319,12 +318,7 @@ class _ForSalePickerBottomSheetState
           icon: const Icon(Icons.add),
           label: const Text('Buat ForSale Baru'),
           style: OutlinedButton.styleFrom(
-            foregroundColor: scheme.primary,
-            side: BorderSide(color: scheme.primary),
             padding: const EdgeInsets.symmetric(vertical: AppMetrics.p12),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppShape.r12),
-            ),
           ),
         ),
       ),

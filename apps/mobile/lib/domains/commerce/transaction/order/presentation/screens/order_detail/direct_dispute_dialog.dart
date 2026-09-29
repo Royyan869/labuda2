@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:labuda/core/core.dart' as core;
+import 'package:labuda/core/media/media_upload_config.dart';
 import 'package:labuda/core/media/media_upload_orchestrator.dart';
 import 'package:labuda/core/providers/core_providers.dart';
 import 'package:labuda/domains/commerce/transaction/order/data/dto/dispute_dto.dart';
@@ -122,7 +123,10 @@ class _DirectDisputeDialogState extends ConsumerState<DirectDisputeDialog> {
       String? videoUrl;
 
       // Upload video (required)
-      final videoResult = await s3Service.uploadVideo(File(_videoFile!.path));
+      final videoResult = await s3Service.uploadVideo(
+        File(_videoFile!.path),
+        folder: MediaUploadConfig.forEvidence.videoFolder,
+      );
       if (videoResult.isSuccess && videoResult.data != null) {
         videoUrl = videoResult.data!;
       } else {
@@ -131,7 +135,10 @@ class _DirectDisputeDialogState extends ConsumerState<DirectDisputeDialog> {
 
       // Upload photos (optional)
       for (final photo in _photoFiles) {
-        final result = await s3Service.uploadImage(File(photo.path));
+        final result = await s3Service.uploadImage(
+          File(photo.path),
+          folder: MediaUploadConfig.forEvidence.imageFolder,
+        );
         if (result.isSuccess && result.data != null) {
           evidenceUrls.add(result.data!);
         }
@@ -492,7 +499,6 @@ class _DirectDisputeDialogState extends ConsumerState<DirectDisputeDialog> {
           onPressed: _isSubmitting ? null : _submitDispute,
           style: ElevatedButton.styleFrom(
             backgroundColor: context.statusColors.warning,
-            foregroundColor: colorScheme.onPrimary,
             disabledBackgroundColor: colorScheme.surfaceContainerHighest,
           ),
           child: _isSubmitting

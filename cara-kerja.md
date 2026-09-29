@@ -1,5 +1,8 @@
 # LABUDA — ATURAN KERJA PENGEMBANGAN, AUDIT, DAN PENUTUPAN DOMAIN
 
+> **BACA DULU: [# 19. PROTOKOL EKSEKUSI CEPAT](#19-protokol-eksekusi-cepat--wajib-dibaca-di-awal-sesi).**
+> Pola wajib: analisa → fix batch → SATU test → lapor. Run test = langkah mahal (wajib timeout + target sesempat mungkin). Aturan ini mengalahkan kebiasaan default agent dan sudah ditegaskan owner berkali-kali.
+
 ## 1. Tujuan Utama
 
 Pengembangan Labuda harus bergerak menuju aplikasi yang:
@@ -1135,3 +1138,45 @@ adapter/proxy/provider berlebihan,
 state dan lifecycle yang unnecessarily rumit,
 worker/abstraction yang sebenarnya bisa disederhanakan,
 legacy/residue yang masih membuat developer masa depan harus memahami sejarah codebase.
+
+---
+
+# 19. PROTOKOL EKSEKUSI CEPAT — WAJIB DIBACA DI AWAL SESI
+
+Aturan ini ditegaskan owner setelah puluhan sesi berjalan terlalu lambat.
+Aturan ini mengalahkan kebiasaan default agent: banyak langkah kecil,
+banyak run test untuk "jaga-jaga", dan membaca file berulang-ulang.
+
+## 19.1 Pola kerja yang diminta owner (pola Claude)
+
+> analisa → ketemu akar → fix, fix, fix → SATU test → kalau error: fix → test = sukses → lapor
+
+- Kumpulkan SEMUA analisa dulu, edit SEMUA fix dalam satu batch, baru jalankan test.
+- Tidak ada fix-sedikit-lalu-test. Satu run membuktikan seluruh batch.
+- Setelah beberapa task valid diselesaikan → LAPOR (angka bukti: `+N ALL PASS`) → lanjut.
+- Jangan bekerja berjam-jam tanpa laporan.
+- Audit ulang hanya jika kurang yakin — bukan sebagai kebiasaan.
+
+## 19.2 Disiplin run test (run = langkah mahal)
+
+1. `flutter test` butuh startup 30–40 detik. Hitung setiap run seperti langkah berbayar.
+2. Setiap run WAJIB dibungkus `timeout` (mis. `(timeout 300 flutter test ... > /tmp/log.txt 2>&1 || true)`). Tanpa timeout = berisiko kehilangan menit percuma.
+3. Target sesempat mungkin: `--plain-name "..."` untuk satu test, per-folder untuk suite.
+4. JANGAN PERNAH menebak path file lewat test run. Temukan path dengan `grep`/`glob` (milidetik) dulu.
+5. Tidak ada run untuk jaga-jaga. Run hanya untuk membuktikan batch.
+6. Kalau run gagal → baca error → fix → run ulang. Maksimal 3 percobaan per masalah; kalau masih gagal, STOP dan lapor.
+
+## 19.3 Disiplin baca konteks
+
+1. Baca file BESAR sekali (full atau window lebar), bukan jendela 60 baris berulang.
+2. `grep` untuk MENEMUKAN lokasi, bukan menggali konteks.
+3. Jangan membaca ulang file yang sudah dibaca — percayai catatan/todos.
+4. Untuk bug hang/race: buat repro minimal (10 baris) DULU sebelum membaca rantai panjang.
+5. Semua temuan dicatat ke todos/laporan agar tidak ditemukan ulang.
+
+## 19.4 Konsekuensi pelanggaran
+
+Run yang membosos waktu, path yang ditebak, dan pembacaan berulang adalah
+buang waktu yang sudah terbukti di sesi-sesi sebelumnya. Owner mengukur
+kecepatan dari: jumlah run, jumlah tool call, dan waktu per `ALL PASS`.
+Bukan dari jumlah langkah.

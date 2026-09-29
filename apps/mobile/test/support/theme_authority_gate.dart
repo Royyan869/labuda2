@@ -40,6 +40,18 @@ final themeForbiddenColour = RegExp(
   // Status tones are theme data now — a widget binding them is a second
   // authority that cannot follow light/dark.
   r'|AppColors\.(status\w*|primaryGreen)\b'
+  // Scheme role tokens: `primaryPurple` IS `tertiary` in both modes, so a
+  // widget binding it bypasses the role authority (migrate to
+  // `scheme.tertiary`). `primaryPink` has no role and no legitimate binder.
+  // DELIBERATELY ALLOWED brand/identity hues with no scheme role:
+  // `coin*`, `koi*`, and `primaryYellow` (pro-tier brand, owner-decided —
+  // see seller_tier_badge.dart). Do not add them here.
+  r'|AppColors\.(primaryPurple|primaryPink)\b'
+  // Support category colour has ONE map: the CategoryConfig palette in the
+  // support domain. A per-category switch onto statusColors/scheme hues is
+  // the killed second map (nine categories collapsed into five, disagreeing
+  // with the ticket screens that render the config palette).
+  r'|SupportCategory\.\w+(\s*\|\|\s*null)?\s*=>\s*(context\.statusColors|Theme\.of\()'
   r'|Colors\.(white|black|grey|gray|green|orange|red|blue|yellow|amber)\b'
   r'|Colors\.(white|black|grey|gray)[0-9]'
   r'|Color\(0x'
@@ -56,7 +68,16 @@ final themeForbiddenColour = RegExp(
   // Font sizes and padding steps are theme data too (`AppType` / `AppMetrics`).
   // A call whose literal sits on a later line is caught by the whole-file pass
   // in `themeAuthorityViolations` — same regex, wider scope.
-  r'|fontSize:\s*[0-9]'
+  //
+  // The literal may appear ANYWHERE in the expression, not just first:
+  // `fontSize: isTotal ? 18 : 14` and `fontSize: style?.fontSize ?? 14` used
+  // to slip through un-tokenized. Values with a decimal point in a COMPUTED
+  // expression (`size.width * 0.32`, `stepSize * 0.42`) are proportional
+  // geometry, not a size decision, and stay legal (the guard fails on dots).
+  // Tokenized values like `AppType.s14` never match: the digit is glued to a
+  // word character. The scan stops at the first comma so a later argument on
+  // the same statement (`... fontSize: AppType.s14, size: 20`) is not caught.
+  r'|fontSize:\s*[^,\n]*(?<![\w.])[0-9]+(?![\d.])'
   r'|EdgeInsets\.\w+\([^)]*(?<![\w.])[0-9]+(?![\d.])'
   r'|isDark'
   r'|brightness\s*=='

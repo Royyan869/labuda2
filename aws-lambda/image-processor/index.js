@@ -4,8 +4,9 @@
  * Features:
  * - Auto-generate multiple image sizes (thumbnail, medium, large)
  * - Convert to WebP format
- * - Generate blurhash
- * - Update metadata in DynamoDB (optional)
+ *
+ * Non-goals (dead outputs, purged): blurhash generation, S3 tagging,
+ * DynamoDB metadata — no consumer reads them.
  *
  * Trigger: S3 PUT events
  * Runtime: Node.js 18.x or higher
@@ -13,7 +14,6 @@
 
 const AWS = require('aws-sdk');
 const sharp = require('sharp');
-const { encode } = require('blurhash');
 
 const s3 = new AWS.S3();
 
@@ -61,8 +61,8 @@ async function processImage(record) {
 
   console.log(`Processing image: ${bucket}/${key}`);
 
-  // Skip if not an image or already a variant
-  if (!isImageFile(key) || isVariantFile(key)) {
+  // Skip if not an image, already a variant, or a fixed identity photo
+  if (!isImageFile(key) || isVariantFile(key) || isFixedIdentityFile(key)) {
     console.log(`Skipping: ${key}`);
     return;
   }
@@ -80,32 +80,16 @@ async function processImage(record) {
 
     console.log(`Image metadata:`, metadata);
 
-    // Generate all variants in parallel
+    // Generate all variants in parallel.
+    // NOTE: blurhash + S3 tagging were removed — no consumer reads them
+    // (mobile generates blurhash client-side; backend has no blurhash
+    // column), and the tag write failed on blurhash characters.
     const processingTasks = [
       ...generateSizeVariants(bucket, key, originalImage.Body, metadata),
       generateWebPVersion(bucket, key, originalImage.Body, metadata),
-      generateBlurhash(originalImage.Body, metadata)
     ];
 
-    const results = await Promise.allSettled(processingTasks);
-
-    // Extract blurhash from results
-    const blurhashResult = results.find(r =>
-      r.status === 'fulfilled' && r.value?.blurhash
-    );
-
-    // Store metadata (optional - if using DynamoDB)
-    if (blurhashResult?.value?.blurhash) {
-      await storeImageMetadata(bucket, key, {
-        blurhash: blurhashResult.value.blurhash,
-        dimensions: {
-          width: metadata.width,
-          height: metadata.height
-        },
-        format: metadata.format,
-        variants: getVariantKeys(key)
-      });
-    }
+    await Promise.allSettled(processingTasks);
 
     console.log(`Successfully processed: ${key}`);
     return { success: true, key };
@@ -192,77 +176,6 @@ async function generateWebPVersion(bucket, key, imageBuffer, metadata) {
   }
 }
 
-async function generateBlurhash(imageBuffer, metadata) {
-  try {
-    // Resize image for blurhash (max 64x64 for performance)
-    const resized = await sharp(imageBuffer)
-      .resize(64, 64, { fit: 'inside' })
-      .raw()
-      .ensureAlpha()
-      .toBuffer();
-
-    // Calculate dimensions after resize
-    const aspectRatio = metadata.width / metadata.height;
-    let blurWidth = 64;
-    let blurHeight = 64;
-
-    if (aspectRatio > 1) {
-      blurHeight = Math.round(64 / aspectRatio);
-    } else {
-      blurWidth = Math.round(64 * aspectRatio);
-    }
-
-    // Generate blurhash
-    const blurhash = encode(
-      new Uint8ClampedArray(resized),
-      blurWidth,
-      blurHeight,
-      4, // componentX
-      3  // componentY
-    );
-
-    console.log(`Generated blurhash: ${blurhash}`);
-    return { blurhash };
-
-  } catch (error) {
-    console.error('Failed to generate blurhash:', error);
-    throw error;
-  }
-}
-
-async function storeImageMetadata(bucket, key, metadata) {
-  // Option 1: Store in S3 object tags
-  try {
-    await s3.putObjectTagging({
-      Bucket: bucket,
-      Key: key,
-      Tagging: {
-        TagSet: [
-          { Key: 'blurhash', Value: metadata.blurhash.substring(0, 128) }, // Tags have length limit
-          { Key: 'processed', Value: 'true' }
-        ]
-      }
-    }).promise();
-
-    console.log(`Stored metadata for: ${key}`);
-  } catch (error) {
-    console.error('Failed to store metadata:', error);
-    // Non-critical error - don't throw
-  }
-
-  // Option 2: Store in DynamoDB (recommended for production)
-  // const dynamodb = new AWS.DynamoDB.DocumentClient();
-  // await dynamodb.put({
-  //   TableName: 'ImageMetadata',
-  //   Item: {
-  //     key,
-  //     bucket,
-  //     ...metadata,
-  //     processedAt: new Date().toISOString()
-  //   }
-  // }).promise();
-}
-
 // Helper functions
 function isImageFile(key) {
   const ext = key.toLowerCase().substr(key.lastIndexOf('.'));
@@ -274,6 +187,15 @@ function isVariantFile(key) {
          key.includes('/medium/') ||
          key.includes('/large/') ||
          key.includes('/webp/');
+}
+
+// Fixed-key identity photos (avatars, stores, covers) never need variants:
+// small, fixed-size, overwritten in place. Skipping them here keeps the
+// pipeline scoped to domain content (content/commerce/chat/evidence).
+function isFixedIdentityFile(key) {
+  return key.startsWith('images/avatars/') ||
+         key.startsWith('images/stores/') ||
+         key.startsWith('images/profile-covers/');
 }
 
 function getVariantKey(originalKey, variant) {
@@ -291,11 +213,3 @@ function getWebPKey(originalKey) {
   return `${path}/webp/${nameWithoutExt}.webp`;
 }
 
-function getVariantKeys(originalKey) {
-  return {
-    thumbnail: getVariantKey(originalKey, 'thumbnail'),
-    medium: getVariantKey(originalKey, 'medium'),
-    large: getVariantKey(originalKey, 'large'),
-    webp: getWebPKey(originalKey)
-  };
-}

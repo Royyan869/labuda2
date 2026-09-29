@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import 'package:labuda/core/core.dart';
 import 'app_snackbar.dart';
-import 'app_button.dart';
 
 class ErrorDisplayWidget extends StatelessWidget {
   final String message;
@@ -82,10 +81,16 @@ class ErrorDisplayWidget extends StatelessWidget {
             ),
             if (showRetryButton && onRetry != null) ...[
               const SizedBox(height: 24),
-              AppButton.secondary(
-                text: 'Coba Lagi',
+              OutlinedButton(
                 onPressed: onRetry,
-                icon: Icons.refresh,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.refresh, size: 20),
+                    const SizedBox(width: 8),
+                    const Text('Coba Lagi'),
+                  ],
+                ),
               ),
             ],
             // CONTEXTUAL SUPPORT BRIDGE (Phase 2 Hardening)

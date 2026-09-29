@@ -41,12 +41,7 @@ class AddressStickyButton extends StatelessWidget {
           icon: const Icon(Icons.add_location_alt),
           label: Text('Add ${purpose.label}'),
           style: ElevatedButton.styleFrom(
-            backgroundColor: scheme.primary,
-            foregroundColor: scheme.onPrimary,
             padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppShape.r12),
-            ),
           ),
         ),
       ),

@@ -110,8 +110,6 @@ class MessageBubble extends ConsumerWidget {
               _buildImageMessage(context, textColor)
             else if (message.type == MessageType.video)
               _buildVideoMessage(context)
-            else if (message.type == MessageType.audio)
-              _buildAudioMessage(context)
             else if (message.type == MessageType.file)
               _buildFileMessage(context)
             else if (message.type == MessageType.system)
@@ -184,31 +182,6 @@ class MessageBubble extends ConsumerWidget {
           size: 48,
         ),
       ),
-    );
-  }
-
-  Widget _buildAudioMessage(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const Icon(Icons.play_circle_outline, size: 32),
-        const SizedBox(width: 8),
-        Container(
-          width: 100,
-          height: 4,
-          decoration: BoxDecoration(
-            color: Theme.of(
-              context,
-            ).colorScheme.onPrimary.withValues(alpha: 0.3),
-            borderRadius: BorderRadius.circular(AppShape.r2),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Text(
-          '0:${message.content.length % 60}',
-          style: const TextStyle(fontSize: AppType.s12),
-        ),
-      ],
     );
   }
 

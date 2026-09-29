@@ -76,8 +76,8 @@ class FollowSearchNotifier extends _$FollowSearchNotifier {
     final result = await _searchUsersUseCase.execute(params);
 
     result.fold(
-      (failure) {
-        state = state.copyWith(isSearching: false, error: failure.message);
+      (error) {
+        state = state.copyWith(isSearching: false, error: error);
       },
       (users) {
         state = state.copyWith(

@@ -203,7 +203,6 @@ class _DisputeEscalationDialogState
           onPressed: _isSubmitting ? null : _submitEscalation,
           style: ElevatedButton.styleFrom(
             backgroundColor: colorScheme.secondary,
-            foregroundColor: colorScheme.onPrimary,
             disabledBackgroundColor: colorScheme.surfaceContainerHighest,
           ),
           child: _isSubmitting

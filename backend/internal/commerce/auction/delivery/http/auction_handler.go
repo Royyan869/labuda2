@@ -1403,8 +1403,8 @@ func auctionToResponseWithSeller(
 			rawMediaRefs = product.MediaURLs
 			mediaURLs = commerceshared.ResolveReadableMediaReferences(product.MediaURLs)
 		}
-		if len(mediaURLs) > 0 {
-			t := mediaURLs[0]
+		if len(rawMediaRefs) > 0 {
+			t := commerceshared.ResolveReadableThumbnailURL(rawMediaRefs[0])
 			thumbnail = &t
 		}
 	}

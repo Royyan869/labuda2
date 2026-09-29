@@ -266,35 +266,14 @@
     "description": "Privacy and security section"
   },
 
-  "publicProfile": "Public Profile",
-  "@publicProfile": {
-    "description": "Public profile setting"
-  },
 
-  "makeProfileVisible": "Make your profile visible to all users",
-  "@makeProfileVisible": {
-    "description": "Public profile description"
-  },
 
-  "showOnlineStatus": "Show Online Status",
-  "@showOnlineStatus": {
-    "description": "Online status setting"
-  },
-
-  "letOthersSeeOnline": "Let others see when you're online",
-  "@letOthersSeeOnline": {
-    "description": "Online status description"
-  },
 
   "allowMessages": "Allow Messages",
   "@allowMessages": {
     "description": "Messages setting"
   },
 
-  "receiveMessagesFromOthers": "Receive messages from other users",
-  "@receiveMessagesFromOthers": {
-    "description": "Messages description"
-  },
 
   "blockedUsers": "Blocked Users",
   "@blockedUsers": {

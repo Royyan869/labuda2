@@ -376,11 +376,7 @@ class AuctionBidPositionIndicator extends StatelessWidget {
               onPressed: onBidAgain,
               style: ElevatedButton.styleFrom(
                 backgroundColor: display.color,
-                foregroundColor: Theme.of(context).colorScheme.onPrimary,
                 padding: const EdgeInsets.symmetric(vertical: AppMetrics.p10),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppShape.r6),
-                ),
                 elevation: AppElevation.none,
               ),
               child: const Text(

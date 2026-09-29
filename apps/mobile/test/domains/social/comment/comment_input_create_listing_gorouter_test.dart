@@ -196,8 +196,11 @@ void main() {
         await tester.enterText(find.byType(TextField), 'draft before create');
         await tester.pump();
 
-        // Tap attach button to open CommerceResourcePicker
-        await tester.tap(find.byIcon(Icons.add_circle_outline));
+        // Tap attach (+), then the commerce entry in the attach sheet
+        await tester.tap(find.byIcon(Icons.add_circle));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+        await tester.tap(find.text('Lampirkan Produk'));
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 400));
 
@@ -249,8 +252,11 @@ void main() {
         await tester.enterText(find.byType(TextField), 'check out this forSale');
         await tester.pump();
 
-        // Tap attach button to open CommerceResourcePicker
-        await tester.tap(find.byIcon(Icons.add_circle_outline));
+        // Tap attach (+), then the commerce entry in the attach sheet
+        await tester.tap(find.byIcon(Icons.add_circle));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+        await tester.tap(find.text('Lampirkan Produk'));
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 400));
 

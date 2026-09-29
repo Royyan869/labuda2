@@ -101,9 +101,9 @@ void main() {
     await tester.enterText(find.byType(TextField), '   ');
     await tester.pump();
 
-    // Codebase factual: _isTyping is text.isNotEmpty — whitespace counts as
-    // typing and shows the send icon, but _handleSendMessage trims and guards
-    // empty content, so no send fires.
+    // Canonical action row: send is always visible; a whitespace-only draft
+    // keeps it disabled, and _handleSendMessage also trims and guards empty
+    // content, so no send fires.
     expect(find.byIcon(Icons.send), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.send));
@@ -142,8 +142,9 @@ void main() {
     await tester.tap(sendButton);
     await tester.pump();
 
-    // Codebase factual: the send button requires non-empty text (_isTyping);
-    // the old media-only empty-body send path no longer exists in the widget.
+    // Canonical action row: send always renders but stays disabled while the
+    // draft is empty; the old media-only empty-body send path no longer
+    // exists in the widget.
     expect(capturedContent, isNull);
     expect(capturedType, isNull);
   });

@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/widgets/app_snackbar.dart';
+import 'package:labuda/shared/widgets/composer_action_buttons.dart';
 import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/domain/domain.dart';
 import 'package:labuda/domains/social/comment/presentation/widgets/commerce_resource_picker.dart';
@@ -123,73 +124,25 @@ class _CommentInputWithCommerceReferenceState
                     maxLines: null,
                     minLines: 1,
                     maxLength: 500,
-                    decoration: InputDecoration(
+                    decoration: AppTheme.composerDecoration(
+                      scheme,
                       hintText: widget.hintText,
-                      hintStyle: TextStyle(color: scheme.onSurfaceVariant),
-                      filled: true,
-                      fillColor: scheme.surfaceContainerHigh,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AppShape.r24),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: AppMetrics.p16,
-                        vertical: AppMetrics.p12,
-                      ),
-                      counterText: '',
                     ),
                   ),
                 ),
                 const SizedBox(width: 8),
-                // Foto/video picker — foto+video support
-                IconButton(
-                  onPressed: _pickMedia,
-                  icon: Icon(
-                    Icons.add_photo_alternate_outlined,
-                    color: _mediaUrls.isNotEmpty ? scheme.primary : scheme.onSurfaceVariant,
-                    size: 26,
-                  ),
-                  tooltip: 'Tambah foto/video',
-                ),
-                // Attach commerce resource button (seller only)
-                if (widget.isSeller)
-                  IconButton(
-                    onPressed: _showCommercePicker,
-                    icon: Icon(
-                      Icons.add_circle_outline,
-                      color: _selectedResource != null
-                          ? scheme.primary
-                          : scheme.onSurfaceVariant,
-                      size: 28,
-                    ),
-                    tooltip: 'Lampirkan Produk',
-                  ),
-                // Send button
-                Container(
-                  decoration: BoxDecoration(
-                    color: _canSubmit() && !_isSubmitting
-                        ? scheme.primary
-                        : scheme.surfaceContainerHighest,
-                    shape: BoxShape.circle,
-                  ),
-                  child: IconButton(
-                    key: const ValueKey('comment-send-button'),
-                    onPressed: (_canSubmit() && !_isSubmitting)
-                        ? _handleSubmit
-                        : null,
-                    icon: _isSubmitting
-                        ? SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                scheme.onPrimary,
-                              ),
-                            ),
-                          )
-                        : Icon(Icons.send, color: scheme.onPrimary),
-                  ),
+                // Canonical action row: ONE `+` entry for all attach flows
+                // (foto/video + seller commerce menu). The two old right-side
+                // icons cramped the pill — the sheet keeps both capabilities.
+                ComposerAddButton(onPressed: _showAttachMenu),
+                const SizedBox(width: 8),
+                // Send always visible; disabled until the composer can submit.
+                ComposerSendButton(
+                  key: const ValueKey('comment-send-button'),
+                  loading: _isSubmitting,
+                  onPressed: (_canSubmit() && !_isSubmitting)
+                      ? _handleSubmit
+                      : null,
                 ),
               ],
             ),
@@ -223,6 +176,52 @@ class _CommentInputWithCommerceReferenceState
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
+  }
+
+  /// Single `+` entry for the comment composer — mirrors the chat
+  /// attachment sheet (one concept, one presentation). The commerce entry
+  /// only exists for sellers.
+  void _showAttachMenu() {
+    showModalBottomSheet(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Foto'),
+              subtitle: const Text('Kirim foto dari galeri'),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                _pickMedia();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.videocam),
+              title: const Text('Video'),
+              subtitle: const Text('Kirim video dari galeri'),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                _pickMedia();
+              },
+            ),
+            if (widget.isSeller) ...[
+              const Divider(),
+              ListTile(
+                leading: const Icon(Icons.storefront),
+                title: const Text('Lampirkan Produk'),
+                subtitle: const Text('For Sale atau Lelang'),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _showCommercePicker();
+                },
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 
   void _pickMedia() {

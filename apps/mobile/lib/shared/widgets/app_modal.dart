@@ -157,10 +157,6 @@ class AppModal {
           onPressed: () => Navigator.of(context).pop(true),
           style: ElevatedButton.styleFrom(
             backgroundColor: confirmColor ?? scheme.primary,
-            foregroundColor: scheme.onPrimary,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppShape.r8),
-            ),
           ),
           child: Text(confirmLabel),
         ),

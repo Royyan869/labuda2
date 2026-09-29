@@ -524,9 +524,6 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
                           width: 2,
                         ),
                         padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppShape.r12),
-                        ),
                       ),
                     ),
                   ),
@@ -544,11 +541,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
                         ),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: colorScheme.primary,
                         padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppShape.r12),
-                        ),
                       ),
                     ),
                   ),

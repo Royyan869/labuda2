@@ -238,7 +238,6 @@ class _BlockedUserTile extends StatelessWidget {
         onPressed: onUnblock,
         style: OutlinedButton.styleFrom(
           padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p8),
-          side: BorderSide(color: scheme.primary),
         ),
         child: Text(
           'Unblock',

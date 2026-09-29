@@ -167,24 +167,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get privacySecurity => 'Privasi & Keamanan';
 
   @override
-  String get publicProfile => 'Profil Publik';
-
-  @override
-  String get makeProfileVisible =>
-      'Buat profil Anda terlihat oleh semua pengguna';
-
-  @override
-  String get showOnlineStatus => 'Tampilkan Status Online';
-
-  @override
-  String get letOthersSeeOnline =>
-      'Biarkan orang lain melihat saat Anda online';
-
-  @override
   String get allowMessages => 'Izinkan Pesan';
-
-  @override
-  String get receiveMessagesFromOthers => 'Terima pesan dari pengguna lain';
 
   @override
   String get blockedUsers => 'Pengguna Diblokir';

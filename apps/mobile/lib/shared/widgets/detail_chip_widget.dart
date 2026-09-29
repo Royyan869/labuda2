@@ -1,4 +1,3 @@
-import 'package:labuda/core/src/theme/app_colors.dart';
 import 'package:labuda/core/src/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'detail_chip_types.dart';
@@ -71,9 +70,9 @@ class DetailChipWidget extends StatelessWidget {
     this.onTap,
     this.size = DetailChipSize.medium,
     this.style = DetailChipStyle.filled,
-    this.tone = DetailChipTone.primary,
+    this.tone = DetailChipTone.tertiary,
   }) : icon = Icons.local_offer,
-       color = AppColors.primaryPurple,
+       color = null,
        showIcon = true;
 
   /// Location chip untuk lokasi
@@ -162,6 +161,7 @@ class DetailChipWidget extends StatelessWidget {
         DetailChipTone.success => status.success,
         DetailChipTone.warning => status.warning,
         DetailChipTone.primary => scheme.primary,
+        DetailChipTone.tertiary => scheme.tertiary,
       };
 
   TextStyle? _getTextStyle(ThemeData theme, ColorScheme scheme, Color tint) {

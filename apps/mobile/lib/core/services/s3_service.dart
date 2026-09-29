@@ -270,7 +270,7 @@ class S3Service {
   }
 
   /// Upload video file to S3 (web blob not supported).
-  Future<Result<String>> uploadVideo(File videoFile) async {
+  Future<Result<String>> uploadVideo(File videoFile, {required String folder}) async {
     try {
       if (videoFile.path.startsWith('blob:')) {
         return Result.error(
@@ -278,7 +278,7 @@ class S3Service {
         );
       }
       const contentType = 'video/mp4';
-      final presignResult = await _requestMediaPresignURL(contentType, 'videos');
+      final presignResult = await _requestMediaPresignURL(contentType, folder);
       if (presignResult.isError) {
         return Result.error(
           presignResult.error ?? 'Gagal mendapatkan URL upload video',
@@ -309,7 +309,7 @@ class S3Service {
   }
 
   /// Upload image and return both the S3 object key and the read URL.
-  Future<Result<S3UploadResult>> uploadImageWithMeta(File imageFile) async {
+  Future<Result<S3UploadResult>> uploadImageWithMeta(File imageFile, {required String folder}) async {
     try {
       if (imageFile.path.startsWith('blob:')) {
         return Result.error(
@@ -321,7 +321,7 @@ class S3Service {
           _contentTypeFromExt(fileName.split('.').last.toLowerCase()) ??
           'image/jpeg';
 
-      final presignResult = await _requestMediaPresignURL(contentType, 'images');
+      final presignResult = await _requestMediaPresignURL(contentType, folder);
       if (presignResult.isError) {
         return Result.error(
           presignResult.error ?? 'Gagal mendapatkan URL upload gambar',
@@ -355,7 +355,7 @@ class S3Service {
   }
 
   /// Upload video and return both the S3 object key and the read URL.
-  Future<Result<S3UploadResult>> uploadVideoWithMeta(File videoFile) async {
+  Future<Result<S3UploadResult>> uploadVideoWithMeta(File videoFile, {required String folder}) async {
     try {
       if (videoFile.path.startsWith('blob:')) {
         return Result.error(
@@ -363,7 +363,7 @@ class S3Service {
         );
       }
       const contentType = 'video/mp4';
-      final presignResult = await _requestMediaPresignURL(contentType, 'videos');
+      final presignResult = await _requestMediaPresignURL(contentType, folder);
       if (presignResult.isError) {
         return Result.error(
           presignResult.error ?? 'Gagal mendapatkan URL upload video',
@@ -396,7 +396,7 @@ class S3Service {
   }
 
   /// Upload image to S3 with blurhash generation.
-  Future<Result<MediaEntity>> uploadImageWithBlurhash(File imageFile) async {
+  Future<Result<MediaEntity>> uploadImageWithBlurhash(File imageFile, {required String folder}) async {
     try {
       if (imageFile.path.startsWith('blob:')) {
         return Result.error(
@@ -408,7 +408,7 @@ class S3Service {
           _contentTypeFromExt(fileName.split('.').last.toLowerCase()) ??
           'image/jpeg';
 
-      final presignResult = await _requestMediaPresignURL(contentType, 'images');
+      final presignResult = await _requestMediaPresignURL(contentType, folder);
       if (presignResult.isError) {
         return Result.error(
           presignResult.error ?? 'Gagal mendapatkan URL upload gambar',
@@ -447,7 +447,7 @@ class S3Service {
   }
 
   /// Upload image to S3 (legacy method — returns URL only, canonical read_url).
-  Future<Result<String>> uploadImage(File imageFile) async {
+  Future<Result<String>> uploadImage(File imageFile, {required String folder}) async {
     try {
       if (imageFile.path.startsWith('blob:')) {
         return Result.error(
@@ -459,7 +459,7 @@ class S3Service {
           _contentTypeFromExt(fileName.split('.').last.toLowerCase()) ??
           'image/jpeg';
 
-      final presignResult = await _requestMediaPresignURL(contentType, 'images');
+      final presignResult = await _requestMediaPresignURL(contentType, folder);
       if (presignResult.isError) {
         return Result.error(
           presignResult.error ?? 'Gagal mendapatkan URL upload gambar',
@@ -512,7 +512,7 @@ class S3Service {
           _contentTypeFromExt(fileName.split('.').last.toLowerCase()) ??
           'image/jpeg';
 
-      final folder = key.contains('/') ? key.split('/').first : 'images';
+      final folder = _namespaceFolderForKey(key);
       final presignResult = await _requestMediaPresignURL(
         contentType,
         folder,
@@ -562,7 +562,7 @@ class S3Service {
     String contentType = 'image/png',
   }) async {
     try {
-      final folder = key.contains('/') ? key.split('/').first : 'images';
+      final folder = _namespaceFolderForKey(key);
       final presignResult = await _requestMediaPresignURL(
         contentType,
         folder,
@@ -600,6 +600,15 @@ class S3Service {
   // ──────────────────────────────────────────────────────────────────────────
   // Helpers
   // ──────────────────────────────────────────────────────────────────────────
+
+  /// First two segments of a storage key (e.g. `images/avatars`).
+  /// Fixed-key uploads hint their namespace; the key itself is the authority.
+  static String _namespaceFolderForKey(String key) {
+    final segments = key.split('/').where((s) => s.isNotEmpty).toList();
+    if (segments.length >= 2) return '${segments[0]}/${segments[1]}';
+    if (segments.length == 1) return segments[0];
+    return 'images/content';
+  }
 
   String? _contentTypeFromExt(String ext) {
     switch (ext) {

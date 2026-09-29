@@ -284,10 +284,6 @@ class AppDatePicker extends StatelessWidget {
                 ),
                 ElevatedButton(
                   onPressed: () => Navigator.of(context).pop(selectedTime),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: scheme.primary,
-                    foregroundColor: scheme.onPrimary,
-                  ),
                   child: const Text('OK'),
                 ),
               ],

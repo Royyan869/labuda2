@@ -42,6 +42,9 @@ type FeedMedia struct {
 	Kind   *string `json:"kind"`
 	Width  *int    `json:"width"`
 	Height *int    `json:"height"`
+	// Lambda thumbnail variant of URL, hydrated at projection. List
+	// surfaces render it; detail renders URL (untouched original).
+	ThumbnailURL *string `json:"thumbnail_url"`
 }
 
 // FeedItem represents a single content item in the feed.

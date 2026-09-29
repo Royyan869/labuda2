@@ -27,7 +27,6 @@ class VerificationActionButtons extends StatelessWidget {
                 : () => Navigator.of(context).pop(false),
             style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p12),
-               side: BorderSide(color: scheme.outlineVariant),
             ),
             child: const Text(
               'Cancel',
@@ -45,8 +44,6 @@ class VerificationActionButtons extends StatelessWidget {
                 ? onVerifyOTP
                 : onSendOTP,
             style: ElevatedButton.styleFrom(
-               backgroundColor: scheme.primary,
-               foregroundColor: scheme.onPrimary,
               padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p12),
               disabledBackgroundColor: scheme.primary.withValues(alpha: 0.5),
             ),

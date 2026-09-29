@@ -309,7 +309,8 @@ class SearchRepositoryImpl implements SearchRepository {
   /// Mapping rules (no fabrication):
   /// - title    ← forSale title
   /// - subtitle ← sellerFarmName ?? '@sellerUsername' ?? null
-  /// - imageUrl ← first media_urls element, or null
+  /// - imageUrl ← card thumbnail (Lambda variant), else first media_urls
+  ///   element, or null
   /// - metadata ← {'price': ...} ONLY when price is non-null;
   ///              {'sellerId': ...} for downstream consumers.
   ///   No quantity / status / visibility / for_sale_type / engagement
@@ -327,7 +328,8 @@ class SearchRepositoryImpl implements SearchRepository {
               username: r.sellerUsername,
               storeName: r.sellerFarmName,
             )?.multilineLabel,
-            imageUrl: r.mediaUrls.isNotEmpty ? r.mediaUrls.first : null,
+            imageUrl: r.thumbnailUrl ??
+                (r.mediaUrls.isNotEmpty ? r.mediaUrls.first : null),
             description: r.description.isEmpty ? null : r.description,
             metadata: {
               if (r.price != null) 'price': r.price,

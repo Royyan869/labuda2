@@ -553,12 +553,7 @@ class _SellerEarningsCTA extends StatelessWidget {
               icon: const Icon(Icons.account_balance_wallet_outlined, size: 18),
               label: const Text('Lihat Penghasilan'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: colorScheme.primary,
-                foregroundColor: colorScheme.onPrimary,
                 padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(core.AppShape.r8),
-                ),
               ),
             ),
           ),

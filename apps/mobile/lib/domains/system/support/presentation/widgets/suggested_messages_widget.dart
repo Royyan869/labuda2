@@ -52,7 +52,7 @@ class SuggestedMessagesWidgetRefactored extends StatelessWidget {
           text: text,
           category: 'Resolved',
           icon: Icons.task_alt,
-          color: AppColors.primaryPurple,
+          color: Theme.of(context).colorScheme.tertiary,
         ),
       ),
 

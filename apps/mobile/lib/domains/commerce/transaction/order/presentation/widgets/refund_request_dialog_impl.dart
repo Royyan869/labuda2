@@ -518,11 +518,7 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
                 onPressed: _isSubmitting ? null : widget.onCancel,
                 style: OutlinedButton.styleFrom(
                   foregroundColor: colorScheme.onSurfaceVariant,
-                  side: BorderSide(color: colorScheme.outlineVariant),
                   padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppShape.r10),
-                  ),
                 ),
                 child: const Text(
                   'Batal',
@@ -536,14 +532,9 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
               child: ElevatedButton(
                 onPressed: _canSubmit ? _handleSubmit : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: colorScheme.primary,
-                  foregroundColor: colorScheme.onPrimary,
                   disabledBackgroundColor:
                       colorScheme.surfaceContainerHighest,
                   padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppShape.r10),
-                  ),
                 ),
                 child: _isSubmitting
                     ? SizedBox(

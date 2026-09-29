@@ -74,12 +74,7 @@ class RouterErrorPage extends StatelessWidget {
                     child: ElevatedButton(
                       onPressed: () => context.go('/splash'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: scheme.primary,
-                        foregroundColor: scheme.onPrimary,
                         padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppShape.r12),
-                        ),
                       ),
                       child: const Text(
                         'Go to Home',
@@ -104,9 +99,6 @@ class RouterErrorPage extends StatelessWidget {
                       style: OutlinedButton.styleFrom(
                         side: BorderSide(color: scheme.outline),
                         padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppShape.r12),
-                        ),
                       ),
                       child: Text(
                         'Go Back',

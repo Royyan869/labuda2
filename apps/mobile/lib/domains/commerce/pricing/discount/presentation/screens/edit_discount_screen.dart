@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart' as core;
 import 'package:labuda/shared/widgets/app_snackbar.dart';
-import 'package:labuda/shared/widgets/app_button.dart';
 import 'package:labuda/shared/shared.dart' show authenticatedUserProvider;
 import 'package:labuda/domains/commerce/pricing/discount/domain/entities/discount_entity.dart';
 import 'package:labuda/domains/commerce/pricing/discount/domain/use_cases/discount_usecase_providers.dart';
@@ -424,10 +423,20 @@ class _EditDiscountScreenState extends ConsumerState<EditDiscountScreen> {
             ],
           ),
           child: SafeArea(
-            child: AppButton(
-              text: 'Save Changes',
-              onPressed: _submit,
-              isLoading: _isLoading,
+            child: ElevatedButton(
+              onPressed: _isLoading ? null : _submit,
+              child: _isLoading
+                  ? SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation(
+                          Theme.of(context).colorScheme.onPrimary,
+                        ),
+                      ),
+                    )
+                  : const Text('Save Changes'),
             ),
           ),
         ),

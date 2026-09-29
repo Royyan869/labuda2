@@ -3,7 +3,6 @@ library;
 
 // Domain exports
 export 'common/result.dart';
-export 'errors/failure.dart';
 export 'common/base_entity.dart';
 export 'common/paginated_result.dart';
 export 'package:labuda/domains/user/identity/authentication/authentication.dart';

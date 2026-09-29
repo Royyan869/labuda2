@@ -170,9 +170,6 @@ class _ShareAsPostDialogState extends ConsumerState<ShareAsPostDialog> {
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
                         side: BorderSide(color: borderColor),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppShape.r12),
-                        ),
                       ),
                       child: Text(
                         'Cancel',
@@ -185,12 +182,7 @@ class _ShareAsPostDialogState extends ConsumerState<ShareAsPostDialog> {
                     child: ElevatedButton(
                       onPressed: _isLoading ? null : _handlePost,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: scheme.primary,
-                        foregroundColor: scheme.onPrimary,
                         padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppShape.r12),
-                        ),
                       ),
                       child: _isLoading
                           ? SizedBox(
@@ -276,7 +268,7 @@ class _ShareAsPostDialogState extends ConsumerState<ShareAsPostDialog> {
         if (shareState is ShareError) {
           AppSnackBar.showError(
             context,
-            shareState.failure.message,
+            shareState.message,
             duration: const Duration(seconds: 4),
           );
         } else {

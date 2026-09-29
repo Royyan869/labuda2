@@ -228,8 +228,6 @@ class _CarouselVideoPlayerState extends State<CarouselVideoPlayer> {
               icon: const Icon(Icons.refresh, size: 16),
               label: const Text('Retry'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: scheme.primary,
-                foregroundColor: scheme.onPrimary,
                 padding: const EdgeInsets.symmetric(
                   horizontal: AppMetrics.p16,
                   vertical: AppMetrics.p8,

@@ -49,6 +49,7 @@ Map<String, dynamic> _feedContentItem({
   return <String, dynamic>{
     'type': 'post',
     'id': id,
+    'author_id': authorId,
     'status': 'active',
     'body': body,
     'created_at': createdAt,
@@ -291,6 +292,27 @@ Future<void> _pump(WidgetTester tester) async {
   }
 }
 
+/// Awaits [future] while advancing the widget-test clock, reporting whether
+/// it settled within [maxPumps].
+///
+/// Dio dispatches every request from `Future(...)` — which the Dart SDK
+/// schedules with `Timer.run` — and widget tests run in a fake-async zone.
+/// Awaiting a network-bound notifier future directly freezes the clock: the
+/// timer never fires, the request never leaves, and the test hangs forever.
+/// Pumping until the future settles is the only correct way to await it here.
+Future<bool> _pumpUntilSettled(
+  WidgetTester tester,
+  Future<void> future, {
+  int maxPumps = 24,
+}) async {
+  var done = false;
+  future.whenComplete(() => done = true);
+  for (int i = 0; i < maxPumps && !done; i++) {
+    await tester.pump(const Duration(milliseconds: 50));
+  }
+  return done;
+}
+
 List<Map<String, dynamic>> _manyContentItems() => List.generate(
   20,
   (i) => _feedContentItem(id: 'feed-$i', body: 'Content $i'),
@@ -523,7 +545,18 @@ void main() {
       await _pump(tester);
       expect(find.text('hello'), findsOneWidget);
 
-      await _container(tester).read(feedProvider.notifier).refresh();
+      // Dio starts its interceptor pipeline with Future(...), which the Dart
+      // SDK schedules via Timer.run — pump while refresh() is in flight or
+      // the frozen fake clock deadlocks the test.
+      final refreshDone = await _pumpUntilSettled(
+        tester,
+        _container(tester).read(feedProvider.notifier).refresh(),
+      );
+      expect(
+        refreshDone,
+        isTrue,
+        reason: 'refresh() must complete as the fake clock advances',
+      );
       await _pump(tester);
 
       expect(find.text('Feed belum bisa dimuat'), findsOneWidget);
@@ -555,7 +588,14 @@ void main() {
       await tester.pumpWidget(_buildHarness(adapter, router: _homeRouter()));
       await _pump(tester);
 
-      await _container(tester).read(feedProvider.notifier).refresh();
+      expect(
+        await _pumpUntilSettled(
+          tester,
+          _container(tester).read(feedProvider.notifier).refresh(),
+        ),
+        isTrue,
+        reason: 'refresh() must complete as the fake clock advances',
+      );
       await _pump(tester);
       expect(find.text('Coba lagi beberapa saat.'), findsOneWidget);
 
@@ -631,7 +671,14 @@ void main() {
       await _pump(tester);
       expect(find.text('hello'), findsOneWidget);
 
-      await _container(tester).read(feedProvider.notifier).loadMore();
+      expect(
+        await _pumpUntilSettled(
+          tester,
+          _container(tester).read(feedProvider.notifier).loadMore(),
+        ),
+        isTrue,
+        reason: 'loadMore() must complete as the fake clock advances',
+      );
       await _pump(tester);
 
       expect(find.text('hello'), findsOneWidget);
@@ -655,7 +702,14 @@ void main() {
       await tester.pumpWidget(_buildHarness(adapter, router: _homeRouter()));
       await _pump(tester);
 
-      await _container(tester).read(feedProvider.notifier).loadMore();
+      expect(
+        await _pumpUntilSettled(
+          tester,
+          _container(tester).read(feedProvider.notifier).loadMore(),
+        ),
+        isTrue,
+        reason: 'loadMore() must complete as the fake clock advances',
+      );
       await _pump(tester);
 
       expect(find.text('Feed belum bisa dimuat'), findsNothing);

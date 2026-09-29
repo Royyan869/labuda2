@@ -96,7 +96,6 @@ class _SectionHeader extends StatelessWidget {
             key: ValueKey('seeAll-$title'),
             onPressed: onSeeAll,
             style: TextButton.styleFrom(
-              foregroundColor: scheme.primary,
               visualDensity: VisualDensity.compact,
               padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12),
             ),

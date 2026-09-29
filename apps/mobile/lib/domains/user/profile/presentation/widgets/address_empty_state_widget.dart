@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/shared/shared.dart';
 import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Empty State Widget untuk Address List
@@ -54,9 +53,9 @@ class AddressEmptyStateWidget extends StatelessWidget {
           const SizedBox(height: 32),
           SizedBox(
             width: 200,
-            child: AppButton.primary(
-              text: 'Add Address',
+            child: ElevatedButton(
               onPressed: onAddAddress,
+              child: const Text('Add Address'),
             ),
           ),
         ],

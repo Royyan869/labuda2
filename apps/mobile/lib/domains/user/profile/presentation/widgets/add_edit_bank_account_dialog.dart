@@ -211,17 +211,29 @@ class _AddEditBankAccountDialogState
               child: Row(
                 children: [
                   Expanded(
-                    child: AppButton.secondary(
-                      text: 'Cancel',
+                    child: OutlinedButton(
                       onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancel'),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: AppButton.primary(
-                      text: isEdit ? 'Update' : 'Add Account',
+                    child: ElevatedButton(
                       onPressed: _isLoading ? null : _handleSubmit,
-                      isLoading: _isLoading,
+                      child: _isLoading
+                          ? SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation(
+                                  Theme.of(context).colorScheme.onPrimary,
+                                ),
+                              ),
+                            )
+                          : Text(
+                              isEdit ? 'Update' : 'Add Account',
+                            ),
                     ),
                   ),
                 ],

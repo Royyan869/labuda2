@@ -31,14 +31,6 @@ class SupportLoaded<T> extends SupportState {
   const SupportLoaded(this.data);
 }
 
-/// Error state
-class SupportError extends SupportState {
-  final String message;
-  final SupportFailure? failure;
-
-  const SupportError(this.message, {this.failure});
-}
-
 // ============================================
 // TICKET LIST STATE
 // ============================================

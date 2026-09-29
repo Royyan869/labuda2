@@ -180,7 +180,9 @@ void main() {
         ),
       ),
     );
-    await tester.pumpAndSettle();
+    // Never pumpAndSettle: the projection card's AppImage shimmer skeletons
+    // animate forever by design — bounded pump instead (test follows codebase).
+    await tester.pump(const Duration(milliseconds: 400));
 
     expect(find.byType(RepostAttributionBar), findsNothing);
     expect(find.byType(ObjectPreviewCard), findsNothing);
@@ -212,7 +214,9 @@ void main() {
         ),
       ),
     );
-    await tester.pumpAndSettle();
+    // Never pumpAndSettle: the projection card's AppImage shimmer skeletons
+    // animate forever by design — bounded pump instead (test follows codebase).
+    await tester.pump(const Duration(milliseconds: 400));
 
     expect(find.byType(RepostAttributionBar), findsNothing);
     expect(find.byType(ObjectPreviewCard), findsNothing);
@@ -243,7 +247,9 @@ void main() {
         ),
       ),
     );
-    await tester.pumpAndSettle();
+    // Never pumpAndSettle: the projection card's AppImage shimmer skeletons
+    // animate forever by design — bounded pump instead (test follows codebase).
+    await tester.pump(const Duration(milliseconds: 400));
 
     expect(find.byType(RepostAttributionBar), findsNothing);
     expect(find.byType(ObjectPreviewCard), findsNothing);
@@ -274,7 +280,9 @@ void main() {
         ),
       ),
     );
-    await tester.pumpAndSettle();
+    // Never pumpAndSettle: the projection card's AppImage shimmer skeletons
+    // animate forever by design — bounded pump instead (test follows codebase).
+    await tester.pump(const Duration(milliseconds: 400));
 
     expect(find.byType(RepostAttributionBar), findsNothing);
     expect(find.byType(ObjectPreviewCard), findsNothing);

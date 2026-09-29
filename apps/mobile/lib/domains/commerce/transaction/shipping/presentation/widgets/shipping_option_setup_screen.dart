@@ -759,8 +759,6 @@ class _ShippingSetupScreenState
               // (type + name + ≥1 destination with a rate).
               onPressed: (_isSubmitting || !_canSave) ? null : _submit,
               style: ElevatedButton.styleFrom(
-                backgroundColor: colorScheme.primary,
-                foregroundColor: colorScheme.onPrimary,
                 disabledBackgroundColor: colorScheme.surfaceContainerHighest,
                 minimumSize: const Size.fromHeight(50),
               ),
@@ -961,8 +959,6 @@ class _ShippingCityRulesScreenState
         child: ElevatedButton(
           onPressed: _save,
           style: ElevatedButton.styleFrom(
-            backgroundColor: colorScheme.primary,
-            foregroundColor: colorScheme.onPrimary,
             minimumSize: const Size.fromHeight(50),
           ),
           child: const Text('Simpan'),

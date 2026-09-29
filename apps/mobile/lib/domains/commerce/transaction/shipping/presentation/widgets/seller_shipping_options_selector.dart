@@ -277,8 +277,6 @@ class _EmptyOptionsBanner extends StatelessWidget {
             child: ElevatedButton.icon(
               onPressed: () => context.push(RoutePaths.sellerShipping),
               style: ElevatedButton.styleFrom(
-                backgroundColor: colorScheme.primary,
-                foregroundColor: colorScheme.onPrimary,
                 visualDensity: VisualDensity.compact,
               ),
               icon: const Icon(Icons.add, size: 16),

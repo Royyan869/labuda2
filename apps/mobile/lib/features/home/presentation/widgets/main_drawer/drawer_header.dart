@@ -151,12 +151,7 @@ class _MainDrawerHeaderState extends ConsumerState<MainDrawerHeader> {
                           widget.onSignIn();
                         },
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: scheme.primary,
-                          side: BorderSide(color: scheme.primary),
                           padding: const EdgeInsets.symmetric(vertical: AppMetrics.p10),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(AppShape.r8),
-                          ),
                         ),
                         child: const Text(
                           'Sign In',
@@ -172,12 +167,7 @@ class _MainDrawerHeaderState extends ConsumerState<MainDrawerHeader> {
                           widget.onSignUp();
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: scheme.primary,
-                          foregroundColor: scheme.onPrimary,
                           padding: const EdgeInsets.symmetric(vertical: AppMetrics.p10),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(AppShape.r8),
-                          ),
                         ),
                         child: const Text(
                           'Sign Up',

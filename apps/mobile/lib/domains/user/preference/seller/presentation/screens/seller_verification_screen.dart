@@ -659,9 +659,7 @@ class _SellerVerificationScreenState
           backgroundColor: canSubmit
               ? scheme.primary
               : scheme.surfaceContainerHighest,
-          foregroundColor: scheme.onPrimary,
           padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppShape.r8)),
         ),
         child: _isUploading || state.isLoading
             ? Row(
@@ -982,9 +980,6 @@ class _SellerVerificationScreenState
                 ),
               );
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.primary,
-            ),
             child: const Text('Lihat Panduan'),
           ),
           TextButton(

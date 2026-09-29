@@ -115,14 +115,7 @@ class BlockConfirmationDialog extends StatelessWidget {
                         ? null
                         : () => Navigator.pop(context, false),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: scheme.onSurface,
-                      side: BorderSide(
-                        color: scheme.outlineVariant,
-                      ),
                       padding: const EdgeInsets.symmetric(vertical: AppMetrics.p12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppShape.r8),
-                      ),
                     ),
                     child: const Text('Cancel'),
                   ),
@@ -137,9 +130,6 @@ class BlockConfirmationDialog extends StatelessWidget {
                       backgroundColor: scheme.error,
                       foregroundColor: scheme.onError,
                       padding: const EdgeInsets.symmetric(vertical: AppMetrics.p12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppShape.r8),
-                      ),
                     ),
                     child: isLoading
                         ? SizedBox(

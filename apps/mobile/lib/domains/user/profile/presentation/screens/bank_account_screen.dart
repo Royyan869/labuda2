@@ -139,9 +139,9 @@ class _BankAccountScreenState extends ConsumerState<BankAccountScreen> {
   Widget _buildAddAccountButton(String userId) {
     return SizedBox(
       width: double.infinity,
-      child: AppButton.secondary(
-        text: 'Add Another Account',
+      child: OutlinedButton(
         onPressed: () => _showAddAccountDialog(userId),
+        child: const Text('Add Another Account'),
       ),
     );
   }

@@ -407,10 +407,6 @@ mixin OrderDetailHandlersMixin on ConsumerState<OrderDetailScreen> {
               // Navigate to order list
               context.push('/orders');
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              foregroundColor: Theme.of(context).colorScheme.onPrimary,
-            ),
             child: const Text('Lihat Pesanan Saya'),
           ),
         ],

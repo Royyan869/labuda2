@@ -602,13 +602,6 @@ class _ForSaleActionBar extends ConsumerWidget {
                 height: 48,
                 child: ElevatedButton(
                   onPressed: () => _buyNow(context),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: theme.colorScheme.primary,
-                    foregroundColor: theme.colorScheme.onPrimary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppShape.r12),
-                    ),
-                  ),
                   child: const Text(
                     'Beli Sekarang',
                     style: TextStyle(fontSize: AppType.s16, fontWeight: FontWeight.bold),
@@ -633,7 +626,6 @@ class _ForSaleActionBar extends ConsumerWidget {
       label: Text(label),
       style: OutlinedButton.styleFrom(
         minimumSize: const Size.fromHeight(44),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppShape.r12)),
       ),
     );
   }

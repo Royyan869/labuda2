@@ -4,6 +4,7 @@ import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart';
 import 'package:labuda/domains/chat/chat/presentation/utils/chat_identity_display.dart';
 import 'package:labuda/domains/chat/chat/presentation/utils/chat_lifecycle_redaction.dart';
+import 'package:labuda/domains/system/support/domain/domain.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 import 'package:labuda/shared/providers/auth_status_providers.dart';
 import 'package:labuda/shared/widgets/profile_avatar.dart';
@@ -273,8 +274,6 @@ class ChatCard extends ConsumerWidget {
         return '📷 Photo';
       case MessageType.video:
         return '🎥 Video';
-      case MessageType.audio:
-        return '🎤 Audio';
       case MessageType.file:
         return '📎 File';
       case MessageType.system:
@@ -294,7 +293,7 @@ class ChatCard extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
       decoration: BoxDecoration(
-        color: _getSupportCategoryColor(context).withValues(alpha: 0.1),
+        color: _getSupportCategoryColor().withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(AppShape.r4),
       ),
       child: Row(
@@ -303,12 +302,12 @@ class ChatCard extends ConsumerWidget {
           Icon(
             _getSupportCategoryIcon(),
             size: 14,
-            color: _getSupportCategoryColor(context),
+            color: _getSupportCategoryColor(),
           ),
           const SizedBox(width: 4),
           Text(
             _getSupportCategoryLabel(),
-            style: TextStyle(fontSize: AppType.s12, color: _getSupportCategoryColor(context)),
+            style: TextStyle(fontSize: AppType.s12, color: _getSupportCategoryColor()),
           ),
         ],
       ),
@@ -351,20 +350,14 @@ class ChatCard extends ConsumerWidget {
     );
   }
 
-  Color _getSupportCategoryColor(BuildContext context) {
-    return switch (chat.supportCategory) {
-      SupportCategory.paymentIssue => context.statusColors.success,
-      SupportCategory.refundRequest => context.statusColors.success,
-      SupportCategory.orderIssue => context.statusColors.warning,
-      SupportCategory.shippingIssue => context.statusColors.warning,
-      SupportCategory.accountIssue => AppColors.primaryPurple,
-      SupportCategory.listingIssue => context.statusColors.success,
-      SupportCategory.dispute => context.statusColors.error,
-      SupportCategory.technicalIssue => context.statusColors.info,
-      SupportCategory.other || null =>
-        Theme.of(context).colorScheme.onSurfaceVariant,
-    };
-  }
+  /// CANONICAL category colour: the `CategoryConfig` palette in the support
+  /// domain — the same authority the ticket list, ticket thread, and pre-chat
+  /// sheet render from (one category, one colour). The old statusColors
+  /// switch was a second map that collapsed nine categories into five hues
+  /// and disagreed with those screens on every category.
+  Color _getSupportCategoryColor() => Color(
+    CategoryConfig.get(chat.supportCategory ?? SupportCategory.other).colorValue,
+  );
 
   IconData _getSupportCategoryIcon() {
     return switch (chat.supportCategory) {

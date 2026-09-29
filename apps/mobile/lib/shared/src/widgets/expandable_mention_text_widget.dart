@@ -109,7 +109,7 @@ class _ExpandableMentionTextWidgetState
                   : (widget.seeMoreText ?? 'Selengkapnya'),
               style: TextStyle(
                 color: effectiveLinkColor,
-                fontSize: widget.style?.fontSize ?? 14,
+                fontSize: widget.style?.fontSize ?? AppType.s14,
                 fontWeight: FontWeight.w500,
               ),
             ),

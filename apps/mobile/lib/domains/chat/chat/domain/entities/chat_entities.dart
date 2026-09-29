@@ -51,7 +51,7 @@ enum ChatStatus { active, blocked, deleted }
 /// - "negotiation_proposal" - Commerce: negotiation proposal message
 ///
 /// **Frontend UI convenience types:**
-/// - text, image, video, audio, file - For UI rendering differentiation
+/// - text, image, video, file - For UI rendering differentiation
 /// - All media types NORMALIZE to "text" when sending to API
 /// - Backend receives "text" with mediaUrls array for media content
 ///
@@ -67,7 +67,6 @@ enum MessageType {
   text,
   image, // UI-only - normalizes to "text" for API
   video, // UI-only - normalizes to "text" for API
-  audio, // UI-only - normalizes to "text" for API
   file, // UI-only - normalizes to "text" for API
   system, // System messages (order created, etc)
   negotiationProposal, // Commerce: negotiation proposal (aligns with backend "negotiation_proposal")
@@ -91,8 +90,6 @@ extension MessageTypeExtension on MessageType {
       case MessageType.image:
         return 'text'; // Media types normalize to text for API
       case MessageType.video:
-        return 'text'; // Media types normalize to text for API
-      case MessageType.audio:
         return 'text'; // Media types normalize to text for API
       case MessageType.file:
         return 'text'; // Media types normalize to text for API

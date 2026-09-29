@@ -41,7 +41,7 @@ class AuctionCard extends StatelessWidget {
       onTap: onTap,
       semanticLabel: auction.title,
       media: CommerceMarketplaceCardMedia(
-        imageUrl: media?.originalUrl,
+        imageUrl: media?.thumbnailUrl,
         mediaType: media?.type ?? MediaType.image,
         overlay: _mediaOverlay(context, scheme),
         fallback: Icon(

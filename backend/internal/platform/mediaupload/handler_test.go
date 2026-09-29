@@ -39,7 +39,7 @@ func TestRequestUploadURL_UsesFixedSellerStoreKey(t *testing.T) {
 
 	body, err := json.Marshal(UploadURLRequest{
 		ContentType: "image/jpeg",
-		Folder:      "images",
+		Folder:      "images/content",
 		StorageKey:  "images/stores/" + userID.String() + ".jpg",
 	})
 	if err != nil {
@@ -100,7 +100,7 @@ func TestRequestUploadURL_UsesFixedProfileCoverKey(t *testing.T) {
 
 	body, err := json.Marshal(UploadURLRequest{
 		ContentType: "image/jpeg",
-		Folder:      "images",
+		Folder:      "images/content",
 		StorageKey:  "images/profile-covers/" + userID.String() + ".jpg",
 	})
 	if err != nil {
@@ -157,7 +157,7 @@ func TestRequestUploadURL_RejectsUnauthenticatedRequests(t *testing.T) {
 
 	body, err := json.Marshal(UploadURLRequest{
 		ContentType: "image/jpeg",
-		Folder:      "images",
+		Folder:      "images/content",
 		StorageKey:  "images/stores/test-user.jpg",
 	})
 	if err != nil {
@@ -272,7 +272,7 @@ func TestRequestUploadURL_RejectsInvalidOwnedFixedKeys(t *testing.T) {
 
 			body, err := json.Marshal(UploadURLRequest{
 				ContentType: tc.contentType,
-				Folder:      "images",
+				Folder:      "images/content",
 				StorageKey:  tc.storageKey,
 			})
 			if err != nil {
@@ -342,7 +342,7 @@ func TestRequestUploadURL_AllowsOwnedAvatarFixedKeys(t *testing.T) {
 
 			body, err := json.Marshal(UploadURLRequest{
 				ContentType: "image/png",
-				Folder:      "images",
+				Folder:      "images/content",
 				StorageKey:  tc.storageKey,
 			})
 			if err != nil {
@@ -398,7 +398,7 @@ func TestRequestUploadURL_UsesOwnedCommercePosterKey(t *testing.T) {
 	storageKey := "videos/1712345678901_" + userID.String() + ".mp4_poster.jpg"
 	body, err := json.Marshal(UploadURLRequest{
 		ContentType: "image/jpeg",
-		Folder:      "images",
+		Folder:      "images/content",
 		StorageKey:  storageKey,
 	})
 	if err != nil {
@@ -441,9 +441,9 @@ func TestRequestUploadURL_GenericImageAndVideoKeys(t *testing.T) {
 		folder      string
 		contentType string
 	}{
-		{name: "generic image jpeg", folder: "images", contentType: "image/jpeg"},
-		{name: "generic image png", folder: "images", contentType: "image/png"},
-		{name: "generic video mp4", folder: "videos", contentType: "video/mp4"},
+		{name: "generic image jpeg", folder: "images/content", contentType: "image/jpeg"},
+		{name: "generic image png", folder: "images/content", contentType: "image/png"},
+		{name: "generic video mp4", folder: "videos/commerce", contentType: "video/mp4"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -497,7 +497,7 @@ func TestRequestUploadURL_ReadURLCanonical_NoPublicURL(t *testing.T) {
 		c.Set("userID", userID)
 		handler.RequestUploadURL(c)
 	})
-	body, _ := json.Marshal(UploadURLRequest{ContentType: "image/jpeg", Folder: "images"})
+	body, _ := json.Marshal(UploadURLRequest{ContentType: "image/jpeg", Folder:      "images/content"})
 	req := httptest.NewRequest(http.MethodPost, "/media/upload-url", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()

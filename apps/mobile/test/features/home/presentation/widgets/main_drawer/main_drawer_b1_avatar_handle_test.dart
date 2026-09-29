@@ -31,6 +31,24 @@ class _NoopApiClient implements ApiClient {
 }
 
 class _NoopLogger implements ILoggerService {
+  // Real no-op implementations for the methods the avatar fetch path calls —
+  // the generic noSuchMethod fallback used to throw on `error(...)`, which
+  // crashed the widget mid-build (test follows codebase).
+  @override
+  Future<Result<void>> info(String message, {Map<String, dynamic>? extra}) async =>
+      Result.success(null);
+
+  @override
+  Future<Result<void>> warning(String message, {Map<String, dynamic>? extra}) async =>
+      Result.success(null);
+
+  @override
+  Future<Result<void>> error(
+    String message, {
+    Map<String, dynamic>? extra,
+    StackTrace? stackTrace,
+  }) async => Result.success(null);
+
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

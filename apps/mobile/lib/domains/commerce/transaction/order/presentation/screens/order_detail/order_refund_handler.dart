@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/core/media/media_upload_config.dart';
 import 'package:labuda/domains/commerce/transaction/order/order.dart';
 import 'package:labuda/shared/widgets/app_snackbar.dart';
 
@@ -31,6 +32,7 @@ class OrderRefundHandler {
             if (unboxingVideo != null) {
               final result = await s3Service.uploadVideo(
                 File(unboxingVideo.path),
+                folder: MediaUploadConfig.forEvidence.videoFolder,
               );
               if (result.isSuccess && result.data != null) {
                 allEvidenceUrls.add(result.data!);
@@ -42,7 +44,10 @@ class OrderRefundHandler {
             // Upload evidence photos (OPTIONAL) using S3
             if (evidencePhotos.isNotEmpty) {
               for (final photo in evidencePhotos) {
-                final result = await s3Service.uploadImage(File(photo.path));
+                final result = await s3Service.uploadImage(
+                  File(photo.path),
+                  folder: MediaUploadConfig.forEvidence.imageFolder,
+                );
                 if (result.isSuccess && result.data != null) {
                   allEvidenceUrls.add(result.data!);
                 }

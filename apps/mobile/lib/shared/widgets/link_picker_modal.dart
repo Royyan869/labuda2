@@ -254,12 +254,7 @@ class _LinkPickerModalState extends ConsumerState<LinkPickerModal>
                 child: ElevatedButton(
                   onPressed: _selectedItems.isEmpty ? null : _addSelectedItems,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: scheme.primary,
-                    foregroundColor: scheme.onPrimary,
                     padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppShape.r12),
-                    ),
                   ),
                   child: Text(
                     'Tambahkan Link',

@@ -214,14 +214,9 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                     child: ElevatedButton(
                       onPressed: _isChecking ? null : _checkVerification,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: scheme.primary,
-                        foregroundColor: scheme.onPrimary,
                         disabledBackgroundColor:
                             scheme.surfaceContainerHighest,
                         padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppShape.r12),
-                        ),
                       ),
                       child: _isChecking
                           ? SizedBox(
@@ -245,12 +240,6 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                               : _resendVerificationEmail,
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppShape.r12),
-                        ),
-                        side: BorderSide(
-                          color: scheme.outlineVariant,
-                        ),
                       ),
                       child: Text(
                         _cooldownSeconds > 0

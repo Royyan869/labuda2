@@ -378,7 +378,7 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
                     AppMetrics.p20,
                     AppMetrics.p20,
                     AppMetrics.p20,
-                    20 + MediaQuery.of(context).viewInsets.bottom,
+                    AppMetrics.p20 + MediaQuery.of(context).viewInsets.bottom,
                   ),
                   children: [
                     // Purpose - show locked indicator if forcedPurpose is set
@@ -592,12 +592,7 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _handleSave,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: scheme.primary,
-                      foregroundColor: scheme.onPrimary,
                       padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppShape.r12),
-                      ),
                     ),
                     child: _isLoading
 ? SizedBox(

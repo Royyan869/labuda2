@@ -243,12 +243,7 @@ class CoordinatePreviewModal extends StatelessWidget {
                       icon: const Icon(Icons.edit_location, size: 18),
                       label: const Text('Edit'),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: scheme.primary,
-                        side: BorderSide(color: scheme.primary),
                         padding: const EdgeInsets.symmetric(vertical: AppMetrics.p12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppShape.r8),
-                        ),
                       ),
                     ),
                   ),
@@ -262,12 +257,7 @@ class CoordinatePreviewModal extends StatelessWidget {
                     icon: const Icon(Icons.map_outlined, size: 18),
                     label: const Text('View Maps'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: scheme.primary,
-                      foregroundColor: scheme.onPrimary,
                       padding: const EdgeInsets.symmetric(vertical: AppMetrics.p12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppShape.r8),
-                      ),
                     ),
                   ),
                 ),

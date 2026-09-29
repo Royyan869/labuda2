@@ -204,12 +204,15 @@ func resolveReadableFeedMediaReference(value string) string {
 
 // resolveReadableFeedMedia projects the feed media projection onto readable
 // references. The additive canonical fields (Kind / Width / Height) are
-// preserved verbatim — only URL is resolved.
+// preserved verbatim — URL is resolved and ThumbnailURL is hydrated from the
+// Lambda variant rule against the RAW reference (before resolution).
 func resolveReadableFeedMedia(in []feedentity.FeedMedia) []feedentity.FeedMedia {
 	out := make([]feedentity.FeedMedia, 0, len(in))
 	for _, m := range in {
 		resolved := m
 		resolved.URL = resolveReadableFeedMediaReference(m.URL)
+		thumbnail := commerceshared.ResolveReadableThumbnailURL(m.URL)
+		resolved.ThumbnailURL = &thumbnail
 		out = append(out, resolved)
 	}
 	return out

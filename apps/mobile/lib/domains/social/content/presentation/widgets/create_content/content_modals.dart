@@ -60,9 +60,6 @@ class ContentModals {
                 Navigator.of(dialogContext).pop();
                 onDiscard();
               },
-              style: TextButton.styleFrom(
-                foregroundColor: Theme.of(dialogContext).colorScheme.primary,
-              ),
               child: const Text('Discard'),
             ),
           ],
