@@ -32,8 +32,20 @@ import (
 )
 
 const (
-	// DefaultOutboxPollInterval is how often the worker checks for pending outbox events
-	DefaultOutboxPollInterval = 1 * time.Minute
+	// DefaultOutboxPollInterval is how often the worker checks for pending outbox events.
+	//
+	// RUNTIME EVIDENCE (2026-09-30, negotiation proposal "hilang di chat"):
+	// session created 20:05:00 → negotiation.started dispatched 20:05:55 →
+	// chat_messages row 20:05:55, while the buyer's LAST GET /messages ran
+	// 20:05:53 — 2 seconds BEFORE the row existed. Every hop succeeded; the
+	// message was simply a minute late because of this poll interval. A chat,
+	// notification or projection event must not be batched for a minute:
+	// one indexed SELECT over pending rows per second is negligible.
+	//
+	// Cadence: 250ms matches the realtime worker's dispatch hop so the two
+	// delays do not stack — end-to-end (POST → message row → WS push) stays
+	// well under a second, i.e. perceived realtime.
+	DefaultOutboxPollInterval = 250 * time.Millisecond
 
 	// DefaultOutboxBatchSize is max events to process per batch
 	DefaultOutboxBatchSize = 100

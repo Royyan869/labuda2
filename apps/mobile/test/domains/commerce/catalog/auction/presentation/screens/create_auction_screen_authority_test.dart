@@ -5,6 +5,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import 'package:labuda/core/common/types/preparation_time.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/domain.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/auction_notifier.dart';
@@ -66,8 +68,8 @@ class _FakeAuctionNotifier extends AuctionNotifier {
     DateTime? scheduledStartAt,
     required int durationHours,
     String? farmAddressId,
+    required PreparationTime preparationTime,
     required List<String> shippingSetupIds,
-    String? preparationNote,
   }) async {
     createCalls += 1;
     if (pendingCreate != null) {
@@ -159,9 +161,9 @@ class _FakeAddressRepository implements IAddressRepository {
   @override
   Future<Result<AddressEntity?>> getPrimaryAddress(
     String userId, {
-    AddressPurpose? purpose,
+    AddressTag? tag,
   }) async {
-    if (purpose == AddressPurpose.sender) {
+    if (tag == AddressTag.sender) {
       return Result.success(_primarySenderAddress);
     }
     return Result.success(null);
@@ -175,9 +177,9 @@ class _FakeAddressRepository implements IAddressRepository {
   }
 
   @override
-  Future<Result<List<AddressEntity>>> getAddressesByPurpose(
+  Future<Result<List<AddressEntity>>> getAddressesByTag(
     String userId,
-    AddressPurpose purpose,
+    AddressTag tag,
   ) async {
     return Result.success(const []);
   }
@@ -216,9 +218,9 @@ class _FakeAddressRepository implements IAddressRepository {
   }
 
   @override
-  Stream<Result<List<AddressEntity>>> watchAddressesByPurpose(
+  Stream<Result<List<AddressEntity>>> watchAddressesByTag(
     String userId,
-    AddressPurpose purpose,
+    AddressTag tag,
   ) {
     return Stream.value(Result.success(const []));
   }
@@ -226,7 +228,7 @@ class _FakeAddressRepository implements IAddressRepository {
   @override
   Future<Result<int>> countAddresses(
     String userId, {
-    AddressPurpose? purpose,
+    AddressTag? tag,
   }) async {
     return Result.success(0);
   }
@@ -275,7 +277,7 @@ AddressEntity _completeSenderAddress() {
   return AddressEntity(
     id: 'addr-1',
     userId: 'seller-1',
-    purpose: AddressPurpose.sender,
+    tags: const [AddressTag.sender],
     recipientName: 'Farm Sentosa',
     phone: '08123456789',
     province: Province(id: '33', name: 'Jawa Tengah'),

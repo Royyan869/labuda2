@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/domain/entities/for_sale.dart';
 import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_marketplace_primitives.dart';
 import 'package:labuda/domains/social/content/domain/entities/content.dart';
@@ -41,7 +42,7 @@ class ForSaleCard extends StatelessWidget {
         mediaType: media?.type ?? MediaType.image,
         fallback: Icon(
           Icons.image_outlined,
-          size: 48,
+          size: AppIconSize.display,
           color: scheme.onSurfaceVariant,
         ),
       ),

@@ -67,7 +67,7 @@ class PromotedBadge extends StatelessWidget {
       child: Text(
         label,
         style: TextStyle(
-          fontSize: AppType.s11,
+          fontSize: AppType.s12,
           fontWeight: FontWeight.w600,
           color: theme.colorScheme.secondary.withValues(alpha: 0.8),
           letterSpacing: 0.3,
@@ -81,12 +81,12 @@ class PromotedBadge extends StatelessWidget {
       label: Text(
         label,
         style: TextStyle(
-          fontSize: AppType.s10,
+          fontSize: AppType.s12,
           fontWeight: FontWeight.w600,
           color: theme.colorScheme.secondary.withValues(alpha: 0.8),
         ),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p6, vertical: AppMetrics.p2),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
       labelPadding: const EdgeInsets.symmetric(horizontal: AppMetrics.p4),
       backgroundColor: theme.colorScheme.secondary.withValues(alpha: 0.1),
       side: BorderSide(
@@ -101,7 +101,7 @@ class PromotedBadge extends StatelessWidget {
     return Text(
       label,
       style: TextStyle(
-        fontSize: AppType.s10,
+        fontSize: AppType.s12,
         fontWeight: FontWeight.w600,
         color: theme.colorScheme.secondary.withValues(alpha: 0.7),
         letterSpacing: 0.5,

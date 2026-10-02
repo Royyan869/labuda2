@@ -52,8 +52,18 @@ class OperationalActionQueueSection extends ConsumerWidget {
     );
     final upgradeConfigAsync = ref.watch(sellerUpgradeConfigProvider);
 
+    // Disputes are the most urgent seller task and were counted nowhere
+    // (stats and the old action card only knew pending/paid).
+    final disputeAsync = ref.watch(
+      watchSellerOrdersProvider(
+        sellerId: sellerId,
+        status: OrderStatus.disputeOpen,
+      ),
+    );
+
     final pendingCount = pendingAsync.asData?.value.length ?? 0;
     final paidCount = paidAsync.asData?.value.length ?? 0;
+    final disputeCount = disputeAsync.asData?.value.length ?? 0;
 
     // Only a *loaded* empty shipping list triggers the preparation block;
     // loading/error states stay hidden instead of flashing fake actions.
@@ -87,7 +97,21 @@ class OperationalActionQueueSection extends ConsumerWidget {
         ),
       );
     }
-    if (verificationState.status != SellerVerificationStatus.approved) {
+    if (disputeCount > 0) {
+      items.add(
+        _ActionQueueItem(
+          itemKey: const Key('seller-action-queue-dispute'),
+          icon: Icons.report_outlined,
+          color: context.statusColors.error,
+          title: '$disputeCount dispute menunggu penanganan',
+          route: RoutePaths.sellerOrders,
+        ),
+      );
+    }
+    // Verification is a queue item only when ACTION is possible.
+    // pendingReview is waiting on the backend — a nag with no action.
+    if (verificationState.status != SellerVerificationStatus.approved &&
+        verificationState.status != SellerVerificationStatus.pendingReview) {
       items.add(
         _ActionQueueItem(
           itemKey: const Key('seller-action-queue-verification'),
@@ -105,7 +129,7 @@ class OperationalActionQueueSection extends ConsumerWidget {
           icon: Icons.location_on_outlined,
           color: context.statusColors.success,
           title: 'Lengkapi alamat pengirim',
-          route: '${RoutePaths.addresses}?initialTab=sender',
+          route: RoutePaths.addresses,
         ),
       );
       items.add(
@@ -118,17 +142,10 @@ class OperationalActionQueueSection extends ConsumerWidget {
         ),
       );
     }
-    if (isExpired) {
-      items.add(
-        _ActionQueueItem(
-          itemKey: const Key('seller-action-queue-subscription-expired'),
-          icon: Icons.autorenew_outlined,
-          color: context.statusColors.warning,
-          title: 'Langganan berakhir — perpanjang untuk berjualan kembali',
-          route: RoutePaths.sellerUpgrade,
-        ),
-      );
-    } else {
+    // Expired is owned by the top banner (_SubscriptionExpiryBanner) — the
+    // queue never repeats a state another surface already shouts. Only the
+    // expiring-soon window lives here, and only while NOT already expired.
+    if (!isExpired) {
       // Expiring-soon window: active subscription inside the backend-config
       // renewal reminder window (expiryDate vs renewalReminderDays).
       final subscription = subscriptionAsync.asData?.value;
@@ -256,7 +273,7 @@ class _ActionQueueTile extends StatelessWidget {
                 color: item.color.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
-              child: Icon(item.icon, size: 20, color: item.color),
+              child: Icon(item.icon, size: AppIconSize.action, color: item.color),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -284,7 +301,7 @@ class _ActionQueueTile extends StatelessWidget {
                 ],
               ),
             ),
-            Icon(Icons.chevron_right, size: 20, color: scheme.onSurfaceVariant),
+            Icon(Icons.chevron_right, size: AppIconSize.action, color: scheme.onSurfaceVariant),
           ],
         ),
       ),

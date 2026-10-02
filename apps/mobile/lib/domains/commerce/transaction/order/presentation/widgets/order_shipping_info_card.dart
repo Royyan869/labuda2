@@ -25,7 +25,7 @@ class OrderShippingInfoCard extends StatelessWidget {
             children: [
               Icon(
                 Icons.local_shipping_outlined,
-                size: 20,
+                size: AppIconSize.action,
                 color: colorScheme.secondary,
               ),
               const SizedBox(width: 8),
@@ -181,7 +181,7 @@ class _PhoneShippingRow extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(icon, size: 18, color: context.statusColors.success),
+            Icon(icon, size: AppIconSize.action, color: context.statusColors.success),
             const SizedBox(width: 8),
             Expanded(
               child: Column(
@@ -203,7 +203,7 @@ class _PhoneShippingRow extends StatelessWidget {
                 ],
               ),
             ),
-            Icon(Icons.call, size: 18, color: context.statusColors.success),
+            Icon(Icons.call, size: AppIconSize.action, color: context.statusColors.success),
           ],
         ),
       ),
@@ -254,7 +254,7 @@ class _ShippingNoteSection extends StatelessWidget {
             children: [
               Icon(
                 Icons.note_alt_outlined,
-                size: 14,
+                size: AppIconSize.inlineGlyph,
                 color: colorScheme.secondary,
               ),
               const SizedBox(width: 6),
@@ -304,7 +304,7 @@ class _ShippingInfoRow extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 18, color: colorScheme.onSurfaceVariant),
+        Icon(icon, size: AppIconSize.action, color: colorScheme.onSurfaceVariant),
         const SizedBox(width: 8),
         Expanded(
           child: Column(
@@ -336,7 +336,7 @@ class _ShippingInfoRow extends StatelessWidget {
                         padding: const EdgeInsets.all(core.AppMetrics.p4),
                         child: Icon(
                           Icons.copy,
-                          size: 16,
+                          size: AppIconSize.inlineGlyph,
                           color: colorScheme.secondary,
                         ),
                       ),
@@ -383,7 +383,7 @@ class _ShippingAddressRow extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 18, color: colorScheme.onSurfaceVariant),
+        Icon(icon, size: AppIconSize.action, color: colorScheme.onSurfaceVariant),
         const SizedBox(width: 8),
         Expanded(
           child: Column(
@@ -445,7 +445,7 @@ class _ShippingHelpSection extends ConsumerWidget {
             children: [
               Icon(
                 Icons.help_outline,
-                size: 16,
+                size: AppIconSize.inlineGlyph,
                 color: colorScheme.secondary,
               ),
               const SizedBox(width: 6),
@@ -521,7 +521,7 @@ class _HelpActionChip extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(core.AppShape.r6),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: core.AppMetrics.p8, vertical: core.AppMetrics.p6),
+        padding: const EdgeInsets.symmetric(horizontal: core.AppMetrics.p8, vertical: core.AppMetrics.p8),
         decoration: BoxDecoration(
           color: onTap != null
               ? colorScheme.secondary.withValues(alpha: 0.1)
@@ -533,7 +533,7 @@ class _HelpActionChip extends StatelessWidget {
           children: [
             Icon(
               icon,
-              size: 12,
+              size: AppIconSize.inlineGlyph,
               color: onTap != null
                   ? colorScheme.secondary
                   : colorScheme.onSurfaceVariant,
@@ -542,7 +542,7 @@ class _HelpActionChip extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                fontSize: core.AppType.s10,
+                fontSize: core.AppType.s12,
                 fontWeight: FontWeight.w500,
                 color: onTap != null
                     ? colorScheme.secondary

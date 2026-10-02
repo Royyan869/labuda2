@@ -113,6 +113,11 @@ class Auction {
   final String? sellerFarmName;
   final String? sellerAvatar;
 
+  /// Buyer-facing origin summary of the listing's sender address
+  /// ("City, Province"). Detail payloads only — null on discovery payloads,
+  /// and the seller card HIDES the line rather than fabricating one.
+  final String? publicOriginLine;
+
   /// E8.2 — Canonical seller user-identity lifecycle ({active, unavailable,
   /// removed}). Sourced from the wire's nested
   /// `auction.seller.user.lifecycle` slot populated by E8.1.
@@ -180,10 +185,9 @@ class Auction {
 
   // Shipping Readiness — preparation time before the item can ship.
   // Read-only Product content carried on the auction detail wire
-  // (preparation_time / preparation_note). Mirrors the ForSale surface read
+  // (preparation_time). Mirrors the ForSale surface read
   // model. Null when the backend Product carries no preparation value.
   final PreparationTime? preparationTime;
-  final String? preparationNote;
 
   // Timing (backend authority)
   final DateTime startTime;
@@ -220,6 +224,7 @@ class Auction {
     this.sellerUsername,
     this.sellerFarmName,
     this.sellerAvatar,
+    this.publicOriginLine,
     this.sellerUserLifecycle = ContentLifecycle.active,
     this.sellerTrustLifecycle = ContentLifecycle.active,
     this.sellerTier,
@@ -233,7 +238,6 @@ class Auction {
     required this.bidIncrement,
     this.buyNowPrice,
     this.preparationTime,
-    this.preparationNote,
     required this.startTime,
     required this.endTime,
     required this.status,
@@ -309,6 +313,7 @@ class Auction {
     String? sellerUsername,
     String? sellerFarmName,
     String? sellerAvatar,
+    String? publicOriginLine,
     ContentLifecycle? sellerUserLifecycle,
     ContentLifecycle? sellerTrustLifecycle,
     String? sellerTier,
@@ -322,7 +327,6 @@ class Auction {
     int? bidIncrement,
     int? buyNowPrice,
     PreparationTime? preparationTime,
-    String? preparationNote,
     DateTime? startTime,
     DateTime? endTime,
     AuctionStatus? status,
@@ -338,6 +342,7 @@ class Auction {
       sellerUsername: sellerUsername ?? this.sellerUsername,
       sellerFarmName: sellerFarmName ?? this.sellerFarmName,
       sellerAvatar: sellerAvatar ?? this.sellerAvatar,
+      publicOriginLine: publicOriginLine ?? this.publicOriginLine,
       sellerUserLifecycle: sellerUserLifecycle ?? this.sellerUserLifecycle,
       sellerTrustLifecycle: sellerTrustLifecycle ?? this.sellerTrustLifecycle,
       sellerTier: sellerTier ?? this.sellerTier,
@@ -351,7 +356,6 @@ class Auction {
       bidIncrement: bidIncrement ?? this.bidIncrement,
       buyNowPrice: buyNowPrice ?? this.buyNowPrice,
       preparationTime: preparationTime ?? this.preparationTime,
-      preparationNote: preparationNote ?? this.preparationNote,
       startTime: startTime ?? this.startTime,
       endTime: endTime ?? this.endTime,
       status: status ?? this.status,

@@ -1,4 +1,3 @@
-import 'package:labuda/domains/user/profile/profile.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart';
@@ -68,8 +67,12 @@ class MainDrawer extends ConsumerWidget {
                 username: authenticatedUser?.username,
                 avatarUrl: authenticatedUser?.avatarUrl,
                 isSeller: isSeller,
-                  storeName: ref.watch(profileStreamProvider(authenticatedUser?.id ?? '')).value?.farmInfo?.farmName,
-                  storeImageUrl: ref.watch(profileStreamProvider(authenticatedUser?.id ?? '')).value?.farmInfo?.farmPhotoUrl,
+                // Store identity comes from the hydrated session snapshot —
+                // the same authority as `username` above — so the drawer renders
+                // the store name on the first frame. It must never be sourced
+                // from a profile stream: that path polls and cannot be instant.
+                storeName: authenticatedUser?.storeName,
+                storeImageUrl: authenticatedUser?.storeImageUrl,
               ),
               onProfile: onHandleProfile,
             ),

@@ -135,21 +135,6 @@ class ChatApiDatasource extends BaseApiRepository {
     );
   }
 
-  // ========================================
-  // Commerce Operations
-  // ========================================
-
-  /// Create a shipping quote for a chat
-  ///
-  /// Used by sellers to provide manual shipping cost quotes to buyers.
-  /// Creates a shipping quote and sends a message to the chat.
-  Future<Result<Map<String, dynamic>>> createShippingQuote(
-    String chatRoomId,
-    Map<String, dynamic> request,
-  ) async {
-    return executeRequest(
-      () => apiClient.post('/chat/$chatRoomId/shipping-quote', data: request),
-      parser: (data) => data as Map<String, dynamic>,
-    );
-  }
+  // NOTE: commerce write endpoints (negotiation, shipping quote) are owned
+  // by their commerce domains — never call them from the chat datasource.
 }

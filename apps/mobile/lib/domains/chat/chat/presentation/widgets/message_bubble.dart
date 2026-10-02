@@ -10,10 +10,13 @@ import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart';
 import 'package:labuda/domains/chat/chat/presentation/utils/chat_identity_display.dart';
 import 'package:labuda/domains/chat/chat/presentation/utils/chat_lifecycle_redaction.dart';
 import 'package:labuda/domains/chat/chat/presentation/widgets/chat_resource_projection_card.dart';
+import 'package:labuda/domains/commerce/negotiation/negotiation/presentation/widgets/negotiation_proposal_card.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 import 'package:labuda/shared/widgets/attachment_widget.dart' as widget_lib;
 import 'package:labuda/shared/object/presentation/widgets/object_preview_card.dart';
 import 'package:labuda/shared/widgets/app_image.dart';
+import 'package:labuda/shared/widgets/media_viewer_widget.dart';
+import 'package:labuda/domains/social/content/domain/entities/content.dart';
 
 /// Message Bubble Widget
 ///
@@ -34,6 +37,16 @@ class MessageBubble extends ConsumerWidget {
   /// CTA "Beli Sekarang" on the resource projection card. Wired by the chat
   /// screen, which resolves checkout navigation (product id + trust gate).
   final VoidCallback? onProjectionBuy;
+
+  /// Shipping-quote (ongkir) entry on the projection card — owner-only,
+  /// gated by the server projection's canManage. The screen forwards the
+  /// tap to the Shipping domain; chat owns no shipping logic.
+  final VoidCallback? onQuoteShipping;
+
+  /// DEAL → checkout intent from the commerce-owned negotiation proposal
+  /// card. Wired by the chat screen, which resolves checkout (product id,
+  /// trust gate, negotiation binding) — chat never handles commerce.
+  final VoidCallback? onDealBuy;
   final String? currentUserId;
 
   /// Offered on a failed send only: the bubble itself carries the retry, so a
@@ -50,6 +63,8 @@ class MessageBubble extends ConsumerWidget {
     this.onNegotiate,
     this.onPurchase,
     this.onProjectionBuy,
+    this.onQuoteShipping,
+    this.onDealBuy,
     this.currentUserId,
     this.onRetry,
   });
@@ -92,7 +107,7 @@ class MessageBubble extends ConsumerWidget {
         : colorScheme.onSurface;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p10),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p12),
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(AppShape.r18),
@@ -164,38 +179,81 @@ class MessageBubble extends ConsumerWidget {
     );
   }
 
+  /// Chat media tile: contain (never cropped), capped height, tap opens the
+  /// canonical fullscreen viewer at the tapped index — same viewer as
+  /// content detail.
   Widget _buildMediaTile(BuildContext context, String url) {
     final colorScheme = Theme.of(context).colorScheme;
     final isVideo = MediaUploadOrchestrator.isVideoUrl(url);
+    final index = message.mediaUrls.indexOf(url);
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(AppShape.r12),
-      child: isVideo
-          ? Container(
-              width: double.maxFinite,
-              height: 200,
-              color: colorScheme.scrim,
-              child: Center(
-                child: Icon(
-                  Icons.play_circle_outline,
-                  color: colorScheme.onPrimary,
-                  size: 48,
+    return GestureDetector(
+      onTap: () => _openMediaViewer(context, index < 0 ? 0 : index),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppShape.r12),
+        // NOTE: chat messages carry no thumbnail slot (wire has URLs only),
+      // so video tiles stay a play badge until the wire gains poster URLs.
+      // Attempting the mp4 through the image decoder would waste bytes.
+      child: ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 280),
+          child: isVideo
+              ? Container(
+                  width: double.maxFinite,
+                  height: 200,
+                  color: colorScheme.scrim,
+                  child: Center(
+                    child: Icon(
+                      Icons.play_circle_outline,
+                      color: colorScheme.onPrimary,
+                      size: AppIconSize.display,
+                    ),
+                  ),
+                )
+              : AppImage(
+                  imageUrl: url,
+                  width: double.maxFinite,
+                  fit: BoxFit.contain,
+                  backgroundColor: colorScheme.surfaceContainerHighest,
+                  errorWidget: Container(
+                    width: double.maxFinite,
+                    height: 200,
+                    color: colorScheme.surfaceContainerHighest,
+                    child: const Icon(Icons.broken_image, size: AppIconSize.display),
+                  ),
                 ),
-              ),
-            )
-          : AppImage(
-              imageUrl: url,
-              width: double.maxFinite,
-              height: 200,
-              fit: BoxFit.cover,
-              backgroundColor: colorScheme.surfaceContainerHighest,
-              errorWidget: Container(
-                width: double.maxFinite,
-                height: 200,
-                color: colorScheme.surfaceContainerHighest,
-                child: const Icon(Icons.broken_image, size: 48),
-              ),
-            ),
+        ),
+      ),
+    );
+  }
+
+  void _openMediaViewer(BuildContext context, int initialIndex) {
+    if (message.mediaUrls.isEmpty) return;
+    final media = <MediaEntity>[];
+    for (var i = 0; i < message.mediaUrls.length; i++) {
+      final url = message.mediaUrls[i].trim();
+      if (url.isEmpty) continue;
+      media.add(
+        MediaEntity(
+          id: '${message.id}-m$i',
+          originalUrl: url,
+          type: MediaUploadOrchestrator.isVideoUrl(url)
+              ? MediaType.video
+              : MediaType.image,
+          position: i,
+          createdAt: DateTime.now(),
+        ),
+      );
+    }
+    if (media.isEmpty) return;
+    showDialog(
+      context: context,
+      barrierColor:
+          Theme.of(context).colorScheme.scrim.withValues(alpha: 0.87),
+      builder: (_) => MediaViewerWidget(
+        media: media,
+        initialIndex: initialIndex.clamp(0, media.length - 1),
+        title: message.senderName.isNotEmpty ? message.senderName : null,
+      ),
     );
   }
 
@@ -207,11 +265,11 @@ class MessageBubble extends ConsumerWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Icon(Icons.attach_file, size: 20),
+        const Icon(Icons.attach_file, size: AppIconSize.action),
         const SizedBox(width: 8),
         Flexible(child: Text(fileName, style: const TextStyle(fontSize: AppType.s14))),
         const SizedBox(width: 8),
-        const Icon(Icons.download, size: 20),
+        const Icon(Icons.download, size: AppIconSize.action),
       ],
     );
   }
@@ -219,7 +277,7 @@ class MessageBubble extends ConsumerWidget {
   Widget _buildSystemMessage(BuildContext context) {
     return Center(
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p6),
+        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p8),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(AppShape.r12),
@@ -268,7 +326,7 @@ class MessageBubble extends ConsumerWidget {
                 Text(
                   _senderLabelForReplyPreview(),
                   style: TextStyle(
-                    fontSize: AppType.s11,
+                    fontSize: AppType.s12,
                     color: replyInk,
                     fontWeight: FontWeight.bold,
                   ),
@@ -327,17 +385,19 @@ class MessageBubble extends ConsumerWidget {
     // These use the legacy widget_lib.AttachmentWidget
     // ========================================================================
 
-    // Handle live backend Negotiation Proposal (initial / counter)
+    // Handle live backend Negotiation Proposal (initial / counter).
     // NEGOTIATION ATTACHMENT PURGE (Z3): negotiation_offer and
     // negotiation_result are forbidden legacy types with no producer.
+    // The card is COMMERCE-OWNED (chat only mounts it + forwards Beli).
     if (message.negotiationProposal != null) {
       return Padding(
         padding: const EdgeInsets.only(bottom: AppMetrics.p8),
-        child: widget_lib.AttachmentWidget(
+        child: NegotiationProposalCard(
           attachment: message.negotiationProposal!,
+          // Transport truth: whose bubble is this. The card shows CTAs only
+          // on the OPPONENT's latest proposal.
           isFromCurrentUser: isFromUser,
-          onTap: onTap,
-          currentUserId: currentUserId,
+          onDealBuy: onDealBuy,
         ),
       );
     }
@@ -383,6 +443,7 @@ class MessageBubble extends ConsumerWidget {
       child: ChatResourceProjectionCard(
         resourceProjection: message.resourceProjection!,
         onBuy: onProjectionBuy,
+        onQuoteShipping: onQuoteShipping,
       ),
     );
   }
@@ -394,7 +455,7 @@ class MessageBubble extends ConsumerWidget {
         Text(
           _formatTime(message.createdAt),
           style: TextStyle(
-            fontSize: AppType.s10,
+            fontSize: AppType.s12,
             color: textColor.withValues(alpha: 0.7),
           ),
         ),
@@ -439,13 +500,13 @@ class MessageBubble extends ConsumerWidget {
               : 'Gagal terkirim · Coba lagi',
           child: Padding(
             padding: const EdgeInsets.all(AppMetrics.p4),
-            child: Icon(icon, size: 14, color: iconColor),
+            child: Icon(icon, size: AppIconSize.inlineGlyph, color: iconColor),
           ),
         ),
       );
     }
 
-    return Icon(icon, size: 14, color: iconColor);
+    return Icon(icon, size: AppIconSize.inlineGlyph, color: iconColor);
   }
 
   Widget _buildSenderInfo(BuildContext context) {
@@ -462,11 +523,11 @@ class MessageBubble extends ConsumerWidget {
         : _senderLabel();
 
     return Padding(
-      padding: const EdgeInsets.only(left: AppMetrics.p4, top: AppMetrics.p2),
+      padding: const EdgeInsets.only(left: AppMetrics.p4, top: AppMetrics.p4),
       child: Text(
         displayName,
         style: TextStyle(
-          fontSize: AppType.s11,
+          fontSize: AppType.s12,
           color: Theme.of(context).colorScheme.onSurfaceVariant,
           fontStyle: senderDegraded ? FontStyle.italic : FontStyle.normal,
         ),

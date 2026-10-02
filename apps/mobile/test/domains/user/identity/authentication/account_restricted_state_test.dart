@@ -138,7 +138,7 @@ void main() {
 
   // ID1F: Mid-session restriction gate logic tests
   // These verify the decision logic used by _validateSession() and
-  // refreshUserData() — if freshUser.accountStatus.isRestricted, the
+  // forceRefreshAuthState() — if freshUser.accountStatus.isRestricted, the
   // controller must emit AuthStateAccountRestricted instead of
   // AuthStateAuthenticated.
   group('ID1F mid-session restriction gate', () {
@@ -233,7 +233,7 @@ void main() {
 
     test('normal 403 does not affect restriction gate logic', () {
       // The restriction gate only fires when _validateSession or
-      // refreshUserData gets a successful response with restricted status.
+      // forceRefreshAuthState gets a successful response with restricted status.
       // A network 403 error hits the error branch (result.isError),
       // not the success branch where restriction is checked.
       final activeUser = _testUser(status: AccountStatus.active);

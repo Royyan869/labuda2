@@ -4,13 +4,12 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:labuda/shared/widgets/app_image.dart';
+import 'package:labuda/shared/widgets/pending_commerce_chip.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/widgets/app_snackbar.dart';
 import 'package:labuda/shared/widgets/composer_action_buttons.dart';
-import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/domain/domain.dart';
 import 'package:labuda/domains/social/comment/presentation/widgets/commerce_resource_picker.dart';
 import 'package:labuda/domains/social/comment/presentation/widgets/resource_identity.dart';
@@ -95,10 +94,12 @@ class _CommentInputWithCommerceReferenceState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Selected commerce resource preview
+            // Selected commerce resource preview — canonical pre-send chip.
             if (_selection != null) ...[
-              _SelectedResourceCard(
-                selection: _selection!,
+              PendingCommerceChip(
+                title: _selection!.title,
+                imageUrl: _selection!.imageUrl,
+                price: _selection!.price,
                 onRemove: () => setState(() {
                   _selectedResource = null;
                   _selection = null;
@@ -280,99 +281,5 @@ class _CommentInputWithCommerceReferenceState
         _selection = result;
       });
     }
-  }
-}
-
-/// Selected commerce resource preview.
-class _SelectedResourceCard extends StatelessWidget {
-  final CommerceResourceSelection selection;
-  final VoidCallback onRemove;
-
-  const _SelectedResourceCard({
-    required this.selection,
-    required this.onRemove,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(AppMetrics.p10),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(AppShape.r10),
-        border: Border.all(
-          color: scheme.primary.withValues(alpha: 0.3),
-          width: 1,
-        ),
-      ),
-      child: Row(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(AppShape.r6),
-            child: selection.imageUrl != null
-      ? AppImage(
-          imageUrl: selection.imageUrl,
-          width: 45,
-          height: 45,
-          fit: BoxFit.cover,
-          errorWidget: _placeholder(context),
-        )
-                : _placeholder(context),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  selection.title,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: AppType.s13,
-                    color: scheme.onSurface,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 2),
-                if (selection.price != null)
-                  Text(
-                    'Rp ${formatGroupedAmount(selection.price!)}',
-                    style: TextStyle(
-                      color: scheme.primary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: AppType.s13,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          IconButton(
-            onPressed: onRemove,
-            icon: const Icon(Icons.close, size: 18),
-            constraints: const BoxConstraints(),
-            padding: EdgeInsets.zero,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _placeholder(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      width: 45,
-      height: 45,
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(AppShape.r6),
-      ),
-      child: Icon(
-        Icons.image_not_supported,
-        size: 16,
-        color: scheme.onSurfaceVariant,
-      ),
-    );
   }
 }

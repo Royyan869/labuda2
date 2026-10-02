@@ -1,14 +1,15 @@
 /// Auction Detail Header
 ///
 /// The canonical DETAIL MEDIA BLOCK — identical to the ForSale gallery:
-/// the shared `MediaCarouselWidget` at 4/3, edge to edge, no raw
-/// `Image.network`, no local `PageView` controller.
+/// the shared `MediaCarouselWidget` at 4:5 contain (same as the card — koi
+/// never cropped), edge to edge, tap opens the fullscreen viewer.
 ///
 /// The title is NOT part of the header; both channels render it as the first
 /// item of the detail body (same style, same spacing).
 library;
 
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/shared/utils/media_extensions.dart';
@@ -18,6 +19,20 @@ class AuctionDetailHeader extends StatelessWidget {
 
   const AuctionDetailHeader({super.key, required this.auction});
 
+  void _openViewer(BuildContext context, int index) {
+    if (auction.media.isEmpty) return;
+    showDialog(
+      context: context,
+      barrierColor:
+          Theme.of(context).colorScheme.scrim.withValues(alpha: 0.87),
+      builder: (_) => MediaViewerWidget(
+        media: auction.media,
+        initialIndex: index.clamp(0, auction.media.length - 1),
+        title: auction.title,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -25,19 +40,23 @@ class AuctionDetailHeader extends StatelessWidget {
     if (auction.media.isNotEmptyUrls) {
       return MediaCarouselWidget(
         media: auction.media,
-        aspectRatio: 4 / 3,
+        aspectRatio: 4 / 5,
+        fit: BoxFit.contain,
         borderRadius: BorderRadius.zero,
+        onImageTapWithIndex: (index) => _openViewer(context, index),
       );
     }
 
-    return Container(
-      height: 225,
-      color: colorScheme.surfaceContainerHighest,
-      child: Center(
-        child: Icon(
-          Icons.image_outlined,
-          size: 64,
-          color: colorScheme.onSurfaceVariant,
+    return AspectRatio(
+      aspectRatio: 4 / 5,
+      child: Container(
+        color: colorScheme.surfaceContainerHighest,
+        child: Center(
+          child: Icon(
+            Icons.image_outlined,
+            size: AppIconSize.display,
+            color: colorScheme.onSurfaceVariant,
+          ),
         ),
       ),
     );

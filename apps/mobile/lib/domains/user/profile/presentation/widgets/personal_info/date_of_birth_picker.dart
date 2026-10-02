@@ -23,9 +23,8 @@ class DateOfBirthPicker extends StatelessWidget {
         padding: const EdgeInsets.all(AppMetrics.p16),
         decoration: BoxDecoration(
           color: scheme.surface,
-          border: Border.all(
-            color: scheme.onSurfaceVariant,
-          ),
+          // Border role, not ink.
+          border: Border.all(color: scheme.outlineVariant),
           borderRadius: BorderRadius.circular(AppShape.r8),
         ),
         child: Row(
@@ -33,7 +32,7 @@ class DateOfBirthPicker extends StatelessWidget {
             Icon(
               Icons.cake_outlined,
               color: scheme.onSurfaceVariant,
-              size: 20,
+              size: AppIconSize.action,
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -67,7 +66,7 @@ class DateOfBirthPicker extends StatelessWidget {
             ),
             Icon(
               Icons.calendar_today,
-              size: 18,
+              size: AppIconSize.action,
               color: scheme.onSurfaceVariant,
             ),
           ],

@@ -69,7 +69,7 @@ const (
 type Notification struct {
 	ID          uuid.UUID
 	RecipientID uuid.UUID // User who receives the notification
-	ActorID     uuid.UUID // User who triggered the notification
+	Actor       Actor     // Canonical cause: user, system, or anonymized human
 	Type        NotificationType
 	EntityID    uuid.UUID              // ID of the related entity (user or content)
 	EntityType  string                 // Type of the entity (comment, message, order, content, user)
@@ -88,11 +88,11 @@ func (e *ErrNotificationNotFound) Error() string {
 }
 
 // NewNotification creates a new notification with optional data payload.
-func NewNotification(recipientID, actorID uuid.UUID, notificationType NotificationType, entityID uuid.UUID, data map[string]interface{}) *Notification {
+func NewNotification(recipientID uuid.UUID, actor Actor, notificationType NotificationType, entityID uuid.UUID, data map[string]interface{}) *Notification {
 	return &Notification{
 		ID:          uuid.New(),
 		RecipientID: recipientID,
-		ActorID:     actorID,
+		Actor:       actor,
 		Type:        notificationType,
 		EntityID:    entityID,
 		Data:        data,

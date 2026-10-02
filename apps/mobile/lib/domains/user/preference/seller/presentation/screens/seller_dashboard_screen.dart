@@ -5,9 +5,7 @@ import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/commerce/transaction/order/order.dart';
 import 'package:labuda/shared/utils/app_formatters.dart';
 import 'package:labuda/shared/widgets/app_image.dart';
-import 'package:labuda/domains/user/identity/verification/verification.dart';
 import 'package:labuda/domains/system/support/presentation/screens/help_center_screen.dart';
-import 'package:labuda/domains/system/support/presentation/widgets/pre_chat_form_sheet.dart';
 import 'package:labuda/domains/chat/chat/presentation/providers/chat_providers.dart';
 import 'package:labuda/domains/chat/chat/presentation/screens/chat_list_screen.dart';
 import 'package:labuda/domains/user/preference/seller/domain/entities/seller_state.dart';
@@ -50,11 +48,6 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
     final authState = ref.watch(authControllerProvider);
     final sellerIdentityStatus = ref.watch(sellerIdentityStatusProvider);
     final sellerCapabilityStatus = ref.watch(sellerCapabilityStatusProvider);
-    // Canonical expiry axis. Capability `inactive` is NOT expiry: a freshly
-    // onboarded seller without a settled payment is capability-inactive with
-    // subscription status 'none' and must not see renewal copy (RF-02).
-    final isSubscriptionExpired = ref.watch(isSellerSubscriptionExpiredProvider);
-
     if (authState is! AuthStateAuthenticated) {
       return _buildAuthRequired(context);
     }
@@ -75,39 +68,17 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
       backgroundColor: Theme.of(context).colorScheme.surface,
       body: CustomScrollView(
         slivers: [
-          // App Bar
-          SliverAppBar(
-            expandedHeight: 120,
-            floating: false,
+          // App Bar — flat surface chrome from appBarTheme. No collapsing
+          // FlexibleSpaceBar: the growing title/gradient was rejected as a
+          // second visual dialect.
+          const SliverAppBar(
             pinned: true,
-            backgroundColor: Theme.of(context).colorScheme.surface,
-            flexibleSpace: FlexibleSpaceBar(
-              title: const Text(
-                'Dashboard Penjual',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              background: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Theme.of(context).colorScheme.primary,
-                      Theme.of(context).colorScheme.primary.withValues(alpha: 0.8),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+            title: Text('Dashboard Penjual'),
           ),
 
           // Content
           SliverToBoxAdapter(
-            child: _buildContent(
-              context,
-              sellerId,
-              isSubscriptionExpired,
-            ),
+            child: _buildContent(context, sellerId),
           ),
         ],
       ),
@@ -122,7 +93,7 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
           children: [
             Icon(
               Icons.lock_outline,
-              size: 64,
+              size: AppIconSize.display,
               color: Theme.of(context).colorScheme.primary,
             ),
             const SizedBox(height: 16),
@@ -143,11 +114,6 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
       backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
         title: const Text('Seller Profile Required'),
-        surfaceTintColor: Colors.transparent,
-        scrolledUnderElevation: 0,
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        foregroundColor: Theme.of(context).colorScheme.onSurface,
-        elevation: AppElevation.none,
       ),
       body: Center(
         child: Padding(
@@ -163,7 +129,7 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
                 ),
                 child: Icon(
                   Icons.store_outlined,
-                  size: 64,
+                  size: AppIconSize.display,
                   color: context.statusColors.warning,
                 ),
               ),
@@ -200,7 +166,7 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
                       children: [
                         Icon(
                           Icons.info_outline,
-                          size: 16,
+                          size: AppIconSize.inlineGlyph,
                           color: Theme.of(context).colorScheme.secondary,
                         ),
                         const SizedBox(width: 8),
@@ -233,7 +199,7 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
                 children: [
                   OutlinedButton.icon(
                     onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.arrow_back, size: 18),
+                    icon: const Icon(Icons.arrow_back, size: AppIconSize.action),
                     label: const Text('Kembali'),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
@@ -247,7 +213,7 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
                     onPressed: () {
                       context.push(RoutePaths.sellerUpgrade);
                     },
-                    icon: const Icon(Icons.storefront, size: 18),
+                    icon: const Icon(Icons.storefront, size: AppIconSize.action),
                     label: const Text('Mulai Jualan'),
                   ),
                 ],
@@ -286,7 +252,7 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
               Text(
                 'Menunggu identitas dan kapabilitas dari backend.',
                 style: TextStyle(
-                  fontSize: AppType.s13,
+                  fontSize: AppType.s14,
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
                 textAlign: TextAlign.center,
@@ -304,8 +270,8 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
       child: Row(
         children: [
           Container(
-            width: 24,
-            height: 24,
+            width: AppContentSize.badge,
+            height: AppContentSize.badge,
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(AppShape.r4),
@@ -326,7 +292,7 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
             child: Text(
               text,
               style: TextStyle(
-                fontSize: AppType.s13,
+                fontSize: AppType.s14,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
@@ -336,46 +302,28 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
     );
   }
 
-  Widget _buildContent(
-    BuildContext context,
-    String sellerId,
-    bool isSubscriptionExpired,
-  ) {
+  Widget _buildContent(BuildContext context, String sellerId) {
+    // Chat bridge gets a dashboard seat only while it carries unread.
+    final totalUnread = ref.watch(totalUnreadCountProvider);
+
     return Padding(
       padding: const EdgeInsets.all(AppMetrics.p16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Verification Status Section
-          const _VerificationStatusSection(),
+          // ONE owner per truth: the queue owns every actionable nag. The
+          // top verification card, action-required card and getting-started
+          // banner were competing copies — deleted, not hidden. Chat gets a
+          // seat only while unread > 0 (at zero it was copy filler).
+          // The expiry banner owns the expired STATE (queue never repeats it).
+          const _SubscriptionExpiryBanner(),
 
-          const SizedBox(height: 16),
+          if (totalUnread > 0) ...[
+            const _SellerChatWorkspaceSection(),
+            const SizedBox(height: 16),
+          ],
 
-          // Subscription expiry banner - UX signal only, authority unchanged.
-          // Expired sellers can still use workspace routes; this is a renewal prompt.
-          _SubscriptionExpiryBanner(),
-
-          // PHASE 2 HARDENING: Seller Action Required Card
-          // Shows prominently when seller has pending/paid orders needing action
-          _SellerActionRequiredCard(sellerId: sellerId),
-
-          const SizedBox(height: 16),
-
-          // PHASE 2 HARDENING: Seller Chat Workspace Bridge
-          // Connects seller workspace to chat - chat is primary work tool for sellers
-          const _SellerChatWorkspaceSection(),
-
-          const SizedBox(height: 16),
-
-          // Getting Started Section (shown only for new sellers)
-          _GettingStartedSection(
-            sellerId: sellerId,
-            isSubscriptionExpired: isSubscriptionExpired,
-          ),
-
-          const SizedBox(height: 16),
-
-          // Statistics Cards
+          // Statistics: numbers only, no actions.
           _OrderStatsSection(sellerId: sellerId),
 
           const SizedBox(height: 24),
@@ -391,227 +339,14 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
 
           const SizedBox(height: 16),
 
-          // PHASE 3 HARDENING: Seller Help Section
+          // Single help door.
           _SellerHelpSection(),
 
           const SizedBox(height: 24),
 
           // Recent Orders Preview
           _RecentOrdersSection(sellerId: sellerId),
-        ],
-      ),
-    );
-  }
-}
 
-// =============================================================================
-// VERIFICATION STATUS SECTION
-// =============================================================================
-
-class _VerificationStatusSection extends ConsumerStatefulWidget {
-  const _VerificationStatusSection();
-
-  @override
-  ConsumerState<_VerificationStatusSection> createState() =>
-      _VerificationStatusSectionState();
-}
-
-class _VerificationStatusSectionState
-    extends ConsumerState<_VerificationStatusSection> {
-  bool _requestedInitialLoad = false;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || _requestedInitialLoad) return;
-      _requestedInitialLoad = true;
-      ref.read(sellerVerificationV2NotifierProvider.notifier).loadStatus();
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final verificationState = ref.watch(sellerVerificationV2NotifierProvider);
-
-    if (verificationState.isLoading &&
-        verificationState.status == SellerVerificationStatus.notSubmitted) {
-      return _buildLoadingCard();
-    }
-
-    if (verificationState.errorMessage != null &&
-        verificationState.status == SellerVerificationStatus.notSubmitted) {
-      return _buildErrorCard(verificationState.errorMessage!);
-    }
-
-    Color statusColor;
-    String statusText;
-    String statusDescription;
-    IconData statusIcon;
-    Color buttonColor;
-
-    switch (verificationState.status) {
-      case SellerVerificationStatus.approved:
-        statusColor = context.statusColors.success;
-        statusText = 'Terverifikasi';
-        statusDescription = 'Akun penjual Anda telah diverifikasi';
-        statusIcon = Icons.verified;
-        buttonColor = context.statusColors.success;
-        break;
-      case SellerVerificationStatus.pendingReview:
-        statusColor = context.statusColors.warning;
-        statusText = 'Menunggu Verifikasi';
-        statusDescription = 'Dokumen sedang ditinjau (1-2 hari kerja)';
-        statusIcon = Icons.pending;
-        buttonColor = context.statusColors.warning;
-        break;
-      case SellerVerificationStatus.rejected:
-        statusColor = context.statusColors.error;
-        statusText = 'Verifikasi Ditolak';
-        statusDescription = 'Mohon periksa dokumen dan ajukan kembali';
-        statusIcon = Icons.cancel;
-        buttonColor = Theme.of(context).colorScheme.primary;
-        break;
-      default:
-        statusColor = Theme.of(context).colorScheme.outline;
-        statusText = 'Belum Diverifikasi';
-        statusDescription = 'Verifikasi diperlukan untuk menarik dana';
-        statusIcon = Icons.info_outline;
-        buttonColor = Theme.of(context).colorScheme.primary;
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(AppMetrics.p16),
-      decoration: BoxDecoration(
-        color: statusColor.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(AppShape.r12),
-        border: Border.all(color: statusColor.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(AppMetrics.p10),
-            decoration: BoxDecoration(
-              color: statusColor.withValues(alpha: 0.2),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(statusIcon, color: statusColor, size: 24),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  statusText,
-                  style: TextStyle(
-                    fontSize: AppType.s16,
-                    fontWeight: FontWeight.bold,
-                    color: statusColor,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  statusDescription,
-                  style: TextStyle(
-                    fontSize: AppType.s12,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (!verificationState.isVerified)
-            TextButton(
-              onPressed: () => context.push(RoutePaths.sellerVerification),
-              style: TextButton.styleFrom(
-                foregroundColor: buttonColor,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppMetrics.p16,
-                  vertical: AppMetrics.p8,
-                ),
-              ),
-              child: const Text('Verifikasi'),
-            )
-          else
-            Icon(Icons.check_circle, color: statusColor, size: 24),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLoadingCard() {
-    return Container(
-      padding: const EdgeInsets.all(AppMetrics.p16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(AppShape.r12),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.outlineVariant,
-        ),
-      ),
-      child: const Row(
-        children: [
-          SizedBox(
-            width: 20,
-            height: 20,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
-          SizedBox(width: 16),
-          Expanded(
-            child: Text(
-              'Memuat status verifikasi...',
-              style: TextStyle(fontSize: AppType.s14),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildErrorCard(String message) {
-    return Container(
-      padding: const EdgeInsets.all(AppMetrics.p16),
-      decoration: BoxDecoration(
-        color: context.statusColors.error.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(AppShape.r12),
-        border: Border.all(color: context.statusColors.error.withValues(alpha: 0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.error_outline,
-                color: context.statusColors.error,
-                size: 24,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'Gagal memuat status verifikasi',
-                  style: TextStyle(
-                    fontSize: AppType.s16,
-                    fontWeight: FontWeight.bold,
-                    color: context.statusColors.error,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            message,
-            style: TextStyle(fontSize: AppType.s12, color: Theme.of(context).colorScheme.onSurfaceVariant),
-          ),
-          const SizedBox(height: 12),
-          TextButton(
-            onPressed: () => ref
-                .read(sellerVerificationV2NotifierProvider.notifier)
-                .loadStatus(),
-            child: const Text('Coba Lagi'),
-          ),
         ],
       ),
     );
@@ -675,7 +410,7 @@ class _SubscriptionExpiryBanner extends ConsumerWidget {
                     child: Icon(
                       Icons.warning_amber_outlined,
                       color: context.statusColors.warning,
-                      size: 20,
+                      size: AppIconSize.action,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -706,7 +441,7 @@ class _SubscriptionExpiryBanner extends ConsumerWidget {
               const SizedBox(height: 12),
               ElevatedButton.icon(
                 onPressed: () => context.push(RoutePaths.sellerRenewal),
-                icon: const Icon(Icons.refresh_outlined, size: 18),
+                icon: const Icon(Icons.refresh_outlined, size: AppIconSize.action),
                 label: const Text('Perpanjang Langganan'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: context.statusColors.warning,
@@ -777,7 +512,7 @@ class _SellerChatWorkspaceSection extends ConsumerWidget {
                   child: Icon(
                     Icons.chat_bubble_outline,
                     color: Theme.of(context).colorScheme.secondary,
-                    size: 24,
+                    size: AppIconSize.header,
                   ),
                 ),
                 // Unread badge
@@ -787,8 +522,8 @@ class _SellerChatWorkspaceSection extends ConsumerWidget {
                     right: 0,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: AppMetrics.p6,
-                        vertical: AppMetrics.p2,
+                        horizontal: AppMetrics.p8,
+                        vertical: AppMetrics.p4,
                       ),
                       decoration: BoxDecoration(
                         color: Theme.of(context).colorScheme.primary,
@@ -803,7 +538,7 @@ class _SellerChatWorkspaceSection extends ConsumerWidget {
                         totalUnread > 99 ? '99+' : totalUnread.toString(),
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.onPrimary,
-                          fontSize: AppType.s10,
+                          fontSize: AppType.s12,
                           fontWeight: FontWeight.bold,
                           height: 1.1,
                         ),
@@ -831,7 +566,7 @@ class _SellerChatWorkspaceSection extends ConsumerWidget {
                   Text(
                     _getChatMessage(totalUnread),
                     style: TextStyle(
-                      fontSize: AppType.s13,
+                      fontSize: AppType.s14,
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
@@ -842,7 +577,7 @@ class _SellerChatWorkspaceSection extends ConsumerWidget {
             Icon(
               Icons.chevron_right,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
-              size: 22,
+              size: AppIconSize.header,
             ),
           ],
         ),
@@ -866,590 +601,6 @@ class _SellerChatWorkspaceSection extends ConsumerWidget {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const ChatListScreen()),
-    );
-  }
-}
-
-// =============================================================================
-// SELLER ACTION REQUIRED CARD (PHASE 2 HARDENING)
-// =============================================================================
-/// Prominent card shown when seller has orders that need immediate action
-/// This addresses the PRIORITY 1 gap: seller awareness of new/pending orders
-class _SellerActionRequiredCard extends ConsumerWidget {
-  final String sellerId;
-
-  const _SellerActionRequiredCard({
-    required this.sellerId,
-  });
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // Watch pending and paid orders (action-required statuses)
-    final pendingAsync = ref.watch(
-      watchSellerOrdersProvider(
-        sellerId: sellerId,
-        status: OrderStatus.pending,
-      ),
-    );
-    final paidAsync = ref.watch(
-      watchSellerOrdersProvider(sellerId: sellerId, status: OrderStatus.paid),
-    );
-
-    return pendingAsync.when(
-      data: (pendingOrders) {
-        return paidAsync.when(
-          data: (paidOrders) {
-            final actionRequiredCount =
-                pendingOrders.length + paidOrders.length;
-
-            // Hide card if no action-required orders
-            if (actionRequiredCount == 0) {
-              return const SizedBox.shrink();
-            }
-
-            return Container(
-              padding: const EdgeInsets.all(AppMetrics.p16),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
-                    Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(AppShape.r16),
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.4),
-                  width: 1.5,
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      // Pulsing notification icon
-                      Stack(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(AppMetrics.p10),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.primary.withValues(
-                                alpha: 0.2,
-                              ),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              Icons.notifications_active,
-                              color: Theme.of(context).colorScheme.primary,
-                              size: 24,
-                            ),
-                          ),
-                          // Pulsing dot for urgency
-                          Positioned(
-                            top: 0,
-                            right: 0,
-                            child: Container(
-                              width: 12,
-                              height: 12,
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.primary,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: Theme.of(context).colorScheme.surface,
-                                  width: 2,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Pesanan Perlu Tindakan',
-                              style: TextStyle(
-                                fontSize: AppType.s16,
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context).colorScheme.onSurface,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              _getActionMessage(
-                                pendingCount: pendingOrders.length,
-                                paidCount: paidOrders.length,
-                              ),
-                              style: TextStyle(
-                                fontSize: AppType.s13,
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      // Badge count
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppMetrics.p12,
-                          vertical: AppMetrics.p6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primary,
-                          borderRadius: BorderRadius.circular(AppShape.r20),
-                        ),
-                        child: Text(
-                          actionRequiredCount.toString(),
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.onPrimary,
-                            fontSize: AppType.s14,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Action buttons row
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _ActionChip(
-                          icon: Icons.pending_actions,
-                          label: 'Pending',
-                          count: pendingOrders.length,
-                          color: context.statusColors.warning,
-                          onTap: () => _navigateToOrderList(
-                            context,
-                            OrderStatus.pending,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _ActionChip(
-                          icon: Icons.local_shipping,
-                          label: 'Siap Kirim',
-                          count: paidOrders.length,
-                          color: Theme.of(context).colorScheme.secondary,
-                          onTap: () =>
-                              _navigateToOrderList(context, OrderStatus.paid),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            );
-          },
-          loading: () => const SizedBox.shrink(),
-          error: (_, _) => const SizedBox.shrink(),
-        );
-      },
-      loading: () => const SizedBox.shrink(),
-      error: (_, _) => const SizedBox.shrink(),
-    );
-  }
-
-  String _getActionMessage({
-    required int pendingCount,
-    required int paidCount,
-  }) {
-    if (pendingCount > 0 && paidCount > 0) {
-      return '$pendingCount perlu konfirmasi, $paidCount siap dikirim';
-    } else if (pendingCount > 0) {
-      return '$pendingCount pesanan menunggu konfirmasi';
-    } else if (paidCount > 0) {
-      return '$paidCount pesanan siap untuk dikirim';
-    }
-    return 'Tidak ada pesanan yang perlu tindakan';
-  }
-
-  void _navigateToOrderList(BuildContext context, OrderStatus status) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => OrderListScreen(isSeller: true)),
-    );
-  }
-}
-
-/// Action chip for the seller action required card
-class _ActionChip extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final int count;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _ActionChip({
-    required this.icon,
-    required this.label,
-    required this.count,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    if (count == 0) {
-      return const SizedBox.shrink();
-    }
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppShape.r12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p10),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.8),
-          borderRadius: BorderRadius.circular(AppShape.r12),
-          border: Border.all(color: color.withValues(alpha: 0.3)),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 16, color: color),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: AppType.s13,
-                fontWeight: FontWeight.w600,
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
-            ),
-            const SizedBox(width: 4),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p6, vertical: AppMetrics.p2),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(AppShape.r10),
-              ),
-              child: Text(
-                count.toString(),
-                style: TextStyle(
-                  fontSize: AppType.s11,
-                  fontWeight: FontWeight.bold,
-                  color: color,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// =============================================================================
-// GETTING STARTED SECTION
-// =============================================================================
-
-class _GettingStartedSection extends ConsumerWidget {
-  final String sellerId;
-  final bool isSubscriptionExpired;
-
-  const _GettingStartedSection({
-    required this.sellerId,
-    required this.isSubscriptionExpired,
-  });
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // Check if seller has any orders or forSales
-    final allOrdersAsync = ref.watch(
-      watchSellerOrdersProvider(sellerId: sellerId, status: null),
-    );
-
-    return allOrdersAsync.when(
-      data: (orders) {
-        // Only show getting started if seller has no orders yet
-        if (orders.isNotEmpty) return const SizedBox.shrink();
-
-        // Only an ENDED subscription replaces getting started with expiry copy.
-        // A capability-inactive seller with status 'none' is not expired.
-        if (isSubscriptionExpired) {
-          return _buildExpiredSellerMessage(context, ref);
-        }
-
-        return Container(
-          padding: const EdgeInsets.all(AppMetrics.p16),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
-              ],
-            ),
-            borderRadius: BorderRadius.circular(AppShape.r16),
-            border: Border.all(
-              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
-              width: 1,
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(AppMetrics.p8),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.rocket_launch_outlined,
-                      color: Theme.of(context).colorScheme.primary,
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Mulai Jualan',
-                          style: TextStyle(
-                            fontSize: AppType.s16,
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
-                        ),
-                        Text(
-                          '3 langkah untuk mulai mendapatkan pesanan',
-                          style: TextStyle(
-                            fontSize: AppType.s12,
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              _StepItem(
-                number: 1,
-                title: 'Atur Pengiriman',
-                description: 'Wajib sebelum publish forSale pertama Anda',
-                isCompleted: false,
-                onTap: () => _navigateToShipping(context),
-              ),
-              const SizedBox(height: 12),
-              _StepItem(
-                number: 2,
-                title: 'Buat ForSale',
-                description: 'Tambahkan produk yang ingin Anda jual',
-                isCompleted: false,
-                onTap: () => _navigateToCreateForSale(context),
-              ),
-              const SizedBox(height: 12),
-              _StepItem(
-                number: 3,
-                title: 'Verifikasi Akun',
-                description: 'Syarat untuk menarik dana penjualan',
-                isCompleted: false,
-                onTap: () => _navigateToVerification(context),
-              ),
-            ],
-          ),
-        );
-      },
-      loading: () => const SizedBox.shrink(),
-      error: (_, _) => const SizedBox.shrink(),
-    );
-  }
-
-  Widget _buildExpiredSellerMessage(
-    BuildContext context,
-    WidgetRef ref,
-  ) {
-    return Container(
-      padding: const EdgeInsets.all(AppMetrics.p16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            context.statusColors.error.withValues(alpha: 0.1),
-            context.statusColors.error.withValues(alpha: 0.05),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(AppShape.r16),
-        border: Border.all(
-          color: context.statusColors.error.withValues(alpha: 0.3),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(AppMetrics.p8),
-                decoration: BoxDecoration(
-                  color: context.statusColors.error.withValues(alpha: 0.2),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.error_outline,
-                  color: context.statusColors.error,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Langganan Berakhir',
-                      style: TextStyle(
-                        fontSize: AppType.s16,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
-                    ),
-                    Text(
-                      'Perbarui langganan untuk mulai jual kembali',
-                      style: TextStyle(
-                        fontSize: AppType.s12,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          ElevatedButton.icon(
-            onPressed: () => context.push(RoutePaths.sellerRenewal),
-            icon: const Icon(Icons.refresh_outlined, size: 18),
-            label: const Text('Perpanjang Langganan'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: context.statusColors.error,
-              foregroundColor: Theme.of(context).colorScheme.onError,
-              minimumSize: const Size(double.infinity, 44),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _navigateToCreateForSale(BuildContext context) {
-    Navigator.pushNamed(context, RoutePaths.createForSale);
-  }
-
-  void _navigateToVerification(BuildContext context) {
-    context.push(RoutePaths.sellerVerification);
-  }
-
-  void _navigateToShipping(BuildContext context) {
-    context.push(RoutePaths.sellerShipping);
-  }
-}
-
-class _StepItem extends StatelessWidget {
-  final int number;
-  final String title;
-  final String description;
-  final bool isCompleted;
-  final VoidCallback? onTap;
-
-  const _StepItem({
-    required this.number,
-    required this.title,
-    required this.description,
-    required this.isCompleted,
-    this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppShape.r12),
-      child: Container(
-        padding: const EdgeInsets.all(AppMetrics.p12),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.7),
-          borderRadius: BorderRadius.circular(AppShape.r12),
-          border: Border.all(
-            color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
-          ),
-        ),
-        child: Row(
-          children: [
-            // Step number circle
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: isCompleted
-                    ? context.statusColors.success
-                    : Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
-                shape: BoxShape.circle,
-              ),
-              child: Center(
-                child: isCompleted
-                    ? Icon(Icons.check, color: Theme.of(context).colorScheme.onPrimary, size: 18)
-                    : Text(
-                        number.toString(),
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.primary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: AppType.s14,
-                        ),
-                      ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            // Step content
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: AppType.s14,
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    description,
-                    style: TextStyle(
-                      fontSize: AppType.s12,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            // Arrow button if actionable
-            if (onTap != null)
-              Icon(
-                Icons.chevron_right,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                size: 20,
-              ),
-          ],
-        ),
-      ),
     );
   }
 }
@@ -1564,7 +715,7 @@ class _OrderStatsSection extends ConsumerWidget {
                 children: [
                   Icon(
                     Icons.inbox_outlined,
-                    size: 32,
+                    size: AppIconSize.emphasis,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                   const SizedBox(width: 12),
@@ -1628,7 +779,7 @@ class _StatCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, size: 18, color: color),
+              Icon(icon, size: AppIconSize.action, color: color),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -1722,18 +873,16 @@ class _QuickActionsSection extends ConsumerWidget {
           children: [
             Expanded(
               child: _QuickActionCard(
-                key: const Key('seller-quick-action-auctions'),
-                icon: Icons.gavel_outlined,
-                label: 'Lelang Saya',
-                color: Theme.of(context).colorScheme.secondary,
-                // Spec pins the auctions quick action onto the canonical
-                // seller inventory surface: there is no /seller/auctions
-                // route anywhere in the router.
-                onTap: () => context.push(RoutePaths.sellerForSales),
+                key: const Key('seller-quick-action-earnings'),
+                icon: Icons.account_balance_wallet_outlined,
+                label: 'Pendapatan',
+                color: context.statusColors.success,
+                onTap: () => context.push(RoutePaths.sellerEarnings),
               ),
             ),
           ],
         ),
+
       ],
     );
   }
@@ -1799,7 +948,7 @@ class _QuickActionCard extends StatelessWidget {
                 color: color.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: color, size: 24),
+              child: Icon(icon, color: color, size: AppIconSize.header),
             ),
             const SizedBox(height: 12),
             Text(
@@ -1821,111 +970,36 @@ class _QuickActionCard extends StatelessWidget {
 // =============================================================================
 
 class _SellerHelpSection extends ConsumerWidget {
-
   const _SellerHelpSection();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authControllerProvider);
-    final userId = authState is AuthStateAuthenticated
-        ? authState.user.id
-        : null;
-    final userName = authState is AuthStateAuthenticated
-        ? authState.user.username
-        : null;
-    final userAvatar = authState is AuthStateAuthenticated
-        ? authState.user.avatarUrl
-        : null;
+    final userId =
+        authState is AuthStateAuthenticated ? authState.user.id : null;
+    final userName =
+        authState is AuthStateAuthenticated ? authState.user.username : null;
+    final userAvatar =
+        authState is AuthStateAuthenticated ? authState.user.avatarUrl : null;
 
-    return Container(
-      padding: const EdgeInsets.all(AppMetrics.p16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            context.statusColors.success.withValues(alpha: 0.1),
-            context.statusColors.success.withValues(alpha: 0.05),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(AppShape.r12),
-        border: Border.all(
-          color: context.statusColors.success.withValues(alpha: 0.3),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.lightbulb_outline,
-                color: context.statusColors.success,
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Tips & Bantuan Penjual',
-                  style: TextStyle(
-                    fontSize: AppType.s14,
-                    fontWeight: FontWeight.w600,
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
-                ),
-              ),
-            ],
+    // ONE help door: the old 3-tile gradient block spent prime dashboard
+    // space on entries that all land in the same Help Center anyway
+    // (contact support lives inside it).
+    return _HelpTile(
+      icon: Icons.support_agent,
+      title: 'Bantuan & Support Penjual',
+      description: 'Pusat bantuan dan kontak tim kami',
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => HelpCenterScreen(
+              userId: userId,
+              userName: userName,
+              userAvatar: userAvatar,
+            ),
           ),
-          const SizedBox(height: 12),
-          _HelpTile(
-            icon: Icons.visibility_outlined,
-            title: 'ForSale tidak terlihat?',
-            description: 'Pelajari cara membuat forSale yang lebih menarik',
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => HelpCenterScreen(
-                    userId: userId,
-                    userName: userName,
-                    userAvatar: userAvatar,
-                  ),
-                ),
-              );
-            },
-          ),
-          const SizedBox(height: 8),
-          _HelpTile(
-            icon: Icons.payments_outlined,
-            title: 'Info pembayaran & pendapatan',
-            description: 'Cek kapan dana masuk ke saldo',
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => HelpCenterScreen(
-                    userId: userId,
-                    userName: userName,
-                    userAvatar: userAvatar,
-                  ),
-                ),
-              );
-            },
-          ),
-          const SizedBox(height: 8),
-          _HelpTile(
-            icon: Icons.support_agent,
-            title: 'Hubungi Support Penjual',
-            description: 'Dapatkan bantuan langsung dari tim kami',
-            onTap: userId != null
-                ? () {
-                    showPreChatFormRefactored(
-                      context,
-                      userId: userId,
-                      userName: userName ?? 'User',
-                      userAvatar: userAvatar,
-                    );
-                  }
-                : null,
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -1962,7 +1036,7 @@ class _HelpTile extends StatelessWidget {
                 color: context.statusColors.success.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: context.statusColors.success, size: 16),
+              child: Icon(icon, color: context.statusColors.success, size: AppIconSize.inlineGlyph),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -1972,7 +1046,7 @@ class _HelpTile extends StatelessWidget {
                   Text(
                     title,
                     style: TextStyle(
-                      fontSize: AppType.s13,
+                      fontSize: AppType.s14,
                       fontWeight: FontWeight.w600,
                       color: Theme.of(context).colorScheme.onSurface,
                     ),
@@ -1980,7 +1054,7 @@ class _HelpTile extends StatelessWidget {
                   Text(
                     description,
                     style: TextStyle(
-                      fontSize: AppType.s11,
+                      fontSize: AppType.s12,
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
@@ -1989,7 +1063,7 @@ class _HelpTile extends StatelessWidget {
             ),
             Icon(
               Icons.chevron_right,
-              size: 16,
+              size: AppIconSize.inlineGlyph,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ],
@@ -2186,10 +1260,10 @@ class _OrderTile extends StatelessWidget {
                 fit: BoxFit.cover,
                 backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                 errorWidget: Container(
-                  width: 48,
-                  height: 48,
+                  width: AppIconSize.display,
+                  height: AppIconSize.display,
                   color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  child: const Icon(Icons.image_not_supported, size: 20),
+                  child: const Icon(Icons.image_not_supported, size: AppIconSize.action),
                 ),
               ),
             ),
@@ -2295,7 +1369,7 @@ class _StatusBadge extends StatelessWidget {
         label,
         style: TextStyle(
           color: color,
-          fontSize: AppType.s11,
+          fontSize: AppType.s12,
           fontWeight: FontWeight.w600,
         ),
       ),

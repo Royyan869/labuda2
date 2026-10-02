@@ -164,8 +164,6 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
   PreferredSizeWidget _buildAppBar(BuildContext context) {
     return AppBar(
       title: Text(_getAppBarTitle()),
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      elevation: AppElevation.none,
       leading: IconButton(
         icon: const Icon(Icons.arrow_back),
         onPressed: () => context.pop(),
@@ -319,24 +317,41 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
 
     final isReplying = _replyingToComment != null;
 
-    final result = resource != null
-        ? await ref
-              .read(commentProvider.notifier)
-              .createCommerceReferenceComment(
-                contentId: widget.contentId,
-                resourceType: resource.resourceType.wireValue,
-                resourceId: resource.resourceId,
-                body: trimmed.isEmpty ? null : trimmed,
-              )
-        : await ref
-              .read(commentProvider.notifier)
-              .createComment(
-                targetId: widget.contentId,
-                targetType: CommentTargetType.content,
-                content: trimmed.isEmpty && hasMedia ? '' : body,
-                parentId: isReplying ? _replyingToComment!.id : null,
-                mediaUrls: mediaUrls,
-              );
+    // One tap = one row: product + media ride the same commerce-reference
+    // row (backend persists both atomically). Never split, never drop.
+    if (resource != null) {
+      final commerceResult = await ref
+          .read(commentProvider.notifier)
+          .createCommerceReferenceComment(
+            contentId: widget.contentId,
+            resourceType: resource.resourceType.wireValue,
+            resourceId: resource.resourceId,
+            body: trimmed.isEmpty ? null : trimmed,
+            mediaUrls: mediaUrls,
+          );
+      if (!mounted) return commerceResult.isSuccess;
+      if (commerceResult.isSuccess) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Respons Penjual berhasil dikirim'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+        return true;
+      }
+      _showCommentError(commerceResult);
+      return false;
+    }
+
+    final result = await ref
+        .read(commentProvider.notifier)
+        .createComment(
+          targetId: widget.contentId,
+          targetType: CommentTargetType.content,
+          content: trimmed.isEmpty && hasMedia ? '' : body,
+          parentId: isReplying ? _replyingToComment!.id : null,
+          mediaUrls: mediaUrls,
+        );
 
     if (!mounted) return result.isSuccess;
 
@@ -345,11 +360,7 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            resource != null
-                ? 'Respons Penjual berhasil dikirim'
-                : isReplying
-                ? 'Balasan berhasil dikirim'
-                : 'Komentar berhasil dikirim',
+            isReplying ? 'Balasan berhasil dikirim' : 'Komentar berhasil dikirim',
           ),
           duration: const Duration(seconds: 2),
         ),
@@ -357,18 +368,24 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
       return true;
     }
 
-    if (result.errorCode == 'EMAIL_VERIFICATION_REQUIRED') {        AppSnackBar.showError(
-          context,
-          'Verifikasi email kamu diperlukan sebelum menulis komentar.',
-          duration: const Duration(seconds: 3),
-        );
-      return false;
-    }      AppSnackBar.showError(
+    _showCommentError(result);
+    return false;
+  }
+
+  void _showCommentError(Result<Comment> result) {
+    if (result.errorCode == 'EMAIL_VERIFICATION_REQUIRED') {
+      AppSnackBar.showError(
         context,
-        result.error ?? 'Gagal mengirim komentar',
+        'Verifikasi email kamu diperlukan sebelum menulis komentar.',
         duration: const Duration(seconds: 3),
       );
-    return false;
+      return;
+    }
+    AppSnackBar.showError(
+      context,
+      result.error ?? 'Gagal mengirim komentar',
+      duration: const Duration(seconds: 3),
+    );
   }
 
   Widget _buildEmptyState(BuildContext context) {
@@ -379,14 +396,14 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
         children: [
           Icon(
             Icons.comment_outlined,
-            size: 64,
+            size: AppIconSize.display,
             color: scheme.outline,
           ),
           const SizedBox(height: 16),
           Text(
             'Belum ada komentar',
             style: TextStyle(
-              fontSize: AppType.s18,
+              fontSize: AppType.s20,
               fontWeight: FontWeight.w500,
               color: scheme.onSurface,
             ),
@@ -407,12 +424,12 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.error_outline, size: 64, color: scheme.error),
+          Icon(Icons.error_outline, size: AppIconSize.display, color: scheme.error),
           const SizedBox(height: 16),
           Text(
             'Gagal memuat komentar',
             style: TextStyle(
-              fontSize: AppType.s18,
+              fontSize: AppType.s20,
               fontWeight: FontWeight.w500,
               color: scheme.onSurface,
             ),
@@ -471,13 +488,13 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.reply, size: 16, color: scheme.primary),
+                    Icon(Icons.reply, size: AppIconSize.inlineGlyph, color: scheme.primary),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Membalas @${_replyingToComment!.authorUsername}',
                         style: TextStyle(
-                          fontSize: AppType.s13,
+                          fontSize: AppType.s14,
                           color: scheme.primary,
                           fontWeight: FontWeight.w500,
                         ),
@@ -486,7 +503,7 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close, size: 18),
+                      icon: const Icon(Icons.close, size: AppIconSize.action),
                       onPressed: _cancelReply,
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
@@ -577,7 +594,7 @@ class _CommentsBatchWidget extends ConsumerWidget {
             child: Text(
               row.content,
               style: TextStyle(
-                fontSize: AppType.s13,
+                fontSize: AppType.s14,
                 color: scheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
@@ -797,7 +814,7 @@ class _CommentsBatchWidget extends ConsumerWidget {
             children: [
               Icon(
                 Icons.reply,
-                size: 16,
+                size: AppIconSize.inlineGlyph,
                 color: scheme.onSurfaceVariant,
               ),
               const SizedBox(width: 8),
@@ -930,7 +947,7 @@ class _ReplyLikeButton extends StatelessWidget {
           children: [
             Icon(
               isLiked ? Icons.favorite : Icons.favorite_border,
-              size: 14,
+              size: AppIconSize.inlineGlyph,
               color: isLiked ? scheme.error : scheme.onSurfaceVariant,
             ),
             if (likeCount != null) ...[

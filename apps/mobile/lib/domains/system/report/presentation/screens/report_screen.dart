@@ -49,7 +49,7 @@ class ReportScreen extends StatelessWidget {
           children: [
             Icon(
               Icons.report_outlined,
-              size: 64,
+              size: AppIconSize.display,
               color: Theme.of(context).colorScheme.primary,
             ),
             const SizedBox(height: 16),
@@ -73,7 +73,7 @@ class ReportScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        icon: Icon(Icons.error_outline, color: context.statusColors.error, size: 48),
+        icon: Icon(Icons.error_outline, color: context.statusColors.error, size: AppIconSize.display),
         title: const Text('Invalid Report'),
         content: const Text(
           'Unable to load report information. Please use the report button from the content menu.',

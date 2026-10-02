@@ -15,6 +15,7 @@ import (
 	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
 	productInfraRepo "github.com/labuda/backend/internal/commerce/product/infrastructure/repository"
 	productRepo "github.com/labuda/backend/internal/commerce/product/repository"
+	commerceshared "github.com/labuda/backend/internal/commerce/shared"
 	shippingApp "github.com/labuda/backend/internal/commerce/shipping/application"
 	shippingRepo "github.com/labuda/backend/internal/commerce/shipping/infrastructure/repository"
 	shippingquoteRepo "github.com/labuda/backend/internal/commerce/shipping/quote/repository"
@@ -29,7 +30,7 @@ import (
 
 // ErrFarmAddressNotConfigured is returned when a for_sale is published without
 // a valid farm/sender address. The seller must set farm_address_id to an
-// address they own with purpose="sender" before publishing.
+// address they own that carries the "sender" tag before publishing.
 var ErrFarmAddressNotConfigured = errors.New("FARM_ADDRESS_NOT_CONFIGURED: for_sale requires a valid sender address before publishing")
 
 // ForSaleService handles for_sale business operations.
@@ -202,7 +203,7 @@ type CreateForSaleInput struct {
 	ProductID          *uuid.UUID
 	Title              string
 	Description        string
-	MediaURLs          []string
+	Media              []productEntity.ProductMedia
 	Variety            string
 	SizeCM             *int
 	AgeMonths          *int
@@ -221,7 +222,6 @@ type CreateForSaleInput struct {
 	ShippingSetupIDs []uuid.UUID
 	// Shipping readiness
 	PreparationTime entity.PreparationTime
-	PreparationNote *string
 }
 
 // Create creates a new for_sale that is IMMEDIATELY LIVE (status=active,
@@ -299,9 +299,9 @@ func (s *ForSaleService) Create(
 
 	// Product handling — Product is the sole persistence authority for content.
 	// Explicit split: mint a new Product or reuse an existing one, then attach ForSale.
-	mediaURLs := input.MediaURLs
+	mediaURLs := input.Media
 	if mediaURLs == nil {
-		mediaURLs = []string{}
+		mediaURLs = []productEntity.ProductMedia{}
 	}
 	certificates := input.Certificates
 	if certificates == nil {
@@ -337,7 +337,6 @@ func (s *ForSaleService) Create(
 			Certificates:    certificates,
 			FarmAddressID:   input.FarmAddressID,
 			PreparationTime: string(input.PreparationTime),
-			PreparationNote: input.PreparationNote,
 			SellingSurface:  productEntity.SellingSurfaceForSale,
 		}
 		if err := s.productRepo.Create(ctx, tx, product); err != nil {
@@ -425,7 +424,7 @@ type UpdateSellerInput struct {
 	Description        *string
 	Price              *int64
 	NegotiationEnabled *bool
-	MediaURLs          *[]string
+	Media              *[]productEntity.ProductMedia
 	Variety            *string
 	SizeCM             *int
 	AgeMonths          *int
@@ -434,7 +433,6 @@ type UpdateSellerInput struct {
 	Bloodline          *string
 	Certificates       *[]string
 	PreparationTime    *string
-	PreparationNote    *string
 }
 
 // UpdateSeller is the canonical seller-edit authority for ForSale.
@@ -471,7 +469,7 @@ func (s *ForSaleService) UpdateSeller(
 	patch := productEntity.ProductContentPatch{
 		Title:           input.Title,
 		Description:     input.Description,
-		MediaURLs:       input.MediaURLs,
+		MediaURLs:       input.Media,
 		Variety:         input.Variety,
 		SizeCM:          input.SizeCM,
 		AgeMonths:       input.AgeMonths,
@@ -480,7 +478,6 @@ func (s *ForSaleService) UpdateSeller(
 		Bloodline:       input.Bloodline,
 		Certificates:    input.Certificates,
 		PreparationTime: input.PreparationTime,
-		PreparationNote: input.PreparationNote,
 	}
 	if err := patch.Validate(); err != nil {
 		return nil, err
@@ -640,7 +637,7 @@ func (s *ForSaleService) EnsureShippingConfigured(
 //   - Product.FarmAddressID is set (not nil)
 //   - The referenced address exists
 //   - The address belongs to the seller (ownership)
-//   - The address has purpose="sender"
+//   - The address carries the "sender" tag
 //
 // Returns ErrFarmAddressNotConfigured (wrapped) so handlers can branch via
 // errors.Is and surface the FARM_ADDRESS_NOT_CONFIGURED error code.
@@ -662,11 +659,26 @@ func (s *ForSaleService) EnsureFarmAddressValid(
 		return fmt.Errorf("farm address does not belong to seller: %w", ErrFarmAddressNotConfigured)
 	}
 
-	if address.Purpose != addressEntity.AddressPurposeSender {
-		return fmt.Errorf("farm address must have purpose 'sender': %w", ErrFarmAddressNotConfigured)
+	if !address.HasTag(addressEntity.TagSender) {
+		return fmt.Errorf("farm address must carry the 'sender' tag: %w", ErrFarmAddressNotConfigured)
 	}
 
 	return nil
+}
+
+// PublicOriginLine returns the buyer-facing origin summary ("City, Province")
+// for a for_sale detail read. The rule itself lives once in
+// commerceshared.PublicListingOrigin (Product.FarmAddressID, seller fallback,
+// city+province only) so the for_sale and auction surfaces cannot drift.
+func (s *ForSaleService) PublicOriginLine(
+	ctx context.Context,
+	tx db.Tx,
+	for_sale *entity.ForSale,
+) string {
+	if for_sale == nil {
+		return ""
+	}
+	return commerceshared.PublicListingOrigin(ctx, tx, s.addressRepo, for_sale.Product)
 }
 
 // Publish publishes a for_sale from draft to active (market-visible).

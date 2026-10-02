@@ -80,14 +80,14 @@ class CanonicalPromotionListScreen extends ConsumerWidget {
           children: [
             Icon(
               Icons.campaign_outlined,
-              size: 64,
+              size: AppIconSize.display,
               color: Theme.of(context).colorScheme.outline,
             ),
             const SizedBox(height: 16),
             Text(
               'Belum ada promosi',
               style: TextStyle(
-                fontSize: AppType.s18,
+                fontSize: AppType.s20,
                 fontWeight: FontWeight.bold,
                 color: Theme.of(context).colorScheme.onSurface,
               ),
@@ -116,7 +116,7 @@ class CanonicalPromotionListScreen extends ConsumerWidget {
           children: [
             Icon(
               Icons.error_outline,
-              size: 64,
+              size: AppIconSize.display,
               color: Theme.of(context).colorScheme.primary,
             ),
             const SizedBox(height: 16),
@@ -241,7 +241,7 @@ class _PromotionListItemState extends ConsumerState<_PromotionListItem> {
   Widget build(BuildContext context) {
     final isNationwide = contract.cityIds.isEmpty;
     return Container(
-      padding: const EdgeInsets.all(AppMetrics.p14),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
@@ -291,7 +291,7 @@ class _PromotionListItemState extends ConsumerState<_PromotionListItem> {
                   RoutePaths.sellerCanonicalPromotionAnalyticsPath(contract.id),
                 );
               },
-              icon: const Icon(Icons.analytics_outlined, size: 18),
+              icon: const Icon(Icons.analytics_outlined, size: AppIconSize.action),
               label: const Text('Lihat Analitik'),
             ),
           ),

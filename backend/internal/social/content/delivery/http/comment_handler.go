@@ -75,11 +75,15 @@ type CreateCommentRequest struct {
 
 // CommentMediaRequest carries a presigned S3 media attachment for a comment.
 type CommentMediaRequest struct {
-	StorageKey string `json:"storage_key" binding:"required"`
-	MediaURL   string `json:"media_url" binding:"required"`
-	MediaType  string `json:"media_type" binding:"required,oneof=image video"`
-	Position   int    `json:"position"`
-	ByteSize   *int64 `json:"byte_size,omitempty"`
+	StorageKey string  `json:"storage_key" binding:"required"`
+	MediaURL   string  `json:"media_url" binding:"required"`
+	MediaType  string  `json:"media_type" binding:"required,oneof=image video"`
+	Position   int     `json:"position"`
+	ByteSize   *int64  `json:"byte_size,omitempty"`
+	Blurhash   *string `json:"blurhash,omitempty"`
+	DurationMs *int    `json:"duration_ms,omitempty"`
+	Width      *int    `json:"width,omitempty"`
+	Height     *int    `json:"height,omitempty"`
 }
 
 // CreateComment handles POST /api/v1/contents/{id}/comments
@@ -161,12 +165,32 @@ func (h *CommentHandler) CreateComment(c *gin.Context) {
 			response.BadRequest(c, "storage_key and media_url required")
 			return
 		}
+		if m.Width != nil && *m.Width <= 0 {
+			response.BadRequest(c, "width must be positive when provided")
+			return
+		}
+		if m.Height != nil && *m.Height <= 0 {
+			response.BadRequest(c, "height must be positive when provided")
+			return
+		}
+		if m.DurationMs != nil && *m.DurationMs < 0 {
+			response.BadRequest(c, "duration_ms must be non-negative when provided")
+			return
+		}
+		if mt == entity.MediaTypeVideo && m.DurationMs != nil && *m.DurationMs == 0 {
+			response.BadRequest(c, "video duration_ms must be positive when provided")
+			return
+		}
 		mediaInputs = append(mediaInputs, contentApp.CommentMediaInput{
 			StorageKey: m.StorageKey,
 			MediaURL:   m.MediaURL,
 			MediaType:  mt,
 			Position:   i,
 			ByteSize:   m.ByteSize,
+			Blurhash:   m.Blurhash,
+			DurationMs: m.DurationMs,
+			Width:      m.Width,
+			Height:     m.Height,
 		})
 	}
 
@@ -808,10 +832,12 @@ func applyCommentBlockFilter(comments []*entity.Comment, blockedSet map[uuid.UUI
 }
 
 // CreateCommerceReferenceCommentRequest holds the request body for creating a
-// commerce reference comment.
+// commerce reference comment. Media is optional: a product share may carry
+// foto+video on the same row (one tap = one comment).
 type CreateCommerceReferenceCommentRequest struct {
 	ResourceReference *CreateCommerceReferenceRequest `json:"resource_reference" binding:"required"`
 	Body              string                          `json:"body,omitempty"`
+	Media             []CommentMediaRequest           `json:"media,omitempty"`
 }
 
 // CreateCommerceReferenceRequest carries the typed commerce identity.
@@ -890,11 +916,57 @@ func (h *CommentHandler) CreateCommerceReferenceComment(c *gin.Context) {
 		return
 	}
 
+	// Validate media: same foto+video 5 max (4 image +1 video) as normal comments.
+	if len(req.Media) > 5 {
+		response.BadRequest(c, "max 5 media per comment")
+		return
+	}
+	mediaInputs := make([]contentApp.CommentMediaInput, 0, len(req.Media))
+	for i, m := range req.Media {
+		mt := entity.MediaType(m.MediaType)
+		if mt != entity.MediaTypeImage && mt != entity.MediaTypeVideo {
+			response.BadRequest(c, "invalid media_type")
+			return
+		}
+		if m.StorageKey == "" || m.MediaURL == "" {
+			response.BadRequest(c, "storage_key and media_url required")
+			return
+		}
+		if m.Width != nil && *m.Width <= 0 {
+			response.BadRequest(c, "width must be positive when provided")
+			return
+		}
+		if m.Height != nil && *m.Height <= 0 {
+			response.BadRequest(c, "height must be positive when provided")
+			return
+		}
+		if m.DurationMs != nil && *m.DurationMs < 0 {
+			response.BadRequest(c, "duration_ms must be non-negative when provided")
+			return
+		}
+		if mt == entity.MediaTypeVideo && m.DurationMs != nil && *m.DurationMs == 0 {
+			response.BadRequest(c, "video duration_ms must be positive when provided")
+			return
+		}
+		mediaInputs = append(mediaInputs, contentApp.CommentMediaInput{
+			StorageKey: m.StorageKey,
+			MediaURL:   m.MediaURL,
+			MediaType:  mt,
+			Position:   i,
+			ByteSize:   m.ByteSize,
+			Blurhash:   m.Blurhash,
+			DurationMs: m.DurationMs,
+			Width:      m.Width,
+			Height:     m.Height,
+		})
+	}
+
 	// Prepare input with canonical commerce identity.
 	input := contentApp.CommerceReferenceInput{
 		TargetID:     contentID,
 		ResourceType: resourceType,
 		ResourceID:   resourceID,
+		Media:        mediaInputs,
 	}
 
 	// Add optional body

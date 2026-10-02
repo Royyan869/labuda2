@@ -83,7 +83,7 @@ func TestActivationShipping_ValidCoverage_Activates(t *testing.T) {
 	require.NoError(t, dbWrap.WithTx(ctx, func(tx db.Tx) error {
 		sellerID = seedRevalidationUser(t, ctx, tx)
 		productID = uuid.New()
-		_, err := tx.Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, created_at, updated_at) VALUES ($1,$2,'Koi','desc','[]','kohaku','immediate',NOW(),NOW())`, productID, sellerID)
+		_, err := tx.Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, created_at, updated_at) VALUES ($1,$2,'Koi','desc','[]','kohaku','1_3_days',NOW(),NOW())`, productID, sellerID)
 		return err
 	}))
 	seedShippingValidForAuction(t, ctx, tdb, sellerID, productID)
@@ -118,7 +118,7 @@ func TestActivationShipping_InvalidCoverage_Skipped(t *testing.T) {
 	require.NoError(t, dbWrap.WithTx(ctx, func(tx db.Tx) error {
 		sellerID = seedRevalidationUser(t, ctx, tx)
 		productID = uuid.New()
-		_, err := tx.Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, created_at, updated_at) VALUES ($1,$2,'Koi','desc','[]','kohaku','immediate',NOW(),NOW())`, productID, sellerID)
+		_, err := tx.Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, created_at, updated_at) VALUES ($1,$2,'Koi','desc','[]','kohaku','1_3_days',NOW(),NOW())`, productID, sellerID)
 		return err
 	}))
 	optionID = seedShippingValidForAuction(t, ctx, tdb, sellerID, productID)
@@ -173,7 +173,7 @@ func TestActivationShipping_RestoredCoverage_Activates(t *testing.T) {
 	require.NoError(t, dbWrap.WithTx(ctx, func(tx db.Tx) error {
 		sellerID = seedRevalidationUser(t, ctx, tx)
 		productID = uuid.New()
-		_, err := tx.Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, created_at, updated_at) VALUES ($1,$2,'Koi','desc','[]','kohaku','immediate',NOW(),NOW())`, productID, sellerID)
+		_, err := tx.Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, created_at, updated_at) VALUES ($1,$2,'Koi','desc','[]','kohaku','1_3_days',NOW(),NOW())`, productID, sellerID)
 		return err
 	}))
 	optionID = seedShippingValidForAuction(t, ctx, tdb, sellerID, productID)
@@ -220,7 +220,7 @@ func TestActivationShipping_GuardsRemainIntact(t *testing.T) {
 	require.NoError(t, dbWrap.WithTx(ctx, func(tx db.Tx) error {
 		sellerID = seedRevalidationUser(t, ctx, tx)
 		productID = uuid.New()
-		_, err := tx.Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, created_at, updated_at) VALUES ($1,$2,'Koi','desc','[]','kohaku','immediate',NOW(),NOW())`, productID, sellerID)
+		_, err := tx.Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, created_at, updated_at) VALUES ($1,$2,'Koi','desc','[]','kohaku','1_3_days',NOW(),NOW())`, productID, sellerID)
 		return err
 	}))
 	seedShippingValidForAuction(t, ctx, tdb, sellerID, productID)
@@ -239,7 +239,7 @@ func TestActivationShipping_GuardsRemainIntact(t *testing.T) {
 
 	// Cancelled -> no activation (cancellation guard) - use fresh product to avoid uniq_active_auction_per_product
 	cancelProductID := uuid.New()
-	_, err := pool.Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, created_at, updated_at) VALUES ($1,$2,'Koi2','desc','[]','kohaku','immediate',NOW(),NOW())`, cancelProductID, sellerID)
+	_, err := pool.Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, created_at, updated_at) VALUES ($1,$2,'Koi2','desc','[]','kohaku','1_3_days',NOW(),NOW())`, cancelProductID, sellerID)
 	require.NoError(t, err)
 	seedShippingValidForAuction(t, ctx, tdb, sellerID, cancelProductID)
 	startPast := time.Now().Add(-10 * time.Second)
@@ -268,7 +268,7 @@ func TestActivationShipping_GuardsRemainIntact(t *testing.T) {
 		zap.NewNop(),
 	)
 	noCapProductID := uuid.New()
-	_, err = pool.Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, created_at, updated_at) VALUES ($1,$2,'Koi3','desc','[]','kohaku','immediate',NOW(),NOW())`, noCapProductID, sellerID)
+	_, err = pool.Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, created_at, updated_at) VALUES ($1,$2,'Koi3','desc','[]','kohaku','1_3_days',NOW(),NOW())`, noCapProductID, sellerID)
 	require.NoError(t, err)
 	seedShippingValidForAuction(t, ctx, tdb, sellerID, noCapProductID)
 	auctionNoCap := seedRevalidationAuction(t, ctx, tdb, sellerID, noCapProductID, entity.StatusScheduled, startPast, end, nil, nil)
@@ -292,7 +292,7 @@ func TestActivationShipping_FailClosed_MissingDependency(t *testing.T) {
 	require.NoError(t, dbWrap.WithTx(ctx, func(tx db.Tx) error {
 		sellerID = seedRevalidationUser(t, ctx, tx)
 		productID = uuid.New()
-		_, err := tx.Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, created_at, updated_at) VALUES ($1,$2,'Koi','desc','[]','kohaku','immediate',NOW(),NOW())`, productID, sellerID)
+		_, err := tx.Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, created_at, updated_at) VALUES ($1,$2,'Koi','desc','[]','kohaku','1_3_days',NOW(),NOW())`, productID, sellerID)
 		return err
 	}))
 	seedShippingValidForAuction(t, ctx, tdb, sellerID, productID)

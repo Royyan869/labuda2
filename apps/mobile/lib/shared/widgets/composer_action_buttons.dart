@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Canonical composer action-row buttons.
 ///
@@ -23,7 +24,7 @@ class ComposerAddButton extends StatelessWidget {
     return IconButton(
       onPressed: onPressed,
       tooltip: 'Tambah lampiran',
-      icon: Icon(Icons.add_circle, color: scheme.primary, size: 28),
+      icon: Icon(Icons.add_circle, color: scheme.primary, size: AppIconSize.emphasis),
     );
   }
 }

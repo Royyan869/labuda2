@@ -57,6 +57,10 @@ func InferMediaType(reference string) MediaType {
 }
 
 // Media represents an ordered commerce media asset.
+//
+// Status carries the processing state (processing|ready|failed) when the
+// value object is hydrated from a persisted ProductMedia slot; validation
+// constructors leave it empty (wire overlays handle the default).
 type Media struct {
 	ID           uuid.UUID
 	URL          string
@@ -64,9 +68,11 @@ type Media struct {
 	Position     int
 	CreatedAt    time.Time
 	ThumbnailURL *string
+	Blurhash     *string
 	Width        *int
 	Height       *int
 	Duration     *int
+	Status       string
 }
 
 // NewMedia creates a validated media value object.

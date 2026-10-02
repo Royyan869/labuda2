@@ -48,8 +48,6 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Penghasilan'),
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Theme.of(context).colorScheme.onPrimary,
       ),
       body: earningsAsync.when(
         data: (earnings) => _buildEarningsContent(earnings, sellerId),
@@ -184,7 +182,7 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
                   color: color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppShape.r12),
                 ),
-                child: Icon(icon, color: color, size: 24),
+                child: Icon(icon, color: color, size: AppIconSize.header),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -210,7 +208,7 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
                     Text(
                       subtitle,
                       style: TextStyle(
-                        fontSize: AppType.s10,
+                        fontSize: AppType.s12,
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
@@ -220,7 +218,7 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
               if (onTap != null)
                 Icon(
                   Icons.arrow_forward_ios,
-                  size: 16,
+                  size: AppIconSize.inlineGlyph,
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
             ],
@@ -242,7 +240,7 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
               children: [
                 Icon(
                   Icons.info_outline,
-                  size: 20,
+                  size: AppIconSize.action,
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
                 const SizedBox(width: 8),
@@ -294,7 +292,7 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
               Icon(
                 Icons.account_balance,
                 color: Theme.of(context).colorScheme.primary,
-                size: 24,
+                size: AppIconSize.header,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -322,7 +320,7 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
               ),
               Icon(
                 Icons.arrow_forward_ios,
-                size: 16,
+                size: AppIconSize.inlineGlyph,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ],
@@ -414,7 +412,7 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
           children: [
             Icon(
               Icons.error_outline,
-              size: 64,
+              size: AppIconSize.display,
               color: Theme.of(context).colorScheme.error,
             ),
             const SizedBox(height: 16),
@@ -509,7 +507,7 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
         children: [
           Row(
             children: [
-              Icon(Icons.help_outline, color: scheme.secondary, size: 20),
+              Icon(Icons.help_outline, color: scheme.secondary, size: AppIconSize.action),
               const SizedBox(width: 8),
               Text(
                 'Butuh Bantuan Penarikan?',
@@ -542,7 +540,7 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
                       ),
                     );
                   },
-                  icon: const Icon(Icons.article_outlined, size: 16),
+                  icon: const Icon(Icons.article_outlined, size: AppIconSize.inlineGlyph),
                   label: const Text('Panduan Penarikan'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: scheme.secondary,
@@ -567,7 +565,7 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
                           );
                         }
                       : null,
-                  icon: const Icon(Icons.support_agent, size: 16),
+                  icon: const Icon(Icons.support_agent, size: AppIconSize.inlineGlyph),
                   label: const Text('Hubungi Support'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: scheme.secondary,
@@ -609,7 +607,7 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
                   children: [
                     Icon(
                       Icons.history,
-                      size: 20,
+                      size: AppIconSize.action,
                       color: scheme.onSurfaceVariant,
                     ),
                     const SizedBox(width: 8),
@@ -642,7 +640,7 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
                         children: [
                           Icon(
                             Icons.receipt_long_outlined,
-                            size: 48,
+                            size: AppIconSize.display,
                             color: scheme.onSurfaceVariant,
                           ),
                           const SizedBox(height: 12),
@@ -739,7 +737,7 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
               children: [
                 Icon(
                   Icons.calendar_today,
-                  size: 14,
+                  size: AppIconSize.inlineGlyph,
                   color: scheme.onSurfaceVariant,
                 ),
                 const SizedBox(width: 4),
@@ -754,7 +752,7 @@ class _SellerEarningsScreenState extends ConsumerState<SellerEarningsScreen> {
                   const SizedBox(width: 16),
                   Icon(
                     Icons.account_balance,
-                    size: 14,
+                    size: AppIconSize.inlineGlyph,
                     color: scheme.onSurfaceVariant,
                   ),
                   const SizedBox(width: 4),

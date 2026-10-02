@@ -277,7 +277,6 @@ void main() {
       await tester.pumpAndSettle();
     });
 
-
     testWidgets('HTTP 400 keeps the setup page open with the draft intact', (
       tester,
     ) async {
@@ -358,7 +357,9 @@ void main() {
       expect(find.text('Atur Pengiriman'), findsOneWidget);
     });
 
-    testWidgets('single Simpan action — no duplicate body Save', (tester) async {
+    testWidgets('single Simpan action — no duplicate body Save', (
+      tester,
+    ) async {
       final repo = _FakeShippingRepository();
       await tester.pumpWidget(
         _wrapApp(
@@ -430,7 +431,9 @@ void main() {
       await tester.enterText(textFields.at(0), 'KRT');
 
       // Fill the existing first coverage province + tariff so validation passes
-      final provinceDropdown = find.byType(DropdownButtonFormField<Province>).first;
+      final provinceDropdown = find
+          .byType(DropdownButtonFormField<Province>)
+          .first;
       await tester.ensureVisible(provinceDropdown);
       await tester.tap(provinceDropdown);
       await tester.pumpAndSettle();
@@ -452,17 +455,13 @@ void main() {
       expect(find.byType(ShippingSetupScreen), findsOneWidget);
       // Localized error, not raw Go text
       expect(
-        find.text('Format tarif tidak valid. Periksa kembali tarif provinsi dan kota.'),
+        find.text(
+          'Format tarif tidak valid. Periksa kembali tarif provinsi dan kota.',
+        ),
         findsOneWidget,
       );
-      expect(
-        find.textContaining('json:'),
-        findsNothing,
-      );
-      expect(
-        find.textContaining('int64'),
-        findsNothing,
-      );
+      expect(find.textContaining('json:'), findsNothing);
+      expect(find.textContaining('int64'), findsNothing);
     });
   });
 
@@ -591,7 +590,9 @@ void main() {
       expect(find.text('Tambah Opsi Pengiriman'), findsOneWidget);
     });
 
-    testWidgets('Tambah Opsi opens create bottom sheet from list', (tester) async {
+    testWidgets('Tambah Opsi opens create bottom sheet from list', (
+      tester,
+    ) async {
       final repo = _FakeShippingRepository();
       await tester.pumpWidget(
         _wrapApp(
@@ -616,7 +617,7 @@ void main() {
     });
   });
 
-  group('ForSale/Auction direct-add routing', () {
+  group('ForSale/Auction shipping-option add routing', () {
     testWidgets('Create ForSale selector empty state shows management CTA', (
       tester,
     ) async {
@@ -627,9 +628,7 @@ void main() {
           repo: repo,
           child: Builder(
             builder: (context) => Scaffold(
-              body: SellerShippingSetupsSelector(
-                onSelectionChanged: (_) {},
-              ),
+              body: SellerShippingSetupsSelector(onSelectionChanged: (_) {}),
             ),
           ),
         ),
@@ -646,40 +645,73 @@ void main() {
       expect(find.byType(SellerShippingScreen), findsOneWidget);
     });
 
-    testWidgets('Create Auction selector populated shows chips not add button', (tester) async {
-      final repo = _FakeShippingRepository();
-      repo.activeOptions = [
-        ShippingSetup(
-          id: 'ship-1',
-          name: 'Bus Kencana',
-          type: ShippingType.bus,
-          coverageAreas: const [],
-          isActive: true,
-          createdAt: DateTime.utc(2026, 7, 25),
-          updatedAt: DateTime.utc(2026, 7, 25),
-        ),
-      ];
-      await tester.pumpWidget(
-        _wrapApp(
-          initialLocation: '/',
-          repo: repo,
-          child: Builder(
-            builder: (context) => Scaffold(
-              body: SellerShippingSetupsSelector(
-                onSelectionChanged: (_) {},
+    testWidgets(
+      'Create Auction selector populated keeps exactly one add affordance and refreshes after management',
+      (tester) async {
+        final repo = _FakeShippingRepository();
+        repo.activeOptions = [
+          ShippingSetup(
+            id: 'ship-1',
+            name: 'Bus Kencana',
+            type: ShippingType.bus,
+            coverageAreas: const [],
+            isActive: true,
+            createdAt: DateTime.utc(2026, 7, 25),
+            updatedAt: DateTime.utc(2026, 7, 25),
+          ),
+        ];
+        await tester.pumpWidget(
+          _wrapApp(
+            initialLocation: '/',
+            repo: repo,
+            child: Builder(
+              builder: (context) => Scaffold(
+                body: SellerShippingSetupsSelector(onSelectionChanged: (_) {}),
               ),
             ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      // Populated selector shows FilterChip for each option
-      expect(find.byType(FilterChip), findsOneWidget);
-      expect(find.textContaining('Bus Kencana'), findsOneWidget);
-      // No "add" button when options exist
-      expect(find.text('Tambah opsi pengiriman'), findsNothing);
-    });
+        // Populated selector shows FilterChip for each active option.
+        expect(find.byType(FilterChip), findsOneWidget);
+        expect(find.textContaining('Bus Kencana'), findsOneWidget);
+
+        // CANONICAL: the seller can still add another option while one is
+        // already active — exactly ONE affordance, never a duplicate.
+        expect(find.text('Atur Pengiriman'), findsOneWidget);
+
+        // Killed wording must not come back (owner-locked terminology).
+        expect(find.text('Tambah opsi pengiriman'), findsNothing);
+        expect(find.text('Buat opsi pengiriman'), findsNothing);
+
+        // The seller authors a SECOND option in the management surface.
+        repo.activeOptions = [
+          ...repo.activeOptions,
+          ShippingSetup(
+            id: 'ship-2',
+            name: 'JNE Reguler',
+            type: ShippingType.custom,
+            coverageAreas: const [],
+            isActive: true,
+            createdAt: DateTime.utc(2026, 7, 25),
+            updatedAt: DateTime.utc(2026, 7, 25),
+          ),
+        ];
+
+        await tester.tap(find.text('Atur Pengiriman'));
+        await tester.pumpAndSettle();
+        expect(find.byType(SellerShippingScreen), findsOneWidget);
+
+        // Returning re-fetches the active list: the new option is selectable
+        // on the create surface instead of the stale initState snapshot.
+        await tester.tap(find.byType(BackButton));
+        await tester.pumpAndSettle();
+        expect(find.byType(FilterChip), findsNWidgets(2));
+        expect(find.textContaining('JNE Reguler'), findsOneWidget);
+        expect(find.text('Atur Pengiriman'), findsOneWidget);
+      },
+    );
   });
 
   group('ShippingSetupScreen edit mode', () {

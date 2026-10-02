@@ -42,7 +42,7 @@ type BlockChecker interface {
 // GetNegotiation can later find it by that same room.
 type StartNegotiationRequest struct {
 	ResourceType           negotiationEntity.NegotiationResourceType
-	ForSaleID       uuid.UUID
+	ForSaleID              uuid.UUID
 	BuyerID                uuid.UUID
 	InitialPrice           int64
 	Note                   string
@@ -61,13 +61,18 @@ type SendCounterOfferRequest struct {
 // AcceptNegotiationRequest contains the parameters for accepting a negotiation.
 type AcceptNegotiationRequest struct {
 	SessionID uuid.UUID
-	SellerID  uuid.UUID
+	// ActorID is the RESPONDING participant (buyer or seller). Owner truth:
+	// both sides hold Terima — authorization is PARTICIPATION; turn order is
+	// a UI concern.
+	ActorID uuid.UUID
 }
 
 // CancelNegotiationRequest contains the parameters for cancelling a negotiation.
 type CancelNegotiationRequest struct {
 	SessionID uuid.UUID
-	BuyerID   uuid.UUID
+	// ActorID is the RESPONDING participant (buyer or seller). Owner truth:
+	// Tolak is available to both sides — authorization is PARTICIPATION.
+	ActorID uuid.UUID
 }
 
 // NegotiationService handles negotiation business logic with proper locking and validation.
@@ -87,13 +92,13 @@ type CancelNegotiationRequest struct {
 // - negotiation.message_sent event triggers proposal messages
 // - No direct chat service dependencies
 type NegotiationService struct {
-	db                 *db.DB
-	negotiationRepo    negotiationRepo.Repository
-	forSaleRepo forSaleRepo.ForSaleRepository
-	outboxRepo         *outboxRepo.OutboxRepository
-	statusChecker      AccountStatusChecker // Account status enforcement (service-layer authority)
-	blockChecker       BlockChecker         // Block enforcement: denies new negotiation when block exists
-	log                *zap.Logger
+	db              *db.DB
+	negotiationRepo negotiationRepo.Repository
+	forSaleRepo     forSaleRepo.ForSaleRepository
+	outboxRepo      *outboxRepo.OutboxRepository
+	statusChecker   AccountStatusChecker // Account status enforcement (service-layer authority)
+	blockChecker    BlockChecker         // Block enforcement: denies new negotiation when block exists
+	log             *zap.Logger
 }
 
 // NewNegotiationService creates a new NegotiationService.
@@ -110,13 +115,13 @@ func NewNegotiationService(
 	}
 
 	return &NegotiationService{
-		db:                 db,
-		negotiationRepo:    negotiationImpl.NewNegotiationRepository(),
-		forSaleRepo: forSaleRepo,
-		outboxRepo:         outboxRepo,
-		statusChecker:      statusChecker,
-		blockChecker:       blockChecker,
-		log:                log,
+		db:              db,
+		negotiationRepo: negotiationImpl.NewNegotiationRepository(),
+		forSaleRepo:     forSaleRepo,
+		outboxRepo:      outboxRepo,
+		statusChecker:   statusChecker,
+		blockChecker:    blockChecker,
+		log:             log,
 	}
 }
 
@@ -151,14 +156,14 @@ func (s *NegotiationService) EnsureParticipantsActive(ctx context.Context, sessi
 // EMITS: negotiation.started event (non-financial, for chat attachment)
 //
 // NEGOTIATION → CHAT UNIFICATION (PASS_7B):
-// - chat_room_id is set on the session directly from the caller-supplied,
-//   participant-validated RoomID (see StartNegotiationRequest) — this is
-//   the same room GetNegotiation later looks it up by.
-// - The chat-domain consumer (NegotiationEventHandler) still separately
-//   creates/resolves a room_type=negotiation room and posts the initial
-//   proposal message there; that room is independent of chat_room_id and
-//   is out of scope for this fix (see PASS_7B report, remaining findings).
-// - No direct chatRepo usage in this service.
+//   - chat_room_id is set on the session directly from the caller-supplied,
+//     participant-validated RoomID (see StartNegotiationRequest) — this is
+//     the same room GetNegotiation later looks it up by.
+//   - The chat-domain consumer (NegotiationEventHandler) still separately
+//     creates/resolves a room_type=negotiation room and posts the initial
+//     proposal message there; that room is independent of chat_room_id and
+//     is out of scope for this fix (see PASS_7B report, remaining findings).
+//   - No direct chatRepo usage in this service.
 func (s *NegotiationService) StartNegotiation(
 	ctx context.Context,
 	req StartNegotiationRequest,
@@ -231,22 +236,22 @@ func (s *NegotiationService) StartNegotiation(
 		forSaleLocked, lockErr := s.forSaleRepo.GetForUpdate(ctx, tx, req.ForSaleID)
 		if lockErr != nil {
 			return &ErrResourceNotFound{
-				ResourceType:     req.ResourceType,
-				ForSaleID: req.ForSaleID,
+				ResourceType: req.ResourceType,
+				ForSaleID:    req.ForSaleID,
 			}
 		}
 		if forSaleLocked.Status != forSaleEntity.ForSaleStatusActive || !forSaleLocked.IsAvailable() {
 			return &ErrResourceNotNegotiable{
-				ResourceType:     req.ResourceType,
-				ForSaleID: req.ForSaleID,
-				Reason:           fmt.Sprintf("fixed-price sale status is %s, not active/available", forSaleLocked.Status),
+				ResourceType: req.ResourceType,
+				ForSaleID:    req.ForSaleID,
+				Reason:       fmt.Sprintf("fixed-price sale status is %s, not active/available", forSaleLocked.Status),
 			}
 		}
 		if !forSaleLocked.NegotiationEnabled {
 			return &ErrResourceNotNegotiable{
-				ResourceType:     req.ResourceType,
-				ForSaleID: req.ForSaleID,
-				Reason:           "negotiation is disabled for this fixed-price sale",
+				ResourceType: req.ResourceType,
+				ForSaleID:    req.ForSaleID,
+				Reason:       "negotiation is disabled for this fixed-price sale",
 			}
 		}
 
@@ -257,9 +262,9 @@ func (s *NegotiationService) StartNegotiation(
 		}
 		if existingSession != nil {
 			return &ErrActiveSessionExists{
-				SessionID:        existingSession.ID,
+				SessionID: existingSession.ID,
 				ForSaleID: req.ForSaleID,
-				BuyerID:          req.BuyerID,
+				BuyerID:   req.BuyerID,
 			}
 		}
 
@@ -279,7 +284,7 @@ func (s *NegotiationService) StartNegotiation(
 			if isNegotiationActiveSlotUniqueViolation(err) {
 				return &ErrActiveSessionExists{
 					ForSaleID: req.ForSaleID,
-					BuyerID:          req.BuyerID,
+					BuyerID:   req.BuyerID,
 				}
 			}
 			return fmt.Errorf("failed to create negotiation session: %w", err)
@@ -375,7 +380,14 @@ func (s *NegotiationService) StartNegotiation(
 func (s *NegotiationService) SendCounterOffer(
 	ctx context.Context,
 	req SendCounterOfferRequest,
-) error {
+) (*negotiationEntity.NegotiationSession, error) {
+	// THE COMMAND'S RESULT IS THE COMMITTED SESSION. Returning only an error
+	// forced the HTTP layer to answer {"message":"Counter offer sent"}, and the
+	// mobile counter flow then parsed data.id as null — "Failed to counter
+	// offer: type 'Null'" — while the counter had ALREADY committed. The client
+	// never refreshed its turn state, so the same side could counter twice and
+	// invert the proposal_sequence parity the buyer's CTA is derived from.
+	var committed *negotiationEntity.NegotiationSession
 	err := s.db.WithTx(ctx, func(tx db.Tx) error {
 		// N8-D: Canonical lock order is for_sale FOR UPDATE → negotiation FOR UPDATE
 		// to match CreateFromSaleSurface and avoid deadlock. We need ForSaleID
@@ -388,22 +400,22 @@ func (s *NegotiationService) SendCounterOffer(
 		forSaleLocked, forSaleErr := s.forSaleRepo.GetForUpdate(ctx, tx, peek.ForSaleID)
 		if forSaleErr != nil {
 			return &ErrResourceNotFound{
-				ResourceType:     negotiationEntity.NegotiationResourceForSale,
-				ForSaleID: peek.ForSaleID,
+				ResourceType: negotiationEntity.NegotiationResourceForSale,
+				ForSaleID:    peek.ForSaleID,
 			}
 		}
 		if forSaleLocked.Status != forSaleEntity.ForSaleStatusActive || !forSaleLocked.IsAvailable() {
 			return &ErrResourceNotNegotiable{
-				ResourceType:     negotiationEntity.NegotiationResourceForSale,
-				ForSaleID: peek.ForSaleID,
-				Reason:           fmt.Sprintf("fixed-price sale status is %s, not active/available", forSaleLocked.Status),
+				ResourceType: negotiationEntity.NegotiationResourceForSale,
+				ForSaleID:    peek.ForSaleID,
+				Reason:       fmt.Sprintf("fixed-price sale status is %s, not active/available", forSaleLocked.Status),
 			}
 		}
 		if !forSaleLocked.NegotiationEnabled {
 			return &ErrResourceNotNegotiable{
-				ResourceType:     negotiationEntity.NegotiationResourceForSale,
-				ForSaleID: peek.ForSaleID,
-				Reason:           "negotiation is disabled for this fixed-price sale",
+				ResourceType: negotiationEntity.NegotiationResourceForSale,
+				ForSaleID:    peek.ForSaleID,
+				Reason:       "negotiation is disabled for this fixed-price sale",
 			}
 		}
 
@@ -443,6 +455,20 @@ func (s *NegotiationService) SendCounterOffer(
 			}
 		}
 
+		// Step 3.5: TURN AUTHORITY (server-side).
+		//
+		// Alternating counter is a BUSINESS RULE, so it is enforced here and
+		// never derived by a client from proposal_sequence parity: a double
+		// counter by one side inverted that parity and disabled the CTA of the
+		// party that was actually owed a response.
+		history, histErr := s.negotiationRepo.GetPriceHistoryBySession(ctx, tx, session.ID)
+		if histErr != nil {
+			return fmt.Errorf("failed to read price history for turn check: %w", histErr)
+		}
+		if counterTurnDenied(history, req.SenderID) {
+			return &ErrNotYourTurn{SessionID: session.ID, UserID: req.SenderID}
+		}
+
 		// Step 4: Update current_price with validation (authoritative source)
 		// This will validate price > 0, price not absurd, and increment proposal_sequence
 		oldPrice := session.CurrentPrice
@@ -470,9 +496,13 @@ func (s *NegotiationService) SendCounterOffer(
 
 		// Step 7: Emit negotiation.message_sent event (NON-FINANCIAL)
 		// chat_room_id is included so the notification worker can deeplink to the chat.
+		// resource_type/resource_id let the chat consumer build a proposal
+		// attachment with full product identity (same shape as negotiation.started).
 		payload := fmt.Sprintf(`{
 			"session_id":"%s",
 			"chat_room_id":"%s",
+			"resource_type":"%s",
+			"resource_id":"%s",
 			"buyer_id":"%s",
 			"seller_id":"%s",
 			"sender_id":"%s",
@@ -481,6 +511,8 @@ func (s *NegotiationService) SendCounterOffer(
 		}`,
 			req.SessionID,
 			negotiationChatRoomIDStr(session.ChatRoomID),
+			session.ResourceType,
+			session.ForSaleID,
 			session.BuyerID,
 			session.SellerID,
 			req.SenderID,
@@ -488,11 +520,16 @@ func (s *NegotiationService) SendCounterOffer(
 			session.ProposalSequence,
 		)
 
-		if err := s.outboxRepo.InsertEvent(
+		if err := s.outboxRepo.InsertEventWithSuffix(
 			ctx, tx,
 			"negotiation.message_sent",
 			req.SessionID,
 			[]byte(payload),
+			// ONE KEY PER PROPOSAL: this event legitimately repeats on the same
+			// session (every counter). The bare per-session key made ON CONFLICT
+			// DO NOTHING drop every counter after the first — history advanced,
+			// chat never saw the proposal.
+			fmt.Sprintf("%d", session.ProposalSequence),
 		); err != nil {
 			return fmt.Errorf("failed to insert outbox event: %w", err)
 		}
@@ -504,14 +541,22 @@ func (s *NegotiationService) SendCounterOffer(
 			zap.Int64("proposal_sequence", session.ProposalSequence),
 		)
 
+		committed = session
 		return nil
 	})
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return committed, nil
+}
+
+// counterTurnDenied reports whether senderID already made the LAST price
+// change (history is newest-first). Pure so the turn rule has a proof that
+// needs no database.
+func counterTurnDenied(history []*negotiationEntity.NegotiationPriceHistory, senderID uuid.UUID) bool {
+	return len(history) > 0 && history[0].ChangedByUserID == senderID
 }
 
 // AcceptNegotiation accepts the current price proposal.
@@ -519,10 +564,12 @@ func (s *NegotiationService) SendCounterOffer(
 // TRANSACTION: All operations happen within a single transaction.
 // VALIDATION:
 //   - Session exists and is active
-//   - Only seller can accept
+//   - Actor is a buyer or seller participant (both sides may accept)
 //   - Session is not expired
 //   - current_price must be set and valid
 //   - current_price consistency check (defensive)
+//
+// DEAL VALIDITY: accept refreshes ExpiresAt to accept+24h (owner truth).
 //
 // PRICE SECURITY HARDENING:
 // - Validates current_price before acceptance
@@ -546,22 +593,22 @@ func (s *NegotiationService) AcceptNegotiation(
 		forSaleLocked, forSaleErr := s.forSaleRepo.GetForUpdate(ctx, tx, peek.ForSaleID)
 		if forSaleErr != nil {
 			return &ErrResourceNotFound{
-				ResourceType:     negotiationEntity.NegotiationResourceForSale,
-				ForSaleID: peek.ForSaleID,
+				ResourceType: negotiationEntity.NegotiationResourceForSale,
+				ForSaleID:    peek.ForSaleID,
 			}
 		}
 		if forSaleLocked.Status != forSaleEntity.ForSaleStatusActive || !forSaleLocked.IsAvailable() {
 			return &ErrResourceNotNegotiable{
-				ResourceType:     negotiationEntity.NegotiationResourceForSale,
-				ForSaleID: peek.ForSaleID,
-				Reason:           fmt.Sprintf("fixed-price sale status is %s, not active/available", forSaleLocked.Status),
+				ResourceType: negotiationEntity.NegotiationResourceForSale,
+				ForSaleID:    peek.ForSaleID,
+				Reason:       fmt.Sprintf("fixed-price sale status is %s, not active/available", forSaleLocked.Status),
 			}
 		}
 		if !forSaleLocked.NegotiationEnabled {
 			return &ErrResourceNotNegotiable{
-				ResourceType:     negotiationEntity.NegotiationResourceForSale,
-				ForSaleID: peek.ForSaleID,
-				Reason:           "negotiation is disabled for this fixed-price sale",
+				ResourceType: negotiationEntity.NegotiationResourceForSale,
+				ForSaleID:    peek.ForSaleID,
+				Reason:       "negotiation is disabled for this fixed-price sale",
 			}
 		}
 
@@ -593,11 +640,14 @@ func (s *NegotiationService) AcceptNegotiation(
 			return err
 		}
 
-		// Step 3: Validate only seller can accept
-		if !session.IsSeller(req.SellerID) {
-			return &negotiationEntity.NotSellerError{
+		// Step 3: Validate the actor is a participant. Owner truth: BOTH sides
+		// hold Terima — the buyer may accept a seller counter, the seller may
+		// accept the buyer's offer. Non-participants stay rejected via the
+		// canonical UnauthorizedParticipantError.
+		if !session.IsParticipant(req.ActorID) {
+			return &negotiationEntity.UnauthorizedParticipantError{
 				SessionID: req.SessionID,
-				UserID:    req.SellerID,
+				UserID:    req.ActorID,
 			}
 		}
 
@@ -613,10 +663,10 @@ func (s *NegotiationService) AcceptNegotiation(
 		}
 		if existingAccepted != nil && existingAccepted.ID != session.ID {
 			return &negotiationEntity.ErrMultipleAcceptedNegotiations{
-				BuyerID:          session.BuyerID,
-				ForSaleID: session.ForSaleID,
-				ExistingID:       existingAccepted.ID,
-				NewID:            session.ID,
+				BuyerID:    session.BuyerID,
+				ForSaleID:  session.ForSaleID,
+				ExistingID: existingAccepted.ID,
+				NewID:      session.ID,
 			}
 		}
 
@@ -633,7 +683,7 @@ func (s *NegotiationService) AcceptNegotiation(
 			session.ProposalSequence,
 			session.CurrentPrice,   // old_price = current_price
 			*session.AcceptedPrice, // new_price = accepted_price
-			req.SellerID,
+			req.ActorID,
 			"price_accepted",
 		)
 		if err := s.negotiationRepo.CreatePriceHistoryEntry(ctx, tx, priceHistory); err != nil {
@@ -651,6 +701,9 @@ func (s *NegotiationService) AcceptNegotiation(
 		// The chat UI will show a "Buy" button to the buyer.
 		// chat_room_id included so mobile notification deeplinks to negotiation chat,
 		// not to an order (order does not exist yet at acceptance time).
+		// actor_id = the participant who accepted, so the notification worker can
+		// persist a REAL actor: notifications.actor_id has a FK to users(id) and
+		// rejects the uuid.Nil sentinel (SQLSTATE 23503).
 		payload := fmt.Sprintf(`{
 			"session_id":"%s",
 			"chat_room_id":"%s",
@@ -658,6 +711,7 @@ func (s *NegotiationService) AcceptNegotiation(
 			"resource_id":"%s",
 			"buyer_id":"%s",
 			"seller_id":"%s",
+			"actor_id":"%s",
 			"accepted_price":%d,
 			"proposal_sequence":%d
 		}`,
@@ -667,6 +721,7 @@ func (s *NegotiationService) AcceptNegotiation(
 			session.ForSaleID,
 			session.BuyerID,
 			session.SellerID,
+			req.ActorID,
 			*session.AcceptedPrice,
 			session.ProposalSequence,
 		)
@@ -682,7 +737,7 @@ func (s *NegotiationService) AcceptNegotiation(
 
 		s.log.Info("Negotiation accepted",
 			zap.String("session_id", req.SessionID.String()),
-			zap.String("seller_id", req.SellerID.String()),
+			zap.String("actor_id", req.ActorID.String()),
 			zap.Int64("accepted_price", *session.AcceptedPrice),
 			zap.Int64("proposal_sequence", session.ProposalSequence),
 		)
@@ -703,7 +758,7 @@ func (s *NegotiationService) AcceptNegotiation(
 // VALIDATION:
 //   - Session exists and is active
 //   - Session is not expired
-//   - Only buyer can cancel
+//   - Actor is a buyer or seller participant (Tolak for both sides)
 //
 // EMITS: negotiation.cancelled event (NON-FINANCIAL)
 //
@@ -733,11 +788,12 @@ func (s *NegotiationService) CancelNegotiation(
 			}
 		}
 
-		// Step 3: Validate only buyer can cancel
-		if !session.IsBuyer(req.BuyerID) {
-			return &negotiationEntity.NotBuyerError{
+		// Step 3: Validate the actor is a participant. Owner truth: both sides
+		// hold Tolak (reject).
+		if !session.IsParticipant(req.ActorID) {
+			return &negotiationEntity.UnauthorizedParticipantError{
 				SessionID: req.SessionID,
-				UserID:    req.BuyerID,
+				UserID:    req.ActorID,
 			}
 		}
 
@@ -752,11 +808,15 @@ func (s *NegotiationService) CancelNegotiation(
 		}
 
 		// Step 6: Emit cancelled event (NON-FINANCIAL)
+		// actor_id = the participant who cancelled (both sides hold Tolak), so the
+		// notification worker can persist a REAL actor: notifications.actor_id has
+		// a FK to users(id) and rejects the uuid.Nil sentinel (SQLSTATE 23503).
 		payload := fmt.Sprintf(`{
 			"session_id":"%s",
 			"chat_room_id":"%s",
 			"buyer_id":"%s",
-			"seller_id":"%s"
+			"seller_id":"%s",
+			"actor_id":"%s"
 		}`,
 			session.ID,
 			func() string {
@@ -765,8 +825,9 @@ func (s *NegotiationService) CancelNegotiation(
 				}
 				return ""
 			}(),
-			req.BuyerID,
+			session.BuyerID,
 			session.SellerID,
+			req.ActorID,
 		)
 
 		if err := s.outboxRepo.InsertEvent(
@@ -780,7 +841,7 @@ func (s *NegotiationService) CancelNegotiation(
 
 		s.log.Info("Negotiation cancelled",
 			zap.String("session_id", req.SessionID.String()),
-			zap.String("buyer_id", req.BuyerID.String()),
+			zap.String("actor_id", req.ActorID.String()),
 		)
 
 		return nil
@@ -921,26 +982,26 @@ func (s *NegotiationService) validateForSaleAndGetSeller(
 	forSale, err := s.forSaleRepo.GetByID(ctx, tx, forSaleID)
 	if err != nil {
 		return uuid.Nil, &ErrResourceNotFound{
-			ResourceType:     resourceType,
-			ForSaleID: forSaleID,
+			ResourceType: resourceType,
+			ForSaleID:    forSaleID,
 		}
 	}
 
 	// Guard: For Sale must be active
 	if forSale.Status != forSaleEntity.ForSaleStatusActive {
 		return uuid.Nil, &ErrResourceNotNegotiable{
-			ResourceType:     resourceType,
-			ForSaleID: forSaleID,
-			Reason:           fmt.Sprintf("fixed-price sale status is %s, not active", forSale.Status),
+			ResourceType: resourceType,
+			ForSaleID:    forSaleID,
+			Reason:       fmt.Sprintf("fixed-price sale status is %s, not active", forSale.Status),
 		}
 	}
 
 	// CONTRACT ENFORCEMENT: For Sale must have negotiation enabled
 	if !forSale.NegotiationEnabled {
 		return uuid.Nil, &ErrResourceNotNegotiable{
-			ResourceType:     resourceType,
-			ForSaleID: forSaleID,
-			Reason:           "negotiation is disabled for this fixed-price sale",
+			ResourceType: resourceType,
+			ForSaleID:    forSaleID,
+			Reason:       "negotiation is disabled for this fixed-price sale",
 		}
 	}
 
@@ -988,9 +1049,9 @@ func (e *ErrNegotiationRoomMismatch) Error() string {
 
 // ErrActiveSessionExists is returned when an active session already exists.
 type ErrActiveSessionExists struct {
-	SessionID        uuid.UUID
+	SessionID uuid.UUID
 	ForSaleID uuid.UUID
-	BuyerID          uuid.UUID
+	BuyerID   uuid.UUID
 }
 
 func (e *ErrActiveSessionExists) Error() string {
@@ -1000,8 +1061,8 @@ func (e *ErrActiveSessionExists) Error() string {
 
 // ErrResourceNotFound is returned when the resource to negotiate doesn't exist.
 type ErrResourceNotFound struct {
-	ResourceType     negotiationEntity.NegotiationResourceType
-	ForSaleID uuid.UUID
+	ResourceType negotiationEntity.NegotiationResourceType
+	ForSaleID    uuid.UUID
 }
 
 func (e *ErrResourceNotFound) Error() string {
@@ -1011,9 +1072,9 @@ func (e *ErrResourceNotFound) Error() string {
 
 // ErrResourceNotNegotiable is returned when the resource exists but cannot be negotiated.
 type ErrResourceNotNegotiable struct {
-	ResourceType     negotiationEntity.NegotiationResourceType
-	ForSaleID uuid.UUID
-	Reason           string
+	ResourceType negotiationEntity.NegotiationResourceType
+	ForSaleID    uuid.UUID
+	Reason       string
 }
 
 func (e *ErrResourceNotNegotiable) Error() string {
@@ -1044,6 +1105,18 @@ func (e *ErrInvalidResourceType) Error() string {
 // ErrNegotiationExpired is returned when attempting to operate on an expired negotiation.
 // NEGOTIATION LIFECYCLE: Expired negotiations cannot proceed to order creation.
 // This does NOT affect inventory - expiration only affects the agreement layer.
+// ErrNotYourTurn is returned when the sender already made the last price
+// change — the alternating-turn rule of an active negotiation.
+type ErrNotYourTurn struct {
+	SessionID uuid.UUID
+	UserID    uuid.UUID
+}
+
+func (e *ErrNotYourTurn) Error() string {
+	return fmt.Sprintf("not your turn to counter: session_id=%s, user_id=%s",
+		e.SessionID, e.UserID)
+}
+
 type ErrNegotiationExpired struct {
 	SessionID uuid.UUID
 	ExpiresAt *time.Time

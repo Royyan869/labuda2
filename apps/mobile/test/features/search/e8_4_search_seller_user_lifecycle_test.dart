@@ -25,7 +25,7 @@ import 'package:labuda/features/search/search/data/dto/search_dto.dart';
 import 'package:labuda/features/search/search/data/mappers/search_mapper.dart';
 import 'package:labuda/features/search/search/domain/entities/search_result.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
-import 'package:labuda/shared/utils/commerce_seller_identity.dart';
+import 'package:labuda/shared/models/seller_identity_data.dart';
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -484,13 +484,21 @@ void main() {
     });
 
     test('store missing fallback renders only @username', () {
-      final identity = buildCommerceSellerIdentity(
+      final identity = SellerIdentityData(userId: 'u-bob', username: 'bob');
+      expect(identity.primaryLabel, '@bob');
+      expect(identity.secondaryLabel, isNull);
+      expect(identity.multilineLabel, '@bob');
+    });
+
+    test('store name is the primary label and the handle the secondary', () {
+      final identity = SellerIdentityData(
+        userId: 'u-bob',
         username: 'bob',
-        storeName: null,
+        storeName: 'Farm Koi',
       );
-      expect(identity?.line1, '@bob');
-      expect(identity?.line2, isNull);
-      expect(identity?.multilineLabel, '@bob');
+      expect(identity.primaryLabel, 'Farm Koi');
+      expect(identity.secondaryLabel, '@bob');
+      expect(identity.multilineLabel, 'Farm Koi\n@bob');
     });
 
     test('user surface IGNORES sellerLifecycle', () {

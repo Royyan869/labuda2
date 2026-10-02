@@ -118,7 +118,7 @@ class _TokenValidityIndicator extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.info_outline, color: colorScheme.secondary, size: 20),
+          Icon(Icons.info_outline, color: colorScheme.secondary, size: AppIconSize.action),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -168,7 +168,7 @@ class _TokenValidityIndicator extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(icon, color: accent, size: 20),
+          Icon(icon, color: accent, size: AppIconSize.action),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -246,7 +246,7 @@ class _TokenValidityIndicator extends StatelessWidget {
           Icon(
             isUrgent ? Icons.timer_outlined : Icons.verified_outlined,
             color: isUrgent ? context.statusColors.warning : context.statusColors.success,
-            size: 20,
+            size: AppIconSize.action,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -281,7 +281,7 @@ class _TokenValidityIndicator extends StatelessWidget {
               minimumSize: const Size(0, 32),
               textStyle: const TextStyle(fontSize: AppType.s12),
             ),
-            icon: const Icon(Icons.refresh, size: 16),
+            icon: const Icon(Icons.refresh, size: AppIconSize.inlineGlyph),
             label: const Text('Refresh'),
           ),
         ],
@@ -370,7 +370,7 @@ class _OrderSummaryContent extends StatelessWidget {
             children: [
               const Text(
                 'Ringkasan Pesanan',
-                style: TextStyle(fontSize: AppType.s18, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: AppType.s20, fontWeight: FontWeight.bold),
               ),
               const SizedBox(width: 8),
               // Auction badge - shows this is an auction-derived order
@@ -378,7 +378,7 @@ class _OrderSummaryContent extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: AppMetrics.p8,
-                    vertical: AppMetrics.p3,
+                    vertical: AppMetrics.p4,
                   ),
                   decoration: BoxDecoration(
                     color: context.statusColors.success.withValues(alpha: 0.15),
@@ -393,14 +393,14 @@ class _OrderSummaryContent extends StatelessWidget {
                     children: [
                       Icon(
                         Icons.emoji_events,
-                        size: 12,
+                        size: AppIconSize.inlineGlyph,
                         color: context.statusColors.success,
                       ),
                       const SizedBox(width: 3),
                       Text(
                         'Lelang',
                         style: TextStyle(
-                          fontSize: AppType.s11,
+                          fontSize: AppType.s12,
                           fontWeight: FontWeight.bold,
                           color: context.statusColors.success,
                         ),
@@ -586,7 +586,7 @@ class _PriceRow extends StatelessWidget {
                     Text(
                       note!,
                       style: TextStyle(
-                        fontSize: AppType.s11,
+                        fontSize: AppType.s12,
                         color: colorScheme.onSurfaceVariant,
                       ),
                     ),
@@ -596,7 +596,7 @@ class _PriceRow extends StatelessWidget {
             Text(
               AppFormatters.formatCurrency(total),
               style: TextStyle(
-                fontSize: isTotal ? AppType.s18 : AppType.s14,
+                fontSize: isTotal ? AppType.s20 : AppType.s14,
                 fontWeight: isTotal ? FontWeight.bold : FontWeight.w600,
                 color: isTotal ? colorScheme.primary : null,
               ),

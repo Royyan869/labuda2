@@ -155,10 +155,6 @@ class _ProfileReviewsTabState extends ConsumerState<ProfileReviewsTab>
                   color: scheme.surface,
                   child: TabBar(
                     controller: _subTabController,
-                    labelColor: scheme.primary,
-                    unselectedLabelColor: scheme.onSurfaceVariant,
-                    indicatorColor: scheme.primary,
-                    indicatorWeight: 2,
                     tabs: const [
                       Tab(text: 'Diterima'),
                       Tab(text: 'Diberikan'),
@@ -204,7 +200,7 @@ class _ProfileReviewsTabState extends ConsumerState<ProfileReviewsTab>
                       children: [
                         Icon(
                           Icons.filter_list_off,
-                          size: 64,
+                          size: AppIconSize.display,
                           color: scheme.outline,
                         ),
                         const SizedBox(height: 16),
@@ -383,7 +379,7 @@ class _ProfileReviewsTabState extends ConsumerState<ProfileReviewsTab>
                     TimeAgoWidget.compact(
                       dateTime: rating.createdAt,
                       color: scheme.onSurfaceVariant,
-                      fontSize: AppType.s11,
+                      fontSize: AppType.s12,
                     ),
                   ],
                 ),
@@ -404,7 +400,7 @@ class _ProfileReviewsTabState extends ConsumerState<ProfileReviewsTab>
             Text(
               'Verified Purchase',
               style: TextStyle(
-                fontSize: AppType.s11,
+                fontSize: AppType.s12,
                 color: context.statusColors.success,
                 fontWeight: FontWeight.w500,
               ),

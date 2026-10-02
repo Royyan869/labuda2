@@ -29,7 +29,6 @@ class OrderMapper {
       pricing: _buildOrderPricing(dto),
       notes: dto.buyerNotes,
       preparationTimeSnapshot: _mapPreparationTime(dto.preparationTimeSnapshot),
-      preparationNoteSnapshot: dto.preparationNoteSnapshot,
       readyToShipBy: dto.readyToShipBy,
       createdAt: dto.createdAt,
       paidAt: null, // confirmed_at removed from canonical contract
@@ -261,7 +260,7 @@ class OrderMapper {
   }
 
   /// Map preparation_time_snapshot string to PreparationTime enum
-  /// Defaults to 'immediate' for null/unknown values (safe default)
+  /// Defaults to the 1–3 day range for null/unknown values (owner default)
   static PreparationTime _mapPreparationTime(String? preparationTime) {
     return PreparationTime.fromJson(preparationTime);
   }

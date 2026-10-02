@@ -73,7 +73,7 @@ class SearchSuggestionsList extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p8),
           child: Row(
             children: [
-              Icon(icon, size: 18, color: scheme.primary),
+              Icon(icon, size: AppIconSize.action, color: scheme.primary),
               const SizedBox(width: 8),
               Text(
                 title,

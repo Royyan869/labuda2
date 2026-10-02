@@ -25,7 +25,7 @@ class ContentVisibilityHeader extends StatelessWidget {
     final user = authenticatedUser;
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p6, AppMetrics.p16, AppMetrics.p6),
+      padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p8, AppMetrics.p16, AppMetrics.p8),
       child: Row(
         children: [
           if (user != null)
@@ -36,15 +36,15 @@ class ContentVisibilityHeader extends StatelessWidget {
             )
           else
             Container(
-              width: 40,
-              height: 40,
+              width: AppIconSize.action * 2,
+              height: AppIconSize.action * 2,
               decoration: BoxDecoration(
                 color: scheme.surfaceContainerHighest,
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 Icons.person_outline,
-                size: 20,
+                size: AppIconSize.action,
                 color: scheme.onSurfaceVariant,
               ),
             ),
@@ -78,8 +78,8 @@ class ContentVisibilityHeader extends StatelessWidget {
   Widget _buildVisibilityDropdown(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      width: 116,
-      height: 32,
+      width: AppContentSize.panel,
+      height: AppContentSize.controlCompact,
       padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8),
       decoration: BoxDecoration(
         border: Border.all(
@@ -94,7 +94,7 @@ class ContentVisibilityHeader extends StatelessWidget {
           isExpanded: true,
           icon: Icon(
             Icons.arrow_drop_down,
-            size: 18,
+            size: AppIconSize.action,
             color: scheme.onSurfaceVariant,
           ),
           items: ['Public', 'Followers', 'Private'].map((String value) {
@@ -117,12 +117,12 @@ class ContentVisibilityHeader extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(icon, size: 14),
+                  Icon(icon, size: AppIconSize.inlineGlyph),
                   const SizedBox(width: 6),
                   Flexible(
                     child: Text(
                       value,
-                      style: const TextStyle(fontSize: AppType.s13),
+                      style: const TextStyle(fontSize: AppType.s14),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),

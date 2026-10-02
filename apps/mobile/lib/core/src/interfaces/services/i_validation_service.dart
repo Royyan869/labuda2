@@ -7,8 +7,6 @@ import 'package:labuda/core/common/result.dart';
 /// - `Result<T>` pattern untuk error handling (WAJIB)
 /// - No business logic in UI widgets (WAJIB)
 ///
-/// **NOTE:** Domain-specific validations (price, Koi size, etc.) have been moved to
-/// CommerceValidationService in domains/commerce/catalog/shared/commerce_validation_service.dart
 ///
 /// **STAGE 4D:** The dead generic validation surface (`validateUsername`,
 /// `validateContent`, `isValidUserId`, `validateForm`, `validateRequired`,

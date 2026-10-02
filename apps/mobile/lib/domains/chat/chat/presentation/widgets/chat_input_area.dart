@@ -4,8 +4,6 @@ import 'package:labuda/core/core.dart';
 import 'package:labuda/core/media/media_upload_orchestrator.dart';
 import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart';
 import 'package:labuda/domains/chat/chat/presentation/providers/chat_providers.dart';
-import 'package:labuda/domains/commerce/negotiation/negotiation/domain/entities/negotiation.dart';
-import 'package:labuda/domains/commerce/negotiation/negotiation/presentation/providers/negotiation_providers.dart';
 import 'package:labuda/shared/widgets/composer_action_buttons.dart';
 import 'package:labuda/shared/widgets/pending_media_strip.dart';
 
@@ -16,7 +14,8 @@ import 'package:labuda/shared/widgets/pending_media_strip.dart';
 /// context — the composer never decides commerce actions (O4: chat is a
 /// display layer only; enforced by the purge contract test in test/).
 ///
-/// **CV2:** Enhanced with pending deal visibility, CTA clarity, and next-step guidance.
+/// Negotiation state/actions do NOT live here either: they belong to the
+/// commerce-owned NegotiationProposalCard mounted in the message stream.
 class ChatInputArea extends ConsumerStatefulWidget {
   final String chatId;
   final TextEditingController messageController;
@@ -114,10 +113,6 @@ class _ChatInputAreaState extends ConsumerState<ChatInputArea> {
     // Room-level context was removed from the backend.
     // Commerce actions that depended on chat.context are now message-level.
 
-    // Watch negotiation state for pending deals
-    // Negotiation state is now managed by NegotiationNotifier (domain entry point)
-    final negotiationState = ref.watch(negotiationNotifierProvider);
-
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p8),
       decoration: BoxDecoration(
@@ -136,13 +131,6 @@ class _ChatInputAreaState extends ConsumerState<ChatInputArea> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Pending Deal Indicator (shown above commerce actions)
-            if (negotiationState.currentNegotiation != null)
-              _buildPendingDealIndicator(
-                context,
-                negotiationState.currentNegotiation!,
-                isSeller: false,
-              ),
             // Commerce actions gated by room-level context were removed;
             // per-message resource projections are the canonical source.
             if (_replyToMessageId != null) _buildReplyPreview(context),
@@ -173,122 +161,6 @@ class _ChatInputAreaState extends ConsumerState<ChatInputArea> {
     );
   }
 
-  /// **EXECUTION WAVE CV2:** Pending Deal Indicator
-  ///
-  /// Shows a visual indicator when there's an active negotiation in progress.
-  /// This keeps transaction momentum visible and reminds users of next steps.
-  ///
-  /// **CV2 HYGIENE:** Only shows for canonical active/accepted states.
-  /// Hides indicator for terminal states (cancelled, expired).
-  Widget _buildPendingDealIndicator(
-    BuildContext context,
-    Negotiation negotiation, {
-    required bool isSeller,
-  }) {
-    final String statusLabel;
-    final String nextStepHint;
-    final Color statusColor;
-
-    // **CANONICAL STATUS CHECK:** Use enum comparison directly
-    // NegotiationStatus.active: negotiation in progress (can accept counter offers)
-    // NegotiationStatus.accepted: seller accepted, ready for checkout
-    // NegotiationStatus.cancelled/expired: terminal, hide indicator
-    final status = negotiation.status;
-
-    if (status.isTerminal) {
-      // Terminal states: cancelled, expired - don't show indicator
-      return const SizedBox.shrink();
-    }
-
-    if (status == NegotiationStatus.active) {
-      statusLabel = isSeller
-          ? 'Menunggu Respons Anda'
-          : 'Menunggu Penjual Menjawab';
-      nextStepHint = isSeller
-          ? '• Terima atau tolak tawaran pembeli'
-          : '• Tunggu respons penjual\n• Barang belum dikunci';
-      statusColor = AppColors.coinPrimary;
-    } else if (status == NegotiationStatus.accepted) {
-      statusLabel = 'Harga Disetujui!';
-      nextStepHint = '• Segera checkout untuk mengunci barang';
-      statusColor = context.statusColors.success;
-    } else {
-      return const SizedBox.shrink();
-    }
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: AppMetrics.p8),
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p10),
-      decoration: BoxDecoration(
-        color: statusColor.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(AppShape.r10),
-        border: Border.all(
-          color: statusColor.withValues(alpha: 0.4),
-          width: 1.2,
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(
-              color: statusColor,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: statusColor.withValues(alpha: 0.4),
-                  blurRadius: 4,
-                  spreadRadius: 1,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(
-                      Icons.handshake_outlined,
-                      size: 13,
-                      color: statusColor,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      statusLabel,
-                      style: TextStyle(
-                        fontSize: AppType.s12,
-                        fontWeight: FontWeight.w700,
-                        color: statusColor,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  nextStepHint,
-                  style: TextStyle(
-                    fontSize: AppType.s10,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    height: 1.3,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Icon(
-            Icons.chevron_right,
-            size: 16,
-            color: statusColor.withValues(alpha: 0.6),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildReplyPreview(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: AppMetrics.p8),
@@ -314,7 +186,7 @@ class _ChatInputAreaState extends ConsumerState<ChatInputArea> {
               children: [
                 Text(
                   'Replying to...',
-                  style: TextStyle(fontSize: AppType.s11, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: AppType.s12, fontWeight: FontWeight.bold),
                 ),
                 Text(
                   'Message content preview...',
@@ -326,7 +198,7 @@ class _ChatInputAreaState extends ConsumerState<ChatInputArea> {
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.close, size: 16),
+            icon: const Icon(Icons.close, size: AppIconSize.inlineGlyph),
             onPressed: _clearReply,
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),

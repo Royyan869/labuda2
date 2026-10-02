@@ -47,7 +47,7 @@ func TestAuctionToDetailResponseWithSeller_SellerIdentityAbsent(t *testing.T) {
 	}
 
 	viewerID := auction.SellerID
-	resp := auctionToDetailResponseWithSeller(auction, sellerCard, sellerInfo, nil, &viewerID)
+	resp := auctionToDetailResponseWithSeller(auction, sellerCard, sellerInfo, nil, "", &viewerID)
 	raw, err := json.Marshal(resp)
 	if err != nil {
 		t.Fatalf("marshal failed: %v", err)
@@ -116,9 +116,9 @@ func TestAuctionToDetailResponseWithSeller_EmitsCanonicalProductFields(t *testin
 		SellerID:    auction.SellerID,
 		Title:       "Showa Koi 30cm",
 		Description: "Premium showa",
-		MediaURLs: []string{
-			"https://cdn.example.com/koi-1.jpg",
-			"https://cdn.example.com/koi-2.jpg",
+		MediaURLs: []productEntity.ProductMedia{
+			{URL: "https://cdn.example.com/koi-1.jpg"},
+			{URL: "https://cdn.example.com/koi-2.jpg"},
 		},
 		Variety:         "Showa",
 		SizeCm:          ptrInt(30),
@@ -127,11 +127,10 @@ func TestAuctionToDetailResponseWithSeller_EmitsCanonicalProductFields(t *testin
 		Breeder:         ptrString("Acme Farm"),
 		Bloodline:       ptrString("Ogata"),
 		Certificates:    []string{"cert-a"},
-		PreparationTime: "short",
-		PreparationNote: ptrString("Pack carefully"),
+		PreparationTime: "1_3_days",
 	}
 
-	resp := auctionToDetailResponseWithSeller(auction, sellerCard, sellerInfo, product, nil)
+	resp := auctionToDetailResponseWithSeller(auction, sellerCard, sellerInfo, product, "", nil)
 	raw, err := json.Marshal(resp)
 	if err != nil {
 		t.Fatalf("marshal failed: %v", err)
@@ -163,11 +162,8 @@ func TestAuctionToDetailResponseWithSeller_EmitsCanonicalProductFields(t *testin
 	if decoded["age_months"] != float64(8) {
 		t.Fatalf("age_months = %v, want 8", decoded["age_months"])
 	}
-	if decoded["preparation_time"] != "short" {
+	if decoded["preparation_time"] != "1_3_days" {
 		t.Fatalf("preparation_time = %v, want short", decoded["preparation_time"])
-	}
-	if decoded["preparation_note"] != "Pack carefully" {
-		t.Fatalf("preparation_note = %v, want Pack carefully", decoded["preparation_note"])
 	}
 	mediaURLs, ok := decoded["media_urls"].([]interface{})
 	if !ok || len(mediaURLs) != 2 {
@@ -221,7 +217,7 @@ func TestAuctionToDetailResponseWithSeller_MapsSharedViewerCapabilities(t *testi
 		Tier:               "pro",
 	}
 	viewerID := uuid.New()
-	resp := auctionToDetailResponseWithSeller(auction, sellerCard, sellerInfo, nil, &viewerID)
+	resp := auctionToDetailResponseWithSeller(auction, sellerCard, sellerInfo, nil, "", &viewerID)
 	raw, err := json.Marshal(resp)
 	if err != nil {
 		t.Fatalf("marshal failed: %v", err)

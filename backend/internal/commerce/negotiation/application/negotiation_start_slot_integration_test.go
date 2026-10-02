@@ -71,7 +71,7 @@ func TestSemanticSlot_S2_AcceptedUnsettledBlocksNew(t *testing.T) {
 		t.Fatalf("first Start: %v", err)
 	}
 	// Accept via handler logic: seller accepts
-	_, err = h.svc.AcceptNegotiation(ctx, negotiationApp.AcceptNegotiationRequest{SessionID: sess.ID, SellerID: sellerID})
+	_, err = h.svc.AcceptNegotiation(ctx, negotiationApp.AcceptNegotiationRequest{SessionID: sess.ID, ActorID: sellerID})
 	if err != nil {
 		t.Fatalf("AcceptNegotiation failed: %v", err)
 	}
@@ -107,7 +107,7 @@ func TestSemanticSlot_S3_AcceptedSettledAllowsNew(t *testing.T) {
 	if err != nil {
 		t.Fatalf("first Start: %v", err)
 	}
-	_, err = h.svc.AcceptNegotiation(ctx, negotiationApp.AcceptNegotiationRequest{SessionID: sess.ID, SellerID: sellerID})
+	_, err = h.svc.AcceptNegotiation(ctx, negotiationApp.AcceptNegotiationRequest{SessionID: sess.ID, ActorID: sellerID})
 	if err != nil {
 		t.Fatalf("Accept failed: %v", err)
 	}
@@ -152,7 +152,7 @@ func TestSemanticSlot_S4_CancelledAllowsNew(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Start: %v", err)
 	}
-	if err := h.svc.CancelNegotiation(ctx, negotiationApp.CancelNegotiationRequest{SessionID: sess.ID, BuyerID: buyerID}); err != nil {
+	if err := h.svc.CancelNegotiation(ctx, negotiationApp.CancelNegotiationRequest{SessionID: sess.ID, ActorID: buyerID}); err != nil {
 		t.Fatalf("Cancel failed: %v", err)
 	}
 	_, err = h.svc.StartNegotiation(ctx, negotiationApp.StartNegotiationRequest{

@@ -18,6 +18,7 @@ import (
 	orderEntity "github.com/labuda/backend/internal/commerce/order/entity"
 	orderRepo "github.com/labuda/backend/internal/commerce/order/infrastructure/repository"
 	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
+	commerceshared "github.com/labuda/backend/internal/commerce/shared"
 	shippingApp "github.com/labuda/backend/internal/commerce/shipping/application"
 	shippingRepo "github.com/labuda/backend/internal/commerce/shipping/infrastructure/repository"
 	"github.com/labuda/backend/internal/identity/auth"
@@ -254,7 +255,7 @@ type CreateDraftInput struct {
 	// Product fields — created atomically with the auction unless reused
 	Title             string
 	Description       string
-	MediaURLs         []string
+	Media             []productEntity.ProductMedia
 	Variety           string
 	SizeCM            *int
 	AgeMonths         *int
@@ -276,7 +277,6 @@ type CreateDraftInput struct {
 	Duration         time.Duration
 	// Shipping readiness
 	PreparationTime forsaleEntity.PreparationTime
-	PreparationNote *string
 }
 
 // CreateDraft creates a new draft auction.
@@ -367,11 +367,15 @@ func (s *AuctionService) CreateDraft(
 				return nil, err
 			}
 		}
+		media := input.Media
+		if media == nil {
+			media = []productEntity.ProductMedia{}
+		}
 		product := &productEntity.Product{
 			SellerID:        input.SellerID,
 			Title:           input.Title,
 			Description:     input.Description,
-			MediaURLs:       input.MediaURLs,
+			MediaURLs:       media,
 			Variety:         input.Variety,
 			SizeCm:          input.SizeCM,
 			AgeMonths:       input.AgeMonths,
@@ -381,7 +385,6 @@ func (s *AuctionService) CreateDraft(
 			Certificates:    input.Certificates,
 			FarmAddressID:   input.FarmAddressID,
 			PreparationTime: string(input.PreparationTime),
-			PreparationNote: input.PreparationNote,
 			SellingSurface:  productEntity.SellingSurfaceAuction,
 		}
 		if err := s.productRepo.Create(ctx, tx, product); err != nil {
@@ -608,7 +611,7 @@ type UpdateDraftInput struct {
 	CallerID    uuid.UUID
 	Title              *string
 	Description        *string
-	MediaURLs          *[]string
+	Media              *[]productEntity.ProductMedia
 	Variety            *string
 	SizeCM             *int
 	AgeMonths          *int
@@ -617,7 +620,6 @@ type UpdateDraftInput struct {
 	Bloodline          *string
 	Certificates       *[]string
 	PreparationTime    *string
-	PreparationNote    *string
 	StartPrice   int64
 	BidIncrement int64
 	BuyNowPrice *int64
@@ -653,7 +655,7 @@ func (s *AuctionService) UpdateDraft(
 	patch := productEntity.ProductContentPatch{
 		Title:           input.Title,
 		Description:     input.Description,
-		MediaURLs:       input.MediaURLs,
+		MediaURLs:       input.Media,
 		Variety:         input.Variety,
 		SizeCM:          input.SizeCM,
 		AgeMonths:       input.AgeMonths,
@@ -662,14 +664,13 @@ func (s *AuctionService) UpdateDraft(
 		Bloodline:       input.Bloodline,
 		Certificates:    input.Certificates,
 		PreparationTime: input.PreparationTime,
-		PreparationNote: input.PreparationNote,
 	}
 	if err := patch.Validate(); err != nil {
 		return err
 	}
 
 	// Product content authority: update products when any product field provided.
-	hasProductContent := input.Title != nil || input.Description != nil || input.MediaURLs != nil || input.Variety != nil || input.SizeCM != nil || input.AgeMonths != nil || input.Gender != nil || input.Breeder != nil || input.Bloodline != nil || input.Certificates != nil || input.PreparationTime != nil || input.PreparationNote != nil
+	hasProductContent := input.Title != nil || input.Description != nil || input.Media != nil || input.Variety != nil || input.SizeCM != nil || input.AgeMonths != nil || input.Gender != nil || input.Breeder != nil || input.Bloodline != nil || input.Certificates != nil || input.PreparationTime != nil
 	if hasProductContent {
 		if s.productRepo == nil {
 			return fmt.Errorf("product repo not wired for auction draft update")
@@ -1121,7 +1122,7 @@ func (s *AuctionService) sellerQuoteRequiredForWinner(
 	}
 	winnerID := *auction.WinnerID()
 
-	primary, err := s.addressRepo.GetPrimaryByUserIDFiltered(ctx, tx, winnerID, string(addressEntity.AddressPurposeShipping))
+	primary, err := s.addressRepo.GetPrimaryByTag(ctx, tx, winnerID, string(addressEntity.TagShipping))
 	if err != nil {
 		return false, err
 	}
@@ -1314,6 +1315,21 @@ func (s *AuctionService) GetAuction(
 	auctionID uuid.UUID,
 ) (*entity.Auction, error) {
 	return s.auctionRepo.GetByID(ctx, tx, auctionID)
+}
+
+// PublicOriginLine returns the buyer-facing origin summary ("City, Province")
+// for an auction detail read. The rule itself lives once in
+// commerceshared.PublicListingOrigin (Product.FarmAddressID, seller fallback,
+// city+province only) so the auction and for_sale surfaces cannot drift.
+func (s *AuctionService) PublicOriginLine(
+	ctx context.Context,
+	tx db.Tx,
+	auction *entity.Auction,
+) string {
+	if auction == nil {
+		return ""
+	}
+	return commerceshared.PublicListingOrigin(ctx, tx, s.addressRepo, auction.Product)
 }
 
 // ListBids retrieves bids for an auction.

@@ -32,14 +32,14 @@ class VerificationHeader extends ConsumerWidget {
           child: Icon(
             Icons.phone_android,
             color: scheme.primary,
-            size: 28,
+            size: AppIconSize.emphasis,
           ),
         ),
         const SizedBox(height: 12),
           Text(
             'Phone Number Verification',
             style: TextStyle(
-              fontSize: AppType.s18,
+              fontSize: AppType.s20,
               fontWeight: FontWeight.bold,
               color: scheme.onSurface,
             ),
@@ -51,7 +51,7 @@ class VerificationHeader extends ConsumerWidget {
                 : 'We will send a verification code via SMS',
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: AppType.s13,
+              fontSize: AppType.s14,
               color: scheme.onSurfaceVariant,
             ),
         ),
@@ -61,7 +61,7 @@ class VerificationHeader extends ConsumerWidget {
             '🧪 Test mode: OTP code = 123456',
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: AppType.s11,
+              fontSize: AppType.s12,
               fontWeight: FontWeight.w600,
               color: scheme.primary,
             ),

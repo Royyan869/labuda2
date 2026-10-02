@@ -79,7 +79,7 @@ class _MainDrawerHeaderState extends ConsumerState<MainDrawerHeader> {
                       child: Icon(
                         Icons.person_outline,
                         color: scheme.onSurfaceVariant,
-                        size: 28,
+                        size: AppIconSize.emphasis,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -123,7 +123,7 @@ class _MainDrawerHeaderState extends ConsumerState<MainDrawerHeader> {
                             'LABUDA',
                             style: TextStyle(
                               color: scheme.onSurface,
-                              fontSize: AppType.s18,
+                              fontSize: AppType.s20,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -151,11 +151,11 @@ class _MainDrawerHeaderState extends ConsumerState<MainDrawerHeader> {
                           widget.onSignIn();
                         },
                         style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: AppMetrics.p10),
+                          padding: const EdgeInsets.symmetric(vertical: AppMetrics.p12),
                         ),
                         child: const Text(
                           'Sign In',
-                          style: TextStyle(fontSize: AppType.s13),
+                          style: TextStyle(fontSize: AppType.s14),
                         ),
                       ),
                     ),
@@ -167,11 +167,11 @@ class _MainDrawerHeaderState extends ConsumerState<MainDrawerHeader> {
                           widget.onSignUp();
                         },
                         style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: AppMetrics.p10),
+                          padding: const EdgeInsets.symmetric(vertical: AppMetrics.p12),
                         ),
                         child: const Text(
                           'Sign Up',
-                          style: TextStyle(fontSize: AppType.s13),
+                          style: TextStyle(fontSize: AppType.s14),
                         ),
                       ),
                     ),
@@ -187,10 +187,7 @@ class _MainDrawerHeaderState extends ConsumerState<MainDrawerHeader> {
                     widget.onProfile?.call();
                   },
                   behavior: HitTestBehavior.opaque,
-                  child: SellerIdentityView(
-                    identity: widget.identity,
-                    variant: SellerIdentityViewVariant.profile,
-                  ),
+                  child: SellerIdentityView(identity: widget.identity),
                 ),
               ],
             ],

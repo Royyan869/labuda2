@@ -194,7 +194,7 @@ class _InAppNotificationBannerState extends State<InAppNotificationBanner>
                               Text(
                                 widget.body,
                                 style: TextStyle(
-                                  fontSize: AppType.s13,
+                                  fontSize: AppType.s14,
                                   fontWeight: FontWeight.w400,
                                   color: colorScheme.onSurfaceVariant,
                                   height: 1.3,
@@ -233,7 +233,7 @@ class _InAppNotificationBannerState extends State<InAppNotificationBanner>
                             ),
                             child: Icon(
                               Icons.close,
-                              size: 16,
+                              size: AppIconSize.inlineGlyph,
                               color: colorScheme.onSurfaceVariant,
                             ),
                           ),
@@ -262,7 +262,7 @@ class _InAppNotificationBannerState extends State<InAppNotificationBanner>
       ),
       child: Icon(
         Icons.notifications_outlined,
-        size: 20,
+        size: AppIconSize.action,
         color: colorScheme.onSurfaceVariant,
       ),
     );
@@ -286,7 +286,7 @@ class _InAppNotificationBannerState extends State<InAppNotificationBanner>
         action.onTap();
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p6),
+        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p8),
         decoration: BoxDecoration(
           color: buttonColor.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(AppShape.r6),
@@ -299,7 +299,7 @@ class _InAppNotificationBannerState extends State<InAppNotificationBanner>
           mainAxisSize: MainAxisSize.min,
           children: [
             if (action.icon != null) ...[
-              Icon(action.icon, size: 14, color: buttonColor),
+              Icon(action.icon, size: AppIconSize.inlineGlyph, color: buttonColor),
               const SizedBox(width: 4),
             ],
             Text(

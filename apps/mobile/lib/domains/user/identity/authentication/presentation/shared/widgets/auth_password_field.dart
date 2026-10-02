@@ -323,7 +323,7 @@ class _AuthConfirmPasswordFieldState extends State<AuthConfirmPasswordField> {
         children: [
           Icon(
             isMatch ? Icons.check_circle : Icons.cancel,
-            size: 20,
+            size: AppIconSize.action,
             color: isMatch ? context.statusColors.success : scheme.error,
           ),
           const SizedBox(width: 8),
@@ -331,7 +331,7 @@ class _AuthConfirmPasswordFieldState extends State<AuthConfirmPasswordField> {
             child: Text(
               isMatch ? 'Passwords match' : 'Passwords do not match',
               style: TextStyle(
-                fontSize: AppType.s13,
+                fontSize: AppType.s14,
                 fontWeight: FontWeight.w500,
                 color: isMatch ? context.statusColors.success : scheme.error,
               ),

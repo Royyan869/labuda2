@@ -166,7 +166,7 @@ class _DiscountInputFieldState extends ConsumerState<DiscountInputField> {
         ),
         child: Row(
           children: [
-            Icon(Icons.error_outline, color: context.statusColors.error, size: 20),
+            Icon(Icons.error_outline, color: context.statusColors.error, size: AppIconSize.action),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
@@ -192,7 +192,7 @@ class _DiscountInputFieldState extends ConsumerState<DiscountInputField> {
           Icon(
             Icons.check_circle,
             color: context.statusColors.success,
-            size: 20,
+            size: AppIconSize.action,
           ),
           const SizedBox(width: 8),
           Expanded(

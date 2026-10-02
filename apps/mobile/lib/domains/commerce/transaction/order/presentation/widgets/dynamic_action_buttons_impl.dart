@@ -28,6 +28,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart' as core;
+import 'package:labuda/core/src/theme/app_theme.dart';
 import 'package:labuda/domains/commerce/transaction/order/domain/domain.dart'
     as order_domain;
 
@@ -151,7 +152,7 @@ class _ActionButtonsContainer extends StatelessWidget {
             // Support button (always available)
             TextButton.icon(
               onPressed: callbacks.onRequestSupport,
-              icon: const Icon(Icons.support_agent, size: 16),
+              icon: const Icon(Icons.support_agent, size: AppIconSize.inlineGlyph),
               label: const Text('Butuh Bantuan?'),
               style: TextButton.styleFrom(
                 foregroundColor: colorScheme.onSurfaceVariant,
@@ -163,7 +164,7 @@ class _ActionButtonsContainer extends StatelessWidget {
             if (callbacks.onChatSeller != null)
               TextButton.icon(
                 onPressed: callbacks.onChatSeller,
-                icon: const Icon(Icons.chat_bubble_outline, size: 16),
+                icon: const Icon(Icons.chat_bubble_outline, size: AppIconSize.inlineGlyph),
                 label: const Text('Chat Penjual'),
               ),
           ],
@@ -199,21 +200,21 @@ class _PrimaryActionButton extends StatelessWidget {
     switch (actionType) {
       case 'mark_shipped':
       case 'update_tracking':
-        return const Icon(Icons.local_shipping, size: 20);
+        return const Icon(Icons.local_shipping, size: AppIconSize.action);
       case 'complete':
-        return const Icon(Icons.check_circle, size: 20);
+        return const Icon(Icons.check_circle, size: AppIconSize.action);
       case 'request_refund':
-        return const Icon(Icons.currency_exchange, size: 20);
+        return const Icon(Icons.currency_exchange, size: AppIconSize.action);
       case 'open_dispute':
-        return const Icon(Icons.report_problem, size: 20);
+        return const Icon(Icons.report_problem, size: AppIconSize.action);
       case 'cancel':
-        return const Icon(Icons.cancel, size: 20);
+        return const Icon(Icons.cancel, size: AppIconSize.action);
       case 'pay':
-        return const Icon(Icons.payment, size: 20);
+        return const Icon(Icons.payment, size: AppIconSize.action);
       case 'extend_confirmation':
-        return const Icon(Icons.add_alarm, size: 20);
+        return const Icon(Icons.add_alarm, size: AppIconSize.action);
       default:
-        return const Icon(Icons.arrow_forward, size: 20);
+        return const Icon(Icons.arrow_forward, size: AppIconSize.action);
     }
   }
 
@@ -311,23 +312,23 @@ class _SecondaryActionButton extends StatelessWidget {
     switch (actionType) {
       case 'mark_shipped':
       case 'update_tracking':
-        return const Icon(Icons.local_shipping, size: 18);
+        return const Icon(Icons.local_shipping, size: AppIconSize.action);
       case 'complete':
-        return const Icon(Icons.check_circle, size: 18);
+        return const Icon(Icons.check_circle, size: AppIconSize.action);
       case 'request_refund':
-        return const Icon(Icons.currency_exchange, size: 18);
+        return const Icon(Icons.currency_exchange, size: AppIconSize.action);
       case 'open_dispute':
-        return const Icon(Icons.report_problem, size: 18);
+        return const Icon(Icons.report_problem, size: AppIconSize.action);
       case 'cancel':
-        return const Icon(Icons.cancel, size: 18);
+        return const Icon(Icons.cancel, size: AppIconSize.action);
       case 'extend_confirmation':
-        return const Icon(Icons.add_alarm, size: 18);
+        return const Icon(Icons.add_alarm, size: AppIconSize.action);
       case 'reject':
-        return const Icon(Icons.close, size: 18);
+        return const Icon(Icons.close, size: AppIconSize.action);
       case 'accept':
-        return const Icon(Icons.check, size: 18);
+        return const Icon(Icons.check, size: AppIconSize.action);
       default:
-        return const Icon(Icons.arrow_forward, size: 18);
+        return const Icon(Icons.arrow_forward, size: AppIconSize.action);
     }
   }
 
@@ -399,7 +400,7 @@ class _MinimalSupportAction extends StatelessWidget {
       ),
       child: TextButton.icon(
         onPressed: onRequestSupport,
-        icon: const Icon(Icons.support_agent, size: 16),
+        icon: const Icon(Icons.support_agent, size: AppIconSize.inlineGlyph),
         label: const Text('Butuh Bantuan?'),
         style: TextButton.styleFrom(
           foregroundColor: colorScheme.onSurfaceVariant,

@@ -495,7 +495,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
                       TextSpan(
                         text: 'I agree with ',
                         style: TextStyle(
-                          fontSize: AppType.s13,
+                          fontSize: AppType.s14,
                           color: scheme.onSurface,
                         ),
                         children: [

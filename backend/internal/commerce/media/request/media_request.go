@@ -6,6 +6,8 @@ import (
 	"time"
 
 	mediaentity "github.com/labuda/backend/internal/commerce/media/entity"
+	productentity "github.com/labuda/backend/internal/commerce/product/entity"
+	"github.com/labuda/backend/internal/pkg/mediaref"
 	"github.com/labuda/backend/internal/platform/mediaresolve"
 )
 
@@ -37,6 +39,7 @@ type MediaRequest struct {
 	Height       *int    `json:"height,omitempty"`
 	Duration     *int    `json:"duration,omitempty"` // milliseconds
 	ThumbnailURL *string `json:"thumbnail_url,omitempty"`
+	Blurhash     *string `json:"blurhash,omitempty"`
 }
 
 // NormalizeSelection validates and canonicalizes a typed-media selection.
@@ -168,6 +171,7 @@ func normalizeTypedItem(item MediaRequest, createdAt time.Time) (*mediaentity.Me
 	media.Height = cloneInt(item.Height)
 	media.Duration = cloneInt(item.Duration)
 	media.ThumbnailURL = cloneString(item.ThumbnailURL)
+	media.Blurhash = cloneString(item.Blurhash)
 	return media, nil
 }
 
@@ -204,4 +208,59 @@ func cloneString(value *string) *string {
 	}
 	cloned := *value
 	return &cloned
+}
+
+// ResolveProductMedia is the single entry for write-side product media:
+// typed `media[]` (validated, blurhash-carrying) XOR legacy `media_urls`
+// (bare strings). Both non-empty is a 400 conflict. Order is preserved
+// exactly as sent — position 0 is canonical cover media.
+func ResolveProductMedia(media []MediaRequest, mediaURLs []string) ([]productentity.ProductMedia, *ValidationError) {
+	items, err := NormalizeSelection(media, mediaURLs)
+	if err != nil {
+		if verr, ok := err.(*ValidationError); ok {
+			return nil, verr
+		}
+		return nil, &ValidationError{Code: ErrCodeInvalidURL, Message: err.Error()}
+	}
+	if items == nil {
+		return nil, nil
+	}
+	return ToProductMedia(items), nil
+}
+
+// ToProductMedia converts normalized items into ordered product media slots,
+// preserving URL order plus the client-provisional video metadata
+// (thumbnail, dimensions, duration) and blurhash. Nothing is derived here —
+// what the client sent (validated) is what persists. Position authority
+// stays the slice.
+func ToProductMedia(items []mediaentity.Media) []productentity.ProductMedia {
+	out := make([]productentity.ProductMedia, 0, len(items))
+	for _, item := range items {
+		url := strings.TrimSpace(item.URL)
+		if url == "" {
+			continue
+		}
+		out = append(out, productentity.ProductMedia{
+			URL:          url,
+			Blurhash:     item.Blurhash,
+			ThumbnailURL: item.ThumbnailURL,
+			Width:        item.Width,
+			Height:       item.Height,
+			DurationMs:   item.Duration,
+			Status:       string(mediaref.StatusForNewRow(item.Type.String())),
+		})
+	}
+	return out
+}
+
+// ProductMediaFromLegacy converts legacy URL strings into product media
+// slots without hashes.
+func ProductMediaFromLegacy(mediaURLs []string) []productentity.ProductMedia {
+	out := make([]productentity.ProductMedia, 0, len(mediaURLs))
+	for _, raw := range mediaURLs {
+		if trimmed := strings.TrimSpace(raw); trimmed != "" {
+			out = append(out, productentity.ProductMedia{URL: trimmed})
+		}
+	}
+	return out
 }

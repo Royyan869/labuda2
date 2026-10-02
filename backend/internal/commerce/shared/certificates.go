@@ -1,49 +1,47 @@
 package shared
 
 import (
-	"fmt"
 	"strings"
+
+	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
 )
-
-var canonicalCertificateOrder = []string{
-	"breeder",
-	"contest",
-	"ownership",
-	"health",
-}
-
-var canonicalCertificateSet = func() map[string]struct{} {
-	set := make(map[string]struct{}, len(canonicalCertificateOrder))
-	for _, value := range canonicalCertificateOrder {
-		set[value] = struct{}{}
-	}
-	return set
-}()
 
 // NormalizeCertificates validates commerce certificate values, removes
 // duplicates, and returns them in canonical order.
 //
 // Empty inputs return an empty slice. Unknown values are rejected so the
 // backend never persists non-canonical certificate strings.
+//
+// The vocabulary and its order live in ONE place —
+// productEntity.CanonicalCertificateOrder — and validation is delegated to
+// productEntity.ValidateCertificates. This file deliberately keeps no copy of
+// the list: the previous duplicate vocabulary is how `ownership` managed to
+// survive here after the entity was updated, and how the two validation paths
+// could accept different values.
 func NormalizeCertificates(values []string) ([]string, error) {
 	if len(values) == 0 {
 		return []string{}, nil
 	}
 
-	seen := make(map[string]struct{}, len(values))
+	requested := make([]string, 0, len(values))
 	for _, raw := range values {
 		value := strings.ToLower(strings.TrimSpace(raw))
-		if value == "" {
-			continue
+		if value != "" {
+			requested = append(requested, value)
 		}
-		if _, ok := canonicalCertificateSet[value]; !ok {
-			return nil, fmt.Errorf("invalid certificate: %s", raw)
-		}
+	}
+
+	if err := productEntity.ValidateCertificates(&requested); err != nil {
+		return nil, err
+	}
+
+	seen := make(map[string]struct{}, len(requested))
+	for _, value := range requested {
 		seen[value] = struct{}{}
 	}
 
 	result := make([]string, 0, len(seen))
-	for _, canonical := range canonicalCertificateOrder {
+	for _, canonical := range productEntity.CanonicalCertificateOrder {
 		if _, ok := seen[canonical]; ok {
 			result = append(result, canonical)
 		}

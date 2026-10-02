@@ -59,7 +59,7 @@ class ReportConfirmationDialog extends StatelessWidget {
               child: Icon(
                 Icons.check_circle_outline,
                 color: context.statusColors.success,
-                size: 32,
+                size: AppIconSize.emphasis,
               ),
             ),
             const SizedBox(height: 16),
@@ -138,14 +138,14 @@ class ReportConfirmationDialog extends StatelessWidget {
                     Icon(
                       Icons.block,
                       color: Theme.of(context).colorScheme.primary,
-                      size: 20,
+                      size: AppIconSize.action,
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         'Want to block this user to prevent further contact?',
                         style: TextStyle(
-                          fontSize: AppType.s13,
+                          fontSize: AppType.s14,
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
@@ -164,7 +164,7 @@ class ReportConfirmationDialog extends StatelessWidget {
                 onPressed: () => context.pop(),
                 style: FilledButton.styleFrom(
                   backgroundColor: Theme.of(context).colorScheme.secondary,
-                  padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
+                  padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
                 ),
                 child: const Text('Got it'),
               ),
@@ -183,13 +183,13 @@ class ReportConfirmationDialog extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 16, color: Theme.of(context).colorScheme.secondary),
+        Icon(icon, size: AppIconSize.inlineGlyph, color: Theme.of(context).colorScheme.secondary),
         const SizedBox(width: 8),
         Expanded(
           child: Text(
             text,
             style: TextStyle(
-              fontSize: AppType.s13,
+              fontSize: AppType.s14,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),

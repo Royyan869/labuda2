@@ -118,9 +118,6 @@ class AuthGuard extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Connection Error'),
-        surfaceTintColor: Colors.transparent,
-        scrolledUnderElevation: 0,
-        elevation: AppElevation.none,
       ),
       body: Center(
         child: Padding(
@@ -136,7 +133,7 @@ class AuthGuard extends ConsumerWidget {
                 ),
                 child: Icon(
                   Icons.cloud_off,
-                  size: 64,
+                  size: AppIconSize.display,
                   color: scheme.error,
                 ),
               ),
@@ -208,9 +205,6 @@ class AuthGuard extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Access Limited'),
-        surfaceTintColor: Colors.transparent,
-        scrolledUnderElevation: 0,
-        elevation: AppElevation.none,
       ),
       body: Center(
         child: Padding(
@@ -226,7 +220,7 @@ class AuthGuard extends ConsumerWidget {
                 ),
                 child: Icon(
                   Icons.lock_outline,
-                  size: 64,
+                  size: AppIconSize.display,
                   color: scheme.primary,
                 ),
               ),
@@ -343,9 +337,6 @@ class RoleGuard extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Access Denied'),
-        surfaceTintColor: Colors.transparent,
-        scrolledUnderElevation: 0,
-        elevation: AppElevation.none,
       ),
       body: Center(
         child: Padding(
@@ -361,7 +352,7 @@ class RoleGuard extends ConsumerWidget {
                 ),
                 child: Icon(
                   Icons.block,
-                  size: 64,
+                  size: AppIconSize.display,
                   color: context.statusColors.warning,
                 ),
               ),
@@ -509,9 +500,6 @@ class SellerGuard extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Seller Access Required'),
-        surfaceTintColor: Colors.transparent,
-        scrolledUnderElevation: 0,
-        elevation: AppElevation.none,
       ),
       body: Center(
         child: Padding(
@@ -527,7 +515,7 @@ class SellerGuard extends ConsumerWidget {
                 ),
                 child: Icon(
                   Icons.store_outlined,
-                  size: 64,
+                  size: AppIconSize.display,
                   color: context.statusColors.warning,
                 ),
               ),

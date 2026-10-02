@@ -389,6 +389,11 @@ class UserApiResponse extends Equatable {
   final String? storeImageUrl;
   final DateTime? storeImageUpdatedAt;
 
+  // Buyer-facing origin of the target's sender address ("City, Province") —
+  // public profile projection. Null when no sender address exists; the wire
+  // never carries street/district/phone.
+  final String? publicOriginLine;
+
   const UserApiResponse({
     required this.id,
     required this.email,
@@ -417,6 +422,7 @@ class UserApiResponse extends Equatable {
     this.storeName,
     this.storeImageUrl,
     this.storeImageUpdatedAt,
+    this.publicOriginLine,
   });
 
   factory UserApiResponse.fromJson(Map<String, dynamic> json) {
@@ -556,6 +562,12 @@ class UserApiResponse extends Equatable {
         return s.isEmpty ? null : s;
       })(),
       storeImageUpdatedAt: safeDateTime('store_image_updated_at'),
+      publicOriginLine: (() {
+        final v = json['public_origin_line'];
+        if (v == null) return null;
+        final s = v.toString().trim();
+        return s.isEmpty ? null : s;
+      })(),
     );
 
     // 🔍 DEBUG: Log parsed values

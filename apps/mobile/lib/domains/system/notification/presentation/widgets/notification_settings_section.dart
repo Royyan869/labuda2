@@ -41,7 +41,7 @@ class NotificationSettingsSection extends StatelessWidget {
         children: [
           // Section header
           Padding(
-            padding: const EdgeInsets.fromLTRB(AppMetrics.p20, AppMetrics.p20, AppMetrics.p20, AppMetrics.p12),
+            padding: const EdgeInsets.fromLTRB(AppMetrics.p24, AppMetrics.p24, AppMetrics.p24, AppMetrics.p12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -58,7 +58,7 @@ class NotificationSettingsSection extends StatelessWidget {
                   Text(
                     subtitle!,
                     style: TextStyle(
-                      fontSize: AppType.s13,
+                      fontSize: AppType.s14,
                       color: colorScheme.onSurfaceVariant,
                     ),
                   ),

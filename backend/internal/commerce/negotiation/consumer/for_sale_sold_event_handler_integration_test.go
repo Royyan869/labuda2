@@ -118,7 +118,7 @@ func insertSoldForSale(t *testing.T, ctx context.Context, h *soldHarness, seller
 		Description:     "for_sale.sold consumer fixture",
 		MediaURLs:       []string{"https://picsum.photos/seed/sold-fixture/800/600"},
 		Variety:         "Kohaku",
-		PreparationTime: string(forsaleEntity.PreparationTimeImmediate),
+		PreparationTime: string(forsaleEntity.PreparationTime1To3Days),
 		SellingSurface:  productEntity.SellingSurfaceForSale,
 	}
 	var saleID uuid.UUID

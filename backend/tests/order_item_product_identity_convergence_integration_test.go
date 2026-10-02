@@ -279,7 +279,7 @@ func TestOrderItemProductIdentity_Convergence_RuntimeProof(t *testing.T) {
 			Title:           title,
 			Description:     "desc",
 			Variety:         "Kohaku",
-			PreparationTime: "immediate",
+			PreparationTime: "1_3_days",
 			FarmAddressID:   &farmAddressID,
 		}
 		require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
@@ -645,7 +645,7 @@ func TestMigration000045_OrderItemProductIdentity_UpDownReplay(t *testing.T) {
 	buyerID := uuid.New()
 	stage5User(t, ctx, tdb, sellerID)
 	stage5User(t, ctx, tdb, buyerID)
-	product := &productentity.Product{SellerID: sellerID, Title: "Legacy Koi", Description: "d", Variety: "Kohaku", PreparationTime: "immediate"}
+	product := &productentity.Product{SellerID: sellerID, Title: "Legacy Koi", Description: "d", Variety: "Kohaku", PreparationTime: "1_3_days"}
 	require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
 		return productinfra.NewProductRepository().Create(ctx, tx, product)
 	}))
@@ -704,7 +704,7 @@ func createLegacyOrderWithFPSNamespace(t *testing.T, ctx context.Context, tdb *t
 		money.New(50000), money.New(50000), money.New(15000),
 		5, money.New(2500), money.New(3000), money.New(68000),
 		nil, "JNE", "train",
-		"immediate", nil, nil, nil, nil, nil,
+		"1_3_days", nil, nil, nil, nil,
 		time.Now(),
 	)
 	order.ID = uuid.New()

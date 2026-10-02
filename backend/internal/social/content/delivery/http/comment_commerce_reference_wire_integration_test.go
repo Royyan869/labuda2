@@ -83,7 +83,7 @@ func seedCommentCommerceFPS(t *testing.T, ctx context.Context, appDB *db.DB, sel
 	err := appDB.WithTx(ctx, func(tx db.Tx) error {
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time)
-			VALUES ($1, $2, 'Wire Product', 'desc', $3, 'kohaku', 'immediate')
+			VALUES ($1, $2, 'Wire Product', 'desc', $3, 'kohaku', '1_3_days')
 		`, productID, sellerID, `["https://example.com/wire.jpg"]`); err != nil {
 			return err
 		}

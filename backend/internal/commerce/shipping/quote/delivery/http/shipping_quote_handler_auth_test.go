@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -213,4 +214,37 @@ func TestB100_GetQuoteByID_Buyer_OK(t *testing.T) {
 	handler.GetShippingQuoteByID(c)
 
 	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+// ---------------------------------------------------------------------------
+// DESTINATION LOCK — mandatory kota/kabupaten (Owner 2026-10-01)
+// ---------------------------------------------------------------------------
+
+// TestCreateQuote_ForSaleWithoutDestination_BadRequest proves the API rejects
+// a for_sale quote with no locked destination city: the entity's
+// ValidateDestinationAddress passes EVERY address when no lock is set, so an
+// unlocked quote would be consumable by any buyer address at checkout.
+// The gate must fire BEFORE the service call (nil service proves it).
+func TestCreateQuote_ForSaleWithoutDestination_BadRequest(t *testing.T) {
+	seller := uuid.New()
+	buyer := uuid.New()
+	chatID := uuid.New()
+
+	room := makeRoom(seller, buyer)
+	room.ID = chatID
+
+	handler := NewHandler(nil, &mockRoomGetter{room: room}, nil, zap.NewNop())
+
+	body := strings.NewReader(`{"product_id":"11111111-1111-1111-1111-111111111111","source_type":"for_sale","source_id":"22222222-2222-2222-2222-222222222222","cost":25000}`)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest("POST", "/chat/"+chatID.String()+"/shipping-quote", body)
+	c.Request.Header.Set("Content-Type", "application/json")
+	c.Set("userID", seller)
+	c.Params = gin.Params{{Key: "chat_id", Value: chatID.String()}}
+
+	handler.CreateShippingQuote(c)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "destination_city_id")
 }

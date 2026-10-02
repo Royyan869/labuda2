@@ -199,13 +199,13 @@ class _StatItem extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[
-            Icon(icon, size: 16, color: scheme.onSurfaceVariant),
+            Icon(icon, size: AppIconSize.inlineGlyph, color: scheme.onSurfaceVariant),
             const SizedBox(height: 2),
           ],
           Text(
             value,
             style: TextStyle(
-              fontSize: AppType.s18,
+              fontSize: AppType.s20,
               fontWeight: FontWeight.bold,
               color: scheme.onSurface,
             ),
@@ -214,7 +214,7 @@ class _StatItem extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              fontSize: AppType.s11,
+              fontSize: AppType.s12,
               color: scheme.onSurfaceVariant,
             ),
           ),
@@ -255,7 +255,7 @@ class _RatingStatItem extends StatelessWidget {
                 starPosition <= ratingValue.round()
                     ? Icons.star
                     : Icons.star_border,
-                size: 12,
+                size: AppIconSize.inlineGlyph,
                 color: starPosition <= ratingValue.round()
                     ? AppColors.koiGold
                     : scheme.outline,
@@ -266,7 +266,7 @@ class _RatingStatItem extends StatelessWidget {
           Text(
             rating == null ? '-' : rating!.toStringAsFixed(1),
             style: TextStyle(
-              fontSize: AppType.s18,
+              fontSize: AppType.s20,
               fontWeight: FontWeight.bold,
               color: scheme.onSurface,
             ),
@@ -275,7 +275,7 @@ class _RatingStatItem extends StatelessWidget {
           Text(
             reviewCount > 0 ? 'Rating ($reviewCount)' : 'Rating',
             style: TextStyle(
-              fontSize: AppType.s11,
+              fontSize: AppType.s12,
               color: scheme.onSurfaceVariant,
             ),
           ),

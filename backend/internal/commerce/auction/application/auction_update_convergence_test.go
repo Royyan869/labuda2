@@ -445,10 +445,10 @@ func TestUpdateDraft_FullProductFieldsPersists(t *testing.T) {
 	productRepo := newConvergenceProductRepo(sellerID, auction.ProductID, "Original Title", "Original desc")
 	// Add full product fields to repo's product
 	p := productRepo.products[auction.ProductID]
-	p.MediaURLs = []string{"https://old.jpg"}
+	p.MediaURLs = []productEntity.ProductMedia{{URL: "https://old.jpg"}}
 	p.Variety = "Kohaku"
 	p.Certificates = []string{"breeder"}
-	p.PreparationTime = "immediate"
+	p.PreparationTime = "1_3_days"
 	tx := &auctionUpdateSpyTx{row: auctionUpdateSpyRow{auction: auction}}
 	svc := &AuctionService{
 		auctionRepo: &auctionRepo.AuctionRepository{},
@@ -456,7 +456,7 @@ func TestUpdateDraft_FullProductFieldsPersists(t *testing.T) {
 		ownership:   auth.NewOwnershipValidator(),
 		log:         zap.NewNop(),
 	}
-	media := []string{"https://new1.jpg", "https://new2.mp4"}
+	media := []productEntity.ProductMedia{{URL: "https://new1.jpg"}, {URL: "https://new2.mp4"}}
 	variety := "Showa"
 	size := 45
 	age := 12
@@ -464,8 +464,7 @@ func TestUpdateDraft_FullProductFieldsPersists(t *testing.T) {
 	breeder := "Sakai"
 	bloodline := "Matsunosuke"
 	certs := []string{"contest", "health"}
-	prep := "short"
-	note := "handle with care"
+	prep := "1_3_days"
 	newTitle := "New Title Full"
 	newDesc := "New Desc Full"
 	err := svc.UpdateDraft(context.Background(), tx, UpdateDraftInput{
@@ -473,7 +472,7 @@ func TestUpdateDraft_FullProductFieldsPersists(t *testing.T) {
 		CallerID:        sellerID,
 		Title:           &newTitle,
 		Description:     &newDesc,
-		MediaURLs:       &media,
+		Media:           &media,
 		Variety:         &variety,
 		SizeCM:          &size,
 		AgeMonths:       &age,
@@ -482,7 +481,6 @@ func TestUpdateDraft_FullProductFieldsPersists(t *testing.T) {
 		Bloodline:       &bloodline,
 		Certificates:    &certs,
 		PreparationTime: &prep,
-		PreparationNote: &note,
 		StartPrice:   auction.StartPrice,
 		BidIncrement: auction.BidIncrement,
 		BuyNowPrice:  auction.BuyNowPrice,
@@ -502,7 +500,6 @@ func TestUpdateDraft_FullProductFieldsPersists(t *testing.T) {
 	assert.Equal(t, bloodline, *productRepo.lastUpdated.Bloodline)
 	assert.Equal(t, certs, productRepo.lastUpdated.Certificates)
 	assert.Equal(t, prep, productRepo.lastUpdated.PreparationTime)
-	assert.Equal(t, note, *productRepo.lastUpdated.PreparationNote)
 }
 
 func TestUpdateDraft_GuardOrder_NoProductWriteWhenNotDraft(t *testing.T) {

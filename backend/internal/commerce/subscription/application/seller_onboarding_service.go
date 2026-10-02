@@ -74,7 +74,7 @@ func NewSellerOnboardingService(
 // - Email is verified
 // - Username exists
 // - Phone number exists (phone_number IS NOT NULL)
-// - Sender address exists (structured address row with purpose="sender")
+// - Sender address exists (an address row carrying the "sender" tag)
 // - Seller profile exists (seller_profile must be created first)
 //
 // MARKET AUTHORITY ENFORCEMENT:
@@ -215,7 +215,7 @@ func (s *SellerOnboardingService) hasSenderAddress(
 		ctx,
 		tx,
 		userID,
-		string(addressEntity.AddressPurposeSender),
+		string(addressEntity.TagSender),
 	)
 	if err != nil {
 		return false, err

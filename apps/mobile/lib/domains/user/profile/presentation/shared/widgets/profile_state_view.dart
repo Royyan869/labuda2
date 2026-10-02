@@ -104,7 +104,7 @@ class ProfileStateView extends StatelessWidget {
               ),
               child: Icon(
                 Icons.error_outline,
-                size: 32,
+                size: AppIconSize.emphasis,
                 color: context.statusColors.error,
               ),
             ),
@@ -146,7 +146,7 @@ class ProfileStateView extends StatelessWidget {
               ),
               child: Icon(
                 Icons.check_circle,
-                size: 48,
+                size: AppIconSize.display,
                 color: context.statusColors.success,
               ),
             ),

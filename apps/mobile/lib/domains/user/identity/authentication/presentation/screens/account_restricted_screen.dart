@@ -43,7 +43,7 @@ class AccountRestrictedScreen extends ConsumerWidget {
               // Icon
               Icon(
                 isBanned ? Icons.block : Icons.pause_circle_outline,
-                size: 80,
+                size: AppIconSize.display,
                 color: isBanned ? theme.colorScheme.error : theme.colorScheme.tertiary,
               ),
               const SizedBox(height: 24),
@@ -107,7 +107,7 @@ class AccountRestrictedScreen extends ConsumerWidget {
                   icon: const Icon(Icons.logout),
                   label: const Text('Keluar'),
                   style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
+                    padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
                   ),
                 ),
               ),

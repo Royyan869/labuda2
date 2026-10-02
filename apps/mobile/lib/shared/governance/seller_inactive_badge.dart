@@ -57,7 +57,7 @@ class SellerInactiveBadge extends StatelessWidget {
         children: [
           Icon(
             Icons.pause_circle_outline,
-            size: 14,
+            size: AppIconSize.inlineGlyph,
             color: theme.colorScheme.onSurfaceVariant,
           ),
           const SizedBox(width: 4),

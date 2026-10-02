@@ -77,7 +77,7 @@ class ProfileInfo extends StatelessWidget {
           child: Text(
             name,
             style: TextStyle(
-              fontSize: AppType.s18,
+              fontSize: AppType.s20,
               fontWeight: FontWeight.bold,
               color: scheme.onSurface,
             ),
@@ -87,7 +87,7 @@ class ProfileInfo extends StatelessWidget {
         ),
         if (isVerified) ...[
           const SizedBox(width: 4),
-          Icon(Icons.verified, size: 18, color: context.statusColors.info),
+          Icon(Icons.verified, size: AppIconSize.action, color: context.statusColors.info),
         ],
       ],
     );
@@ -109,7 +109,7 @@ class ProfileInfo extends StatelessWidget {
         children: [
           Icon(
             Icons.storefront,
-            size: 14,
+            size: AppIconSize.inlineGlyph,
             color: scheme.onSurfaceVariant,
           ),
           const SizedBox(width: 4),
@@ -148,7 +148,7 @@ class ProfileInfo extends StatelessWidget {
       children: [
         Icon(
           Icons.location_on_outlined,
-          size: 14,
+          size: AppIconSize.inlineGlyph,
           color: scheme.onSurfaceVariant,
         ),
         const SizedBox(width: 4),
@@ -156,7 +156,7 @@ class ProfileInfo extends StatelessWidget {
           child: Text(
             location!,
             style: TextStyle(
-              fontSize: AppType.s13,
+              fontSize: AppType.s14,
               color: scheme.onSurfaceVariant,
             ),
             maxLines: 1,

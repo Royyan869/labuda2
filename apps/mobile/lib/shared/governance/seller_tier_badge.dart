@@ -44,7 +44,7 @@ class SellerTierBadge extends StatelessWidget {
         : scheme.secondary;
     final theme = Theme.of(context);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p10, vertical: AppMetrics.p4),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p4),
       decoration: BoxDecoration(
         color: brandColor.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(AppShape.r12),
@@ -56,7 +56,7 @@ class SellerTierBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(config.icon, size: 14, color: brandColor),
+          Icon(config.icon, size: AppIconSize.inlineGlyph, color: brandColor),
           const SizedBox(width: 4),
           Text(
             config.label,

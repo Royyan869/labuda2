@@ -48,7 +48,7 @@ import 'package:labuda/domains/commerce/catalog/shared/domain/entities/commerce_
 class CreateAuctionDto {
   final String title;
   final String? description;
-  final List<String> mediaUrls;
+  final List<Map<String, Object?>> media;
   final String? variety;
   final int? sizeCm;
   final int? ageMonths;
@@ -57,6 +57,10 @@ class CreateAuctionDto {
   final String? bloodline;
   final List<String>? certificates;
   final String? farmAddressId;
+
+  /// Preparation-time range the seller needs after checkout (1_3_days /
+  /// 4_7_days / 8_15_days). Backend defaults to the 1–3 day range when omitted.
+  final String? preparationTime;
 
   /// Required — backend rejects creation without at least one option.
   final List<String> shippingSetupIds;
@@ -74,12 +78,11 @@ class CreateAuctionDto {
   /// How long the auction runs. Backend enforces 24-168 (1-7 days).
   final int durationHours;
 
-  final String? preparationNote;
 
   const CreateAuctionDto({
     required this.title,
     this.description,
-    required this.mediaUrls,
+    required this.media,
     this.variety,
     this.sizeCm,
     this.ageMonths,
@@ -88,6 +91,7 @@ class CreateAuctionDto {
     this.bloodline,
     this.certificates,
     this.farmAddressId,
+    this.preparationTime,
     required this.shippingSetupIds,
     required this.startPrice,
     this.bidIncrement,
@@ -95,13 +99,12 @@ class CreateAuctionDto {
     required this.startMode,
     this.scheduledStartAt,
     required this.durationHours,
-    this.preparationNote,
   });
 
   Map<String, dynamic> toJson() => {
     'title': title,
     if (description != null) 'description': description,
-    'media_urls': mediaUrls,
+    if (media.isNotEmpty) 'media': media,
     if (variety != null) 'variety': variety,
     if (sizeCm != null) 'size_cm': sizeCm,
     if (ageMonths != null) 'age_months': ageMonths,
@@ -110,6 +113,7 @@ class CreateAuctionDto {
     if (bloodline != null) 'bloodline': bloodline,
     if (certificates != null) 'certificates': certificates,
     if (farmAddressId != null) 'farm_address_id': farmAddressId,
+    if (preparationTime != null) 'preparation_time': preparationTime,
     'shipping_option_ids': shippingSetupIds,
     'start_price': startPrice,
     if (bidIncrement != null) 'bid_increment': bidIncrement,
@@ -118,7 +122,6 @@ class CreateAuctionDto {
     if (scheduledStartAt != null)
       'scheduled_start_at': scheduledStartAt!.toIso8601String(),
     'duration_hours': durationHours,
-    if (preparationNote != null) 'preparation_note': preparationNote,
   };
 }
 
@@ -259,6 +262,7 @@ class AuctionMediaItemDto {
   final String url;
   final int position;
   final String? thumbnailUrl;
+  final String? blurhash;
   final int? width;
   final int? height;
   final int? duration;
@@ -270,6 +274,7 @@ class AuctionMediaItemDto {
     required this.url,
     required this.position,
     this.thumbnailUrl,
+    this.blurhash,
     this.width,
     this.height,
     this.duration,
@@ -278,6 +283,7 @@ class AuctionMediaItemDto {
 
   factory AuctionMediaItemDto.fromJson(Map<String, dynamic> json) {
     final thumbnail = json['thumbnail_url'];
+    final hash = json['blurhash'];
     final createdAtRaw = json['created_at'];
     return AuctionMediaItemDto(
       id: json['id'] as String? ?? '',
@@ -287,6 +293,7 @@ class AuctionMediaItemDto {
       // Backend renders thumbnail_url as "" when absent — normalize to null
       // so callers treat it as genuinely absent instead of an empty URL.
       thumbnailUrl: (thumbnail is String && thumbnail.isNotEmpty) ? thumbnail : null,
+      blurhash: (hash is String && hash.isNotEmpty) ? hash : null,
       width: (json['width'] as num?)?.toInt(),
       height: (json['height'] as num?)?.toInt(),
       duration: (json['duration'] as num?)?.toInt(),
@@ -336,7 +343,6 @@ class AuctionDto extends Equatable {
   final String? bloodline;
   final List<String> certificates;
   final String? preparationTime;
-  final String? preparationNote;
 
   /// Product farm address — canonical Product content, mapped into the
   /// read model (never left as a permanent null placeholder).
@@ -377,6 +383,11 @@ class AuctionDto extends Equatable {
   final String? sellerUsername;
   final String? sellerFarmName;
   final String? sellerAvatarUrl;
+
+  /// Buyer-facing origin summary of the listing's sender address
+  /// ("City, Province" — never street/district/phone), emitted on DETAIL
+  /// payloads only. Null on discovery payloads.
+  final String? publicOriginLine;
 
   /// E8.2 — Canonical seller user-identity lifecycle.
   ///
@@ -428,7 +439,6 @@ class AuctionDto extends Equatable {
     this.bloodline,
     this.certificates = const [],
     this.preparationTime,
-    this.preparationNote,
     this.farmAddressId,
     required this.startPrice,
     required this.bidIncrement,
@@ -445,6 +455,8 @@ class AuctionDto extends Equatable {
     this.sellerUsername,
     this.sellerFarmName,
     this.sellerAvatarUrl,
+    // Buyer-facing listing origin (detail-only wire slot).
+    this.publicOriginLine,
     // E8.2 seller user-axis lifecycle (nested wire slot)
     this.sellerUserLifecycle,
     // Expired-seller visibility — top-level seller-trust lifecycle.
@@ -502,7 +514,6 @@ class AuctionDto extends Equatable {
           (json['certificates'] as List?)?.whereType<String>().toList() ??
           const [],
       preparationTime: json['preparation_time'] as String?,
-      preparationNote: json['preparation_note'] as String?,
       farmAddressId: json['farm_address_id'] as String?,
       startPrice: (json['start_price'] as num).toInt(),
       bidIncrement: (json['bid_increment'] as num).toInt(),
@@ -520,6 +531,7 @@ class AuctionDto extends Equatable {
       sellerUsername: json['seller_username'] as String?,
       sellerFarmName: json['seller_farm_name'] as String?,
       sellerAvatarUrl: json['seller_avatar_url'] as String?,
+      publicOriginLine: json['public_origin_line'] as String?,
       // E8.2 — Walk the nested canonical PublicCard wire slot
       // (`auction.seller.user.lifecycle`). Pre-E8.1 payloads omit it →
       // null fall-through.

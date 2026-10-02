@@ -192,7 +192,7 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
                     ),
                     child: Icon(
                       Icons.person_add_outlined,
-                      size: 64,
+                      size: AppIconSize.display,
                       color: scheme.primary,
                     ),
                   ),
@@ -246,7 +246,7 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
                         children: [
                           Icon(
                             Icons.email_outlined,
-                            size: 20,
+                            size: AppIconSize.action,
                             color: scheme.onSurfaceVariant,
                           ),
                           const SizedBox(width: 12),
@@ -254,7 +254,7 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
                             child: Text(
                               'Signed in with: $email',
                               style: TextStyle(
-                                fontSize: AppType.s13,
+                                fontSize: AppType.s14,
                                 color: scheme.onSurface,
                               ),
                             ),
@@ -276,7 +276,7 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
                       style: ElevatedButton.styleFrom(
                         disabledBackgroundColor:
                             scheme.surfaceContainerHighest,
-                        padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
+                        padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
                       ),
                       child: _isSubmitting
                           ? SizedBox(
@@ -304,7 +304,7 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
                                   .signOut();
                             },
                       style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
+                        padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
                       ),
                       child: Text(
                         'Sign Out',

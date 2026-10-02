@@ -140,14 +140,14 @@ class SellerWizardPreviewWidget extends StatelessWidget {
                 Icon(
                   Icons.info_outline,
                   color: context.statusColors.warning,
-                  size: 20,
+                  size: AppIconSize.action,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     'Payment activates seller authority. KYC and bank review are handled later for payout access.',
                     style: TextStyle(
-                      fontSize: AppType.s13,
+                      fontSize: AppType.s14,
                       color: scheme.onSurfaceVariant,
                     ),
                   ),
@@ -179,7 +179,7 @@ class SellerWizardPreviewWidget extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(AppMetrics.p20),
+      padding: const EdgeInsets.all(AppMetrics.p24),
       decoration: BoxDecoration(
         color: scheme.surface,
         borderRadius: BorderRadius.circular(AppShape.r16),
@@ -211,11 +211,11 @@ class SellerWizardPreviewWidget extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 110,
+            width: AppContentSize.termLabel,
             child: Text(
               label,
               style: TextStyle(
-                fontSize: AppType.s13,
+                fontSize: AppType.s14,
                 fontWeight: FontWeight.w600,
                 color: scheme.onSurfaceVariant,
               ),
@@ -225,7 +225,7 @@ class SellerWizardPreviewWidget extends StatelessWidget {
             child: Text(
               value,
               style: TextStyle(
-                fontSize: AppType.s13,
+                fontSize: AppType.s14,
                 color: scheme.onSurface,
               ),
             ),
@@ -257,7 +257,7 @@ class SellerWizardPreviewWidget extends StatelessWidget {
               child: Text(
                 'I agree to the Seller Terms and understand that seller authority starts after payment is confirmed.',
                 style: TextStyle(
-                  fontSize: AppType.s13,
+                  fontSize: AppType.s14,
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),

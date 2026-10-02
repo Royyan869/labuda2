@@ -76,7 +76,7 @@ class SuggestedMessagesWidgetRefactored extends StatelessWidget {
     ];
 
     return Container(
-      height: 120,
+      height: AppContentSize.panel,
       padding: const EdgeInsets.symmetric(vertical: AppMetrics.p8),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainer,
@@ -97,14 +97,14 @@ class SuggestedMessagesWidgetRefactored extends StatelessWidget {
               children: [
                 Icon(
                   Icons.tips_and_updates_outlined,
-                  size: 14,
+                  size: AppIconSize.inlineGlyph,
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
                 const SizedBox(width: 6),
                 Text(
                   'Suggested Messages',
                   style: TextStyle(
-                    fontSize: AppType.s11,
+                    fontSize: AppType.s12,
                     fontWeight: FontWeight.w600,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
@@ -140,7 +140,7 @@ class SuggestedMessagesWidgetRefactored extends StatelessWidget {
       onTap: () => onMessageSelected(message.text),
       borderRadius: BorderRadius.circular(AppShape.r20),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p14, vertical: AppMetrics.p12),
+        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p12),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(AppShape.r20),
@@ -152,7 +152,7 @@ class SuggestedMessagesWidgetRefactored extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(message.icon, size: 18, color: message.color),
+            Icon(message.icon, size: AppIconSize.action, color: message.color),
             const SizedBox(width: 8),
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 280),

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	productentity "github.com/labuda/backend/internal/commerce/product/entity"
 )
 
 // ForSalePreview represents a simplified forSale for search results.
@@ -18,7 +19,7 @@ type ForSalePreview struct {
 	Description string
 	Variety     string
 	Price       int64
-	MediaURLs   []string
+	MediaURLs   []productentity.ProductMedia
 	SellerID    uuid.UUID
 	CreatedAt   time.Time
 

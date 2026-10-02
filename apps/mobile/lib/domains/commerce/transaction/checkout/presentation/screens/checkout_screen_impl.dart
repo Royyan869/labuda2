@@ -72,6 +72,7 @@ import 'package:labuda/domains/finance/transaction/payment/presentation/presenta
 import 'package:labuda/domains/user/profile/domain/entities/address_entity.dart';
 import 'package:labuda/domains/user/profile/presentation/providers/address_providers.dart';
 import 'package:labuda/domains/user/profile/presentation/providers/notifiers/address_notifier.dart';
+import 'package:labuda/domains/user/profile/presentation/widgets/address_form_dialog.dart';
 import 'package:labuda/domains/commerce/transaction/shipping/domain/entities/shipping.dart';
 import 'package:labuda/domains/commerce/transaction/shipping/presentation/providers/providers.dart'
     show shippingRepositoryProvider;
@@ -427,11 +428,6 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             icon: const Icon(Icons.arrow_back),
             onPressed: () => Navigator.of(context).pop(),
           ),
-          // Colours come from the canonical AppBarTheme (AppTheme), not from a
-          // checkout-local brightness branch.
-          elevation: AppElevation.none,
-          surfaceTintColor: Colors.transparent,
-          scrolledUnderElevation: 0,
         ),
         body: SingleChildScrollView(
           padding: const EdgeInsets.all(AppMetrics.p16),
@@ -487,7 +483,11 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                   deliveryOptions: _deliveryOptions,
                   selectedOptionId: _selectedShippingOptionId,
                   isLoading: _isLoadingDeliveryOptions,
-                  hasAddress: _selectedAddressId != null,                   onSelected: _onShippingOptionSelected,
+                  hasAddress: _selectedAddressId != null,
+                  onSelected: _onShippingOptionSelected,
+                  // Single chat channel: the picker CTA and the uncovered-area
+                  // dialog both go through `_openChatWithSeller`.
+                  onContactSeller: _openChatWithSeller,
                 ),
               if (widget.shippingQuoteId == null) const SizedBox(height: 24),
 
@@ -776,7 +776,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         icon: Icon(
           Icons.error_outline,
           color: Theme.of(context).colorScheme.error,
-          size: 48,
+          size: AppIconSize.display,
         ),
         title: Text(title),
         content: Column(
@@ -834,7 +834,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         icon: Icon(
           Icons.inventory_2_outlined,
           color: context.statusColors.warning,
-          size: 48,
+          size: AppIconSize.display,
         ),
         title: Text(title),
         content: Column(
@@ -853,7 +853,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 children: [
                   Icon(
                     Icons.info_outline,
-                    size: 16,
+                    size: AppIconSize.inlineGlyph,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                   const SizedBox(width: 8),
@@ -919,7 +919,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         icon: Icon(
           Icons.local_shipping_outlined,
           color: context.statusColors.warning,
-          size: 48,
+          size: AppIconSize.display,
         ),
         title: Text(title),
         content: Text(body),
@@ -1002,7 +1002,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         icon: Icon(
           Icons.timer_outlined,
           color: context.statusColors.warning,
-          size: 48,
+          size: AppIconSize.display,
         ),
         title: const Text('Waktu Harga Habis'),
         content: const Text(

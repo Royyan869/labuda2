@@ -1,10 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart'; // For AuthUser and extensions (isSeller, etc.)
 import 'package:labuda/domains/user/identity/authentication/authentication.dart';
-import 'package:labuda/domains/user/profile/domain/entities/address_entity.dart';
 import 'package:labuda/domains/user/profile/domain/entities/profile_entity.dart';
-import 'package:labuda/domains/user/profile/presentation/providers/address_list_provider.dart'
-    show addressesStreamProvider;
 import 'package:labuda/domains/user/profile/presentation/providers/user_data_provider.dart'
     show userDataProvider;
 import 'package:labuda/domains/user/profile/presentation/providers/profile_stream_provider.dart'
@@ -78,29 +75,17 @@ final profileAboutDataProvider =
 
       // Fetch ProfileEntity (optional - may not exist for new users)
       final profile = await ref.watch(profileStreamProvider(userId).future);
-      final canonicalLocation = normalizeProfileLocation(profile?.location);
 
-      final authState = ref.watch(authControllerProvider);
-      final isOwnProfile =
-          authState is AuthStateAuthenticated && authState.user.id == userId;
-
-      String? location = canonicalLocation;
-      if (location == null && isOwnProfile) {
-        final addressesResult = await ref.watch(
-          addressesStreamProvider(userId).future,
-        );
-        location = resolveProfileLocation(
-          canonicalLocation: null,
-          addresses: addressesResult.data ?? const <AddressEntity>[],
-          user: userResult,
-          isOwnProfile: true,
-        );
-      }
-
+      // ONE location rule for every profile surface: the backend's public
+      // origin line (city, province of the sender address), falling back to
+      // the user's own location field. The client-side composition from raw
+      // address records is PURGED — the server owns that rule, so the About
+      // tab and the profile header can never disagree.
       return ProfileAboutData(
         user: userResult,
         profile: profile,
-        location: location,
+        location: normalizeProfileLocation(profile?.publicOriginLine) ??
+            normalizeProfileLocation(profile?.location),
       );
     });
 
@@ -108,36 +93,4 @@ String? normalizeProfileLocation(String? location) {
   final normalized = location?.trim();
   if (normalized == null || normalized.isEmpty) return null;
   return normalized;
-}
-
-String? resolveProfileLocation({
-  required String? canonicalLocation,
-  required List<AddressEntity> addresses,
-  required AuthUser user,
-  required bool isOwnProfile,
-}) {
-  final normalizedCanonical = normalizeProfileLocation(canonicalLocation);
-  if (normalizedCanonical != null) {
-    return normalizedCanonical;
-  }
-
-  if (!isOwnProfile) return null;
-
-  final targetPurpose = user.hasCreatedSellerProfile
-      ? AddressPurpose.sender
-      : AddressPurpose.shipping;
-
-  final relevantAddresses = addresses
-      .where((addr) => addr.purpose == targetPurpose)
-      .toList();
-
-  final primaryAddress =
-      relevantAddresses.where((addr) => addr.isPrimary).firstOrNull ??
-      relevantAddresses.firstOrNull;
-
-  if (primaryAddress == null) {
-    return null;
-  }
-
-  return '${primaryAddress.city.name}, ${primaryAddress.province.name}';
 }

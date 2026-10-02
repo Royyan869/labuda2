@@ -7,6 +7,39 @@ import (
 	"github.com/google/uuid"
 )
 
+// OWNER TRUTH: a deal (accept) is valid for 24h FROM THE DEAL — AcceptWithPrice
+// must refresh ExpiresAt instead of inheriting the creation-time expiry.
+func TestAcceptWithPriceRefreshesDealExpiry(t *testing.T) {
+	session := NewNegotiationSession(
+		NegotiationResourceForSale,
+		uuid.New(),
+		uuid.New(),
+		uuid.New(),
+	)
+
+	// Simulate a counter cycle that consumed (and overshot) the original window.
+	past := time.Now().Add(-time.Hour)
+	session.ExpiresAt = &past
+	if err := session.SetCurrentPrice(25000); err != nil {
+		t.Fatalf("SetCurrentPrice() unexpected error: %v", err)
+	}
+
+	if err := session.AcceptWithPrice(); err != nil {
+		t.Fatalf("AcceptWithPrice() unexpected error: %v", err)
+	}
+
+	if session.IsExpired() {
+		t.Error("accepted deal must not inherit the pre-deal expiry")
+	}
+	if session.ExpiresAt == nil {
+		t.Fatal("accepted deal must carry a concrete ExpiresAt")
+	}
+	remaining := time.Until(*session.ExpiresAt)
+	if remaining < 23*time.Hour || remaining > 24*time.Hour+time.Minute {
+		t.Errorf("deal expiry = %v after accept, want ~24h from the deal", remaining)
+	}
+}
+
 func TestNewNegotiationSession(t *testing.T) {
 	resourceType := NegotiationResourceForSale
 	forSaleID := uuid.New()

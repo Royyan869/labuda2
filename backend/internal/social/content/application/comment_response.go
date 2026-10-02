@@ -5,17 +5,24 @@ import (
 
 	"github.com/google/uuid"
 	commerceshared "github.com/labuda/backend/internal/commerce/shared"
+	"github.com/labuda/backend/internal/pkg/mediaref"
 	"github.com/labuda/backend/internal/pkg/publiccard"
 	"github.com/labuda/backend/internal/social/content/entity"
 )
 
 // CommentMediaResponse represents a foto+video attachment on a comment.
 type CommentMediaResponse struct {
-	ID         uuid.UUID `json:"id"`
-	StorageKey string    `json:"storage_key"`
-	MediaURL   string    `json:"media_url"`
-	MediaType  string    `json:"media_type"`
-	Position   int       `json:"position"`
+	ID           uuid.UUID `json:"id"`
+	StorageKey   string    `json:"storage_key"`
+	MediaURL     string    `json:"media_url"`
+	MediaType    string    `json:"media_type"`
+	Position     int       `json:"position"`
+	ThumbnailURL string    `json:"thumbnail_url,omitempty"`
+	Blurhash     *string   `json:"blurhash,omitempty"`
+	DurationMs   *int      `json:"duration_ms,omitempty"`
+	Width        *int      `json:"width,omitempty"`
+	Height       *int      `json:"height,omitempty"`
+	Status       string    `json:"status"`
 }
 
 // CommentResponse represents a comment with its optional canonical resource
@@ -133,13 +140,27 @@ func NewCommentResponseWithMedia(
 	if len(media) > 0 {
 		resp.Media = make([]CommentMediaResponse, 0, len(media))
 		for _, m := range media {
-			resp.Media = append(resp.Media, CommentMediaResponse{
+			item := CommentMediaResponse{
 				ID:         m.ID,
 				StorageKey: m.StorageKey,
 				MediaURL:   commerceshared.ResolveReadableMediaReference(m.MediaURL),
 				MediaType:  string(m.MediaType),
 				Position:   m.Position,
-			})
+				Blurhash:   m.Blurhash,
+				DurationMs: m.DurationMs,
+				Width:      m.Width,
+				Height:     m.Height,
+				Status:     string(mediaref.NormalizeStatus(m.Status)),
+			}
+			// List thumbnail: image variant for images, poster frame for
+			// videos (same card rule as every surface). Detail renders
+			// MediaURL (untouched original).
+			if m.MediaType == entity.MediaTypeVideo {
+				item.ThumbnailURL = commerceshared.ResolveReadablePosterURL(m.MediaURL)
+			} else {
+				item.ThumbnailURL = commerceshared.ResolveReadableThumbnailURL(m.MediaURL)
+			}
+			resp.Media = append(resp.Media, item)
 		}
 	}
 

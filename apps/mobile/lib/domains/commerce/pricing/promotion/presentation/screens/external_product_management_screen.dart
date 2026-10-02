@@ -180,7 +180,7 @@ class _ExternalProductCard extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppShape.r12),
       child: Container(
-        padding: const EdgeInsets.all(AppMetrics.p14),
+        padding: const EdgeInsets.all(AppMetrics.p16),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppShape.r12),
           border: Border.all(
@@ -210,7 +210,7 @@ class _ExternalProductCard extends StatelessWidget {
             Text(
               product.externalUrl,
               style: TextStyle(
-                fontSize: AppType.s13,
+                fontSize: AppType.s14,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               maxLines: 1,
@@ -234,7 +234,7 @@ class _ExternalProductCard extends StatelessWidget {
                 children: [
                   Icon(
                     Icons.visibility,
-                    size: 14,
+                    size: AppIconSize.inlineGlyph,
                     color: context.statusColors.success,
                   ),
                   const SizedBox(width: 4),
@@ -290,7 +290,7 @@ class _ReviewStatusBadge extends StatelessWidget {
     };
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p3),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppShape.r12),
         color: color.withValues(alpha: 0.1),

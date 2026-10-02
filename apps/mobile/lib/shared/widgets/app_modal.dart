@@ -68,7 +68,7 @@ class AppModal {
                         icon: Icon(
                           Icons.close,
                           color: scheme.onSurfaceVariant,
-                          size: 18,
+                          size: AppIconSize.action,
                         ),
                         iconSize: 18,
                         padding: const EdgeInsets.all(AppMetrics.p8),
@@ -130,7 +130,7 @@ class AppModal {
       content: Row(
         children: [
           if (icon != null) ...[
-            Icon(icon, color: confirmColor ?? scheme.primary, size: 24),
+            Icon(icon, color: confirmColor ?? scheme.primary, size: AppIconSize.header),
             const SizedBox(width: 16),
           ],
           Expanded(

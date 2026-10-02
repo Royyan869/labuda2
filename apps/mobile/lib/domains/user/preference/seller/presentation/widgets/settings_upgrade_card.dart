@@ -37,13 +37,13 @@ class SettingsUpgradeCard extends StatelessWidget {
           onTap: onUpgrade,
           borderRadius: BorderRadius.circular(AppShape.r16),
           child: Padding(
-            padding: const EdgeInsets.all(AppMetrics.p20),
+            padding: const EdgeInsets.all(AppMetrics.p24),
             child: Row(
               children: [
                 Icon(
                   Icons.store_outlined,
                   color: scheme.onPrimary,
-                  size: 28,
+                  size: AppIconSize.emphasis,
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -54,7 +54,7 @@ class SettingsUpgradeCard extends StatelessWidget {
                         'Become a Seller',
                         style: TextStyle(
                           color: scheme.onPrimary,
-                          fontSize: AppType.s18,
+                          fontSize: AppType.s20,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -73,7 +73,7 @@ class SettingsUpgradeCard extends StatelessWidget {
                 Icon(
                   Icons.arrow_forward_ios,
                   color: scheme.onPrimary,
-                  size: 18,
+                  size: AppIconSize.action,
                 ),
               ],
             ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/widgets/app_snackbar.dart';
+import 'package:labuda/shared/widgets/empty_state.dart';
 import 'package:labuda/domains/commerce/pricing/discount/domain/entities/discount_entity.dart';
 import 'package:labuda/domains/commerce/pricing/discount/presentation/providers/discount_provider.dart';
 import 'package:labuda/domains/commerce/pricing/discount/presentation/screens/create_discount_screen.dart';
@@ -44,7 +45,7 @@ class _SellerDiscountListScreenState
 
     if (currentUser == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Manage Discounts')),
+        appBar: AppBar(title: const Text('Kelola Diskon')),
         body: const Center(child: Text('Please login first')),
       );
     }
@@ -53,7 +54,7 @@ class _SellerDiscountListScreenState
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Manage Discounts'),
+        title: const Text('Kelola Diskon'),
         actions: const [DiscountManagementInfoTooltip()],
         bottom: TabBar(
           controller: _tabController,
@@ -99,8 +100,9 @@ class _SellerDiscountListScreenState
             );
           },
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, stack) =>
-              const Center(child: Text('Data belum bisa dimuat.')),
+          error: (error, stack) => EmptyState.error(
+                title: 'Data belum bisa dimuat.',
+              ),
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -121,13 +123,13 @@ class _SellerDiscountListScreenState
     String emptyMessage,
   ) {
     if (discounts.isEmpty) {
-      return Center(
-        child: Text(
-          emptyMessage,
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
-        ),
+      // Canonical empty state (shared EmptyState) — icon + title + hint,
+      // not naked text like the old copy.
+      return EmptyState(
+        type: EmptyStateType.noData,
+        icon: Icons.discount_outlined,
+        title: emptyMessage,
+        subtitle: 'Diskon akan muncul di sini.',
       );
     }
 

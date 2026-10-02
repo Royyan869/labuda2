@@ -58,7 +58,7 @@ func TestN8D_CounterRejectedWhenForSaleSold(t *testing.T) {
 		_ = tx.QueryRow(ctx, `SELECT COUNT(*) FROM outbox WHERE event_type='negotiation.message_sent' AND aggregate_id=$1`, sessionID).Scan(&beforeOutbox)
 		return nil
 	})
-	err = h.svc.SendCounterOffer(ctx, negotiationApp.SendCounterOfferRequest{SessionID: sessionID, SenderID: buyerID, Price: 350000})
+	_, err = h.svc.SendCounterOffer(ctx, negotiationApp.SendCounterOfferRequest{SessionID: sessionID, SenderID: buyerID, Price: 350000})
 	if err == nil {
 		t.Fatal("expected SendCounterOffer rejected when for_sale sold, got nil")
 	}
@@ -108,7 +108,7 @@ func TestN8D_CounterRejectedWhenForSaleWithdrawn(t *testing.T) {
 		_, err := tx.Exec(ctx, `UPDATE for_sales SET status='withdrawn', withdrawn_at=NOW(), updated_at=NOW() WHERE id=$1`, forSaleID)
 		return err
 	})
-	err := h.svc.SendCounterOffer(ctx, negotiationApp.SendCounterOfferRequest{SessionID: sess.ID, SenderID: sellerID, Price: 380000})
+	_, err := h.svc.SendCounterOffer(ctx, negotiationApp.SendCounterOfferRequest{SessionID: sess.ID, SenderID: sellerID, Price: 380000})
 	if err == nil {
 		t.Fatal("expected counter rejected after withdrawn")
 	}
@@ -148,7 +148,7 @@ func TestN8D_AcceptRejectedWhenForSaleSold(t *testing.T) {
 		_, err := tx.Exec(ctx, `UPDATE for_sales SET status='sold', quantity_available=0, sold_at=NOW(), updated_at=NOW() WHERE id=$1`, forSaleID)
 		return err
 	})
-	_, err := h.svc.AcceptNegotiation(ctx, negotiationApp.AcceptNegotiationRequest{SessionID: sess.ID, SellerID: sellerID})
+	_, err := h.svc.AcceptNegotiation(ctx, negotiationApp.AcceptNegotiationRequest{SessionID: sess.ID, ActorID: sellerID})
 	if err == nil {
 		t.Fatal("expected Accept rejected when for_sale sold")
 	}
@@ -302,7 +302,7 @@ func TestN8D_StartConcurrency_SoldVsCreate(t *testing.T) {
 			return nil
 		})
 		// Future mutation must be blocked now that for_sale is sold
-		err := h.svc.SendCounterOffer(ctx, negotiationApp.SendCounterOfferRequest{SessionID: sessID, SenderID: buyerID, Price: 390000})
+		_, err := h.svc.SendCounterOffer(ctx, negotiationApp.SendCounterOfferRequest{SessionID: sessID, SenderID: buyerID, Price: 390000})
 		var notNegotiable2 *negotiationApp.ErrResourceNotNegotiable
 		if !errors.As(err, &notNegotiable2) {
 			t.Fatalf("expected future counter to be blocked after concurrent sold, got %T: %v", err, err)
@@ -328,11 +328,10 @@ func TestN8D_ValidPathStillSucceeds(t *testing.T) {
 	})
 	if err != nil {
 		t.Fatalf("valid Start failed: %v", err)
-	}
-	if err := h.svc.SendCounterOffer(ctx, negotiationApp.SendCounterOfferRequest{SessionID: sess.ID, SenderID: sellerID, Price: 410000}); err != nil {
+	}		if _, err := h.svc.SendCounterOffer(ctx, negotiationApp.SendCounterOfferRequest{SessionID: sess.ID, SenderID: sellerID, Price: 410000}); err != nil {
 		t.Fatalf("valid Counter failed: %v", err)
 	}
-	if _, err := h.svc.AcceptNegotiation(ctx, negotiationApp.AcceptNegotiationRequest{SessionID: sess.ID, SellerID: sellerID}); err != nil {
+	if _, err := h.svc.AcceptNegotiation(ctx, negotiationApp.AcceptNegotiationRequest{SessionID: sess.ID, ActorID: sellerID}); err != nil {
 		t.Fatalf("valid Accept failed: %v", err)
 	}
 }
@@ -514,7 +513,7 @@ func TestN8D_CounterRejectedWhenNegotiationDisabled(t *testing.T) {
 		_, err := tx.Exec(ctx, `UPDATE for_sales SET negotiation_enabled=false, updated_at=NOW() WHERE id=$1`, forSaleID)
 		return err
 	})
-	err = h.svc.SendCounterOffer(ctx, negotiationApp.SendCounterOfferRequest{SessionID: sess.ID, SenderID: buyerID, Price: 350000})
+	_, err = h.svc.SendCounterOffer(ctx, negotiationApp.SendCounterOfferRequest{SessionID: sess.ID, SenderID: buyerID, Price: 350000})
 	if err == nil {
 		t.Fatal("expected counter rejected when negotiation disabled")
 	}
@@ -575,7 +574,7 @@ func TestN8D_AcceptRejectedWhenWithdrawn(t *testing.T) {
 		_, err := tx.Exec(ctx, `UPDATE for_sales SET status='withdrawn', withdrawn_at=NOW(), updated_at=NOW() WHERE id=$1`, forSaleID)
 		return err
 	})
-	_, err := h.svc.AcceptNegotiation(ctx, negotiationApp.AcceptNegotiationRequest{SessionID: sess.ID, SellerID: sellerID})
+	_, err := h.svc.AcceptNegotiation(ctx, negotiationApp.AcceptNegotiationRequest{SessionID: sess.ID, ActorID: sellerID})
 	if err == nil {
 		t.Fatal("expected Accept rejected when withdrawn")
 	}
@@ -604,7 +603,7 @@ func TestN8D_AcceptRejectedWhenNegotiationDisabled(t *testing.T) {
 		_, err := tx.Exec(ctx, `UPDATE for_sales SET negotiation_enabled=false, updated_at=NOW() WHERE id=$1`, forSaleID)
 		return err
 	})
-	_, err := h.svc.AcceptNegotiation(ctx, negotiationApp.AcceptNegotiationRequest{SessionID: sess.ID, SellerID: sellerID})
+	_, err := h.svc.AcceptNegotiation(ctx, negotiationApp.AcceptNegotiationRequest{SessionID: sess.ID, ActorID: sellerID})
 	if err == nil {
 		t.Fatal("expected Accept rejected when negotiation disabled")
 	}
@@ -633,7 +632,7 @@ func TestN8D_AcceptRejectedWhenQuantityZero(t *testing.T) {
 		_, err := tx.Exec(ctx, `UPDATE for_sales SET quantity_available=0, updated_at=NOW() WHERE id=$1`, forSaleID)
 		return err
 	})
-	_, err := h.svc.AcceptNegotiation(ctx, negotiationApp.AcceptNegotiationRequest{SessionID: sess.ID, SellerID: sellerID})
+	_, err := h.svc.AcceptNegotiation(ctx, negotiationApp.AcceptNegotiationRequest{SessionID: sess.ID, ActorID: sellerID})
 	if err == nil {
 		t.Fatal("expected Accept rejected when qty zero")
 	}
@@ -812,7 +811,10 @@ func TestN8D_Deterministic_Counter_SoldWins(t *testing.T) {
 	<-locked
 	counterCh := make(chan error, 1)
 	go func() {
-		counterCh <- h.svc.SendCounterOffer(ctx, negotiationApp.SendCounterOfferRequest{SessionID: sess.ID, SenderID: sellerID, Price: 380000})
+		counterCh <- func() error {
+			_, e := h.svc.SendCounterOffer(ctx, negotiationApp.SendCounterOfferRequest{SessionID: sess.ID, SenderID: sellerID, Price: 380000})
+			return e
+		}()
 	}()
 
 	select {
@@ -991,8 +993,7 @@ func TestN8D_Deterministic_NegotiationWins(t *testing.T) {
 	}
 
 	// for_sale now sold, but session was created while active — historical allowed
-	// subsequent counter must be blocked
-	err2 := h.svc.SendCounterOffer(ctx, negotiationApp.SendCounterOfferRequest{SessionID: sessID, SenderID: buyerID, Price: 390000})
+	// subsequent counter must be blocked		_, err2 := h.svc.SendCounterOffer(ctx, negotiationApp.SendCounterOfferRequest{SessionID: sessID, SenderID: buyerID, Price: 390000})
 	var notNegotiable *negotiationApp.ErrResourceNotNegotiable
 	if !errors.As(err2, &notNegotiable) {
 		t.Fatalf("expected subsequent counter blocked after negotiation-win then sold, got %T: %v", err2, err2)

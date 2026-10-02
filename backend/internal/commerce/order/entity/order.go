@@ -93,7 +93,6 @@ type Order struct {
 	// This preserves the buyer's expectation at purchase time, even if seller
 	// later changes the listing/auction preparation time
 	PreparationTimeSnapshot string     `json:"preparation_time_snapshot"`           // Frozen preparation time from source (listing/auction)
-	PreparationNoteSnapshot *string    `json:"preparation_note_snapshot,omitempty"` // Frozen preparation note from source
 	ReadyToShipBy           *time.Time `json:"ready_to_ship_by,omitempty"`          // Calculated deadline: paid_at + preparation_days (null until paid)
 
 	// Shipping Address Snapshot - frozen at order creation time
@@ -463,7 +462,7 @@ func (o *Order) MarkPaid() error {
 
 	// Calculate ready_to_ship_by based on preparation_time_snapshot
 	// This is the deadline when seller should have the item ready for shipping
-	// EVERY paid order MUST have a deadline — immediate = 1 day, unknown = 2 days (safe fallback)
+	// EVERY paid order MUST have a deadline — 1-3 days = 3 days, unknown = 3 days (safe fallback)
 	preparationDays := preparationTimeToDays(o.PreparationTimeSnapshot)
 	readyBy := time.Now().Add(time.Duration(preparationDays) * 24 * time.Hour)
 	o.ReadyToShipBy = &readyBy
@@ -474,26 +473,25 @@ func (o *Order) MarkPaid() error {
 
 // preparationTimeToDays converts preparation time string to days.
 // Every value returns > 0 so that ALL paid orders get a shipment deadline.
+// The deadline is the UPPER bound of the promised range (owner decision:
+// seller may take up to N days to prepare the koi after checkout).
 //
 // Mapping:
 //
-//	immediate = 1 day  (seller claims ready, still gets 1 day + 2 day grace = 3 day total)
-//	short     = 2 days
-//	medium    = 5 days
-//	long      = 7 days
-//	unknown   = 2 days (safe fallback = short)
+//	1_3_days  = 3 days
+//	4_7_days  = 7 days
+//	8_15_days = 15 days
+//	unknown   = 3 days (safe fallback = default 1-3 day range)
 func preparationTimeToDays(preparationTime string) int {
 	switch preparationTime {
-	case "immediate":
-		return 1
-	case "short":
-		return 2
-	case "medium":
-		return 5
-	case "long":
+	case "4_7_days":
 		return 7
+	case "8_15_days":
+		return 15
+	case "1_3_days":
+		return 3
 	default:
-		return 2 // Safe fallback: unknown → short (2 days)
+		return 3 // Safe fallback: unknown → default 1-3 day range (3 days)
 	}
 }
 
@@ -1106,7 +1104,6 @@ func NewOrderFromSource(
 	shippingSetupName string,
 	shippingTransportType string,
 	preparationTimeSnapshot string,
-	preparationNoteSnapshot *string,
 	shippingSource *string, // Shipping source ("for_sale" or "shipping_quote")
 	shippingQuoteID *uuid.UUID, // TASK F: Quote ID when using shipping quote
 	shippingQuotePrice *int64, // TASK F: Quote price snapshot
@@ -1169,7 +1166,6 @@ func NewOrderFromSource(
 		ShippingQuotePrice:        shippingQuotePrice, // TASK F: Store quote price
 		PricingTokenID:            pricingTokenID,     // Store pricing token ID (prevents double-ordering)
 		PreparationTimeSnapshot:   preparationTimeSnapshot,
-		PreparationNoteSnapshot:   preparationNoteSnapshot,
 		ReadyToShipBy:             nil, // Will be calculated when order is marked as paid
 		Status:                    StatusPending,
 		EscrowStatus:              EscrowStatusHolding,

@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	auctionentity "github.com/labuda/backend/internal/commerce/auction/entity"
+	productentity "github.com/labuda/backend/internal/commerce/product/entity"
 	commerceshared "github.com/labuda/backend/internal/commerce/shared"
 	"github.com/labuda/backend/internal/discovery/search/entity"
 	"github.com/labuda/backend/internal/pkg/mediaref"
@@ -48,12 +49,11 @@ func (searchProjectionAdapter) forSalePreviewsToResponse(
 			continue
 		}
 
-		mediaURLs := commerceshared.ResolveReadableMediaReferences(l.MediaURLs)
+		mediaURLs := commerceshared.ResolveReadableMediaReferences(productentity.URLs(l.MediaURLs))
 		media := buildMediaRefs(mediaURLs)
 
 		var thumbnail *string
-		if len(l.MediaURLs) > 0 {
-			t := commerceshared.ResolveReadableThumbnailURL(l.MediaURLs[0])
+		if t := commerceshared.ResolveReadableCardThumbnailURL(l.MediaURLs); t != "" {
 			thumbnail = &t
 		}
 
@@ -200,8 +200,13 @@ func (searchProjectionAdapter) auctionPreviewsToResponse(
 		}
 
 		var resolvedThumbnail *string
-		if a.ThumbnailURL != nil && strings.TrimSpace(*a.ThumbnailURL) != "" {
-			t := commerceshared.ResolveReadableThumbnailURL(*a.ThumbnailURL)
+		thumbRaw := ""
+		if a.ThumbnailURL != nil {
+			thumbRaw = *a.ThumbnailURL
+		}
+		if t := commerceshared.ResolveReadableCardThumbnailURL(
+			[]productentity.ProductMedia{{URL: thumbRaw}},
+		); t != "" {
 			resolvedThumbnail = &t
 		}
 		media := make([]mediaref.MediaRef, 0, 1)

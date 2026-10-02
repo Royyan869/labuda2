@@ -2,6 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:labuda/core/media/media_upload_orchestrator.dart';
 import 'package:labuda/core/src/theme/app_theme.dart';
 
+/// The tile extent, named ONCE.
+///
+/// The strip's height IS the tile's height, and this used to be five separate
+/// `72`s (the strip, the video tile, the image tile, the failed tile and the
+/// `width` beside each `height`), so nothing stopped a thumbnail from growing
+/// while the strip that must contain it stayed behind.
+///
+/// Where this name belongs: media sizing is the foundation's NEXT phase —
+/// `AppMetrics` owns the STEPS between things, and the census says so out loud
+/// (`contentDimension` is not a migration target for the spacing ladder). The
+/// final home is therefore a media-size role beside `AppIconSize`, not a private
+/// const. Until that ladder exists, holding the number in ONE place is the
+/// honest intermediate: re-inline a number here and the geometry census counts
+/// it again, immediately.
+const double _tileExtent = 72;
+
 /// Pending media preview for deferred-upload composers — ONE widget for comment
 /// and chat.
 ///
@@ -35,11 +51,11 @@ class PendingMediaStrip extends StatelessWidget {
     if (items.isEmpty) return const SizedBox.shrink();
     final scheme = Theme.of(context).colorScheme;
     return SizedBox(
-      height: 72,
+      height: _tileExtent,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: items.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 8),
+        separatorBuilder: (_, _) => const SizedBox(width: AppMetrics.p8),
         itemBuilder: (context, i) {
           final item = items[i];
           final file = item.file;
@@ -53,15 +69,15 @@ class PendingMediaStrip extends StatelessWidget {
                 borderRadius: BorderRadius.circular(AppShape.r8),
                 child: isVideo
                     ? Container(
-                        width: 72,
-                        height: 72,
+                        width: _tileExtent,
+                        height: _tileExtent,
                         color: scheme.scrim,
                         child: Icon(Icons.videocam, color: scheme.onPrimary),
                       )
                     : Image.file(
                         file,
-                        width: 72,
-                        height: 72,
+                        width: _tileExtent,
+                        height: _tileExtent,
                         fit: BoxFit.cover,
                         errorBuilder: (_, _, _) =>
                             Icon(Icons.broken_image, color: scheme.onSurfaceVariant),
@@ -74,14 +90,14 @@ class PendingMediaStrip extends StatelessWidget {
                   child: GestureDetector(
                     onTap: () => onRemove(i),
                     child: Container(
-                      padding: const EdgeInsets.all(AppMetrics.p2),
+                      padding: const EdgeInsets.all(AppMetrics.p4),
                       decoration: BoxDecoration(
                         color: scheme.scrim.withValues(alpha: 0.54),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
                         Icons.close,
-                        size: 12,
+                        size: AppIconSize.inlineGlyph,
                         color: scheme.onPrimary,
                       ),
                     ),
@@ -91,7 +107,7 @@ class PendingMediaStrip extends StatelessWidget {
                 Center(
                   child: Icon(
                     Icons.play_circle_fill,
-                    size: 24,
+                    size: AppIconSize.header,
                     color: scheme.onPrimary.withValues(alpha: 0.7),
                   ),
                 ),
@@ -120,7 +136,7 @@ class PendingMediaStrip extends StatelessWidget {
                     child: Text(
                       '${(item.progress * 100).round()}%',
                       style: TextStyle(
-                        fontSize: AppType.s10,
+                        fontSize: AppType.s12,
                         color: scheme.onPrimary,
                         fontWeight: FontWeight.w600,
                       ),
@@ -130,8 +146,8 @@ class PendingMediaStrip extends StatelessWidget {
                 GestureDetector(
                   onTap: onRetry,
                   child: Container(
-                    width: 72,
-                    height: 72,
+                    width: _tileExtent,
+                    height: _tileExtent,
                     decoration: BoxDecoration(
                       color: scheme.error.withValues(alpha: 0.72),
                       borderRadius: BorderRadius.circular(AppShape.r8),
@@ -142,13 +158,13 @@ class PendingMediaStrip extends StatelessWidget {
                       children: [
                         Icon(
                           Icons.error_outline,
-                          size: 20,
+                          size: AppIconSize.action,
                           color: scheme.onError,
                         ),
                         Text(
                           'Coba lagi',
                           style: TextStyle(
-                            fontSize: AppType.s10,
+                            fontSize: AppType.s12,
                             color: scheme.onError,
                           ),
                         ),
@@ -162,7 +178,7 @@ class PendingMediaStrip extends StatelessWidget {
                   bottom: 4,
                   child: Icon(
                     Icons.check_circle,
-                    size: 16,
+                    size: AppIconSize.inlineGlyph,
                     color: scheme.primary,
                   ),
                 ),

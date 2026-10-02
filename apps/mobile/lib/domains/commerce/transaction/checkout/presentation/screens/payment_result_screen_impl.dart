@@ -254,7 +254,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
               children: [
                 Icon(
                   Icons.info_outline,
-                  size: 18,
+                  size: AppIconSize.action,
                   color: context.statusColors.warning,
                 ),
                 const SizedBox(width: 8),
@@ -280,7 +280,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
           width: double.infinity,
           child: OutlinedButton.icon(
             onPressed: state.isChecking ? null : _handleStatusCheck,
-            icon: const Icon(Icons.refresh, size: 20),
+            icon: const Icon(Icons.refresh, size: AppIconSize.action),
             label: const Text(
               'Coba Lagi',
               style: TextStyle(fontSize: core.AppType.s16, fontWeight: FontWeight.w600),
@@ -299,7 +299,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: _handleContinuePayment,
-              icon: const Icon(Icons.open_in_browser, size: 20),
+              icon: const Icon(Icons.open_in_browser, size: AppIconSize.action),
               label: const Text(
                 'Lanjutkan Pembayaran',
                 style: TextStyle(fontSize: core.AppType.s16, fontWeight: FontWeight.w600),
@@ -348,7 +348,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
           ),
           child: Icon(
             Icons.check_circle,
-            size: 64,
+            size: AppIconSize.display,
             color: context.statusColors.success,
           ),
         ),
@@ -403,7 +403,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
             width: double.infinity,
             child: OutlinedButton.icon(
               onPressed: _goToChat,
-              icon: const Icon(Icons.chat_bubble_outline, size: 20),
+              icon: const Icon(Icons.chat_bubble_outline, size: AppIconSize.action),
               label: const Text(
                 'Kembali ke Chat',
                 style: TextStyle(fontSize: core.AppType.s16, fontWeight: FontWeight.w600),
@@ -462,7 +462,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
           ),
           child: Icon(
             Icons.cancel,
-            size: 64,
+            size: AppIconSize.display,
             color: context.statusColors.error,
           ),
         ),
@@ -510,7 +510,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
                   Icon(
                     Icons.help_outline,
                     color: context.statusColors.warning,
-                    size: 18,
+                    size: AppIconSize.action,
                   ),
                   const SizedBox(width: 8),
                   Text(
@@ -547,7 +547,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
                           ),
                         );
                       },
-                      icon: const Icon(Icons.article_outlined, size: 16),
+                      icon: const Icon(Icons.article_outlined, size: AppIconSize.inlineGlyph),
                       label: const Text('Panduan'),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: context.statusColors.warning,
@@ -573,7 +573,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
                               );
                             }
                           : null,
-                      icon: const Icon(Icons.support_agent, size: 16),
+                      icon: const Icon(Icons.support_agent, size: AppIconSize.inlineGlyph),
                       label: const Text('Support'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: context.statusColors.warning,
@@ -638,7 +638,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
           ),
           child: Icon(
             Icons.pending_outlined,
-            size: 64,
+            size: AppIconSize.display,
             color: context.statusColors.warning,
           ),
         ),
@@ -679,7 +679,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
             children: [
               Icon(
                 Icons.info_outline,
-                size: 18,
+                size: AppIconSize.action,
                 color: colorScheme.onSurfaceVariant,
               ),
               const SizedBox(width: 8),
@@ -687,7 +687,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
                 child: Text(
                   'Jika sudah membayar, status pembayaran akan diperbarui dalam beberapa menit. Silakan cek halaman pesanan Anda.',
                   style: TextStyle(
-                    fontSize: core.AppType.s13,
+                    fontSize: core.AppType.s14,
                     color: colorScheme.onSurfaceVariant,
                   ),
                 ),
@@ -720,7 +720,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
             width: double.infinity,
             child: OutlinedButton.icon(
               onPressed: _handleContinuePayment,
-              icon: const Icon(Icons.open_in_browser, size: 20),
+              icon: const Icon(Icons.open_in_browser, size: AppIconSize.action),
               label: const Text(
                 'Lanjutkan Pembayaran',
                 style: TextStyle(fontSize: core.AppType.s16, fontWeight: FontWeight.w600),
@@ -784,7 +784,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
           ),
           child: Icon(
             Icons.wifi_off,
-            size: 64,
+            size: AppIconSize.display,
             color: context.statusColors.error,
           ),
         ),
@@ -835,7 +835,7 @@ class _PaymentResultScreenState extends ConsumerState<PaymentResultScreen>
             width: double.infinity,
             child: OutlinedButton.icon(
               onPressed: _handleContinuePayment,
-              icon: const Icon(Icons.open_in_browser, size: 20),
+              icon: const Icon(Icons.open_in_browser, size: AppIconSize.action),
               label: const Text(
                 'Lanjutkan Pembayaran',
                 style: TextStyle(fontSize: core.AppType.s16, fontWeight: FontWeight.w600),

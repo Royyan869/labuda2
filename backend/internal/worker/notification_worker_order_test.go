@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"go.uber.org/zap/zaptest"
 
+	notificationrepository "github.com/labuda/backend/internal/interaction/notification/infrastructure/repository"
 	platformevent "github.com/labuda/backend/internal/platform/event"
 	"github.com/labuda/backend/internal/platform/events"
 	dbpkg "github.com/labuda/backend/pkg/db"
@@ -39,10 +40,10 @@ func TestOrderCancelledTimeout_BothPartiesNotified(t *testing.T) {
 			return fn(&mockTxForNotification{
 				QueryRowFunc: func(_ context.Context, _ string, args ...any) pgx.Row {
 					if len(args) >= 6 {
-						recipients = append(recipients, args[1].(uuid.UUID))
-						actors = append(actors, args[2].(uuid.UUID))
-						types = append(types, args[3].(string))
-						entityIDs = append(entityIDs, args[4].(uuid.UUID))
+						recipients = append(recipients, insertArg(args).Recipient)
+						actors = append(actors, insertArg(args).ActorIDValue())
+						types = append(types, insertArg(args).TypeString())
+						entityIDs = append(entityIDs, insertArg(args).EntityID)
 					}
 					return &mockRowForNotification{scanValue: uuid.New()}
 				},
@@ -385,7 +386,7 @@ func TestN4A1_OrderShipped_DeliveryLogInvoked(t *testing.T) {
 func TestNotificationEventHandler_RefundDecision_TitleAndBody(t *testing.T) {
 	log := zaptest.NewLogger(t)
 	mockDB := &mockDBForNotification{}
-	inserter := NewNotificationServiceInserter()
+	inserter := notificationrepository.NewNotificationRepository()
 	handler := NewNotificationEventHandler(mockDB, nil, inserter, nil, nil, log)
 
 	tests := []struct {
@@ -514,5 +515,3 @@ func makeSellerVerificationPayloadN4(sellerID uuid.UUID, status string) []byte {
 //   - withdrawal.requested uses insertNotificationWithPolicy (multiInsertDB captures insert)
 //   - allowPush=true: Handle() fires push goroutine
 //   - delivery log written: in_app status "sent"
-
-

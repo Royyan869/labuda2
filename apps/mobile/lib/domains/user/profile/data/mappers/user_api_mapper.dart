@@ -35,6 +35,8 @@ class UserApiMapper {
       hasSellerProfile: response.hasSellerProfile,
       sellerSubscriptionStatus: response.sellerSubscriptionStatus,
       hasMarketAuthority: response.hasMarketAuthority,
+      storeName: response.storeName,
+      storeImageUrl: response.storeImageUrl,
       totalPenaltyPoints: response.totalPenaltyPoints,
       activePenaltyPoints: response.activePenaltyPoints,
       isIdVerified: response.isIdVerified,
@@ -69,6 +71,7 @@ class UserApiMapper {
           _normalizeLocation(response.location) ??
           _normalizeLocation(profile?.location),
       coverPhotoUrl: profile?.coverPhotoUrl,
+      publicOriginLine: response.publicOriginLine,
       joinedAt: response.createdAt,
       lastActiveAt: profile?.lastActiveAt,
       stats: ProfileStats(

@@ -2,8 +2,8 @@
 //
 // Proves the canonical GET /api/v1/auctions/:id wire
 // (auctionToDetailResponseWithSeller: media_urls, variety, size_cm,
-// age_months, gender, breeder, bloodline, certificates, preparation_time,
-// preparation_note) is parsed by AuctionDto.fromJson and preserved by
+// age_months, gender, breeder, bloodline, certificates, preparation_time) is
+// parsed by AuctionDto.fromJson and preserved by
 // AuctionMapper.toEntity into the Auction read model — no canonical value may
 // be replaced by 'Unknown' / 0 / 'unknown' / [] / null.
 import 'package:flutter_test/flutter_test.dart';
@@ -29,8 +29,7 @@ Map<String, dynamic> _canonicalDetailPayload() => {
   'breeder': 'Akira',
   'bloodline': 'Matsunosuke',
   'certificates': ['breeder', 'health'],
-  'preparation_time': 'medium',
-  'preparation_note': 'Karantina 3 hari sebelum kirim',
+  'preparation_time': '4_7_days',
   'start_price': 500000,
   'bid_increment': 25000,
   'buy_now_price': 800000,
@@ -57,8 +56,7 @@ void main() {
       expect(dto.breeder, 'Akira');
       expect(dto.bloodline, 'Matsunosuke');
       expect(dto.certificates, ['breeder', 'health']);
-      expect(dto.preparationTime, 'medium');
-      expect(dto.preparationNote, 'Karantina 3 hari sebelum kirim');
+      expect(dto.preparationTime, '4_7_days');
 
       // Full media collection — not just a thumbnail / first image.
       expect(dto.images, [
@@ -78,8 +76,7 @@ void main() {
         ..remove('breeder')
         ..remove('bloodline')
         ..remove('certificates')
-        ..remove('preparation_time')
-        ..remove('preparation_note');
+        ..remove('preparation_time');
 
       final dto = AuctionDto.fromJson(payload);
 
@@ -92,7 +89,6 @@ void main() {
       expect(dto.bloodline, isNull);
       expect(dto.certificates, isEmpty);
       expect(dto.preparationTime, isNull);
-      expect(dto.preparationNote, isNull);
     });
   });
 
@@ -117,8 +113,7 @@ void main() {
       expect(entity.media[2].originalUrl, 'https://cdn.example.com/koi-3.jpg');
 
       // Shipping readiness preserved.
-      expect(entity.preparationTime, PreparationTime.medium);
-      expect(entity.preparationNote, 'Karantina 3 hari sebelum kirim');
+      expect(entity.preparationTime, PreparationTime.days4_7);
     });
 
     test('absence defaults appear only when the wire omits canonical values', () {
@@ -131,8 +126,7 @@ void main() {
         ..remove('breeder')
         ..remove('bloodline')
         ..remove('certificates')
-        ..remove('preparation_time')
-        ..remove('preparation_note');
+        ..remove('preparation_time');
 
       final entity = AuctionMapper.toEntity(AuctionDto.fromJson(payload));
 
@@ -149,7 +143,6 @@ void main() {
 
       // Absence is NOT masked as "ready to ship immediately".
       expect(entity.preparationTime, isNull);
-      expect(entity.preparationNote, isNull);
       expect(entity.media, isEmpty);
     });
   });

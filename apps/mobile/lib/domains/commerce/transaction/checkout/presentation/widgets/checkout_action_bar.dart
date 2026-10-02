@@ -101,7 +101,7 @@ class _CheckoutBottomBar extends StatelessWidget {
                   children: [
                     Icon(
                       Icons.info_outline,
-                      size: 16,
+                      size: AppIconSize.inlineGlyph,
                       color: colorScheme.onSurfaceVariant,
                     ),
                     const SizedBox(width: 8),
@@ -119,7 +119,7 @@ class _CheckoutBottomBar extends StatelessWidget {
               ),
             SizedBox(
               width: double.infinity,
-              height: 48,
+              height: AppContentSize.control,
               child: ElevatedButton(
                 onPressed: isDisabled ? null : onCreateOrder,
                 style: ElevatedButton.styleFrom(

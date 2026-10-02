@@ -104,16 +104,9 @@ class _LinkPickerModalState extends ConsumerState<LinkPickerModal>
       ),
       child: Column(
         children: [
-          // Handle bar
-          Container(
-            margin: const EdgeInsets.only(top: AppMetrics.p12),
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: scheme.outlineVariant,
-              borderRadius: BorderRadius.circular(AppShape.r2),
-            ),
-          ),
+          // Handle bar — ONE authority: `AppDragHandle` beside the bottom-sheet
+          // base (this sheet's `top p12` is passed through).
+          const AppDragHandle(padding: EdgeInsets.only(top: AppMetrics.p12)),
 
           // Header
           Padding(
@@ -173,9 +166,6 @@ class _LinkPickerModalState extends ConsumerState<LinkPickerModal>
             ),
             child: TabBar(
               controller: _tabController,
-              labelColor: scheme.primary,
-              unselectedLabelColor: scheme.onSurfaceVariant,
-              indicatorColor: scheme.primary,
               tabs: [
                 Tab(
                   child: buildLinkPickerTabLabel(
@@ -405,7 +395,7 @@ class _EmptyState extends StatelessWidget {
           children: [
             Icon(
               icon,
-              size: 64,
+              size: AppIconSize.display,
 color: scheme.onSurfaceVariant,
             ),
             const SizedBox(height: 16),

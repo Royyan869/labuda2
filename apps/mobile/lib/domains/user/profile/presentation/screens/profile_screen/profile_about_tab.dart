@@ -167,7 +167,7 @@ class ProfileAboutTab extends ConsumerWidget {
         children: [
           Icon(
             Icons.hourglass_top_outlined,
-            size: 20,
+            size: AppIconSize.action,
             color: scheme.secondary,
           ),
           const SizedBox(width: 12),
@@ -210,7 +210,7 @@ class ProfileAboutTab extends ConsumerWidget {
             children: [
               Icon(
                 Icons.location_on_outlined,
-                size: 16,
+                size: AppIconSize.inlineGlyph,
                 color: scheme.onSurfaceVariant,
               ),
               const SizedBox(width: 8),
@@ -231,7 +231,7 @@ class ProfileAboutTab extends ConsumerWidget {
           children: [
             Icon(
               Icons.calendar_today_outlined,
-              size: 16,
+              size: AppIconSize.inlineGlyph,
               color: scheme.onSurfaceVariant,
             ),
             const SizedBox(width: 8),
@@ -252,7 +252,7 @@ class ProfileAboutTab extends ConsumerWidget {
             children: [
               Icon(
                 Icons.access_time,
-                size: 16,
+                size: AppIconSize.inlineGlyph,
                 color: scheme.onSurfaceVariant,
               ),
               const SizedBox(width: 8),
@@ -307,7 +307,7 @@ class ProfileAboutTab extends ConsumerWidget {
           Text(
             data.bio,
             style: TextStyle(
-              fontSize: AppType.s13,
+              fontSize: AppType.s14,
               height: 1.5,
               color: scheme.onSurfaceVariant,
             ),
@@ -322,7 +322,7 @@ class ProfileAboutTab extends ConsumerWidget {
             onTap: () => _launchUrl(farmInfo.farmWebsite!),
             child: Row(
               children: [
-                Icon(Icons.language, size: 16, color: scheme.primary),
+                Icon(Icons.language, size: AppIconSize.inlineGlyph, color: scheme.primary),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -470,7 +470,7 @@ style: TextStyle(
               children: [
                 Icon(
                   Icons.email_outlined,
-                  size: 18,
+                  size: AppIconSize.action,
                   color: scheme.onSurfaceVariant,
                 ),
                 const SizedBox(width: 12),
@@ -496,7 +496,7 @@ style: TextStyle(
               children: [
                 Icon(
                   Icons.phone_outlined,
-                  size: 18,
+                  size: AppIconSize.action,
                   color: scheme.onSurfaceVariant,
                 ),
                 const SizedBox(width: 12),
@@ -525,7 +525,7 @@ style: TextStyle(
           Text(
             'Social Media',
             style: TextStyle(
-              fontSize: AppType.s13,
+              fontSize: AppType.s14,
               fontWeight: FontWeight.w600,
               color: scheme.onSurfaceVariant,
             ),
@@ -583,7 +583,7 @@ style: TextStyle(
           children: [
             Icon(
               Icons.lock_outline,
-              size: 48,
+              size: AppIconSize.display,
               color: scheme.onSurfaceVariant,
             ),
             const SizedBox(height: 16),
@@ -622,7 +622,7 @@ style: TextStyle(
           children: [
             Icon(
               Icons.error_outline,
-              size: 48,
+              size: AppIconSize.display,
               color: scheme.onSurfaceVariant,
             ),
             const SizedBox(height: 16),
@@ -772,7 +772,7 @@ class _ProfileSectionCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(icon, size: 20, color: scheme.primary),
+                Icon(icon, size: AppIconSize.action, color: scheme.primary),
                 const SizedBox(width: 8),
                 Text(
                   title,
@@ -810,7 +810,7 @@ class _ProfileInfoRow extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 100,
+            width: AppContentSize.termLabel,
             child: Text(
               label,
               style: TextStyle(
@@ -847,7 +847,7 @@ class _VerificationBadge extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p6),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p8),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(AppShape.r16),
@@ -895,12 +895,12 @@ class _StatCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 20, color: scheme.primary),
+          Icon(icon, size: AppIconSize.action, color: scheme.primary),
           const SizedBox(height: 8),
           Text(
             value,
             style: TextStyle(
-              fontSize: AppType.s18,
+              fontSize: AppType.s20,
               fontWeight: FontWeight.bold,
               color: scheme.onSurface,
             ),
@@ -909,7 +909,7 @@ class _StatCard extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              fontSize: AppType.s11,
+              fontSize: AppType.s12,
               color: scheme.onSurfaceVariant,
             ),
             maxLines: 2,
@@ -961,12 +961,12 @@ color: scheme.outlineVariant,
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 16, color: scheme.primary),
+            Icon(icon, size: AppIconSize.inlineGlyph, color: scheme.primary),
             const SizedBox(width: 8),
             Text(
               label,
               style: TextStyle(
-                fontSize: AppType.s13,
+                fontSize: AppType.s14,
                 color: scheme.onSurfaceVariant,
               ),
             ),
@@ -1038,14 +1038,14 @@ class _SellerStatusBadge extends ConsumerWidget {
                   Icon(
                     Icons.warning_amber_rounded,
                     color: context.statusColors.error,
-                    size: 18,
+                    size: AppIconSize.action,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       sellerState.bannerMessage!,
                       style: TextStyle(
-                        fontSize: AppType.s13,
+                        fontSize: AppType.s14,
                         color: scheme.onSurfaceVariant,
                       ),
                     ),

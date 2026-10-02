@@ -119,7 +119,7 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
     final scheme = Theme.of(context).colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(AppMetrics.p20),
+      padding: const EdgeInsets.all(AppMetrics.p24),
       decoration: BoxDecoration(
         color: scheme.surface,
         borderRadius: BorderRadius.circular(AppShape.r16),
@@ -232,7 +232,7 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
             ),
             child: Row(
               children: [
-                Icon(Icons.security, color: context.statusColors.warning, size: 16),
+                Icon(Icons.security, color: context.statusColors.warning, size: AppIconSize.inlineGlyph),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -256,7 +256,7 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
     final scheme = Theme.of(context).colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(AppMetrics.p20),
+      padding: const EdgeInsets.all(AppMetrics.p24),
       decoration: BoxDecoration(
         color: scheme.surface,
         borderRadius: BorderRadius.circular(AppShape.r16),
@@ -289,7 +289,7 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
     final scheme = Theme.of(context).colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(AppMetrics.p20),
+      padding: const EdgeInsets.all(AppMetrics.p24),
       decoration: BoxDecoration(
         color: scheme.surface,
         borderRadius: BorderRadius.circular(AppShape.r16),
@@ -329,7 +329,7 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
     return Text(
       title,
       style: TextStyle(
-        fontSize: AppType.s18,
+        fontSize: AppType.s20,
         fontWeight: FontWeight.bold,
         color: Theme.of(context).colorScheme.onSurface,
       ),

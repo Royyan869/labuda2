@@ -32,8 +32,14 @@ class WebSocketService {
   // Message acknowledgment
   final Map<String, Completer<void>> _pendingAcks = {};
 
-  static const int maxReconnectAttempts = 5;
+  // REALTIME RESUME CONTRACT: reconnect NEVER gives up while the session is
+  // alive. A backgrounded app exhausts any finite attempt budget (timers
+  // suspended, network flapping), the socket then stays dead until the next
+  // login — exactly the backend's "No connections for user" when a
+  // chat.room.updated event has nowhere to land. Backoff stays capped so
+  // recovery remains prompt.
   static const Duration reconnectDelay = Duration(seconds: 5);
+  static const Duration maxReconnectDelay = Duration(seconds: 30);
   static const Duration ackTimeout = Duration(seconds: 10);
   static const Duration pingInterval = Duration(seconds: 30);
 
@@ -218,43 +224,90 @@ class WebSocketService {
   }
 
   void _scheduleReconnect() {
-    if (_reconnectAttempts >= maxReconnectAttempts) {
-      developer.log('Max reconnect attempts reached', name: 'WebSocketService');
+    // Phase 5: do not reconnect if Labuda credential has been cleared (logout).
+    // Canonical reconnect uses Labuda token provider (Labuda storage). No _authToken fallback,
+    // no Firebase fallback, no stale pre-logout reuse.
+    final provider = _labudaTokenProvider;
+    if (provider == null) {
+      developer.log(
+        'WebSocket reconnect stopped — no Labuda token provider (no _authToken fallback)',
+        name: 'WebSocketService',
+      );
       _updateState(ConnectionState.disconnected);
       return;
     }
 
-    // Phase 5: do not reconnect if Labuda credential has been cleared (logout).
-    // Canonical reconnect uses Labuda token provider (Labuda storage). No _authToken fallback,
-    // no Firebase fallback, no stale pre-logout reuse.
     _updateState(ConnectionState.reconnecting);
     _reconnectTimer?.cancel();
-    _reconnectTimer = Timer(reconnectDelay, () async {
-      _reconnectAttempts++;
+    _reconnectAttempts++;
+    final delay = _reconnectDelayFor(_reconnectAttempts);
+    _reconnectTimer = Timer(delay, () async {
       developer.log(
-        'Reconnect attempt $_reconnectAttempts',
+        'Reconnect attempt $_reconnectAttempts (delay ${delay.inSeconds}s)',
         name: 'WebSocketService',
       );
       String? fresh;
-      final provider = _labudaTokenProvider;
-      if (provider != null) {
-        try {
-          fresh = await provider();
-          fresh = fresh?.trim();
-          if (fresh == null || fresh.isEmpty) {
-            developer.log('WebSocket reconnect skipped — Labuda access missing (no fallback)', name: 'WebSocketService');
-            return;
-          }
-        } catch (e) {
-          developer.log('WebSocket token provider error: $e', name: 'WebSocketService');
-          return;
-        }
-      } else {
-        developer.log('WebSocket reconnect skipped — no Labuda token provider (no _authToken fallback)', name: 'WebSocketService');
+      try {
+        fresh = await provider();
+        fresh = fresh?.trim();
+      } catch (e) {
+        developer.log(
+          'WebSocket token provider error: $e',
+          name: 'WebSocketService',
+        );
+        _scheduleReconnect();
+        return;
+      }
+      if (fresh == null || fresh.isEmpty) {
+        // TRANSIENT (token refresh in flight) — never a terminal state.
+        // Returning silently here is what used to leave the socket dead.
+        developer.log(
+          'WebSocket reconnect deferred — Labuda access missing (retrying)',
+          name: 'WebSocketService',
+        );
+        _scheduleReconnect();
         return;
       }
       // Use fresh Labuda JWT
       connect(fresh);
+    });
+  }
+
+  /// 5s → 10s → 20s → capped 30s. Never terminal: retries stop only on a
+  /// successful connect (attempts reset) or logout (no token provider).
+  Duration _reconnectDelayFor(int attempt) {
+    if (attempt <= 1) return reconnectDelay;
+    final exponent = attempt - 1 > 2 ? 2 : attempt - 1;
+    final backoff = reconnectDelay * (1 << exponent);
+    return backoff > maxReconnectDelay ? maxReconnectDelay : backoff;
+  }
+
+  /// Foreground/resume entry point: drop any pending backoff and reconnect
+  /// NOW using the installed Labuda token provider. Wired to the
+  /// app-lifecycle observer so a socket killed while backgrounded recovers
+  /// on resume instead of waiting for the next login.
+  void reconnectNow() {
+    if (_isConnecting || isConnected) return;
+    final provider = _labudaTokenProvider;
+    if (provider == null) return;
+    _reconnectTimer?.cancel();
+    _reconnectAttempts = 0;
+    _updateState(ConnectionState.reconnecting);
+    Future<void>(() async {
+      try {
+        final token = (await provider())?.trim();
+        if (token == null || token.isEmpty) {
+          _scheduleReconnect();
+          return;
+        }
+        await connect(token);
+      } catch (e) {
+        developer.log(
+          'WebSocket resume reconnect failed: $e',
+          name: 'WebSocketService',
+        );
+        _scheduleReconnect();
+      }
     });
   }
 

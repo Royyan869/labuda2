@@ -82,6 +82,11 @@ class ProfileEntity extends Equatable {
   // Profile-specific fields only
   final String? location;
   final String? coverPhotoUrl;
+
+  /// Buyer-facing public origin of the user's sender address
+  /// ("City, Province"), rendered by the backend's single redaction rule.
+  /// Null hides the line — the client never composes one from raw addresses.
+  final String? publicOriginLine;
   final DateTime joinedAt;
   final DateTime? lastActiveAt;
 
@@ -106,6 +111,7 @@ class ProfileEntity extends Equatable {
     required this.userId,
     this.location,
     this.coverPhotoUrl,
+    this.publicOriginLine,
     required this.joinedAt,
     this.lastActiveAt,
     required this.stats,
@@ -122,6 +128,7 @@ class ProfileEntity extends Equatable {
     userId,
     location,
     coverPhotoUrl,
+    publicOriginLine,
     joinedAt,
     lastActiveAt,
     stats,
@@ -264,7 +271,7 @@ class ContactInfo extends Equatable {
 /// - Email: Use AuthUser.email ❌ NO farmEmail
 /// - Phone: Use AuthUser.phoneNumber ❌ NO farmPhone
 /// - Personal Bio: Use AuthUser.bio (canonical seller/store description too)
-/// - Farm/Sender Address: Use AddressEntity with purpose=sender ❌ NO farmAddress
+/// - Farm/Sender Address: Use AddressEntity with the sender TAG ❌ NO farmAddress
 ///
 /// This class contains ONLY farm-specific data that is NOT in AuthUser or AddressEntity
 class FarmInfo extends Equatable {

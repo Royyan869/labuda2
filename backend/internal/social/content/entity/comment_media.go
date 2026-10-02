@@ -16,10 +16,20 @@ type CommentMedia struct {
 	MediaType  MediaType
 	Position   int
 	ByteSize   *int64
-	CreatedAt  time.Time
+	Blurhash   *string
+	DurationMs *int
+	Width      *int
+	Height     *int
+	// Processing state: processing|ready|failed (see
+	// internal/pkg/mediaref/media_status.go).
+	Status    string
+	CreatedAt time.Time
 }
 
 // NewCommentMedia creates a validated comment media row.
+//
+// Status defaults to ready; writers override with processing for video
+// (see mediaref.StatusForNewRow).
 func NewCommentMedia(commentID uuid.UUID, storageKey, mediaURL string, mediaType MediaType, position int, byteSize *int64) *CommentMedia {
 	return &CommentMedia{
 		ID:         uuid.New(),
@@ -29,6 +39,7 @@ func NewCommentMedia(commentID uuid.UUID, storageKey, mediaURL string, mediaType
 		MediaType:  mediaType,
 		Position:   position,
 		ByteSize:   byteSize,
+		Status:     "ready",
 		CreatedAt:  time.Now(),
 	}
 }

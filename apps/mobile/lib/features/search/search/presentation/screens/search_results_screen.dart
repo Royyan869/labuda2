@@ -93,20 +93,15 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen>
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final searchState = ref.watch(searchProvider);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Search Results'),
-        elevation: AppElevation.none,
         bottom: TabBar(
           controller: _tabController,
           onTap: _onTabSelected,
           isScrollable: true,
-          labelColor: scheme.primary,
-          unselectedLabelColor: scheme.onSurfaceVariant,
-          indicatorColor: scheme.primary,
           tabs: _tabs,
         ),
       ),
@@ -189,7 +184,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, size: 64, color: scheme.error),
+            Icon(Icons.error_outline, size: AppIconSize.display, color: scheme.error),
             const SizedBox(height: 16),
             Text(
               error,
@@ -221,14 +216,14 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen>
           children: [
             Icon(
               Icons.search_off,
-              size: 64,
+              size: AppIconSize.display,
               color: scheme.outline,
             ),
             const SizedBox(height: 16),
             Text(
               'No results found',
               style: TextStyle(
-                fontSize: AppType.s18,
+                fontSize: AppType.s20,
                 fontWeight: FontWeight.w600,
                 color: scheme.onSurface,
               ),

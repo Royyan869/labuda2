@@ -90,7 +90,7 @@ func TestValidateOnboardingWithoutProfile_PassesWithSenderAddress(t *testing.T) 
 	senderAddress := &addressEntity.Address{
 		ID:        uuid.New(),
 		UserID:    uuid.New(),
-		Purpose:   addressEntity.AddressPurposeSender,
+		Tags:      []addressEntity.AddressTag{addressEntity.TagSender},
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}

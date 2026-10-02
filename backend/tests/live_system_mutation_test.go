@@ -22,7 +22,7 @@ func TestSystemMutation_ActiveForSale_ReduceQuantityStillAllowed(t *testing.T) {
 	seller := seedLiveUser(t, ctx, tdb)
 	productID := uuid.New()
 	forSaleID := uuid.New()
-	_, err := tdb.Pool().Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, selling_surface, created_at, updated_at) VALUES ($1,$2,'prod','desc','[]','Kohaku','immediate','for_sale',NOW(),NOW())`, productID, seller)
+	_, err := tdb.Pool().Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, selling_surface, created_at, updated_at) VALUES ($1,$2,'prod','desc','[]','Kohaku','1_3_days','for_sale',NOW(),NOW())`, productID, seller)
 	require.NoError(t, err)
 	_, err = tdb.Pool().Exec(ctx, `INSERT INTO for_sales (id, product_id, seller_id, price_per_unit, negotiation_enabled, status, quantity_available, created_at, updated_at) VALUES ($1,$2,$3,100000,false,'active',2,NOW(),NOW())`, forSaleID, productID, seller)
 	require.NoError(t, err)

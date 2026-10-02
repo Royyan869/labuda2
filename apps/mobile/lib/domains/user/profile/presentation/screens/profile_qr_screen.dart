@@ -190,7 +190,7 @@ class _ProfileQrScreenState extends ConsumerState<ProfileQrScreen> {
             children: [
               Icon(
                 Icons.lightbulb_outline,
-                size: 18,
+                size: AppIconSize.action,
                 color: context.statusColors.warning,
               ),
               const SizedBox(width: 8),
@@ -216,15 +216,15 @@ class _ProfileQrScreenState extends ConsumerState<ProfileQrScreen> {
   Widget _buildTipItem(BuildContext context, String text) {
     final scheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.only(top: AppMetrics.p6),
+      padding: const EdgeInsets.only(top: AppMetrics.p8),
       child: Row(
         children: [
-          Icon(Icons.check, size: 14, color: context.statusColors.success),
+          Icon(Icons.check, size: AppIconSize.inlineGlyph, color: context.statusColors.success),
           const SizedBox(width: 8),
           Text(
             text,
             style: TextStyle(
-              fontSize: AppType.s13,
+              fontSize: AppType.s14,
               color: scheme.onSurfaceVariant,
             ),
           ),

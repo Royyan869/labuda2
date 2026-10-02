@@ -65,6 +65,32 @@ class SellerIdentityData extends Equatable {
 
   bool get hasIdentity => handle != null || hasStoreName;
 
+  /// Primary identity label — the store name when the seller owns a store,
+  /// otherwise the handle.
+  ///
+  /// OWNER TRUTH for every surface that pairs the two labels: the store name
+  /// is the primary line (top, larger, emphasised) and the handle is secondary
+  /// (below, smaller). A user without a store has only a handle, and that
+  /// handle takes the primary treatment. This is the ONE implementation of
+  /// that rule — surfaces read these getters instead of composing their own
+  /// order, so the pairing cannot drift per screen.
+  String? get primaryLabel => normalizedStoreName ?? displayHandle;
+
+  /// Secondary identity label — the handle, present only when the store name
+  /// owns the primary line.
+  String? get secondaryLabel =>
+      normalizedStoreName != null ? displayHandle : null;
+
+  /// Single-string rendering for compact surfaces (search rows, order tiles):
+  /// `store name\n@handle`, or just the handle for a non-seller. Null when no
+  /// identity exists at all (hide rather than fabricate).
+  String? get multilineLabel {
+    final primary = primaryLabel;
+    if (primary == null) return null;
+    final secondary = secondaryLabel;
+    return secondary == null ? primary : '$primary\n$secondary';
+  }
+
   SellerIdentityData copyWith({
     String? userId,
     String? username,

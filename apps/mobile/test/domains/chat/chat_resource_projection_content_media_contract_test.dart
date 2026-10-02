@@ -22,6 +22,7 @@ import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/domains/chat/chat/presentation/widgets/chat_resource_projection_card.dart';
 import 'package:labuda/shared/widgets/app_image.dart';
 import 'package:labuda/shared/widgets/carousel_video_player.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 
 /// The backend URL handed to the canonical widget in the tree.
 List<String?> _canonicalWidgetUrls(WidgetTester tester) {
@@ -61,6 +62,9 @@ Future<void> _pumpProjection(
   WidgetTester tester,
   List<Map<String, dynamic>> media,
 ) async {
+  // CarouselVideoPlayer is visibility-aware; zero the detector interval so
+  // no timer is pending at teardown (repo-wide test convention).
+  VisibilityDetectorController.instance.updateInterval = Duration.zero;
   final projection = ResourceProjection.fromJson(_contentLiveJson(media));
   await tester.pumpWidget(
     MaterialApp(

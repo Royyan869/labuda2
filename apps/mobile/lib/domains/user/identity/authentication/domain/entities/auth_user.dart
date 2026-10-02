@@ -49,6 +49,15 @@ class AuthUser extends BaseEntity {
   final String? sellerSubscriptionStatus; // active, expired, none
   final bool?
   hasMarketAuthority; // MARKET authority: has profile + active subscription
+
+  // === Seller Store Identity (BACKEND AUTHORITY) ===
+  //
+  // Self projection of `seller_profiles` ownership, delivered by the same
+  // session snapshot as `username`. Reading the store name from here is what
+  // makes it available on the first frame; the profile stream is a refresh
+  // path, not an identity authority.
+  final String? storeName;
+  final String? storeImageUrl;
   // NOTE: Workspace access uses hasSellerProfile; market features use hasMarketAuthority
 
   // === Penalty Points (BACKEND AUTHORITY) ===
@@ -99,6 +108,8 @@ class AuthUser extends BaseEntity {
     this.hasSellerProfile,
     this.sellerSubscriptionStatus,
     this.hasMarketAuthority,
+    this.storeName,
+    this.storeImageUrl,
     this.totalPenaltyPoints,
     this.activePenaltyPoints,
     this.isIdVerified,
@@ -141,6 +152,8 @@ class AuthUser extends BaseEntity {
     hasSellerProfile,
     sellerSubscriptionStatus,
     hasMarketAuthority,
+    storeName,
+    storeImageUrl,
     totalPenaltyPoints,
     activePenaltyPoints,
     isIdVerified,
@@ -170,6 +183,8 @@ class AuthUser extends BaseEntity {
     bool? hasSellerProfile,
     String? sellerSubscriptionStatus,
     bool? hasMarketAuthority,
+    String? storeName,
+    String? storeImageUrl,
     int? totalPenaltyPoints,
     int? activePenaltyPoints,
     bool? isIdVerified,
@@ -199,6 +214,8 @@ class AuthUser extends BaseEntity {
       sellerSubscriptionStatus:
           sellerSubscriptionStatus ?? this.sellerSubscriptionStatus,
       hasMarketAuthority: hasMarketAuthority ?? this.hasMarketAuthority,
+      storeName: storeName ?? this.storeName,
+      storeImageUrl: storeImageUrl ?? this.storeImageUrl,
       totalPenaltyPoints: totalPenaltyPoints ?? this.totalPenaltyPoints,
       activePenaltyPoints: activePenaltyPoints ?? this.activePenaltyPoints,
       isIdVerified: isIdVerified ?? this.isIdVerified,

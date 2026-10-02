@@ -107,83 +107,75 @@ class _VillageSearchDropdownState extends ConsumerState<VillageSearchDropdown> {
 
   Widget _buildDisabledField(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Container(
-      height: 50,
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16),
+    return DropdownStateBuilders.fieldRow(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(color: scheme.outlineVariant),
         color: scheme.surfaceContainerHighest,
       ),
-      child: Row(
-        children: [
-          if (widget.prefixIcon != null) ...[
-            Icon(widget.prefixIcon, color: scheme.onSurfaceVariant),
-            const SizedBox(width: 12),
-          ],
-          Text(
-            'Pilih kecamatan dulu',
-            style: TextStyle(
-              color: scheme.onSurfaceVariant,
-              fontSize: AppType.s16,
-            ),
-          ),
+      children: [
+        if (widget.prefixIcon != null) ...[
+          Icon(widget.prefixIcon, color: scheme.onSurfaceVariant),
+          const SizedBox(width: AppMetrics.p12),
         ],
-      ),
+        Text(
+          'Pilih kecamatan dulu',
+          style: TextStyle(
+            color: scheme.onSurfaceVariant,
+            fontSize: AppType.s16,
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildLoadingField(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Container(
-      height: 50,
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16),
+    return DropdownStateBuilders.fieldRow(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(color: scheme.outlineVariant),
         color: scheme.surface,
       ),
-      child: Row(
-        children: [
-          if (widget.prefixIcon != null) ...[
-            Icon(widget.prefixIcon, color: scheme.onSurfaceVariant),
-            const SizedBox(width: 12),
-          ],
-          const SizedBox(
-            width: 20,
-            height: 20,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
-          const SizedBox(width: 12),
-          Text(
-            'Loading desa...',
-            style: TextStyle(color: scheme.onSurfaceVariant),
-          ),
+      children: [
+        if (widget.prefixIcon != null) ...[
+          Icon(widget.prefixIcon, color: scheme.onSurfaceVariant),
+          const SizedBox(width: AppMetrics.p12),
         ],
-      ),
+        const SizedBox(
+          width: AppIconSize.action,
+          height: AppIconSize.action,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+        const SizedBox(width: AppMetrics.p12),
+        Text(
+          'Loading desa...',
+          style: TextStyle(color: scheme.onSurfaceVariant),
+        ),
+      ],
     );
   }
 
   Widget _buildErrorField(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Container(
-      height: 50,
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16),
+    return DropdownStateBuilders.fieldRow(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(color: context.statusColors.error),
         color: scheme.surface,
       ),
-      child: Row(
-        children: [
-          Icon(Icons.error_outline, color: context.statusColors.error, size: 20),
-          const SizedBox(width: 8),
-          Text(
-            'Error loading desa',
-            style: TextStyle(color: context.statusColors.error),
-          ),
-        ],
-      ),
+      children: [
+        Icon(
+          Icons.error_outline,
+          color: context.statusColors.error,
+          size: AppIconSize.action,
+        ),
+        const SizedBox(width: AppMetrics.p8),
+        Text(
+          'Error loading desa',
+          style: TextStyle(color: context.statusColors.error),
+        ),
+      ],
     );
   }
 
@@ -249,7 +241,7 @@ class _VillageSearchDropdownState extends ConsumerState<VillageSearchDropdown> {
               fillColor: scheme.surface,
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: AppMetrics.p16,
-                vertical: AppMetrics.p14,
+                vertical: AppMetrics.p16,
               ),
             ),
             style: TextStyle(
@@ -341,31 +333,27 @@ class _VillageSearchDropdownState extends ConsumerState<VillageSearchDropdown> {
               _filteredVillages.isEmpty &&
               _searchController.text.isNotEmpty) ...[
             const SizedBox(height: 4),
-            Container(
-              height: 50,
-              padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16),
+            DropdownStateBuilders.fieldRow(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(AppShape.r12),
                 border: Border.all(color: scheme.outlineVariant),
                 color: scheme.surface,
               ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.search_off,
+              children: [
+                Icon(
+                  Icons.search_off,
+                  color: scheme.onSurfaceVariant,
+                  size: AppIconSize.action,
+                ),
+                const SizedBox(width: AppMetrics.p8),
+                Text(
+                  'Tidak ditemukan hasil pencarian',
+                  style: TextStyle(
                     color: scheme.onSurfaceVariant,
-                    size: 20,
+                    fontSize: AppType.s14,
                   ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Tidak ditemukan hasil pencarian',
-                    style: TextStyle(
-                      color: scheme.onSurfaceVariant,
-                      fontSize: AppType.s14,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ],
         ],

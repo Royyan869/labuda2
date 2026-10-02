@@ -8,6 +8,7 @@ library;
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:labuda/shared/widgets/app_bottom_sheet_base.dart';
 import 'package:labuda/shared/widgets/app_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/shared/domain/entities/resource_projection.dart';
@@ -86,21 +87,12 @@ class _CommerceResourcePickerState extends ConsumerState<CommerceResourcePicker>
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return Container(
       height: MediaQuery.of(context).size.height * 0.7,
       padding: const EdgeInsets.only(top: AppMetrics.p8),
       child: Column(
         children: [
-          Container(
-            width: 40,
-            height: 4,
-            margin: const EdgeInsets.only(bottom: AppMetrics.p8),
-            decoration: BoxDecoration(
-              color: scheme.outlineVariant,
-              borderRadius: BorderRadius.circular(AppShape.r2),
-            ),
-          ),
+          const AppDragHandle(padding: EdgeInsets.only(bottom: AppMetrics.p8)),
           Text(
             'Pilih Produk',
             style: TextStyle(fontSize: AppType.s16, fontWeight: FontWeight.w600),
@@ -108,8 +100,6 @@ class _CommerceResourcePickerState extends ConsumerState<CommerceResourcePicker>
           const SizedBox(height: 8),
           TabBar(
             controller: _tabController,
-            labelColor: scheme.primary,
-            unselectedLabelColor: scheme.onSurfaceVariant,
             tabs: const [
               Tab(text: 'Fixed Price'),
               Tab(text: 'Lelang'),
@@ -232,6 +222,7 @@ class _FPSTab extends ConsumerWidget {
                 resourceId: l.forSaleId,
               ),
               title: l.title,
+              price: l.price.toInt(),
               imageUrl: l.media.isNotEmptyUrls ? l.media.firstUrl : null,
             ),
           ),
@@ -315,6 +306,8 @@ class _AuctionTabState extends ConsumerState<_AuctionTab> {
                 resourceId: a.id,
               ),
               title: a.title,
+              price: (a.currentBid > 0 ? a.currentBid : a.openingBid)
+                  .round(),
               imageUrl: a.media.isNotEmptyUrls ? a.media.firstUrl : null,
             ),
           ),
@@ -338,7 +331,7 @@ class _EmptyTab extends StatelessWidget {
         children: [
           Icon(
             Icons.inventory_2_outlined,
-            size: 48,
+            size: AppIconSize.display,
             color: scheme.outline,
           ),
           const SizedBox(height: 12),

@@ -8,6 +8,7 @@ import 'order_detail/order_refund_handler.dart';
 import 'order_detail/order_refund_list_section.dart';
 import 'order_detail/order_action_handler.dart';
 import 'order_detail/direct_dispute_dialog.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 import 'package:labuda/domains/user/identity/authentication/authentication.dart';
 import 'package:labuda/domains/commerce/transaction/order/domain/domain.dart'
     as order_domain;
@@ -110,8 +111,6 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen>
             }
           },
         ),
-        surfaceTintColor: Colors.transparent,
-        scrolledUnderElevation: 0,
       ),
       body: orderStream.when(
         data: (order) {
@@ -279,7 +278,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen>
             children: [
               Icon(
                 Icons.error_outline,
-                size: 48,
+                size: AppIconSize.display,
                 color: context.statusColors.error,
               ),
               const SizedBox(height: 16),
@@ -460,7 +459,7 @@ class _DecisionMissingWidget extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, color: context.statusColors.warning, size: 32),
+            Icon(Icons.error_outline, color: context.statusColors.warning, size: AppIconSize.emphasis),
             const SizedBox(height: 12),
             Text(
               'Action Configuration Missing',
@@ -522,7 +521,7 @@ class _SellerEarningsCTA extends StatelessWidget {
               Icon(
                 Icons.check_circle_outline,
                 color: colorScheme.primary,
-                size: 20,
+                size: AppIconSize.action,
               ),
               const SizedBox(width: 8),
               Text(
@@ -550,7 +549,7 @@ class _SellerEarningsCTA extends StatelessWidget {
               onPressed: () {
                 context.push(RoutePaths.sellerEarnings);
               },
-              icon: const Icon(Icons.account_balance_wallet_outlined, size: 18),
+              icon: const Icon(Icons.account_balance_wallet_outlined, size: AppIconSize.action),
               label: const Text('Lihat Penghasilan'),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p12),
@@ -586,7 +585,6 @@ class _OrderPreparationSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final preparationTime = order.preparationTimeSnapshot;
-    final preparationNote = order.preparationNoteSnapshot;
     final readyToShipBy = order.readyToShipBy;
     final isOverdue = order.isOverdue == true;
     final overdueTier = order.overdueTier;
@@ -639,7 +637,7 @@ class _OrderPreparationSection extends StatelessWidget {
                   showOverdueUI
                       ? Icons.warning_amber_rounded
                       : Icons.access_time,
-                  size: 18,
+                  size: AppIconSize.action,
                   color: showOverdueUI
                       ? colorScheme.error
                       : colorScheme.secondary,
@@ -681,7 +679,7 @@ class _OrderPreparationSection extends StatelessWidget {
           if (showOverdueUI) ...[
             // Overdue badge
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: core.AppMetrics.p14, vertical: core.AppMetrics.p8),
+              padding: const EdgeInsets.symmetric(horizontal: core.AppMetrics.p16, vertical: core.AppMetrics.p8),
               decoration: BoxDecoration(
                 color: getOverdueBadgeColor().withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(core.AppShape.r20),
@@ -694,14 +692,14 @@ class _OrderPreparationSection extends StatelessWidget {
                 children: [
                   Icon(
                     Icons.warning_amber_rounded,
-                    size: 16,
+                    size: AppIconSize.inlineGlyph,
                     color: context.statusColors.error,
                   ),
                   const SizedBox(width: 6),
                   Text(
                     getOverdueBadgeLabel(),
                     style: TextStyle(
-                      fontSize: core.AppType.s13,
+                      fontSize: core.AppType.s14,
                       fontWeight: FontWeight.w600,
                       color: getOverdueBadgeColor(),
                     ),
@@ -723,7 +721,7 @@ class _OrderPreparationSection extends StatelessWidget {
                 children: [
                   Icon(
                     Icons.info_outline,
-                    size: 16,
+                    size: AppIconSize.inlineGlyph,
                     color: getOverdueBadgeColor(),
                   ),
                   const SizedBox(width: 8),
@@ -731,7 +729,7 @@ class _OrderPreparationSection extends StatelessWidget {
                     child: Text(
                       _getOverdueWarningMessage(overdueTier),
                       style: TextStyle(
-                        fontSize: core.AppType.s13,
+                        fontSize: core.AppType.s14,
                         color: colorScheme.onSurfaceVariant,
                       ),
                     ),
@@ -749,41 +747,29 @@ class _OrderPreparationSection extends StatelessWidget {
           if (!showOverdueUI) ...[
             // Preparation time badge
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: core.AppMetrics.p14, vertical: core.AppMetrics.p8),
+              padding: const EdgeInsets.symmetric(horizontal: core.AppMetrics.p16, vertical: core.AppMetrics.p8),
               decoration: BoxDecoration(
-                color: preparationTime.isImmediate
-                    ? context.statusColors.success.withValues(alpha: 0.1)
-                    : context.statusColors.warning.withValues(alpha: 0.1),
+                color: context.statusColors.warning.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(core.AppShape.r20),
                 border: Border.all(
-                  color: preparationTime.isImmediate
-                      ? context.statusColors.success.withValues(alpha: 0.3)
-                      : context.statusColors.warning.withValues(alpha: 0.3),
+                  color: context.statusColors.warning.withValues(alpha: 0.3),
                 ),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    preparationTime.isImmediate
-                        ? Icons.flash_on
-                        : Icons.schedule,
-                    size: 16,
-                    color: preparationTime.isImmediate
-                        ? context.statusColors.success
-                        : context.statusColors.warning,
+                    Icons.schedule,
+                    size: AppIconSize.inlineGlyph,
+                    color: context.statusColors.warning,
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    preparationTime.isImmediate
-                        ? 'Siap dikirim segera'
-                        : 'Estimasi siap kirim: ${preparationTime.displayName.toLowerCase()}',
+                    'Estimasi siap kirim: ${preparationTime.displayName.toLowerCase()}',
                     style: TextStyle(
-                      fontSize: core.AppType.s13,
+                      fontSize: core.AppType.s14,
                       fontWeight: FontWeight.w600,
-                      color: preparationTime.isImmediate
-                          ? context.statusColors.success
-                          : context.statusColors.warning,
+                      color: context.statusColors.warning,
                     ),
                   ),
                 ],
@@ -791,20 +777,18 @@ class _OrderPreparationSection extends StatelessWidget {
             ),
 
             // Description
-            if (!preparationTime.isImmediate) ...[
-              const SizedBox(height: 12),
-              Text(
-                preparationTime.description,
-                style: TextStyle(
-                  fontSize: core.AppType.s13,
-                  color: colorScheme.onSurfaceVariant,
-                ),
+            const SizedBox(height: 12),
+            Text(
+              preparationTime.description,
+              style: TextStyle(
+                fontSize: core.AppType.s14,
+                color: colorScheme.onSurfaceVariant,
               ),
-            ],
+            ),
           ],
 
-          // Custom note from seller
-          if (preparationNote != null && preparationNote.isNotEmpty) ...[
+          // Ready to ship by date (if available)
+          if (readyToShipBy != null) ...[
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(core.AppMetrics.p12),
@@ -813,43 +797,10 @@ class _OrderPreparationSection extends StatelessWidget {
                 borderRadius: BorderRadius.circular(core.AppShape.r8),
               ),
               child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(
-                    Icons.info_outline,
-                    size: 14,
-                    color: colorScheme.secondary,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      preparationNote,
-                      style: TextStyle(
-                        fontSize: core.AppType.s12,
-                        color: colorScheme.onSurfaceVariant,
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-
-          // Ready to ship by date (if available and not immediate)
-          if (readyToShipBy != null && !preparationTime.isImmediate) ...[
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(core.AppMetrics.p10),
-              decoration: BoxDecoration(
-                color: colorScheme.surfaceContainerHigh,
-                borderRadius: BorderRadius.circular(core.AppShape.r8),
-              ),
-              child: Row(
                 children: [
                   Icon(
                     Icons.event,
-                    size: 14,
+                    size: AppIconSize.inlineGlyph,
                     color: colorScheme.onSurfaceVariant,
                   ),
                   const SizedBox(width: 6),
@@ -944,7 +895,7 @@ class _OrderPreparationSection extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: core.AppMetrics.p12, vertical: core.AppMetrics.p10),
+        padding: const EdgeInsets.symmetric(horizontal: core.AppMetrics.p12, vertical: core.AppMetrics.p12),
         decoration: BoxDecoration(
           color: isPrimary
               ? context.statusColors.error
@@ -959,7 +910,7 @@ class _OrderPreparationSection extends StatelessWidget {
           children: [
             Icon(
               icon,
-              size: 16,
+              size: AppIconSize.inlineGlyph,
               color: isPrimary
                   ? colorScheme.onError
                   : colorScheme.onSurfaceVariant,
@@ -968,7 +919,7 @@ class _OrderPreparationSection extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                fontSize: core.AppType.s13,
+                fontSize: core.AppType.s14,
                 fontWeight: FontWeight.w600,
                 color: isPrimary
                     ? colorScheme.onError

@@ -11,7 +11,6 @@ import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart';
 import 'package:labuda/domains/chat/chat/domain/repositories/chat_repository.dart';
 import 'package:labuda/shared/attachment/entities/share_reference.dart';
 import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/data/dto/shipping_quote_dto.dart';
 
 /// Chat Repository Implementation
 ///
@@ -327,26 +326,6 @@ class ChatRepositoryImpl implements ChatRepository {
     _chatRoomEventStreamController ??=
         StreamController<ChatRoomEventDto>.broadcast();
     return _chatRoomEventStreamController!.stream;
-  }
-
-  // ========================================
-  // Commerce Operations
-  // ========================================
-
-  @override
-  Future<Result<Map<String, dynamic>>> createShippingQuote({
-    required String chatId,
-    required CreateShippingQuoteRequestDto request,
-  }) async {
-    final result = await _apiDatasource.createShippingQuote(
-      chatId,
-      request.toJson(),
-    );
-
-    return result.fold(
-      (error) => Result.error(error),
-      (data) => Result.success(data),
-    );
   }
 
   // ========================================

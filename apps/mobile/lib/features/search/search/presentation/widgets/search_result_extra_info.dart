@@ -158,7 +158,7 @@ class SearchResultExtraInfo extends StatelessWidget {
     Color color,
   ) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p2),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(AppShape.r8),
@@ -166,7 +166,7 @@ class SearchResultExtraInfo extends StatelessWidget {
       child: Text(
         text,
         style: TextStyle(
-          fontSize: AppType.s11,
+          fontSize: AppType.s12,
           fontWeight: FontWeight.w600,
           color: color,
         ),
@@ -185,14 +185,14 @@ class SearchResultExtraInfo extends StatelessWidget {
       children: [
         Icon(
           icon,
-          size: 12,
+          size: AppIconSize.inlineGlyph,
           color: scheme.onSurfaceVariant,
         ),
         const SizedBox(width: 2),
         Text(
           text,
           style: TextStyle(
-            fontSize: AppType.s11,
+            fontSize: AppType.s12,
             color: scheme.onSurfaceVariant,
           ),
         ),

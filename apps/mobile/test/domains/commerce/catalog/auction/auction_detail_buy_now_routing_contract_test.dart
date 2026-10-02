@@ -2,29 +2,32 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
-/// PASS_21B: audits whether the live "Buy Now" button on the auction detail
-/// screen reaches `AuctionRepository.buyNow()` — a datasource stub that
-/// always throws `UnsupportedError` (locked in by
-/// auction_contract_p1_test.dart's "unsupported endpoints" test). It does
-/// not: `_handleBuyNow` routes to the generic checkout screen instead. This
-/// test locks that routing in as a regression guard — if a future change
-/// wires the live button back to the unsupported repository method, this
-/// test fails loudly instead of shipping a guaranteed-broken buy-now button.
+/// PASS_21B + single-funnel contract: the live "Buy Now" button on the auction
+/// detail screen must NOT call `AuctionRepository.buyNow()` — a datasource
+/// stub that always throws `UnsupportedError` (locked in by
+/// auction_contract_p1_test.dart's "unsupported endpoints" test). It also must
+/// not build the checkout route itself: checkout opens through the
+/// commerce-owned intent (openAuctionCheckout), so product-id resolution, the
+/// seller trust gate and the route shape live in exactly one place.
 void main() {
+  final source = File(
+    'lib/domains/commerce/catalog/auction/presentation/screens/auction_detail_screen.dart',
+  ).readAsStringSync().replaceAll('\r\n', '\n');
+
   test(
-    'AuctionDetailScreen buy-now handler routes to checkout, not the unsupported AuctionRepository.buyNow() stub',
+    'buy-now delegates to the commerce checkout intent (no second builder)',
     () {
-      final source = File(
-        'lib/domains/commerce/catalog/auction/presentation/screens/auction_detail_screen.dart',
-      ).readAsStringSync().replaceAll('\r\n', '\n');
+      // Live path: forwards an intent to the generic checkout screen with
+      // source_type=auction context — the intent owns the route shape.
+      expect(source, contains('openAuctionCheckout('));
+      expect(source, contains('AuctionCheckoutIntent('));
+      expect(source, isNot(contains("'/checkout/")));
+    },
+  );
 
-      // Live path: navigates to the generic checkout screen with
-      // source_type=auction context, same as any other order-creation flow.
-      expect(source, contains("context.push(\n      '/checkout/"));
-      expect(source, contains('auction_id='));
-
-      // Must NOT call the repository/notifier method backed by the
-      // always-throwing datasource stub.
+  test(
+    'buy-now is not wired to the unsupported AuctionRepository.buyNow() stub',
+    () {
       expect(source, isNot(contains('.buyNow(')));
       expect(
         source,

@@ -90,8 +90,7 @@ func seedFPS002PendingOrder(t *testing.T, ctx context.Context, tdb *testdb.TestD
 	Bloodline: nil,
 	Certificates: []string{},
 	FarmAddressID: nil,
-	PreparationTime: string(forsaleentity.PreparationTimeImmediate),
-	PreparationNote: nil,
+	PreparationTime: string(forsaleentity.PreparationTime1To3Days),
 	SellingSurface: productEntity.SellingSurfaceForSale,
 }
 	productRepo := productInfraRepo.NewProductRepository()
@@ -117,7 +116,7 @@ func seedFPS002PendingOrder(t *testing.T, ctx context.Context, tdb *testdb.TestD
 			return err
 		}
 		listingID = listing.ID
-		order := orderentity.NewOrderFromSource(buyerID, sellerID, orderentity.OrderSourceForSale, listingID, nil, 1, money.New(50000), money.New(50000), money.New(0), 0, money.New(0), money.New(0), money.New(50000), nil, "", "", "immediate", nil, nil, nil, nil, nil, time.Now())
+		order := orderentity.NewOrderFromSource(buyerID, sellerID, orderentity.OrderSourceForSale, listingID, nil, 1, money.New(50000), money.New(50000), money.New(0), 0, money.New(0), money.New(0), money.New(50000), nil, "", "", "1_3_days", nil, nil, nil, nil, time.Now())
 		if err := orderRepo.CreateOrderTx(ctx, tx, order); err != nil {
 			return err
 		}

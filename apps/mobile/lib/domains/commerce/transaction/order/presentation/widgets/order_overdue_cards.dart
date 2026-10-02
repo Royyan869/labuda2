@@ -81,12 +81,12 @@ class OrderOverdueIndicator extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.warning_amber_rounded, size: 12, color: getBadgeColor()),
+          Icon(Icons.warning_amber_rounded, size: AppIconSize.inlineGlyph, color: getBadgeColor()),
           const SizedBox(width: 4),
           Text(
             getBadgeLabel(),
             style: TextStyle(
-              fontSize: core.AppType.s11,
+              fontSize: core.AppType.s12,
               fontWeight: FontWeight.w600,
               color: getBadgeColor(),
             ),
@@ -96,7 +96,7 @@ class OrderOverdueIndicator extends StatelessWidget {
             Text(
               '($daysOverdue hari)',
               style: TextStyle(
-                fontSize: core.AppType.s10,
+                fontSize: core.AppType.s12,
                 color: getBadgeColor().withValues(alpha: 0.8),
               ),
             ),
@@ -179,7 +179,7 @@ class OrderOverdueInfoCard extends StatelessWidget {
                 ),
                 child: Icon(
                   Icons.warning_amber_rounded,
-                  size: 18,
+                  size: AppIconSize.action,
                   color: getBadgeColor(),
                 ),
               ),
@@ -222,7 +222,7 @@ class OrderOverdueInfoCard extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.info_outline, size: 16, color: getBadgeColor()),
+                Icon(Icons.info_outline, size: AppIconSize.inlineGlyph, color: getBadgeColor()),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -244,14 +244,14 @@ class OrderOverdueInfoCard extends StatelessWidget {
               children: [
                 Icon(
                   Icons.event,
-                  size: 14,
+                  size: AppIconSize.inlineGlyph,
                   color: colorScheme.onSurfaceVariant,
                 ),
                 const SizedBox(width: 6),
                 Text(
                   'Target siap kirim: ${_formatDate(order.readyToShipBy!)}',
                   style: TextStyle(
-                    fontSize: core.AppType.s11,
+                    fontSize: core.AppType.s12,
                     color: colorScheme.onSurfaceVariant,
                   ),
                 ),
@@ -260,7 +260,7 @@ class OrderOverdueInfoCard extends StatelessWidget {
                   Text(
                     'Telat $daysOverdue hari',
                     style: TextStyle(
-                      fontSize: core.AppType.s11,
+                      fontSize: core.AppType.s12,
                       fontWeight: FontWeight.w600,
                       color: getBadgeColor(),
                     ),

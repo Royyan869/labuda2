@@ -58,7 +58,12 @@ class EmptyState extends StatelessWidget {
           // Title
           Text(
             title,
-            style: AppTypography.h4.copyWith(color: scheme.onSurface),
+            // Type role, not a second ladder: empty-state title = screen-title
+            // role, emphasis kept as a weight override.
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              color: scheme.onSurface,
+              fontWeight: FontWeight.w600,
+            ),
             textAlign: TextAlign.center,
           ),
           // Subtitle
@@ -66,7 +71,7 @@ class EmptyState extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               subtitle!,
-              style: AppTypography.bodyMedium.copyWith(
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: scheme.onSurfaceVariant,
               ),
               textAlign: TextAlign.center,
@@ -122,7 +127,7 @@ class EmptyState extends StatelessWidget {
         color: iconColor.withValues(alpha: 0.1),
         shape: BoxShape.circle,
       ),
-      child: Icon(iconData, size: 40, color: iconColor),
+      child: Icon(iconData, size: AppIconSize.display, color: iconColor),
     );
   }
 

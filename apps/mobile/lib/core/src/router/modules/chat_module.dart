@@ -62,16 +62,13 @@ class ChatModule implements BaseModule {
           final extra = state.extra as Map<String, dynamic>?;
           final initialMessage = extra?['initialMessage'] as String?;
           // Canonical commerce chat opener (openCommerceChat) delivers the
-          // pending product reference + optional auto-open negotiation here.
+          // pending product reference here.
           final pendingReference = extra?['pendingReference'] as ShareReference?;
-          final autoOpenNegotiation =
-              (extra?['autoOpenNegotiation'] as bool?) ?? false;
 
           return ChatDetailScreen(
             chatId: conversationId,
             initialMessage: initialMessage,
             pendingReference: pendingReference,
-            autoOpenNegotiation: autoOpenNegotiation,
           );
         },
       ),

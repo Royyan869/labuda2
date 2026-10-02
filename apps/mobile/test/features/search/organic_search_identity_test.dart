@@ -2,7 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:labuda/features/search/search/data/dto/search_dto.dart';
 import 'package:labuda/features/search/search/data/remote/search_api_service.dart';
 import 'package:labuda/features/search/search/data/search_repository_impl.dart';
-import 'package:labuda/shared/utils/commerce_seller_identity.dart';
 
 class _FakeOrganicSearchApiService implements SearchApiService {
   @override
@@ -74,8 +73,16 @@ class _FakeOrganicSearchApiService implements SearchApiService {
     String? contentType,
     int limit = 20,
     int offset = 0,
-  }) {
-    throw UnimplementedError();
+  }) async {
+    // Not under test: this domain only has to succeed so `searchAll` can map
+    // the for-sale/auction rows the identity rule is asserted on.
+    return ContentSearchResponseDto(
+      query: query,
+      contents: const [],
+      total: 0,
+      limit: limit,
+      offset: offset,
+    );
   }
 
   @override
@@ -83,8 +90,14 @@ class _FakeOrganicSearchApiService implements SearchApiService {
     required String query,
     int limit = 20,
     int offset = 0,
-  }) {
-    throw UnimplementedError();
+  }) async {
+    return UserSearchResponseDto(
+      query: query,
+      users: const [],
+      total: 0,
+      limit: limit,
+      offset: offset,
+    );
   }
 
   @override
@@ -109,30 +122,21 @@ class _FakeOrganicSearchApiService implements SearchApiService {
 
 void main() {
   test(
-    'organic forSale and auction search render split seller identity',
+    'organic search rows pair the store name with the handle',
     () async {
       final repository = SearchRepositoryImpl(_FakeOrganicSearchApiService());
 
-      final forSales = await repository.searchForSale(query: 'koi');
-      final auctions = await repository.searchAuctions(query: 'koi');
+      final results = await repository.searchAll(query: 'koi');
 
-      expect(forSales.error, isNull);
-      expect(auctions.error, isNull);
+      expect(results.error, isNull);
+      final unified = results.data!;
+      expect(unified.forSales, hasLength(1));
+      expect(unified.auctions, hasLength(1));
 
-      expect(forSales.data, hasLength(1));
-      expect(auctions.data, hasLength(1));
-
-      final forSaleIdentity = buildCommerceSellerIdentity(
-        username: forSales.data!.single.sellerUsername,
-        storeName: forSales.data!.single.sellerFarmName,
-      );
-      final auctionIdentity = buildCommerceSellerIdentity(
-        username: auctions.data!.single.sellerUsername,
-        storeName: auctions.data!.single.sellerFarmName,
-      );
-
-      expect(forSaleIdentity?.multilineLabel, '@seller_user\nFarm Name');
-      expect(auctionIdentity?.multilineLabel, '@auction_user\nAuction Farm');
+      // ONE identity rule, applied by the repository itself: the store name is
+      // the primary line, the handle is secondary.
+      expect(unified.forSales.single.subtitle, 'Farm Name\n@seller_user');
+      expect(unified.auctions.single.subtitle, 'Auction Farm\n@auction_user');
     },
   );
 
@@ -141,15 +145,12 @@ void main() {
       _FakeOrganicSearchApiServiceMissingFarm(),
     );
 
-    final forSales = await repository.searchForSale(query: 'koi');
+    final results = await repository.searchAll(query: 'koi');
 
-    expect(forSales.error, isNull);
-    expect(forSales.data, hasLength(1));
-    final forSaleIdentity = buildCommerceSellerIdentity(
-      username: forSales.data!.single.sellerUsername,
-      storeName: forSales.data!.single.sellerFarmName,
-    );
-    expect(forSaleIdentity?.multilineLabel, '@seller_user');
+    expect(results.error, isNull);
+    expect(results.data!.forSales, hasLength(1));
+    // No store: the handle is the primary line on its own.
+    expect(results.data!.forSales.single.subtitle, '@seller_user');
   });
 }
 
@@ -190,8 +191,14 @@ class _FakeOrganicSearchApiServiceMissingFarm implements SearchApiService {
     int offset = 0,
     String sortBy = 'relevance',
     String sortDir = 'desc',
-  }) {
-    throw UnimplementedError();
+  }) async {
+    return AuctionSearchResponseDto(
+      query: query,
+      auctions: const [],
+      total: 0,
+      limit: limit,
+      offset: offset,
+    );
   }
 
   @override
@@ -200,8 +207,16 @@ class _FakeOrganicSearchApiServiceMissingFarm implements SearchApiService {
     String? contentType,
     int limit = 20,
     int offset = 0,
-  }) {
-    throw UnimplementedError();
+  }) async {
+    // Not under test: this domain only has to succeed so `searchAll` can map
+    // the for-sale/auction rows the identity rule is asserted on.
+    return ContentSearchResponseDto(
+      query: query,
+      contents: const [],
+      total: 0,
+      limit: limit,
+      offset: offset,
+    );
   }
 
   @override
@@ -209,8 +224,14 @@ class _FakeOrganicSearchApiServiceMissingFarm implements SearchApiService {
     required String query,
     int limit = 20,
     int offset = 0,
-  }) {
-    throw UnimplementedError();
+  }) async {
+    return UserSearchResponseDto(
+      query: query,
+      users: const [],
+      total: 0,
+      limit: limit,
+      offset: offset,
+    );
   }
 
   @override

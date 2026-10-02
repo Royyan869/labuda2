@@ -8,7 +8,6 @@ import 'package:labuda/shared/governance/content_lifecycle.dart';
 import 'package:labuda/shared/governance/seller_tier_badge.dart';
 import 'package:labuda/shared/models/seller_identity_data.dart';
 import 'package:labuda/shared/shared.dart';
-import 'package:labuda/shared/utils/commerce_seller_identity.dart';
 
 /// Canonical DETAIL seller card — ONE AUTHORITY for both sale channels.
 ///
@@ -23,6 +22,11 @@ import 'package:labuda/shared/utils/commerce_seller_identity.dart';
 ///   - identity source priority: entity owner-truth scalars first (the detail
 ///     wire always carries them); `userDataProvider` is consulted ONLY when
 ///     the entity has no handle — never `user.fullName`.
+///   - a buyer must be able to see WHERE the goods ship from: the listing's
+///     buyer-facing origin (city, province of the sender address) is emitted
+///     by the backend detail projection and rendered on this card. The card
+///     never derives an origin from an address id, and never renders a street
+///     address.
 ///   - missing truth is HIDDEN, never fabricated.
 ///
 /// Axis boundary:
@@ -35,6 +39,10 @@ class CommerceDetailSellerCard extends ConsumerWidget {
   final String? username;
   final String? storeName;
   final String? avatarUrl;
+
+  /// Buyer-facing listing origin ("City, Province") from the detail wire.
+  /// Detail payloads only; null hides the line.
+  final String? originLine;
   final ContentLifecycle sellerUserLifecycle;
   final ContentLifecycle sellerTrustLifecycle;
   final String? tier;
@@ -47,6 +55,7 @@ class CommerceDetailSellerCard extends ConsumerWidget {
     required this.avatarUrl,
     required this.sellerUserLifecycle,
     required this.sellerTrustLifecycle,
+    this.originLine,
     this.tier,
   });
 
@@ -88,26 +97,28 @@ class CommerceDetailSellerCard extends ConsumerWidget {
       );
     }
 
-    return ref.watch(userDataProvider(sellerId)).when(
-      data: (user) => _renderIdentity(
-        context,
-        ref,
-        resolvedUsername: _notBlank(user?.username),
-        resolvedAvatar: _notBlank(avatarUrl) ?? _notBlank(user?.avatarUrl),
-      ),
-      // Non-identity loading hint — asserts no seller identity.
-      loading: () => _frame(
-        child: _row(
-          context,
-          avatar: ProfileAvatar(userId: sellerId, size: 48),
-          displayName: 'Memuat...',
-          usernameLine: null,
-          italic: false,
-          onTap: null,
-        ),
-      ),
-      error: (_, _) => const SizedBox.shrink(),
-    );
+    return ref
+        .watch(userDataProvider(sellerId))
+        .when(
+          data: (user) => _renderIdentity(
+            context,
+            ref,
+            resolvedUsername: _notBlank(user?.username),
+            resolvedAvatar: _notBlank(avatarUrl) ?? _notBlank(user?.avatarUrl),
+          ),
+          // Non-identity loading hint — asserts no seller identity.
+          loading: () => _frame(
+            child: _row(
+              context,
+              avatar: ProfileAvatar(userId: sellerId, size: 48),
+              displayName: 'Memuat...',
+              usernameLine: null,
+              italic: false,
+              onTap: null,
+            ),
+          ),
+          error: (_, _) => const SizedBox.shrink(),
+        );
   }
 
   Widget _renderIdentity(
@@ -116,19 +127,29 @@ class CommerceDetailSellerCard extends ConsumerWidget {
     required String? resolvedUsername,
     required String? resolvedAvatar,
   }) {
-    final identity = buildCommerceSellerIdentity(
-      username: resolvedUsername,
-      storeName: storeName,
-    );
-
-    // Hide rather than fabricate when no truth is available.
-    if (identity == null) return const SizedBox.shrink();
-
     // Store truth for the dual avatar comes from the seller's profile stream
     // (canonical FarmInfo), never fabricated. `.asData` keeps the render safe
     // while the lookup is loading or failed.
-    final farmInfo = ref.watch(profileStreamProvider(sellerId)).asData?.value
+    final farmInfo = ref
+        .watch(profileStreamProvider(sellerId))
+        .asData
+        ?.value
         ?.farmInfo;
+
+    // ONE identity authority: the card renders the canonical pairing — store
+    // name primary, handle secondary — straight from the identity model.
+    final identity = SellerIdentityData(
+      userId: sellerId,
+      username: resolvedUsername,
+      storeName: storeName,
+      avatarUrl: resolvedAvatar,
+      storeImageUrl: farmInfo?.farmPhotoUrl,
+      isSeller: true,
+    );
+
+    // Hide rather than fabricate when no truth is available.
+    final displayName = identity.primaryLabel;
+    if (displayName == null) return const SizedBox.shrink();
 
     return _frame(
       child: Column(
@@ -138,21 +159,15 @@ class CommerceDetailSellerCard extends ConsumerWidget {
           _row(
             context,
             avatar: SellerDualAvatar(
-              identity: SellerIdentityData(
-                userId: sellerId,
-                username: resolvedUsername,
-                storeName: storeName,
-                avatarUrl: resolvedAvatar,
-                storeImageUrl: farmInfo?.farmPhotoUrl,
-                isSeller: true,
-              ),
+              identity: identity,
               size: 48,
               onTap: () => ref
                   .read(navigationHandlerProvider)
                   .navigateToUserProfile(sellerId),
             ),
-            displayName: identity.line1,
-            usernameLine: identity.line2,
+            displayName: displayName,
+            usernameLine: identity.secondaryLabel,
+            originLine: _notBlank(originLine),
             italic: false,
             onTap: () => ref
                 .read(navigationHandlerProvider)
@@ -161,7 +176,7 @@ class CommerceDetailSellerCard extends ConsumerWidget {
           if (_tierBadgeVisible) ...[
             const SizedBox(height: 8),
             Padding(
-              padding: const EdgeInsets.only(left: AppMetrics.p60),
+              padding: const EdgeInsets.only(left: AppMetrics.p48),
               child: SellerTierBadge(tier: tier),
             ),
           ],
@@ -172,7 +187,12 @@ class CommerceDetailSellerCard extends ConsumerWidget {
 
   Widget _frame({required Widget child}) {
     return CommerceDetailSectionCard(
-      margin: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p0, AppMetrics.p16, AppMetrics.p16),
+      margin: const EdgeInsets.fromLTRB(
+        AppMetrics.p16,
+        AppMetrics.p0,
+        AppMetrics.p16,
+        AppMetrics.p16,
+      ),
       child: child,
     );
   }
@@ -184,6 +204,7 @@ class CommerceDetailSellerCard extends ConsumerWidget {
     required String? usernameLine,
     required bool italic,
     required VoidCallback? onTap,
+    String? originLine,
   }) {
     final scheme = Theme.of(context).colorScheme;
     final content = Row(
@@ -214,6 +235,33 @@ class CommerceDetailSellerCard extends ConsumerWidget {
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
+                ),
+              // Buyer-facing shipping origin — the listing's sender city and
+              // province. Hidden when the wire carries no truth.
+              if (originLine != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: AppMetrics.p4),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.location_on_outlined,
+                        size: AppType.s12,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          originLine,
+                          style: TextStyle(
+                            fontSize: AppType.s12,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
             ],
           ),

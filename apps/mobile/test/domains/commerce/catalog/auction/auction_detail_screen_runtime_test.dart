@@ -141,7 +141,6 @@ Auction _auction({
   String description = 'Live auction',
   KoiDetails? koiDetails,
   PreparationTime? preparationTime,
-  String? preparationNote,
   ContentLifecycle sellerTrustLifecycle = ContentLifecycle.active,
   AuctionStatus status = AuctionStatus.active,
 }) {
@@ -167,10 +166,9 @@ Auction _auction({
           gender: 'male',
           breeder: 'Hiro',
           bloodline: 'Miyabi',
-          certificates: ['ownership', 'health'],
+          certificates: ['import', 'health'],
         ),
     preparationTime: preparationTime,
-    preparationNote: preparationNote,
     openingBid: 1000000,
     currentBid: 1500000,
     bidIncrement: 50000,
@@ -244,8 +242,7 @@ void main() {
       sellerId: 'seller-1',
       capabilities: _buyerCapabilities,
       media: _detailMedia(),
-      preparationTime: PreparationTime.immediate,
-      preparationNote: 'Packing aman sebelum kirim',
+      preparationTime: PreparationTime.days1_3,
     );
 
     await tester.pumpWidget(
@@ -284,13 +281,15 @@ void main() {
     expect(find.text('Bloodline'), findsOneWidget);
     expect(find.text('Miyabi'), findsOneWidget);
     expect(find.text('Sertifikat'), findsOneWidget);
-    expect(find.text('Kepemilikan, Kesehatan'), findsOneWidget);
+    expect(find.text('Import, Kesehatan'), findsOneWidget);
     expect(find.text('Berdasarkan pernyataan seller'), findsOneWidget);
 
     // Canonical preparation content.
-    expect(find.text('Siap kirim langsung'), findsOneWidget);
-    expect(find.textContaining('Penjual siap mengirim'), findsOneWidget);
-    expect(find.text('Packing aman sebelum kirim'), findsOneWidget);
+    expect(find.text('Estimasi siap kirim: 1–3 hari'), findsOneWidget);
+    expect(find.textContaining('Penjual perlu 1–3 hari'), findsOneWidget);
+    // NO REGRESS: the preparation-note concept is purged end-to-end; no note
+    // copy may be rendered from any payload (even a smuggle attempt).
+    expect(find.text('Packing aman sebelum kirim'), findsNothing);
 
     // Description + auction-specific row.
     expect(find.text('Live auction'), findsOneWidget);
@@ -339,12 +338,15 @@ void main() {
     expect(_bidButton(tester).onPressed, isNull);
     // can_chat=false for the owner role → chat hidden.
     expect(find.text('Chat'), findsNothing);
-    // Owner promote entry point (canonical promotion management) is shown.
-    expect(find.byTooltip('Promote'), findsOneWidget);
+    // No promote button on detail screens anymore: promotion is created
+    // only from the promote page itself.
+    expect(find.byTooltip('Promote'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('guest capability disables bid and hides chat', (tester) async {
+  testWidgets('guest keeps the bid affordance (routes to sign-in)', (
+    tester,
+  ) async {
     await tester.binding.setSurfaceSize(const Size(800, 2400));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
@@ -362,8 +364,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    // Model B parity with the fixed-price detail bar: the affordance stays
+    // visible on raw facts; the tap routes to the canonical sign-in flow.
     expect(find.text('Pasang Bid'), findsOneWidget);
-    expect(_bidButton(tester).onPressed, isNull);
+    expect(_bidButton(tester).onPressed, isNotNull);
     expect(find.text('Chat'), findsNothing);
     // Share is authenticated-only.
     expect(find.byTooltip('Bagikan'), findsNothing);
@@ -432,7 +436,6 @@ void main() {
         certificates: [],
       ),
       preparationTime: null,
-      preparationNote: null,
     );
 
     await tester.pumpWidget(

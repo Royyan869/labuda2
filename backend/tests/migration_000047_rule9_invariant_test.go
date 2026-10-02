@@ -87,7 +87,7 @@ func seedRule9Product(ctx context.Context, t *testing.T, pool *pgxpool.Pool, sel
 	id := uuid.New()
 	_, err := pool.Exec(ctx, `
 		INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, created_at, updated_at)
-		VALUES ($1, $2, 'Rule9 Koi', 'desc', '[]'::jsonb, 'kohaku', 'immediate', now(), now())
+		VALUES ($1, $2, 'Rule9 Koi', 'desc', '[]'::jsonb, 'kohaku', '1_3_days', now(), now())
 	`, id, sellerID)
 	require.NoError(t, err)
 	return id

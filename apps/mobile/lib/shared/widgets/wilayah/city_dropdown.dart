@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/models/wilayah_models.dart';
 import 'package:labuda/shared/providers/wilayah_provider_simple.dart';
+import 'package:labuda/shared/widgets/wilayah/dropdown_state_builders.dart';
 
 class CityDropdown extends ConsumerWidget {
   final City? selectedCity;
@@ -55,12 +56,17 @@ class CityDropdown extends ConsumerWidget {
             color: scheme.surface,
           ),
           child: selectedProvince == null
-              ? _buildDisabledDropdown(context, 'Pilih provinsi dulu')
+              ? DropdownStateBuilders.buildDisabled(
+                  context: context,
+                  text: 'Pilih provinsi dulu',
+                  prefixIcon: prefixIcon,
+                )
               : citiesAsync.when(
                   data: (cities) => cities.isEmpty
-                      ? _buildEmptyDropdown(
-                          context,
-                          'Tidak ada kota tersedia',
+                      ? DropdownStateBuilders.buildEmpty(
+                          context: context,
+                          text: 'Tidak ada kota tersedia',
+                          prefixIcon: prefixIcon,
                         )
                       : DropdownButtonFormField<City>(
                           initialValue: selectedCity,
@@ -78,7 +84,7 @@ class CityDropdown extends ConsumerWidget {
                             border: InputBorder.none,
                             contentPadding: const EdgeInsets.symmetric(
                               horizontal: AppMetrics.p16,
-                              vertical: AppMetrics.p14,
+                              vertical: AppMetrics.p16,
                             ),
                             hintStyle: TextStyle(
                               color: scheme.onSurfaceVariant,
@@ -109,105 +115,19 @@ class CityDropdown extends ConsumerWidget {
                             );
                           }).toList(),
                         ),
-                  loading: () =>
-                      _buildLoadingDropdown(context, 'Loading kota...'),
-                  error: (error, stack) => _buildErrorDropdown(
-                    context,
-                    'Error loading kota',
+                  loading: () => DropdownStateBuilders.buildLoading(
+                    context: context,
+                    text: 'Loading kota...',
+                    prefixIcon: prefixIcon,
+                  ),
+                  error: (error, stack) => DropdownStateBuilders.buildError(
+                    context: context,
+                    text: 'Error loading kota',
+                    prefixIcon: prefixIcon,
                   ),
                 ),
         ),
       ],
-    );
-  }
-
-  Widget _buildDisabledDropdown(BuildContext context, String text) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      height: 50,
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16),
-      child: Row(
-        children: [
-          if (prefixIcon != null) ...[
-            Icon(prefixIcon, color: scheme.onSurfaceVariant),
-            const SizedBox(width: 12),
-          ],
-          Text(
-            text,
-            style: TextStyle(
-              color: scheme.onSurfaceVariant,
-              fontSize: AppType.s16,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEmptyDropdown(BuildContext context, String text) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      height: 50,
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16),
-      child: Row(
-        children: [
-          if (prefixIcon != null) ...[
-            Icon(prefixIcon, color: scheme.onSurfaceVariant),
-            const SizedBox(width: 12),
-          ],
-          Text(
-            text,
-            style: TextStyle(
-              color: scheme.onSurfaceVariant,
-              fontSize: AppType.s16,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLoadingDropdown(BuildContext context, String text) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      height: 50,
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16),
-      child: Row(
-        children: [
-          if (prefixIcon != null) ...[
-            Icon(prefixIcon, color: scheme.onSurfaceVariant),
-            const SizedBox(width: 12),
-          ],
-          const SizedBox(
-            width: 20,
-            height: 20,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
-          const SizedBox(width: 12),
-          Text(
-            text,
-            style: TextStyle(color: scheme.onSurfaceVariant),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildErrorDropdown(BuildContext context, String text) {
-    return Container(
-      height: 50,
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16),
-      child: Row(
-        children: [
-          if (prefixIcon != null) ...[
-            Icon(prefixIcon, color: context.statusColors.error),
-            const SizedBox(width: 12),
-          ],
-          Icon(Icons.error_outline, color: context.statusColors.error, size: 20),
-          const SizedBox(width: 8),
-          Text(text, style: TextStyle(color: context.statusColors.error)),
-        ],
-      ),
     );
   }
 }

@@ -38,7 +38,7 @@ func TestConcurrency_SellingSurfaceExclusivity(t *testing.T) {
 		id := uuid.New()
 		_, err := pool.Exec(ctx, `
 			INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, created_at, updated_at)
-			VALUES ($1, $2, $3, 'desc', '[]'::jsonb, 'kohaku', 'immediate', NOW(), NOW())
+			VALUES ($1, $2, $3, 'desc', '[]'::jsonb, 'kohaku', '1_3_days', NOW(), NOW())
 		`, id, sellerID, name)
 		require.NoError(t, err)
 		return id

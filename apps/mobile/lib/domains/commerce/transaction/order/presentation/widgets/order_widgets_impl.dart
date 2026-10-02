@@ -11,7 +11,7 @@ import 'package:labuda/core/core.dart' as core;
 import 'package:labuda/core/common/types/payment_types.dart';
 import 'package:labuda/domains/commerce/transaction/order/order.dart';
 import 'package:labuda/shared/shared.dart';
-import 'package:labuda/shared/utils/commerce_seller_identity.dart';
+import 'package:labuda/shared/models/seller_identity_data.dart';
 import 'package:labuda/domains/chat/chat/chat.dart';
 import 'package:labuda/domains/system/support/presentation/widgets/pre_chat_form_sheet.dart';
 

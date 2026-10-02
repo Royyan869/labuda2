@@ -137,7 +137,7 @@ class CommerceMarketplaceGrid extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, color: theme.colorScheme.error, size: 48),
+            Icon(Icons.error_outline, color: theme.colorScheme.error, size: AppIconSize.display),
             const SizedBox(height: 12),
             Text(
               'Data belum bisa dimuat.',
@@ -442,7 +442,10 @@ class CommerceMarketplaceCardBadge extends StatelessWidget {
     this.icon,
     this.backgroundColor,
     this.foregroundColor,
-    this.padding = const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
+    this.padding = const EdgeInsets.symmetric(
+      horizontal: AppMetrics.p8,
+      vertical: AppMetrics.p4,
+    ),
     this.compact = false,
   });
 
@@ -455,7 +458,10 @@ class CommerceMarketplaceCardBadge extends StatelessWidget {
 
     return Container(
       padding: compact
-          ? const EdgeInsets.symmetric(horizontal: AppMetrics.p6, vertical: AppMetrics.p3)
+          ? const EdgeInsets.symmetric(
+              horizontal: AppMetrics.p8,
+              vertical: AppMetrics.p4,
+            )
           : padding,
       decoration: BoxDecoration(
         color: bg,
@@ -477,7 +483,7 @@ class CommerceMarketplaceCardBadge extends StatelessWidget {
           : Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(icon, size: compact ? 12 : 14, color: fg),
+                Icon(icon, size: compact ? AppIconSize.inlineGlyph : AppIconSize.inlineGlyph, color: fg),
                 const SizedBox(width: 4),
                 Flexible(
                   child: Text(
@@ -497,5 +503,3 @@ class CommerceMarketplaceCardBadge extends StatelessWidget {
     );
   }
 }
-
-

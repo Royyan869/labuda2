@@ -29,7 +29,7 @@ class MainDrawerItem extends StatelessWidget {
     return ListTile(
       leading: Icon(
         icon,
-        size: 24,
+        size: AppIconSize.header,
         color:
             iconColor ??
             (isDestructive

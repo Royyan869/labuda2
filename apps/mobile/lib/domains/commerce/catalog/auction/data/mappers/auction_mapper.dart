@@ -9,6 +9,7 @@
 /// - Winner checkout flow requires productId to create order
 library;
 
+import 'package:labuda/core/media/media_upload_orchestrator.dart';
 import 'package:labuda/domains/commerce/catalog/auction/data/dto/auction_dto.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/domain.dart';
 import 'package:labuda/domains/social/content/domain/entities/content.dart';
@@ -42,11 +43,15 @@ class AuctionMapper {
                       : _generateMediaId(item.url),
                   originalUrl: item.url,
                   type: item.isVideo ? MediaType.video : MediaType.image,
+                  blurhash: item.blurhash,
                   dimensions:
                       (item.width != null && item.height != null)
                       ? MediaDimensions(width: item.width!, height: item.height!)
                       : null,
                   createdAt: item.createdAt ?? DateTime.now(),
+                  variants: {
+                    if (item.thumbnailUrl != null) 'thumbnail': item.thumbnailUrl!,
+                  },
                 ),
               )
               .toList()
@@ -66,6 +71,7 @@ class AuctionMapper {
     //   sellerUsername  ← seller_username
     //   sellerFarmName  ← seller_farm_name
     //   sellerAvatar    ← seller_avatar_url
+    //   publicOriginLine ← public_origin_line (detail-only, buyer-facing)
     // No fullName fallback (KYC field).
     // Phantom purge: currentBid is nullable factual (current_bid null = no bids).
     // Presentation fallback to startPrice is explicit derivation from factual
@@ -77,6 +83,7 @@ class AuctionMapper {
       sellerUsername: dto.sellerUsername,
       sellerFarmName: dto.sellerFarmName,
       sellerAvatar: dto.sellerAvatarUrl,
+      publicOriginLine: dto.publicOriginLine,
       // E8.2 — Canonical seller user-identity lifecycle parsed tolerantly.
       // Null / missing / unknown → active (legacy payloads stay backward
       // compatible).
@@ -111,7 +118,6 @@ class AuctionMapper {
           (dto.preparationTime == null || dto.preparationTime!.isEmpty)
           ? null
           : PreparationTime.fromJson(dto.preparationTime),
-      preparationNote: dto.preparationNote,
       startTime: dto.startTime,
       endTime: dto.endTime,
       // Owner axis first: `seller_status` carries the exact internal state
@@ -167,12 +173,12 @@ class AuctionMapper {
   /// Previously `koiDetails` and `shippingSetupIds` were silently dropped
   /// here, so mobile auction creation either 400'd (missing required
   /// shipping_option_ids) or created a product with no photos/variety.
-  static CreateAuctionDto toCreateDto(CreateAuctionParams params) {
+  static Future<CreateAuctionDto> toCreateDto(CreateAuctionParams params) async {
     final koi = params.koiDetails;
     return CreateAuctionDto(
       title: params.title,
       description: params.description,
-      mediaUrls: params.mediaUrls,
+      media: await MediaUploadOrchestrator.typedWriteItems(params.mediaUrls),
       variety: koi.variety,
       sizeCm: koi.sizeInCm.round(),
       ageMonths: koi.ageInMonths,
@@ -181,6 +187,7 @@ class AuctionMapper {
       bloodline: koi.bloodline,
       certificates: koi.certificates.isEmpty ? null : koi.certificates,
       farmAddressId: params.farmAddressId,
+      preparationTime: params.preparationTime.toJson(),
       shippingSetupIds: params.shippingSetupIds,
       startPrice: params.openingBid,
       bidIncrement: params.bidIncrement,
@@ -188,7 +195,6 @@ class AuctionMapper {
       startMode: params.startMode,
       scheduledStartAt: params.scheduledStartAt,
       durationHours: params.durationHours,
-      preparationNote: params.preparationNote,
     );
   }
 

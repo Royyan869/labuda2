@@ -57,8 +57,6 @@ class _FollowListScreenState extends ConsumerState<FollowListScreen> {
               ? '${widget.username ?? 'User'}\'s Followers'
               : '${widget.username ?? 'User'}\'s Following',
         ),
-        surfaceTintColor: Colors.transparent,
-        scrolledUnderElevation: 0,
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(60),
           child: Padding(
@@ -155,7 +153,7 @@ class _FollowListScreenState extends ConsumerState<FollowListScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.error_outline, size: 64, color: scheme.error),
+          Icon(Icons.error_outline, size: AppIconSize.display, color: scheme.error),
           const SizedBox(height: 16),
           Text(
             'Data belum bisa dimuat.',
@@ -199,7 +197,7 @@ class _FollowListScreenState extends ConsumerState<FollowListScreen> {
         children: [
           Icon(
             _searchQuery.isNotEmpty ? Icons.search_off : Icons.people_outline,
-            size: 64,
+            size: AppIconSize.display,
             color: scheme.outline,
           ),
           const SizedBox(height: 16),

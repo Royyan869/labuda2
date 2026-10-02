@@ -200,7 +200,7 @@ class _KtpCameraScreenState extends State<KtpCameraScreen>
                   aspectRatio: 1.585, // KTP ratio 85.6mm x 53.98mm
                   child: Container(
                     margin: const EdgeInsets.symmetric(
-                      horizontal: AppMetrics.p20,
+                      horizontal: AppMetrics.p24,
                     ), // Lebih lebar (dari 40 ke 20)
                     decoration: BoxDecoration(
                       border: Border.all(color: scheme.onPrimary, width: 2),

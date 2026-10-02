@@ -4,6 +4,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart' as core;
+import 'package:labuda/core/src/theme/app_theme.dart';
 import 'package:labuda/domains/commerce/transaction/order/domain/entities/refund_request.dart';
 import 'package:labuda/shared/utils/app_formatters.dart';
 import 'dispute_escalation_dialog.dart';
@@ -70,7 +71,7 @@ class OrderRefundListSection extends ConsumerWidget {
             children: [
               Icon(
                 Icons.currency_exchange,
-                size: 20,
+                size: AppIconSize.action,
                 color: _getStatusColor(context, latestRefund.status, colorScheme),
               ),
               const SizedBox(width: 8),
@@ -209,7 +210,7 @@ class _BuyerEscalationButton extends StatelessWidget {
           foregroundColor: colorScheme.onSecondary,
           padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p12),
         ),
-        icon: const Icon(Icons.gavel_rounded, size: 18),
+        icon: const Icon(Icons.gavel_rounded, size: AppIconSize.action),
         label: const Text('Ajukan ke Admin (Eskalasi)'),
       ),
     );
@@ -240,7 +241,7 @@ class _SellerDecisionButtons extends StatelessWidget {
               side: BorderSide(color: context.statusColors.error),
               padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p12),
             ),
-            icon: const Icon(Icons.cancel_outlined, size: 18),
+            icon: const Icon(Icons.cancel_outlined, size: AppIconSize.action),
             label: const Text('Tolak'),
           ),
         ),
@@ -252,7 +253,7 @@ class _SellerDecisionButtons extends StatelessWidget {
               backgroundColor: context.statusColors.success,
               padding: const EdgeInsets.symmetric(vertical: core.AppMetrics.p12),
             ),
-            icon: const Icon(Icons.check_circle_outline, size: 18),
+            icon: const Icon(Icons.check_circle_outline, size: AppIconSize.action),
             label: const Text('Setujui'),
           ),
         ),
@@ -287,7 +288,7 @@ class _StatusBadge extends StatelessWidget {
             style: theme.textTheme.bodySmall?.copyWith(
               color: _getBadgeColor(context, colorScheme),
               fontWeight: FontWeight.w600,
-              fontSize: core.AppType.s11,
+              fontSize: core.AppType.s12,
             ),
           ),
         ],
@@ -434,7 +435,7 @@ class _StatusMessageBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(icon, color: textColor, size: 16),
+          Icon(icon, color: textColor, size: AppIconSize.inlineGlyph),
           const SizedBox(width: 8),
           Expanded(
             child: Text(

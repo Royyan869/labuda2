@@ -354,7 +354,6 @@ func TestUserBanHandler_QueryColumnsMatchSchema(t *testing.T) {
 		"shipping_proof_media":        true,
 		"shipping_note":               true,
 		"address_snapshot":            true,
-		"preparation_note_snapshot":   true,
 		"confirmation_extension_used": true,
 		"confirmation_extended_at":    true,
 		"created_at":                  true,

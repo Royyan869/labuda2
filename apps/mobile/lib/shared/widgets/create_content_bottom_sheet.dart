@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/shared/widgets/app_bottom_sheet_base.dart';
 import 'package:labuda/domains/user/preference/seller/domain/entities/seller_state.dart';
 
 /// Create Content Bottom Sheet - Modal for opening the universal content composer
@@ -94,20 +95,13 @@ class CreateContentBottomSheet extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Drag handle
-            Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.only(top: AppMetrics.p12, bottom: AppMetrics.p8),
-              decoration: BoxDecoration(
-                color: scheme.onSurfaceVariant,
-                borderRadius: BorderRadius.circular(AppShape.r2),
-              ),
-            ),
+            // Drag handle — ONE authority: `AppDragHandle` beside the bottom-sheet
+            // base (the default spacing is this sheet's `top p12 + bottom p8`).
+            const AppDragHandle(),
 
             // Header
             Padding(
-              padding: const EdgeInsets.fromLTRB(AppMetrics.p20, AppMetrics.p8, AppMetrics.p20, AppMetrics.p16),
+              padding: const EdgeInsets.fromLTRB(AppMetrics.p24, AppMetrics.p8, AppMetrics.p24, AppMetrics.p16),
               child: Text(
                 'Create',
                 style: TextStyle(
@@ -275,8 +269,7 @@ class CreateContentBottomSheet extends StatelessWidget {
             children: [
               // Icon with colored background
               Container(
-                width: 48,
-                height: 48,
+                padding: const EdgeInsets.all(AppMetrics.p12),
                 decoration: BoxDecoration(
                   color: isEnabled
                       ? option.color.withValues(alpha: 0.1)
@@ -288,7 +281,7 @@ class CreateContentBottomSheet extends StatelessWidget {
                   color: isEnabled
                       ? option.color
                       : (scheme.onSurfaceVariant),
-                  size: 24,
+                  size: AppIconSize.header,
                 ),
               ),
 
@@ -313,7 +306,7 @@ class CreateContentBottomSheet extends StatelessWidget {
                     Text(
                       option.description,
                       style: TextStyle(
-                        fontSize: AppType.s13,
+                        fontSize: AppType.s14,
                         color: scheme.onSurfaceVariant,
                       ),
                     ),
@@ -325,7 +318,7 @@ class CreateContentBottomSheet extends StatelessWidget {
               if (isEnabled)
                 Icon(
                   Icons.arrow_forward_ios,
-                  size: 16,
+                  size: AppIconSize.inlineGlyph,
                   color: scheme.onSurfaceVariant,
                 ),
             ],

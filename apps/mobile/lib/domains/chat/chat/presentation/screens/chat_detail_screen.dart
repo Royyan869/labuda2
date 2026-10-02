@@ -22,18 +22,21 @@ import 'package:labuda/shared/providers/block_state_provider.dart';
 import 'package:labuda/shared/widgets/block_confirmation_dialog.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/create_for_sale_route_contract.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/screens/for_sale_detail_screen.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/domain/entities/for_sale.dart' show ForSale;
+import 'package:labuda/domains/commerce/catalog/for_sale/presentation/checkout_intent.dart';
+// Display-title source for the pending commerce chip: chat reads commerce
+// data for DISPLAY only — commerce decisions (pricing, trust gate, checkout)
+// stay behind openForSaleCheckout / the negotiation authority.
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart';
 import 'package:labuda/domains/social/comment/presentation/widgets/commerce_resource_picker.dart';
 import 'package:labuda/domains/social/comment/presentation/widgets/resource_identity.dart';
-import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/auction_providers.dart';
+import 'package:labuda/domains/commerce/catalog/auction/presentation/checkout_intent.dart';
 import 'package:labuda/domains/commerce/transaction/order/presentation/screens/order_detail_screen.dart';
 import 'package:labuda/domains/commerce/negotiation/negotiation/presentation/providers/negotiation_providers.dart';
-import 'package:labuda/domains/commerce/negotiation/negotiation/domain/entities/negotiation.dart' show NegotiationStatus;
+import 'package:labuda/domains/commerce/negotiation/negotiation/presentation/widgets/negotiation_offer_sheet.dart';
 import 'package:labuda/domains/user/profile/profile.dart' show userDataProvider;
 import 'package:labuda/domains/system/report/domain/entities/entities.dart';
 import 'package:labuda/domains/system/report/presentation/screens/report_screen.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/data/dto/shipping_quote_dto.dart';
+import 'package:labuda/domains/commerce/transaction/shipping/presentation/shipping_quote_intent.dart';
 
 @visibleForTesting
 class ShippingQuoteCheckoutTarget {
@@ -43,36 +46,23 @@ class ShippingQuoteCheckoutTarget {
   /// Non-null for auction path; null for for-sale path.
   final String? auctionId;
 
-  /// Non-null for auction path — the physical product ID distinct from auctionId.
-  final String? productId;
-
-  const ShippingQuoteCheckoutTarget({
-    this.forSaleId,
-    this.auctionId,
-    this.productId,
-  });
+  const ShippingQuoteCheckoutTarget({this.forSaleId, this.auctionId});
 }
 
+/// Resolves the shipping-quote host SURFACE only: which commerce intent chat
+/// must forward. Everything beyond the surface id — product id resolution,
+/// seller trust gate, route construction — is the commerce intent's job
+/// (openForSaleCheckout / openAuctionCheckout), never chat's.
 @visibleForTesting
 Future<ShippingQuoteCheckoutTarget?> resolveShippingQuoteCheckoutTarget({
   required ShippingQuoteAttachment shippingQuote,
-  required Future<String?> Function(String auctionId) resolveAuctionProductId,
 }) async {
   final linkedItemType = shippingQuote.linkedItemType.toLowerCase();
   if (linkedItemType == 'auction') {
     // Canonical identity: source_id = auction.id
     final auctionId = shippingQuote.linkedItemId.trim();
     if (auctionId.isEmpty) return null;
-
-    // resolveAuctionProductId returns the physical product ID (auction.productId),
-    // which is distinct from auctionId and must NOT be placed in forSaleId.
-    final productId = (await resolveAuctionProductId(auctionId))?.trim();
-    if (productId == null || productId.isEmpty) return null;
-
-    return ShippingQuoteCheckoutTarget(
-      auctionId: auctionId,
-      productId: productId,
-    );
+    return ShippingQuoteCheckoutTarget(auctionId: auctionId);
   }
 
   final forSaleId = shippingQuote.linkedItemId.trim();
@@ -81,33 +71,22 @@ Future<ShippingQuoteCheckoutTarget?> resolveShippingQuoteCheckoutTarget({
   return ShippingQuoteCheckoutTarget(forSaleId: forSaleId);
 }
 
-@visibleForTesting
-CreateShippingQuoteRequestDto buildForSaleShippingQuoteRequest({
-  required String productId,
-  required String forSaleId,
-  required int cost,
-  String? note,
-}) {
-  return CreateShippingQuoteRequestDto(
-    productId: productId,
-    sourceType: 'for_sale',
-    sourceId: forSaleId,
-    cost: cost,
-    note: note,
-  );
-}
-
 /// Pending commerce attachment held by the composer (identity + display
-/// title only — chat never stores commerce payload data).
+/// snapshot only — chat never stores commerce payload data; the server
+/// re-resolves the viewer-aware projection at send).
 class _PendingCommerceAttachment {
   final ChatResourceOccurrenceResourceType resourceType;
   final String resourceId;
   final String title;
+  final String? imageUrl;
+  final int? price;
 
   const _PendingCommerceAttachment({
     required this.resourceType,
     required this.resourceId,
     required this.title,
+    this.imageUrl,
+    this.price,
   });
 }
 
@@ -140,17 +119,11 @@ class ChatDetailScreen extends ConsumerStatefulWidget {
   /// product card becomes a persisted server-backed message.
   final ShareReference? pendingReference;
 
-  /// When true (Nego CTA), the pending reference is sent through the
-  /// canonical send flow and the negotiation dialog auto-opens for it
-  /// once the room is loaded.
-  final bool autoOpenNegotiation;
-
   const ChatDetailScreen({
     super.key,
     required this.chatId,
     this.initialMessage,
     this.pendingReference,
-    this.autoOpenNegotiation = false,
   });
 
   @override
@@ -166,9 +139,8 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   bool _isLoadingMore = false;
   bool _isSendingMessage = false;
 
-  // Pending commerce reference lifecycle (detail Chat/Nego CTA entry)
+  // Pending commerce reference lifecycle (detail Chat CTA entry)
   bool _pendingReferenceSent = false;
-  bool _negotiationOpened = false;
 
   // Pending commerce attachment (composer "Lampirkan Produk") — identity +
   // display title only. Chat never resolves commerce data beyond the title;
@@ -282,20 +254,19 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
       if (userId.isNotEmpty) {
         await notifier.markAsRead(userId);
       }
+
+      // PER-ROOM negotiation session load — the sticky banner is scoped to
+      // THIS room. Loading (and exact-CLEARING) on every open kills the
+      // cross-room stale-session leak (copyWith(null) could not clear).
+      await ref
+          .read(negotiationNotifierProvider.notifier)
+          .getNegotiation(chatRoomId: widget.chatId);
     } catch (e) {
       // Error will be reflected in state - UI will show error view
       // State already handles the error through notifier's error handling
       // No need to swallow here
     } finally {
       _isLoadingData = false;
-    }
-
-    // Pending commerce reference (detail CTA entry): once the room is
-    // loaded, auto-open negotiation for the Nego CTA path.
-    if (widget.pendingReference != null && widget.autoOpenNegotiation) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _maybeAutoOpenNegotiation();
-      });
     }
   }
 
@@ -597,6 +568,8 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
       onPurchase: (message) =>
           _handleCommerceAction(context, message, 'purchase'),
       onProjectionBuy: _handleProjectionBuy,
+      onQuoteShipping: _handleQuoteShipping,
+      onDealBuy: _handleDealBuy,
       onRetry: _handleRetrySend,
     );
   }
@@ -606,7 +579,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.error_outline, size: 64, color: context.statusColors.error),
+          Icon(Icons.error_outline, size: AppIconSize.display, color: context.statusColors.error),
           const SizedBox(height: 16),
           Text(
             'Failed to load messages',
@@ -632,7 +605,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
         children: [
           Icon(
             Icons.chat_bubble_outline,
-            size: 64,
+            size: AppIconSize.display,
             color: Theme.of(context).colorScheme.outline,
           ),
           const SizedBox(height: 16),
@@ -790,51 +763,28 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   }
 
   /// Pending commerce reference send chip — delivered by the canonical
-  /// detail Chat CTA (openCommerceChat). Sending goes through the canonical
-  /// send flow (objectReference) so the card persists server-side and
-  /// reloads as a real message.
+  /// detail Chat CTA (openCommerceChat). Canonical [PendingCommerceChip]
+  /// with a send action: sending goes through the canonical send flow
+  /// (objectReference) so the card persists server-side and reloads as a
+  /// real message.
   Widget _buildPendingReferenceChip(BuildContext context) {
     final reference = widget.pendingReference!;
     return Container(
       padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p8, AppMetrics.p16, AppMetrics.p0),
-      child: Material(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(AppShape.r12),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p4),
-          child: Row(
-            children: [
-              Icon(
-                Icons.inventory_2_outlined,
-                size: 20,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  reference.preview.title.isEmpty
-                      ? reference.displayName
-                      : reference.preview.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-              ),
-              const SizedBox(width: 8),
-              TextButton(
-                onPressed: _sendPendingReference,
-                child: const Text('Kirim'),
-              ),
-            ],
-          ),
-        ),
+      child: PendingCommerceChip(
+        title: reference.preview.title.isEmpty
+            ? reference.displayName
+            : reference.preview.title,
+        imageUrl: reference.preview.imageUrl,
+        caption: 'Lampiran produk',
+        onSend: _sendPendingReference,
       ),
     );
   }
 
   /// Sends the pending commerce reference through the canonical chat send
   /// flow (message-level objectReference), persisting it as a real message.
-  Future<void> _sendPendingReference({bool silent = false}) async {
+  Future<void> _sendPendingReference() async {
     final reference = widget.pendingReference;
     if (reference == null) return;
     final authState = ref.read(authControllerProvider);
@@ -854,33 +804,11 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     if (result != null && mounted) {
       setState(() => _pendingReferenceSent = true);
       _scrollToBottom();
-    } else if (mounted && !silent) {
+    } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Gagal mengirim produk. Coba lagi.')),
       );
     }
-  }
-
-  /// Auto-opens the negotiation dialog when the Nego CTA delivered a
-  /// pending for-sale reference (canonical capability can_negotiate path).
-  /// The reference is anchored in the chat first via the canonical send
-  /// flow, then the dialog opens for the same reference.
-  Future<void> _maybeAutoOpenNegotiation() async {
-    final reference = widget.pendingReference;
-    if (reference == null ||
-        !widget.autoOpenNegotiation ||
-        _negotiationOpened) {
-      return;
-    }
-    if (reference.targetType != ShareTargetType.forSale) return;
-    if (!mounted) return;
-    _negotiationOpened = true;
-
-    if (!_pendingReferenceSent) {
-      await _sendPendingReference(silent: true);
-    }
-    if (!mounted) return;
-    _showNegotiationDialogForShareReference(context, reference);
   }
 
   void _handleAttachmentTap() {
@@ -953,80 +881,49 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
             : ChatResourceOccurrenceResourceType.forSale,
         resourceId: selection.resource.resourceId,
         title: selection.title,
+        imageUrl: selection.imageUrl,
+        price: selection.price,
       );
     });
   }
 
-  /// Resolves ONLY the display title for a freshly created for-sale, then
+  /// Resolves ONLY the display snapshot for a freshly created for-sale, then
   /// attaches it as the pending composer selection.
   Future<void> _attachCreatedForSale(String forSaleId) async {
     final result = await ref
         .read(forSaleControllerProvider)
         .getForSaleById(forSaleId);
     if (!mounted) return;
-    final title =
-        result.isSuccess && result.data != null
-            ? result.data!.title
-            : forSaleId;
+    final data = result.isSuccess ? result.data : null;
     setState(() {
       _pendingCommerce = _PendingCommerceAttachment(
         resourceType: ChatResourceOccurrenceResourceType.forSale,
         resourceId: forSaleId,
-        title: title,
+        title: data?.title ?? forSaleId,
+        imageUrl: data != null && data.media.isNotEmpty
+            ? data.media.first.originalUrl
+            : null,
+        price: data?.price.toInt(),
       );
     });
   }
 
-  /// Pending commerce attachment chip above the composer: identity + title,
-  /// removable, never auto-sends.
+  /// Pending commerce attachment chip above the composer: canonical
+  /// [PendingCommerceChip], removable, never auto-sends.
   Widget _buildCommerceAttachmentChip(BuildContext context) {
     final pending = _pendingCommerce!;
-    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p8, AppMetrics.p16, AppMetrics.p0),
-      child: Material(
-        color: scheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(AppShape.r12),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p4),
-          child: Row(
-            children: [
-              Icon(Icons.sell_outlined, size: 20, color: scheme.primary),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Lampiran produk',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: scheme.primary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                    ),
-                    Text(
-                      pending.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              IconButton(
-                tooltip: 'Hapus lampiran',
-                onPressed: () {
-                  setState(() {
-                    _pendingCommerce = null;
-                  });
-                },
-                icon: const Icon(Icons.close, size: 20),
-              ),
-            ],
-          ),
-        ),
+      child: PendingCommerceChip(
+        title: pending.title,
+        imageUrl: pending.imageUrl,
+        price: pending.price,
+        caption: 'Lampiran produk',
+        onRemove: () {
+          setState(() {
+            _pendingCommerce = null;
+          });
+        },
       ),
     );
   }
@@ -1109,83 +1006,83 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     BuildContext context,
     ShippingQuoteAttachment shippingQuote,
   ) async {
-    try {
-      final target = await resolveShippingQuoteCheckoutTarget(
-        shippingQuote: shippingQuote,
-        resolveAuctionProductId: (auctionId) async {
-          final auction = await ref.read(
-            auctionDetailProvider(auctionId).future,
-          );
-          return auction?.productId;
-        },
-      );
+    final target = await resolveShippingQuoteCheckoutTarget(
+      shippingQuote: shippingQuote,
+    );
 
-      if (target == null) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(
-          this.context,
-        ).showSnackBar(const SnackBar(content: Text('Gagal membuka checkout')));
-        return;
-      }
-
-      // N3 convergence: if chat has an accepted negotiation for same for_sale, include negotiation_id
-      String? acceptedNegotiationId;
-      try {
-        final negoState = ref.read(negotiationNotifierProvider);
-        final cur = negoState.currentNegotiation;
-        if (cur != null &&
-            cur.status == NegotiationStatus.accepted &&
-            cur.fixedPriceSaleId == target.forSaleId) {
-          acceptedNegotiationId = cur.id;
-        }
-      } catch (_) {
-        // best-effort; ignore if negotiation provider unavailable
-      }
-
-      if (target.auctionId != null) {
-        // Auction shipping quote: navigate with explicit auction identity.
-        // source_type=auction, source_id=auctionId, product_id=productId (distinct).
-        final productId = target.productId;
-        if (productId == null || productId.isEmpty) {
-          if (!mounted) return;
-          ScaffoldMessenger.of(this.context).showSnackBar(
-            const SnackBar(content: Text('Gagal membuka checkout')),
-          );
-          return;
-        }
-        if (!mounted) return;
-        final queryParams = <String, String>{
-          'product_id': productId,
-          'auction_id': target.auctionId!,
-          'shipping_quote_id': shippingQuote.offerId,
-          'return_to_chat': widget.chatId,
-        };
-        final uri = Uri(
-          path: '/checkout/${target.auctionId}',
-          queryParameters: queryParams,
-        );
-        this.context.push(uri.toString());
-      } else {
-        _navigateToCheckout(
-          target.forSaleId!,
-          negotiationId: acceptedNegotiationId,
-          shippingQuoteId: shippingQuote.offerId,
-          returnToChat: true,
-        );
-      }
-    } catch (_) {
+    if (target == null) {
       if (!mounted) return;
       ScaffoldMessenger.of(
         this.context,
       ).showSnackBar(const SnackBar(content: Text('Gagal membuka checkout')));
+      return;
     }
+
+    if (target.auctionId != null) {
+      // Auction shipping quote: chat forwards the intent ONLY. Product id
+      // resolution, seller trust gate and the checkout route shape are
+      // commerce decisions (openAuctionCheckout).
+      await openAuctionCheckout(
+        context,
+        ref,
+        AuctionCheckoutIntent(
+          auctionId: target.auctionId!,
+          shippingQuoteId: shippingQuote.offerId,
+        ),
+        returnToChatRoomId: widget.chatId,
+      );
+      return;
+    }
+
+    // N3 convergence: accepted negotiation of THIS room binds the deal
+    // price into checkout (single authority: _acceptedNegotiationIdFor).
+    _navigateToCheckout(
+      target.forSaleId!,
+      negotiationId: _acceptedNegotiationIdFor(target.forSaleId),
+      shippingQuoteId: shippingQuote.offerId,
+      returnToChat: true,
+    );
+  }
+
+  /// DEAL PRICE BINDING — pure forwarder. The rule ("which accepted
+  /// session binds this product's deal price") belongs to the commerce
+  /// negotiation authority; chat only carries the returned id to checkout.
+  String? _acceptedNegotiationIdFor(String? forSaleId) {
+    if (forSaleId == null || forSaleId.isEmpty) return null;
+    try {
+      return ref
+          .read(negotiationNotifierProvider.notifier)
+          .acceptedNegotiationIdFor(forSaleId);
+    } catch (_) {
+      // best-effort; negotiation provider unavailable → no binding
+      return null;
+    }
+  }
+
+  /// DEAL → checkout intent from the commerce proposal card: chat resolves
+  /// NOTHING — the commerce authority owns product id, trust gate and pricing.
+  void _handleDealBuy(Message message) {
+    final att = message.negotiationProposal;
+    final forSaleId = att?.resourceId;
+    if (forSaleId == null || forSaleId.isEmpty) return;
+    unawaited(
+      openForSaleCheckout(
+        context,
+        ref,
+        CheckoutIntent(
+          forSaleId: forSaleId,
+          negotiationId: _acceptedNegotiationIdFor(forSaleId),
+        ),
+        returnToChatRoomId: widget.chatId,
+      ),
+    );
   }
 
   /// CTA "Beli Sekarang" on the chat resource projection card.
   ///
-  /// Chat is a display layer: it only forwards the intent. Product id, the
-  /// fresh pricing preview and both seller trust gates stay in Commerce — see
-  /// [_navigateToCheckout] with `resolveForSale: true`.
+  /// Chat is a display layer: it only forwards the intent. Liveness of the
+  /// projection is a DISPLAY gate (chat owns message display); product id,
+  /// pricing and seller trust stay in Commerce via openForSaleCheckout.
   Future<void> _handleProjectionBuy(Message message) async {
     final projection = message.resourceProjection;
     // Identity survives death, so a TOMBSTONE still carries a resource_id:
@@ -1197,7 +1094,34 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     }
     final forSaleId = projection.resourceId;
     if (forSaleId.isEmpty) return;
-    await _navigateToCheckout(forSaleId, returnToChat: true, resolveForSale: true);
+    await openForSaleCheckout(
+      context,
+      ref,
+      CheckoutIntent(
+        forSaleId: forSaleId,
+        negotiationId: _acceptedNegotiationIdFor(forSaleId),
+      ),
+      returnToChatRoomId: widget.chatId,
+    );
+  }
+
+  /// FORWARDS the ongkir quote intent to the Shipping domain's entry —
+  /// chat resolves nothing here: the form, product id, request and API call
+  /// all live in `openSellerShippingQuoteSheet` (Owner rule 2026-10-01:
+  /// chat must not handle shipping). Refreshes the thread on success so the
+  /// new quote message lands.
+  Future<void> _handleQuoteShipping(Message message) async {
+    final projection = message.resourceProjection;
+    if (projection == null || !projection.isLive) return;
+    await openSellerShippingQuoteSheet(
+      context: context,
+      ref: ref,
+      chatRoomId: widget.chatId,
+      projection: projection,
+      onSuccess: () async {
+        if (mounted) await _loadChatData();
+      },
+    );
   }
 
   void _handleCommerceAction(
@@ -1229,205 +1153,85 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
       if (action == 'negotiate') {
         _showNegotiationDialogForShareReference(context, shareRef);
       } else if (action == 'purchase') {
-        _navigateToCheckout(shareRef.targetId);
+        _navigateToCheckout(
+          shareRef.targetId,
+          negotiationId: _acceptedNegotiationIdFor(shareRef.targetId),
+        );
       }
     }
   }
 
-  /// **FINAL CLEANUP:** Show negotiation dialog for ShareReference
-  /// NOTE: ShareReference only contains preview data (title, image), not price.
-  /// Users will need to enter their desired price manually.
+  /// **FINAL CLEANUP:** Nego intent for a ShareReference — the nominal form
+  /// is the commerce-owned NegotiationOfferSheet (single form authority);
+  /// chat only forwards the offer to the negotiation authority and reports
+  /// the outcome. No dialog, no navigation (owner rule: chat never handles
+  /// commerce).
   void _showNegotiationDialogForShareReference(
     BuildContext context,
     ShareReference shareRef,
   ) {
     if (shareRef.targetType != ShareTargetType.forSale) return;
 
-    final priceController = TextEditingController();
-    final formKey = GlobalKey<FormState>();
-
-    showDialog(
+    NegotiationOfferSheet.show(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Negosiasi Harga'),
-        content: Form(
-          key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                shareRef.preview.title,
-                style: const TextStyle(
-                  fontSize: AppType.s13,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Masukkan harga tawaran Anda',
-                style: TextStyle(
-                  fontSize: AppType.s12,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: priceController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Tawaran harga Anda',
-                  prefixText: 'Rp ',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Masukkan harga tawaran';
-                  }
-                  final price = double.tryParse(value);
-                  if (price == null) {
-                    return 'Harga tidak valid';
-                  }
-                  if (price <= 0) {
-                    return 'Harga harus lebih dari 0';
-                  }
-                  return null;
-                },
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (formKey.currentState!.validate()) {
-                Navigator.of(context).pop();
-                final price = double.tryParse(priceController.text) ?? 0;
-                _startNegotiation(shareRef.targetId, price);
-              }
-            },
-            child: const Text('Kirim Tawaran'),
-          ),
-        ],
-      ),
-    );
+      productTitle: shareRef.preview.title,
+      onSubmit: (price) => _submitNegotiationOffer(shareRef.targetId, price),
+    ).then((sent) {
+      if (!sent || !mounted) return;
+      ScaffoldMessenger.of(this.context).showSnackBar(
+        const SnackBar(content: Text('Tawaran negosiasi terkirim')),
+      );
+    });
   }
 
-  /// Start negotiation via chat-owned API endpoint.
-  Future<void> _startNegotiation(String forSaleId, double price) async {
+  /// Forwards the offer to the commerce negotiation authority. `null` means
+  /// accepted (the sheet closes); a string is the inline failure copy.
+  Future<String?> _submitNegotiationOffer(String forSaleId, int price) async {
     try {
-      final negotiationNotifier = ref.read(
-        negotiationNotifierProvider.notifier,
-      );
-
-      final result = await negotiationNotifier.createNegotiation(
-        chatRoomId: widget.chatId,
-        fixedPriceSaleId: forSaleId,
-        price: price.toInt(),
-      );
-
-      if (!mounted) return;
-
+      final result = await ref
+          .read(negotiationNotifierProvider.notifier)
+          .createNegotiation(
+            chatRoomId: widget.chatId,
+            fixedPriceSaleId: forSaleId,
+            price: price,
+          );
       if (result.isSuccess) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Tawaran negosiasi terkirim')),
+        // The proposal MESSAGE is produced asynchronously (outbox → chat
+        // consumer), so it does not exist the instant this POST returns.
+        // Reload once past the dispatch window so the card lands in the
+        // already-open conversation instead of waiting for the next entry.
+        unawaited(
+          Future<void>.delayed(const Duration(seconds: 2), () {
+            if (mounted) unawaited(_loadChatData());
+          }),
         );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Gagal mengirim tawaran. Coba lagi.')),
-        );
+        return null;
       }
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Gagal mengirim tawaran. Coba lagi.')),
-      );
+      return 'Gagal mengirim tawaran. Coba lagi.';
+    } catch (_) {
+      return 'Gagal mengirim tawaran. Coba lagi.';
     }
   }
 
+  /// For-sale checkout is opened ONLY through the commerce-owned intent
+  /// (openForSaleCheckout): product resolution, seller trust gate and pricing
+  /// are commerce decisions. Chat forwards ids and context, nothing else.
   Future<void> _navigateToCheckout(
     String forSaleId, {
     String? negotiationId,
-    String? auctionId,
     String? shippingQuoteId,
     bool returnToChat = false,
-
-    /// CTA path from the resource projection card: the detail may not be in
-    /// the cache yet, so await the canonical future instead of reading a
-    /// possibly-still-loading AsyncValue (a transient miss must not dead-end
-    /// the button into "ID produk belum tersedia").
-    bool resolveForSale = false,
-  }) async {
-    // SELLER TRUST GATE: Best-effort check against cached data.
-    // If the item is cached and seller is inactive, block navigation early.
-    // Checkout screen (A3) and backend Guard 6 remain the authoritative checks.
-    ForSale? forSale;
-    if (resolveForSale) {
-      try {
-        forSale = await ref.read(forSaleDetailProvider(forSaleId).future);
-      } catch (_) {
-        forSale = null;
-      }
-      if (!mounted) return;
-      if (forSale == null) {
-        AppSnackBar.showError(context, 'Produk tidak ditemukan');
-        return;
-      }
-    } else {
-      forSale = ref.read(forSaleDetailProvider(forSaleId)).value;
-    }
-    if (forSale != null &&
-        forSale.sellerTrustLifecycle != ContentLifecycle.active) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Penjual tidak aktif — transaksi tidak dapat dilanjutkan',
-          ),
-        ),
-      );
-      return;
-    }
-
-    final productId = forSale?.productId;
-    if (productId == null || productId.isEmpty) {
-      if (mounted) {
-        AppSnackBar.showError(
-          context,
-          'ID produk belum tersedia untuk checkout ini',
-        );
-      }
-      return;
-    }
-
-    // **CANONICAL FLOW:** Navigate to checkout with backend-authoritative commerce context
-    // Backend will validate agreement and return pricing token for private price
-    final queryParams = <String, String>{};
-    queryParams['product_id'] = productId;
-    if (negotiationId != null) {
-      queryParams['negotiation_id'] = negotiationId;
-    }
-    if (auctionId != null) {
-      queryParams['auction_id'] = auctionId;
-    }
-    // **SHIPPING QUOTE FIX:** Pass shipping quote ID to preserve quote context
-    if (shippingQuoteId != null) {
-      queryParams['shipping_quote_id'] = shippingQuoteId;
-    }
-    // Preserve chat context for seamless return
-    if (returnToChat) {
-      queryParams['return_to_chat'] = widget.chatId;
-    }
-
-    final uri = Uri(
-      path: '/checkout/$forSaleId',
-      queryParameters: queryParams.isEmpty ? null : queryParams,
+  }) {
+    return openForSaleCheckout(
+      context,
+      ref,
+      CheckoutIntent(
+        forSaleId: forSaleId,
+        negotiationId: negotiationId,
+      ),
+      shippingQuoteId: shippingQuoteId,
+      returnToChatRoomId: returnToChat ? widget.chatId : null,
     );
-
-    context.push(uri.toString());
   }
 
   void _showMessageOptions(Message message) {
@@ -1645,7 +1449,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
         icon: Icon(
           Icons.shield_outlined,
           color: Theme.of(context).colorScheme.primary,
-          size: 48,
+          size: AppIconSize.display,
         ),
         title: const Text('Report Submitted'),
         content: Text(
@@ -1816,7 +1620,7 @@ class _ChatVerificationBadge extends ConsumerWidget {
         if (!isVerified) return const SizedBox.shrink();
         return Icon(
           Icons.verified,
-          size: 16,
+          size: AppIconSize.inlineGlyph,
           color: context.statusColors.info,
         );
       },
@@ -1852,6 +1656,8 @@ class _MessageListWidget extends ConsumerWidget {
   final Function(Message) onNegotiate;
   final Function(Message) onPurchase;
   final Future<void> Function(Message) onProjectionBuy;
+  final void Function(Message) onQuoteShipping;
+  final void Function(Message) onDealBuy;
   final Future<void> Function(Message) onRetry;
 
   const _MessageListWidget({
@@ -1864,6 +1670,8 @@ class _MessageListWidget extends ConsumerWidget {
     required this.onNegotiate,
     required this.onPurchase,
     required this.onProjectionBuy,
+    required this.onQuoteShipping,
+    required this.onDealBuy,
     required this.onRetry,
   });
 
@@ -1926,6 +1734,10 @@ class _MessageListWidget extends ConsumerWidget {
                 onProjectionBuy: message.resourceProjection != null
                     ? () => onProjectionBuy(message)
                     : null,
+                onQuoteShipping: message.resourceProjection != null
+                    ? () => onQuoteShipping(message)
+                    : null,
+                onDealBuy: () => onDealBuy(message),
               ),
             ],
           );

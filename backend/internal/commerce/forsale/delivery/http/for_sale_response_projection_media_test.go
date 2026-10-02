@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
 	"github.com/labuda/backend/internal/pkg/sellerdisplay"
 	"github.com/labuda/backend/internal/platform/mediaresolve"
 	"github.com/labuda/backend/internal/platform/s3presign"
@@ -23,8 +24,8 @@ func TestForSaleToResponseWithSeller_TypedMedia_InferredFromURL(t *testing.T) {
 	})
 
 	for_sale := testForSale(uuid.New())
-	for_sale.Product.MediaURLs = []string{
-		"https://labuda-uploads.s3.us-east-1.amazonaws.com/for_sales/thumb.jpg",
+	for_sale.Product.MediaURLs = []productEntity.ProductMedia{
+		{URL: "https://labuda-uploads.s3.us-east-1.amazonaws.com/for_sales/thumb.jpg"},
 	}
 	sellerInfo := sellerdisplay.Info{
 		Username:           "seller_user",
@@ -75,9 +76,9 @@ func TestForSaleToResponseWithSeller_MixedMedia_ImageFirstVideoSecond(t *testing
 	})
 
 	for_sale := testForSale(uuid.New())
-	for_sale.Product.MediaURLs = []string{
-		"https://labuda-uploads.s3.us-east-1.amazonaws.com/for_sales/photo1.jpg",
-		"https://labuda-uploads.s3.us-east-1.amazonaws.com/for_sales/video1.mp4",
+	for_sale.Product.MediaURLs = []productEntity.ProductMedia{
+		{URL: "https://labuda-uploads.s3.us-east-1.amazonaws.com/for_sales/photo1.jpg"},
+		{URL: "https://labuda-uploads.s3.us-east-1.amazonaws.com/for_sales/video1.mp4"},
 	}
 	sellerInfo := sellerdisplay.Info{
 		Username:           "seller_user",
@@ -134,9 +135,9 @@ func TestForSaleToResponseWithSeller_PrefersProductMediaOverLegacyJSON(t *testin
 	})
 
 	for_sale := testForSale(uuid.New())
-	for_sale.Product.MediaURLs = []string{
-		"https://labuda-uploads.s3.us-east-1.amazonaws.com/for_sales/typed-1.jpg",
-		"https://labuda-uploads.s3.us-east-1.amazonaws.com/for_sales/typed-2.jpg",
+	for_sale.Product.MediaURLs = []productEntity.ProductMedia{
+		{URL: "https://labuda-uploads.s3.us-east-1.amazonaws.com/for_sales/typed-1.jpg"},
+		{URL: "https://labuda-uploads.s3.us-east-1.amazonaws.com/for_sales/typed-2.jpg"},
 	}
 	// Legacy MediaURLs removed — Product is authority
 	sellerInfo := sellerdisplay.Info{

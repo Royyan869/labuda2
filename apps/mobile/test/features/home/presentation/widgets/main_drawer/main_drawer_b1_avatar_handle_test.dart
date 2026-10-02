@@ -5,11 +5,14 @@ import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/generated/app_localizations.dart';
 import 'package:labuda/features/home/presentation/widgets/main_drawer/main_drawer.dart';
+// Decoy authority used by the negative contract below: the drawer must ignore
+// the profile stream for store identity, so the stream is only ever injected
+// to prove it is NOT consulted.
+import 'package:labuda/domains/user/profile/presentation/providers/profile_stream_provider.dart';
+import 'package:labuda/domains/user/profile/domain/entities/profile_entity.dart';
 import 'package:labuda/shared/widgets/seller_identity_view.dart';
 import 'package:labuda/shared/widgets/hybrid_avatar.dart';
 import 'package:labuda/shared/widgets/seller_dual_avatar.dart';
-import 'package:labuda/domains/user/profile/presentation/providers/profile_stream_provider.dart';
-import 'package:labuda/domains/user/profile/domain/entities/profile_entity.dart';
 
 class _FakeAuthController extends AuthController {
   _FakeAuthController(this._state);
@@ -60,6 +63,8 @@ AuthUser _user({
   required String id,
   required String username,
   String? avatarUrl,
+  String? storeName,
+  String? storeImageUrl,
   bool hasSellerProfile = false,
   bool hasMarketAuthority = false,
 }) {
@@ -70,6 +75,8 @@ AuthUser _user({
     email: '$username@test.com',
     username: username,
     avatarUrl: avatarUrl,
+    storeName: storeName,
+    storeImageUrl: storeImageUrl,
     isEmailVerified: true,
     hasSellerProfile: hasSellerProfile,
     hasMarketAuthority: hasMarketAuthority,
@@ -78,30 +85,37 @@ AuthUser _user({
   );
 }
 
-ProfileEntity _profileForSeller(String userId, String storeName, {String? storeImageUrl}) {
+/// Decoy profile carrying a store name that must NEVER reach the drawer.
+ProfileEntity _decoyProfile(String userId, String storeName) {
   return ProfileEntity(
     id: 'profile-$userId',
     userId: userId,
     joinedAt: DateTime(2025),
     stats: const ProfileStats(followersCount: 0, followingCount: 0),
-    verification: const UserVerificationInfo(isPhoneVerified: false, isEmailVerified: true, isIdVerified: false, isFarmVerified: false, badges: []),
-    farmInfo: FarmInfo(farmName: storeName, farmPhotoUrl: storeImageUrl),
+    verification: const UserVerificationInfo(
+      isPhoneVerified: false,
+      isEmailVerified: true,
+      isIdVerified: false,
+      isFarmVerified: false,
+      badges: [],
+    ),
+    farmInfo: FarmInfo(farmName: storeName),
   );
 }
 
-Widget _wrap(AuthController controller, {ProfileEntity? profileForA, ProfileEntity? profileForB}) {
+Widget _wrap(AuthController controller, {ProfileEntity? decoyProfile}) {
   return ProviderScope(
     overrides: [
       authControllerProvider.overrideWith(() => controller),
       apiClientProvider.overrideWithValue(_NoopApiClient()),
       loggerServiceProvider.overrideWithValue(_NoopLogger()),
       webSocketServiceProvider.overrideWithValue(WebSocketService(baseUrl: 'ws://localhost')),
+      if (decoyProfile != null)
+        profileStreamProvider(_userAId).overrideWith(
+          (ref) => Stream.value(decoyProfile),
+        ),
       userOnlineStatusProvider(_userAId).overrideWith((ref) => Stream.value(false)),
       userOnlineStatusProvider(_userBId).overrideWith((ref) => Stream.value(false)),
-      if (profileForA != null) profileStreamProvider(_userAId).overrideWith((ref) => Stream.value(profileForA)),
-      if (profileForB != null) profileStreamProvider(_userBId).overrideWith((ref) => Stream.value(profileForB)),
-      if (profileForA == null) profileStreamProvider(_userAId).overrideWith((ref) => Stream.value(null)),
-      if (profileForB == null) profileStreamProvider(_userBId).overrideWith((ref) => Stream.value(null)),
     ],
     child: MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -178,6 +192,8 @@ void main() {
           id: _userAId,
           username: 'testuser',
           avatarUrl: 'https://example.com/avatar.png',
+          storeName: 'Qiqi Store',
+          storeImageUrl: 'https://example.com/store.png',
           hasSellerProfile: true,
           hasMarketAuthority: true,
         );
@@ -185,13 +201,29 @@ void main() {
           AuthState.authenticated(user, emailVerified: true),
         );
 
-        await tester.pumpWidget(_wrap(controller, profileForA: _profileForSeller(_userAId, 'Qiqi Store', storeImageUrl: 'https://example.com/store.png')));
+        await tester.pumpWidget(_wrap(controller));
         await tester.pump();
 
         expect(find.byType(SellerIdentityView), findsOneWidget);
         expect(find.text('Qiqi Store'), findsOneWidget);
         expect(find.text('@testuser'), findsOneWidget);
         expect(find.byType(SellerDualAvatar), findsOneWidget);
+
+        // OWNER TRUTH: the store name is the primary line — above and larger
+        // than the handle.
+        expect(
+          tester.getTopLeft(find.text('Qiqi Store')).dy,
+          lessThan(tester.getTopLeft(find.text('@testuser')).dy),
+        );
+        final storeSize = tester
+            .widget<Text>(find.text('Qiqi Store'))
+            .style!
+            .fontSize!;
+        final handleSize = tester
+            .widget<Text>(find.text('@testuser'))
+            .style!
+            .fontSize!;
+        expect(storeSize, greaterThan(handleSize));
       },
     );
 
@@ -202,6 +234,7 @@ void main() {
           id: _userAId,
           username: 'testuser',
           avatarUrl: 'https://example.com/avatar.png',
+          storeName: 'Qiqi Store',
           hasSellerProfile: true,
           hasMarketAuthority: true,
         );
@@ -209,13 +242,42 @@ void main() {
           AuthState.authenticated(user, emailVerified: true),
         );
 
-        await tester.pumpWidget(_wrap(controller, profileForA: _profileForSeller(_userAId, 'Qiqi Store')));
+        await tester.pumpWidget(_wrap(controller));
         await tester.pump();
 
         expect(find.byType(SellerIdentityView), findsOneWidget);
         expect(find.byIcon(Icons.storefront), findsOneWidget);
         expect(find.text('Qiqi Store'), findsOneWidget);
         expect(find.text('@testuser'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'NEGATIVE: drawer store name is the session snapshot, never the profile stream',
+      (tester) async {
+        // Both authorities are present and disagree. The session says
+        // 'Qiqi Store'; the profile stream says 'Stream Store'.
+        final user = _user(
+          id: _userAId,
+          username: 'testuser',
+          storeName: 'Qiqi Store',
+          hasSellerProfile: true,
+          hasMarketAuthority: true,
+        );
+        final controller = _FakeAuthController(
+          AuthState.authenticated(user, emailVerified: true),
+        );
+
+        await tester.pumpWidget(
+          _wrap(controller, decoyProfile: _decoyProfile(_userAId, 'Stream Store')),
+        );
+        await tester.pump();
+
+        // Store identity renders on the first frame from the hydrated session
+        // snapshot, and the polling profile stream has no say in it. Reverting
+        // the drawer to the stream fails here.
+        expect(find.text('Qiqi Store'), findsOneWidget);
+        expect(find.text('Stream Store'), findsNothing);
       },
     );
 
@@ -299,6 +361,7 @@ void main() {
       final seller = _user(
         id: _userAId,
         username: 'seller_user',
+        storeName: 'Qiqi Store',
         hasSellerProfile: true,
         hasMarketAuthority: true,
       );
@@ -307,7 +370,7 @@ void main() {
         AuthState.authenticated(seller, emailVerified: true),
       );
 
-      await tester.pumpWidget(_wrap(controller, profileForA: _profileForSeller(_userAId, 'Qiqi Store')));
+      await tester.pumpWidget(_wrap(controller));
       await tester.pump();
       expect(find.text('Qiqi Store'), findsOneWidget);
 

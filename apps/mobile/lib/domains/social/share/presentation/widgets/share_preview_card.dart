@@ -49,7 +49,7 @@ class SharePreviewCard extends StatelessWidget {
                     color: placeholderColor,
                     child: Icon(
                       Icons.broken_image,
-                      size: 48,
+                      size: AppIconSize.display,
                       color: secondaryTextColor,
                     ),
                   ),
@@ -66,7 +66,7 @@ class SharePreviewCard extends StatelessWidget {
               const SizedBox(width: 4),
               Text(
                 _getTypeLabel(),
-                style: AppTypography.caption.copyWith(
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: secondaryTextColor,
                   fontWeight: FontWeight.w500,
                 ),
@@ -78,7 +78,7 @@ class SharePreviewCard extends StatelessWidget {
           // Title
           Text(
             target.title,
-            style: AppTypography.bodyLarge.copyWith(
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
               fontWeight: FontWeight.w600,
               color: textColor,
             ),
@@ -102,19 +102,23 @@ class SharePreviewCard extends StatelessWidget {
   ) {
     switch (target.type) {
       case ExternalShareType.forSale:
-        return _buildForSaleMetadata(textColor, secondaryTextColor);
+        return _buildForSaleMetadata(context, textColor, secondaryTextColor);
       case ExternalShareType.auction:
         return _buildAuctionMetadata(context, textColor, secondaryTextColor);
       case ExternalShareType.request:
         return _buildContentMetadata(context, textColor, secondaryTextColor);
       case ExternalShareType.post:
       case ExternalShareType.profile:
-        return _buildDefaultMetadata(secondaryTextColor);
+        return _buildDefaultMetadata(context, secondaryTextColor);
     }
   }
 
   /// For Sale metadata - compact dengan info variety & size
-  Widget _buildForSaleMetadata(Color textColor, Color secondaryTextColor) {
+  Widget _buildForSaleMetadata(
+    BuildContext context,
+    Color textColor,
+    Color secondaryTextColor,
+  ) {
     final variety = target.metadata['variety'] as String?;
     final size = target.metadata['size'] as num?;
     final location = target.metadata['location'] as String?;
@@ -127,12 +131,12 @@ class SharePreviewCard extends StatelessWidget {
           Row(
             children: [
               if (variety != null) ...[
-                Icon(Icons.category, size: 14, color: secondaryTextColor),
+                Icon(Icons.category, size: AppIconSize.inlineGlyph, color: secondaryTextColor),
                 const SizedBox(width: 4),
                 Flexible(
                   child: Text(
                     variety,
-                    style: AppTypography.caption.copyWith(
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: secondaryTextColor,
                     ),
                     overflow: TextOverflow.ellipsis,
@@ -141,11 +145,11 @@ class SharePreviewCard extends StatelessWidget {
               ],
               if (variety != null && size != null) const SizedBox(width: 12),
               if (size != null) ...[
-                Icon(Icons.straighten, size: 14, color: secondaryTextColor),
+                Icon(Icons.straighten, size: AppIconSize.inlineGlyph, color: secondaryTextColor),
                 const SizedBox(width: 4),
                 Text(
                   '${size.toStringAsFixed(0)} cm',
-                  style: AppTypography.caption.copyWith(
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: secondaryTextColor,
                   ),
                 ),
@@ -158,12 +162,12 @@ class SharePreviewCard extends StatelessWidget {
           const SizedBox(height: 4),
           Row(
             children: [
-              Icon(Icons.location_on, size: 14, color: secondaryTextColor),
+              Icon(Icons.location_on, size: AppIconSize.inlineGlyph, color: secondaryTextColor),
               const SizedBox(width: 4),
               Flexible(
                 child: Text(
                   location,
-                  style: AppTypography.caption.copyWith(
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: secondaryTextColor,
                   ),
                   overflow: TextOverflow.ellipsis,
@@ -214,11 +218,11 @@ class SharePreviewCard extends StatelessWidget {
         if (currentBid != null) ...[
           Row(
             children: [
-              Icon(Icons.gavel, size: 16, color: scheme.primary),
+              Icon(Icons.gavel, size: AppIconSize.inlineGlyph, color: scheme.primary),
               const SizedBox(width: 4),
               Text(
                 'KB: ${_formatPrice(currentBid)}',
-                style: AppTypography.bodyMedium.copyWith(
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: scheme.primary,
                   fontWeight: FontWeight.w700,
                 ),
@@ -233,12 +237,12 @@ class SharePreviewCard extends StatelessWidget {
           Row(
             children: [
               if (variety != null) ...[
-                Icon(Icons.category, size: 14, color: secondaryTextColor),
+                Icon(Icons.category, size: AppIconSize.inlineGlyph, color: secondaryTextColor),
                 const SizedBox(width: 4),
                 Flexible(
                   child: Text(
                     variety,
-                    style: AppTypography.caption.copyWith(
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: secondaryTextColor,
                     ),
                     overflow: TextOverflow.ellipsis,
@@ -247,11 +251,11 @@ class SharePreviewCard extends StatelessWidget {
               ],
               if (variety != null && size != null) const SizedBox(width: 12),
               if (size != null) ...[
-                Icon(Icons.straighten, size: 14, color: secondaryTextColor),
+                Icon(Icons.straighten, size: AppIconSize.inlineGlyph, color: secondaryTextColor),
                 const SizedBox(width: 4),
                 Text(
                   '${size.toStringAsFixed(0)} cm',
-                  style: AppTypography.caption.copyWith(
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: secondaryTextColor,
                   ),
                 ),
@@ -266,13 +270,13 @@ class SharePreviewCard extends StatelessWidget {
             children: [
               Icon(
                 Icons.access_time,
-                size: 14,
+                size: AppIconSize.inlineGlyph,
                 color: isUrgent ? context.statusColors.error : secondaryTextColor,
               ),
               const SizedBox(width: 4),
               Text(
                 timeRemaining,
-                style: AppTypography.caption.copyWith(
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: isUrgent ? context.statusColors.error : secondaryTextColor,
                   fontWeight: isUrgent ? FontWeight.w600 : FontWeight.normal,
                 ),
@@ -305,7 +309,7 @@ class SharePreviewCard extends StatelessWidget {
             children: [
               Icon(
                 Icons.account_balance_wallet,
-                size: 16,
+                size: AppIconSize.inlineGlyph,
                 color: scheme.secondary,
               ),
               const SizedBox(width: 4),
@@ -313,7 +317,7 @@ class SharePreviewCard extends StatelessWidget {
                 maxBudget != null
                     ? 'Budget: ${_formatPrice(maxBudget)}'
                     : 'Budget: ${_formatPrice(budget!)}',
-                style: AppTypography.bodyMedium.copyWith(
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: scheme.secondary,
                   fontWeight: FontWeight.w700,
                 ),
@@ -327,12 +331,12 @@ class SharePreviewCard extends StatelessWidget {
         if (variety != null)
           Row(
             children: [
-              Icon(Icons.category, size: 14, color: secondaryTextColor),
+              Icon(Icons.category, size: AppIconSize.inlineGlyph, color: secondaryTextColor),
               const SizedBox(width: 4),
               Flexible(
                 child: Text(
                   variety,
-                  style: AppTypography.caption.copyWith(
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: secondaryTextColor,
                   ),
                   overflow: TextOverflow.ellipsis,
@@ -345,12 +349,12 @@ class SharePreviewCard extends StatelessWidget {
           const SizedBox(height: 4),
           Row(
             children: [
-              Icon(Icons.location_on, size: 14, color: secondaryTextColor),
+              Icon(Icons.location_on, size: AppIconSize.inlineGlyph, color: secondaryTextColor),
               const SizedBox(width: 4),
               Flexible(
                 child: Text(
                   location,
-                  style: AppTypography.caption.copyWith(
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: secondaryTextColor,
                   ),
                   overflow: TextOverflow.ellipsis,
@@ -364,12 +368,12 @@ class SharePreviewCard extends StatelessWidget {
   }
 
   /// Default metadata - show description
-  Widget _buildDefaultMetadata(Color secondaryTextColor) {
+  Widget _buildDefaultMetadata(BuildContext context, Color secondaryTextColor) {
     if (target.description.isEmpty) return const SizedBox.shrink();
 
     return Text(
       target.description,
-      style: AppTypography.bodyMedium.copyWith(color: secondaryTextColor),
+      style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: secondaryTextColor),
       maxLines: 2,
       overflow: TextOverflow.ellipsis,
     );

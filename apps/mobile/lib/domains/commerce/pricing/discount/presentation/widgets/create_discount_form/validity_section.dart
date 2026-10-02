@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:labuda/core/core.dart' as core;
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Section untuk validity period discount
 ///
@@ -79,7 +80,7 @@ class ValiditySection extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: core.AppMetrics.p16,
-                    vertical: core.AppMetrics.p14,
+                    vertical: core.AppMetrics.p16,
                   ),
                   decoration: BoxDecoration(
                     color: Theme.of(context).colorScheme.surfaceContainer,
@@ -92,7 +93,7 @@ class ValiditySection extends StatelessWidget {
                     children: [
                       Icon(
                         Icons.event,
-                        size: 20,
+                        size: AppIconSize.action,
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                       const SizedBox(width: 12),
@@ -119,7 +120,7 @@ class ValiditySection extends StatelessWidget {
 
           // Info
           Container(
-            padding: const EdgeInsets.all(core.AppMetrics.p10),
+            padding: const EdgeInsets.all(core.AppMetrics.p12),
             decoration: BoxDecoration(
               color: context.statusColors.info.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(core.AppShape.r8),
@@ -128,7 +129,7 @@ class ValiditySection extends StatelessWidget {
               children: [
                 Icon(
                   Icons.info_outline,
-                  size: 16,
+                  size: AppIconSize.inlineGlyph,
                   color: context.statusColors.info,
                 ),
                 const SizedBox(width: 8),

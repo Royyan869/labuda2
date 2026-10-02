@@ -143,7 +143,7 @@ class AuthHeader extends StatelessWidget {
                 ),
                 child: Icon(
                   Icons.lock_person,
-                  size: 40,
+                  size: AppIconSize.display,
                   color: scheme.onPrimary,
                 ),
               );

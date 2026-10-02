@@ -15,12 +15,15 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/joho/godotenv"
 	"github.com/labuda/backend/internal/config"
+	"github.com/labuda/backend/pkg/migration"
 	"github.com/stretchr/testify/require"
 )
 
 func TestMigration000001NoLongerContainsChatMediaReplyAuthority(t *testing.T) {
-	p, err := filepath.Abs(filepath.Join("..", "..", "..", "..", "migrations", "000001_canonical_schema.up.sql"))
+	dir, err := migration.ResolveDir(".")
 	require.NoError(t, err)
+
+	p := filepath.Join(dir, "000001_canonical_schema.up.sql")
 
 	data, err := os.ReadFile(p)
 	require.NoError(t, err)
@@ -76,8 +79,10 @@ func TestMigration000027AppliesOnExistingSchema(t *testing.T) {
 	`)
 	require.NoError(t, err)
 
-	upgradePath, err := filepath.Abs(filepath.Join("..", "..", "..", "..", "migrations", "000027_chat_media_reply_authority.up.sql"))
+	chainDir, err := migration.ResolveDir(".")
 	require.NoError(t, err)
+
+	upgradePath := filepath.Join(chainDir, "000027_chat_media_reply_authority.up.sql")
 
 	sqlBytes, err := os.ReadFile(upgradePath)
 	require.NoError(t, err)

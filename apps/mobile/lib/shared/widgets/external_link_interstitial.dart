@@ -50,12 +50,12 @@ class _ExternalLinkDialog extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppShape.r16)),
       title: Row(
         children: [
-          Icon(Icons.open_in_new, color: scheme.secondary, size: 24),
+          Icon(Icons.open_in_new, color: scheme.secondary, size: AppIconSize.header),
           const SizedBox(width: 8),
           const Expanded(
             child: Text(
               'Buka tautan eksternal?',
-              style: TextStyle(fontSize: AppType.s18, fontWeight: FontWeight.w700),
+              style: TextStyle(fontSize: AppType.s20, fontWeight: FontWeight.w700),
             ),
           ),
         ],
@@ -88,7 +88,7 @@ class _ExternalLinkDialog extends StatelessWidget {
                 Text(
                   uri.host,
                   style: TextStyle(
-                    fontSize: AppType.s15,
+                    fontSize: AppType.s16,
                     fontWeight: FontWeight.w600,
                     color: scheme.onSurface,
                   ),
@@ -109,7 +109,7 @@ class _ExternalLinkDialog extends StatelessWidget {
           const SizedBox(height: 12),
           Row(
             children: [
-              Icon(Icons.warning_amber_rounded, size: 16, color: context.statusColors.warning),
+              Icon(Icons.warning_amber_rounded, size: AppIconSize.inlineGlyph, color: context.statusColors.warning),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
@@ -131,7 +131,7 @@ class _ExternalLinkDialog extends StatelessWidget {
         ),
         ElevatedButton.icon(
           onPressed: () => Navigator.of(context).pop(true),
-          icon: const Icon(Icons.open_in_new, size: 16),
+          icon: const Icon(Icons.open_in_new, size: AppIconSize.inlineGlyph),
           label: const Text('Buka'),
           style: ElevatedButton.styleFrom(
             backgroundColor: scheme.secondary,

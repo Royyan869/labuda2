@@ -64,8 +64,7 @@ func TestNewOrderFromSource_SetsOrderNumber(t *testing.T) {
 		nil,
 		"JNE",
 		"truck",
-		"immediate",
-		nil,
+		"1_3_days",
 		nil,
 		nil,
 		nil,
@@ -90,7 +89,7 @@ func TestNewOrderFromSource_OrderNumberMatchesFormat(t *testing.T) {
 		money.New(3000),
 		money.New(213000),
 		nil, "TIKI", "plane",
-		"short", nil,
+		"1_3_days",
 		nil, nil, nil, nil,
 		time.Now().Add(time.Hour),
 	)

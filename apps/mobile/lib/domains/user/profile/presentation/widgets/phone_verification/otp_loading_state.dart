@@ -22,7 +22,7 @@ class OTPLoadingState extends StatelessWidget {
         Text(
           'Sending OTP code...',
           style: TextStyle(
-            fontSize: AppType.s13,
+            fontSize: AppType.s14,
             color: scheme.onSurfaceVariant,
           ),
         ),

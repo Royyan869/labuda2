@@ -21,7 +21,6 @@ Future<void> openCommerceChat({
   required WidgetRef ref,
   required ShareReference reference,
   required String sellerId,
-  bool autoOpenNegotiation = false,
 
   /// Truthful failure signal for the CALLER's surface.
   ///
@@ -75,7 +74,6 @@ Future<void> openCommerceChat({
     uri.toString(),
     extra: <String, dynamic>{
       'pendingReference': normalizedReference,
-      'autoOpenNegotiation': autoOpenNegotiation,
     },
   );
 }

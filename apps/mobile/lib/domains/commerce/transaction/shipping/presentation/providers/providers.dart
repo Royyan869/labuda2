@@ -4,6 +4,7 @@ import 'package:labuda/core/providers/core_providers.dart';
 import 'shipping_notifier.dart';
 import 'shipping_state.dart';
 import '../../data/data.dart';
+import '../../data/repositories/shipping_quote_repository.dart';
 import '../../domain/domain.dart';
 
 // =====================================
@@ -23,6 +24,15 @@ final shippingRepositoryProvider = Provider<ShippingRepository>((ref) {
   final datasource = ref.watch(shippingRemoteDatasourceProvider);
   final logger = ref.watch(loggerServiceProvider);
   return ShippingRepositoryImpl(datasource: datasource, logger: logger);
+});
+
+/// Provider for ShippingQuoteRepository — the manual shipping quote
+/// (ongkir) transport authority. Kept apart from setup CRUD so the quote
+/// write path has exactly one home in the Shipping domain.
+final shippingQuoteRepositoryProvider = Provider<ShippingQuoteRepository>((
+  ref,
+) {
+  return ShippingQuoteRepository(ref.watch(shippingRemoteDatasourceProvider));
 });
 
 /// Provider for ShippingProofRepository

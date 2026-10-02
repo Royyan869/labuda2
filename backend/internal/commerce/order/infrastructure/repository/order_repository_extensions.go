@@ -56,7 +56,6 @@ func (r *OrderRepository) GetBlockingOrderByShippingQuoteID(
 	var confirmationExtensionUsed bool
 	var idempotencyKeyPtr *string
 	var preparationTimeSnapshot sql.NullString // NULLABLE in DB
-	var preparationNoteSnapshot *string
 	var readyToShipBy *time.Time
 	var addressSnapshotJSON []byte
 	var originSnapshotJSON []byte
@@ -73,7 +72,7 @@ func (r *OrderRepository) GetBlockingOrderByShippingQuoteID(
 		       auto_release_at, has_dispute, confirmation_extension_used, idempotency_key,
 		       shipping_option_id, shipping_option_name, shipping_transport_type,
 		       tracking_number, shipping_note, order_number,
-		       preparation_time_snapshot, preparation_note_snapshot, ready_to_ship_by,
+		       preparation_time_snapshot, ready_to_ship_by,
 		       address_snapshot,
 		       shipping_source, shipping_origin_snapshot,
 		       shipping_quote_id, shipping_quote_price,
@@ -92,7 +91,7 @@ func (r *OrderRepository) GetBlockingOrderByShippingQuoteID(
 		&shippingSetupID, &shippingSetupName, &shippingTransportType,
 		&trackingNumber, &shippingNote,
 		&orderNum,
-		&preparationTimeSnapshot, &preparationNoteSnapshot, &readyToShipBy, &addressSnapshotJSON,
+		&preparationTimeSnapshot, &readyToShipBy, &addressSnapshotJSON,
 		&shippingSourcePtr, &originSnapshotJSON,
 		&shippingQuoteIDPtr, &shippingQuotePricePtr,
 		&completedAt, &createdAt, &updatedAt,
@@ -145,7 +144,6 @@ func (r *OrderRepository) GetBlockingOrderByShippingQuoteID(
 		ShippingQuoteID:           shippingQuoteIDPtr,
 		ShippingQuotePrice:        shippingQuotePricePtr,
 		PreparationTimeSnapshot:   preparationTimeSnapshot.String,
-		PreparationNoteSnapshot:   preparationNoteSnapshot,
 		ReadyToShipBy:             readyToShipBy,
 		AddressSnapshot:           shippingDestination,
 		Status:                    entity.Status(status),

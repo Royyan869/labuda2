@@ -370,7 +370,8 @@ void main() {
       expect(find.byKey(const Key('seller-action-queue-verification')), findsOneWidget);
       expect(find.byKey(const Key('seller-action-queue-sender-address')), findsOneWidget);
       expect(find.byKey(const Key('seller-action-queue-shipping-option')), findsOneWidget);
-      expect(find.byKey(const Key('seller-action-queue-subscription-expired')), findsOneWidget);
+      // Expired is banner-owned now — the queue must NOT repeat it.
+      expect(find.byKey(const Key('seller-action-queue-subscription-expired')), findsNothing);
       expect(find.text('Antrian Tindakan Operasional'), findsOneWidget);
     });
 
@@ -454,7 +455,7 @@ void main() {
         ),
         anchor: find.byKey(const Key('seller-action-queue-sender-address')),
         key: const Key('seller-action-queue-sender-address'),
-        expectedLocation: '/profile/addresses?initialTab=sender',
+        expectedLocation: '/profile/addresses',
       );
       await _tapAndExpectRoute(
         tester,
@@ -496,29 +497,9 @@ void main() {
         key: const Key('seller-action-queue-verification'),
         expectedLocation: '/verification/seller',
       );
-      await _tapAndExpectRoute(
-        tester,
-        overrides: _dashboardOverrides(
-          user: _sellerUser(
-            hasMarketAuthority: false,
-            sellerSubscriptionStatus: 'expired',
-          ),
-          pendingOrders: [_order(id: 'pending-1', status: OrderStatus.pending)],
-          paidOrders: [_order(id: 'paid-1', status: OrderStatus.paid)],
-          verificationState: const SellerVerificationV2State(
-            status: SellerVerificationStatus.needsResubmission,
-          ),
-          shippingState: const ShippingSetupsListLoaded([]),
-          subscription: _subscription(expiresIn: const Duration(days: -1)),
-          upgradeConfig: _upgradeConfig(),
-        ),
-        anchor: find.byKey(const Key('seller-action-queue-subscription-expired')),
-        key: const Key('seller-action-queue-subscription-expired'),
-        expectedLocation: '/seller/upgrade',
-      );
     });
 
-    testWidgets('routes ForSale Saya and Lelang Saya to canonical seller inventory pages', (
+    testWidgets('routes ForSale Saya to the canonical seller inventory page', (
       tester,
     ) async {
       final overrides = _dashboardOverrides(
@@ -540,13 +521,6 @@ void main() {
         tester,
         overrides: overrides,
         target: find.text('ForSale Saya'),
-        expectedLocation: '/seller/for-sale',
-      );
-
-      await _tapDashboardQuickActionAndExpectRoute(
-        tester,
-        overrides: overrides,
-        target: find.byKey(const Key('seller-quick-action-auctions')),
         expectedLocation: '/seller/for-sale',
       );
     });

@@ -134,6 +134,11 @@ class ShippingQuoteResponseDto extends Equatable {
 
 /// Request body for creating a shipping quote.
 ///
+/// DESTINATION LOCK (Owner 2026-10-01): [destinationCityId] +
+/// [destinationProvinceId] are MANDATORY — the backend rejects a for_sale
+/// quote without a locked kota/kabupaten, and checkout only accepts the
+/// buyer whose address matches the lock.
+///
 /// Backend API: POST /api/v1/chat/:chat_id/shipping-quote
 class CreateShippingQuoteRequestDto {
   final String productId;
@@ -141,12 +146,16 @@ class CreateShippingQuoteRequestDto {
   final String sourceId;
   final int cost;
   final String? note;
+  final String destinationCityId;
+  final String destinationProvinceId;
 
   const CreateShippingQuoteRequestDto({
     required this.productId,
     required this.sourceType,
     required this.sourceId,
     required this.cost,
+    required this.destinationCityId,
+    required this.destinationProvinceId,
     this.note,
   });
 
@@ -156,6 +165,8 @@ class CreateShippingQuoteRequestDto {
       'source_type': sourceType,
       'source_id': sourceId,
       'cost': cost,
+      'destination_city_id': destinationCityId,
+      'destination_province_id': destinationProvinceId,
     };
     if (note != null) {
       json['note'] = note;

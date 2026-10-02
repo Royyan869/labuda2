@@ -47,7 +47,7 @@ class CommerceAccessGate extends StatelessWidget {
             children: [
               Icon(
                 Icons.lock_outline,
-                size: 56,
+                size: AppIconSize.display,
                 color: scheme.onSurfaceVariant,
               ),
               const SizedBox(height: 16),
@@ -62,7 +62,10 @@ class CommerceAccessGate extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 message,
-                style: TextStyle(fontSize: AppType.s14, color: scheme.onSurfaceVariant),
+                style: TextStyle(
+                  fontSize: AppType.s14,
+                  color: scheme.onSurfaceVariant,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 20),
@@ -71,7 +74,7 @@ class CommerceAccessGate extends StatelessWidget {
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(
                     horizontal: AppMetrics.p24,
-                    vertical: AppMetrics.p14,
+                    vertical: AppMetrics.p16,
                   ),
                 ),
                 child: Text(buttonLabel),

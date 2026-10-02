@@ -20,7 +20,7 @@ class VerificationErrorMessage extends StatelessWidget {
         children: [
           Icon(
             Icons.error_outline,
-            size: 16,
+            size: AppIconSize.inlineGlyph,
             color: context.statusColors.error,
           ),
           const SizedBox(width: 8),

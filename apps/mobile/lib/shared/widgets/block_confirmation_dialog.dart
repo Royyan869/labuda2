@@ -47,15 +47,14 @@ class BlockConfirmationDialog extends StatelessWidget {
       backgroundColor: scheme.surfaceContainerHigh,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppShape.r16)),
       child: Container(
-        width: 340,
-        padding: const EdgeInsets.all(AppMetrics.p20),
+        width: AppContentSize.dialogWidth,
+        padding: const EdgeInsets.all(AppMetrics.p24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             // Icon warning
             Container(
-              width: 56,
-              height: 56,
+              padding: const EdgeInsets.all(AppMetrics.p12),
               decoration: BoxDecoration(
                 color: scheme.error.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
@@ -63,7 +62,7 @@ class BlockConfirmationDialog extends StatelessWidget {
               child: Icon(
                 Icons.block,
                 color: scheme.error,
-                size: 28,
+                size: AppIconSize.emphasis,
               ),
             ),
             const SizedBox(height: 16),
@@ -72,7 +71,7 @@ class BlockConfirmationDialog extends StatelessWidget {
             Text(
               'Block $targetDisplayName?',
               style: TextStyle(
-                fontSize: AppType.s18,
+                fontSize: AppType.s20,
                 fontWeight: FontWeight.w600,
                 color: scheme.onSurface,
               ),
@@ -162,7 +161,7 @@ class BlockConfirmationDialog extends StatelessWidget {
       children: [
         Icon(
           icon,
-          size: 18,
+          size: AppIconSize.action,
           color: scheme.onSurfaceVariant,
         ),
         const SizedBox(width: 10),

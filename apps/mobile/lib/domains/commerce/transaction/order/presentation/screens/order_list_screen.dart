@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart' as core;
+import 'package:labuda/core/src/theme/app_theme.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/domains/commerce/transaction/order/order.dart';
 
@@ -45,14 +46,9 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
             icon: const Icon(Icons.arrow_back),
             onPressed: () => Navigator.of(context).pop(),
           ),
-          surfaceTintColor: Colors.transparent,
-          scrolledUnderElevation: 0,
           bottom: TabBar(
             controller: _tabController,
             isScrollable: true,
-            indicatorColor: colorScheme.primary,
-            labelColor: colorScheme.primary,
-            unselectedLabelColor: colorScheme.onSurfaceVariant,
             tabs: const [
               Tab(text: 'All'),
               Tab(text: 'Pending'),
@@ -85,7 +81,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.login, size: 48),
+            const Icon(Icons.login, size: AppIconSize.display),
             const SizedBox(height: 16),
             const Text('Please log in first'),
             const SizedBox(height: 16),
@@ -130,7 +126,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
           children: [
             Icon(
               Icons.error_outline,
-              size: 48,
+              size: AppIconSize.display,
               color: context.statusColors.error,
             ),
             const SizedBox(height: 16),
@@ -195,7 +191,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
                   child: Text(
                     _getStatusLabel(order.status),
                     style: TextStyle(
-                      fontSize: core.AppType.s11,
+                      fontSize: core.AppType.s12,
                       fontWeight: FontWeight.w600,
                       color: _getStatusColor(order.status),
                     ),
@@ -207,8 +203,8 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
                   const SizedBox(width: 4),
                   Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: core.AppMetrics.p6,
-                      vertical: core.AppMetrics.p2,
+                      horizontal: core.AppMetrics.p8,
+                      vertical: core.AppMetrics.p4,
                     ),
                     decoration: BoxDecoration(
                       color: _getOverdueBadgeColor(
@@ -225,14 +221,14 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
                       children: [
                         Icon(
                           Icons.warning_amber_rounded,
-                          size: 12,
+                          size: AppIconSize.inlineGlyph,
                           color: _getOverdueBadgeColor(order.overdueTier),
                         ),
                         const SizedBox(width: 2),
                         Text(
                           _getOverdueBadgeLabel(order.overdueTier),
                           style: TextStyle(
-                            fontSize: core.AppType.s10,
+                            fontSize: core.AppType.s12,
                             fontWeight: FontWeight.w600,
                             color: _getOverdueBadgeColor(order.overdueTier),
                           ),
@@ -337,8 +333,8 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
                   },
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: core.AppMetrics.p20,
-                      vertical: core.AppMetrics.p10,
+                      horizontal: core.AppMetrics.p24,
+                      vertical: core.AppMetrics.p12,
                     ),
                   ),
                   child: const Text('View Details'),
@@ -441,8 +437,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
           children: [
             // Icon
             Container(
-              width: 80,
-              height: 80,
+              padding: const EdgeInsets.all(core.AppMetrics.p16),
               decoration: BoxDecoration(
                 color: colorScheme.surfaceContainerHigh,
                 shape: BoxShape.circle,
@@ -451,7 +446,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
                 isSeller
                     ? Icons.storefront_outlined
                     : Icons.shopping_bag_outlined,
-                size: 40,
+                size: AppIconSize.display,
                 color: colorScheme.onSurfaceVariant,
               ),
             ),
@@ -461,7 +456,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
             Text(
               isSeller ? 'Belum Ada Pesanan Masuk' : 'Belum Ada Pesanan',
               style: TextStyle(
-                fontSize: core.AppType.s18,
+                fontSize: core.AppType.s20,
                 fontWeight: FontWeight.w600,
                 color: colorScheme.onSurface,
               ),
@@ -484,11 +479,11 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
 
             // Action button
             SizedBox(
-              width: 240,
+              width: core.AppContentSize.actionWidth,
               child: FilledButton.icon(
                 icon: Icon(
                   isSeller ? Icons.add_circle_outline : Icons.storefront_outlined,
-                  size: 20,
+                  size: AppIconSize.action,
                 ),
                 label: Text(
                   isSeller ? 'Tambah ForSale' : 'Jelajahi Marketplace',
@@ -496,7 +491,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen>
                 onPressed: () => _handleEmptyStateAction(context, isSeller),
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(
-                    vertical: core.AppMetrics.p14,
+                    vertical: core.AppMetrics.p16,
                     horizontal: core.AppMetrics.p24,
                   ),
                 ),

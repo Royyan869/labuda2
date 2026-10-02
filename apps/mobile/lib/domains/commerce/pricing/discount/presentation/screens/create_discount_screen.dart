@@ -217,10 +217,7 @@ class _CreateDiscountScreenState extends ConsumerState<CreateDiscountScreen> {
       child: Scaffold(
         backgroundColor: Theme.of(context).colorScheme.surface,
         appBar: AppBar(
-          title: Text(_isEditMode ? 'Edit Discount' : 'Create New Discount'),
-          elevation: core.AppElevation.none,
-          surfaceTintColor: Colors.transparent,
-          scrolledUnderElevation: 0,
+          title: Text(_isEditMode ? 'Edit Diskon' : 'Buat Diskon Baru'),
           leading: IconButton(
             icon: const Icon(Icons.close),
             onPressed: () {

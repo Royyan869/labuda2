@@ -8,12 +8,18 @@ class _ShippingSetupPickerSection extends StatelessWidget {
   final bool hasAddress;
   final ValueChanged<String> onSelected;
 
+  /// Canonical "contact seller" channel — the SAME `_openChatWithSeller`
+  /// helper the uncovered-area dialog uses. The picker owns no chat logic of
+  /// its own; null hides the CTA.
+  final VoidCallback? onContactSeller;
+
   const _ShippingSetupPickerSection({
     required this.deliveryOptions,
     required this.selectedOptionId,
     required this.isLoading,
     required this.hasAddress,
     required this.onSelected,
+    this.onContactSeller,
   });
 
   @override
@@ -31,7 +37,7 @@ class _ShippingSetupPickerSection extends StatelessWidget {
         children: [
           const Text(
             'Opsi Pengiriman',
-            style: TextStyle(fontSize: AppType.s18, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: AppType.s20, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
           if (!hasAddress)
@@ -42,9 +48,31 @@ class _ShippingSetupPickerSection extends StatelessWidget {
           else if (isLoading)
             const Center(child: CircularProgressIndicator())
           else if (deliveryOptions.isEmpty)
-            Text(
-              'Tidak ada opsi pengiriman tersedia',
-              style: TextStyle(color: colorScheme.onSurfaceVariant),
+            // Empty state is a DEAD END without an exit: the primary action
+            // stays disabled (no shipping selection → no preview), so the
+            // buyer must be able to reach the seller from here — not only
+            // after a failed order creation.
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Tidak ada opsi pengiriman tersedia',
+                  style: TextStyle(color: colorScheme.onSurfaceVariant),
+                ),
+                if (onContactSeller != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'Hubungi penjual untuk meminta opsi pengiriman.',
+                    style: TextStyle(color: colorScheme.onSurfaceVariant),
+                  ),
+                  const SizedBox(height: 12),
+                  ElevatedButton.icon(
+                    onPressed: onContactSeller,
+                    icon: const Icon(Icons.local_shipping_outlined),
+                    label: const Text('Hubungi Penjual'),
+                  ),
+                ],
+              ],
             )
           else
             RadioGroup<String>(

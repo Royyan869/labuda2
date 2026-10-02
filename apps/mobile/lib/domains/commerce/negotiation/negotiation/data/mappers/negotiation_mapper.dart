@@ -45,6 +45,7 @@ class NegotiationMapper {
       createdAt: dto.createdAt,
       updatedAt: dto.updatedAt,
       completedAt: dto.acceptedAt,
+      expiresAt: dto.expiresAt,
     );
   }
 }

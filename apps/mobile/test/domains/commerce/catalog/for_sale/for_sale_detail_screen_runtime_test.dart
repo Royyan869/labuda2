@@ -104,6 +104,8 @@ ForSale _listing({
   List<MediaEntity> media = const [],
   bool isNegotiable = true,
   bool stockAvailable = true,
+  ContentLifecycle sellerTrustLifecycle = ContentLifecycle.active,
+  String? publicOriginLine,
 }) {
   final now = DateTime.utc(2026, 1, 1);
   return ForSale(
@@ -117,8 +119,9 @@ ForSale _listing({
     sellerUsername: 'seller_user',
     sellerFarmName: 'Acme Farm',
     sellerAvatar: null,
+    publicOriginLine: publicOriginLine,
     sellerUserLifecycle: ContentLifecycle.active,
-    sellerTrustLifecycle: ContentLifecycle.active,
+    sellerTrustLifecycle: sellerTrustLifecycle,
     sellerTier: 'pro',
     viewerCapabilities: capabilities,
     media: media,
@@ -133,8 +136,7 @@ ForSale _listing({
     gender: 'male',
     breeder: 'Hiro',
     bloodline: 'Miyabi',
-    preparationTime: PreparationTime.immediate,
-    preparationNote: 'Packing aman sebelum kirim',
+    preparationTime: PreparationTime.days1_3,
   );
 }
 
@@ -248,6 +250,7 @@ void main() {
         sellerId: 'seller-1',
         capabilities: _buyerCaps,
         media: _detailMedia(),
+        publicOriginLine: 'Magelang, Jawa Tengah',
       );
 
       await tester.pumpWidget(
@@ -269,21 +272,59 @@ void main() {
 
       expect(find.text('Detail ForSale'), findsOneWidget);
       expect(find.text('Chat'), findsOneWidget);
-      expect(find.text('Ajukan Penawaran'), findsOneWidget);
+      expect(find.text('Nego'), findsOneWidget);
       expect(find.text('Beli Sekarang'), findsOneWidget);
+      // ONE-ROW CONTRACT (auction parity): Chat / Nego / Beli must share a
+      // single Row ancestor. A second CTA row is a forbidden design.
+      final chatRows = tester.widgetList<Row>(
+        find.ancestor(of: find.text('Chat'), matching: find.byType(Row)),
+      );
+      expect(
+        chatRows.any(
+          (row) =>
+              find
+                  .descendant(
+                    of: find.byWidget(row),
+                    matching: find.text('Nego'),
+                  )
+                  .evaluate()
+                  .isNotEmpty &&
+              find
+                  .descendant(
+                    of: find.byWidget(row),
+                    matching: find.text('Beli Sekarang'),
+                  )
+                  .evaluate()
+                  .isNotEmpty,
+        ),
+        isTrue,
+        reason: 'Chat/Nego/Beli must render in ONE action row',
+      );
       expect(find.text('Penjual tidak aktif'), findsNothing);
       expect(find.text('@seller_user', skipOffstage: false), findsOneWidget);
       expect(find.text('Acme Farm', skipOffstage: false), findsOneWidget);
+      // Buyer-facing shipping origin of the listing, straight from the detail
+      // wire — the buyer must be able to see where the goods ship from.
+      expect(
+        find.text('Magelang, Jawa Tengah', skipOffstage: false),
+        findsOneWidget,
+      );
+      expect(
+        find.byIcon(Icons.location_on_outlined, skipOffstage: false),
+        findsOneWidget,
+      );
       expect(find.byType(PageView), findsOneWidget);
       // Section cards below the first viewport are mounted but laid out
       // lazily — assert against the full element tree.
       expect(
-        find.text('Siap kirim langsung', skipOffstage: false),
+        find.text('Estimasi siap kirim: 1–3 hari', skipOffstage: false),
         findsOneWidget,
       );
+      // NO REGRESS: the preparation-note concept is purged end-to-end; no note
+      // copy may be rendered from any payload (even a smuggle attempt).
       expect(
         find.textContaining('Packing aman sebelum kirim', skipOffstage: false),
-        findsOneWidget,
+        findsNothing,
       );
       expect(
         find.text(forSale.description, skipOffstage: false),
@@ -293,6 +334,39 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets('listing without a resolved origin hides the line', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(320, 640));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final forSale = _listing(
+      id: 'forSale-no-origin',
+      sellerId: 'seller-1',
+      capabilities: _buyerCaps,
+      media: _detailMedia(),
+    );
+
+    await tester.pumpWidget(
+      _wrap(
+        forSale: forSale,
+        authState: AuthState.authenticated(
+          _authUser(id: 'buyer-1'),
+          emailVerified: true,
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    // Missing truth is HIDDEN, never fabricated — no origin line, no icon.
+    expect(
+      find.byIcon(Icons.location_on_outlined, skipOffstage: false),
+      findsNothing,
+    );
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('seller identity tap navigates by durable seller id', (
     tester,
@@ -363,7 +437,7 @@ void main() {
 
     expect(find.text('Chat'), findsOneWidget);
     expect(find.text('Beli Sekarang'), findsOneWidget);
-    expect(find.text('Ajukan Penawaran'), findsNothing);
+    expect(find.text('Nego'), findsNothing);
     expect(find.text('Penjual tidak aktif'), findsNothing);
     expect(tester.takeException(), isNull);
   });
@@ -378,6 +452,7 @@ void main() {
         id: 'forSale-inactive',
         sellerId: 'seller-inactive',
         capabilities: _sellerInactiveCaps,
+        sellerTrustLifecycle: ContentLifecycle.unavailable,
       );
 
       await tester.pumpWidget(
@@ -398,7 +473,39 @@ void main() {
       );
       expect(find.text('Chat'), findsNothing);
       expect(find.text('Beli Sekarang'), findsNothing);
-      expect(find.text('Ajukan Penawaran'), findsNothing);
+      expect(find.text('Nego'), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'all-false capabilities with ACTIVE seller trust never show the banner',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(320, 640));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      // NEGATIVE PROOF: an all-false capability set also occurs when the
+      // viewer identity never reached the backend. It must NOT be presented
+      // as "Penjual tidak aktif" — the seller-trust axis alone owns that label.
+      final forSale = _listing(
+        id: 'forSale-caps-only',
+        sellerId: 'seller-caps-only',
+        capabilities: _sellerInactiveCaps,
+        sellerTrustLifecycle: ContentLifecycle.active,
+      );
+
+      await tester.pumpWidget(
+        _wrap(
+          forSale: forSale,
+          authState: AuthState.authenticated(
+            _authUser(id: 'buyer-caps-only'),
+            emailVerified: true,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Penjual tidak aktif'), findsNothing);
       expect(tester.takeException(), isNull);
     },
   );
@@ -427,7 +534,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Chat'), findsNothing);
-    expect(find.text('Ajukan Penawaran'), findsNothing);
+    expect(find.text('Nego'), findsNothing);
     expect(find.text('Beli Sekarang'), findsNothing);
     expect(find.text('Penjual tidak aktif'), findsNothing);
     // Owner still has share; report (more) is hidden for owners.
@@ -458,10 +565,47 @@ void main() {
 
     // Model B: affordances visible; tapping routes to the canonical sign-in.
     expect(find.text('Chat'), findsOneWidget);
-    expect(find.text('Ajukan Penawaran'), findsOneWidget);
+    expect(find.text('Nego'), findsOneWidget);
     expect(find.text('Beli Sekarang'), findsOneWidget);
     expect(find.text('@seller_user', skipOffstage: false), findsOneWidget);
     expect(find.text('Acme Farm', skipOffstage: false), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Nego opens the offer sheet ON detail — no chat navigation', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(360, 740));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final forSale = _listing(
+      id: 'forSale-nego-sheet',
+      sellerId: 'seller-nego-sheet',
+      capabilities: _buyerCaps,
+    );
+
+    await tester.pumpWidget(
+      _wrap(
+        forSale: forSale,
+        authState: AuthState.authenticated(
+          _authUser(id: 'buyer-nego-sheet'),
+          emailVerified: true,
+        ),
+      ),
+    );
+    // Bounded pumps: media shimmer never settles under fake async.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    await tester.tap(find.text('Nego'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    // The offer input opens on the detail surface — no navigation to chat,
+    // no silently auto-sent product card (autoOpenNegotiation is purged).
+    expect(find.text('Negosiasi Harga'), findsOneWidget);
+    expect(find.text('Masukkan harga tawaran Anda'), findsOneWidget);
+    expect(find.text('Kirim Penawaran'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

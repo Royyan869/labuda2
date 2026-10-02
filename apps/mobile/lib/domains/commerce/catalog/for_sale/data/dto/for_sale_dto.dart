@@ -35,6 +35,7 @@ class ForSaleMediaItemDto {
   final String url;
   final int position;
   final String? thumbnailUrl;
+  final String? blurhash;
   final int? width;
   final int? height;
   final int? duration;
@@ -46,6 +47,7 @@ class ForSaleMediaItemDto {
     required this.url,
     required this.position,
     this.thumbnailUrl,
+    this.blurhash,
     this.width,
     this.height,
     this.duration,
@@ -54,6 +56,7 @@ class ForSaleMediaItemDto {
 
   factory ForSaleMediaItemDto.fromJson(Map<String, dynamic> json) {
     final thumbnail = json['thumbnail_url'];
+    final hash = json['blurhash'];
     return ForSaleMediaItemDto(
       id: json['id'] as String? ?? '',
       type: json['type'] as String? ?? 'image',
@@ -65,6 +68,7 @@ class ForSaleMediaItemDto {
       thumbnailUrl: thumbnail is String && thumbnail.isNotEmpty
           ? thumbnail
           : null,
+      blurhash: hash is String && hash.isNotEmpty ? hash : null,
       width: json['width'] as int?,
       height: json['height'] as int?,
       duration: json['duration'] as int?,
@@ -94,17 +98,18 @@ class ForSaleResponseDto extends Equatable {
   final int quantity;
   final bool negotiationEnabled;
   final String visibility;
+
   /// Public lifecycle vocabulary from the backend (Status.PublicLifecycle()):
   /// {active, unavailable}. Raw internal states (draft/sold/withdrawn) never
   /// cross the public boundary — owner workspaces read [sellerStatus].
   final String status;
+
   /// Exact internal state-machine value — owner-only wire slot (Scope 3,
   /// parity with auction). Backend emits it ONLY when the viewer is the
   /// owning seller; null for every other viewer.
   final String? sellerStatus;
   final String? farmAddressId;
   final String? preparationTime;
-  final String? preparationNote;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -112,14 +117,17 @@ class ForSaleResponseDto extends Equatable {
   // STAGE 2 — IDENTITY PARSE-ONLY FIELDS (Phase 5)
   // ===========================================================================
   // Owner-truth identity fields parsed from backend Stage 1.
-  // Receive-only plumbing: not yet wired into the entity / UI mapping.
-  // Stage 3 will switch the mapper to consume these.
   // - seller_username   = account/user identity
   // - seller_farm_name  = seller/store identity (Owner Truth: farm name)
   // - seller_avatar_url = display avatar
   final String? sellerUsername;
   final String? sellerFarmName;
   final String? sellerAvatarUrl;
+
+  /// Buyer-facing origin summary of the listing's sender address
+  /// ("City, Province" — never street/district/phone), emitted on DETAIL
+  /// payloads only. Null on discovery payloads.
+  final String? publicOriginLine;
 
   /// E8.2 — Canonical seller user-identity lifecycle.
   ///
@@ -156,6 +164,12 @@ class ForSaleResponseDto extends Equatable {
   /// from here instead of re-inferring transaction permission locally.
   final CommerceViewerCapabilities? viewerCapabilities;
 
+  /// DETAIL-ONLY DEAL BINDING — wire `viewer_negotiation_id`: the viewer's
+  /// settleable accepted negotiation for this listing (accepted, unexpired,
+  /// unsettled). Carried into the checkout URI as `negotiation_id` so the
+  /// deal price, never the list price, is charged. Null everywhere else.
+  final String? viewerNegotiationId;
+
   const ForSaleResponseDto({
     required this.id,
     this.productId,
@@ -183,13 +197,14 @@ class ForSaleResponseDto extends Equatable {
     this.sellerStatus,
     this.farmAddressId,
     this.preparationTime,
-    this.preparationNote,
     required this.createdAt,
     required this.updatedAt,
     // Stage 2 identity parse-only fields
     this.sellerUsername,
     this.sellerFarmName,
     this.sellerAvatarUrl,
+    // Buyer-facing listing origin (detail-only wire slot).
+    this.publicOriginLine,
     // E8.2 seller user-axis lifecycle (nested wire slot)
     this.sellerUserLifecycle,
     // Expired-seller visibility — top-level seller-trust lifecycle.
@@ -198,6 +213,7 @@ class ForSaleResponseDto extends Equatable {
     this.sellerTier,
     // Canonical detail action authority.
     this.viewerCapabilities,
+    this.viewerNegotiationId,
   });
 
   factory ForSaleResponseDto.fromJson(Map<String, dynamic> json) {
@@ -214,7 +230,9 @@ class ForSaleResponseDto extends Equatable {
           [],
       mediaItems:
           (json['media'] as List<dynamic>?)
-              ?.map((e) => ForSaleMediaItemDto.fromJson(e as Map<String, dynamic>))
+              ?.map(
+                (e) => ForSaleMediaItemDto.fromJson(e as Map<String, dynamic>),
+              )
               .toList() ??
           [],
       variety: json['variety'] as String?,
@@ -237,7 +255,6 @@ class ForSaleResponseDto extends Equatable {
       sellerStatus: json['seller_status'] as String?,
       farmAddressId: json['farm_address_id'] as String?,
       preparationTime: json['preparation_time'] as String?,
-      preparationNote: json['preparation_note'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
       // Stage 2 identity parse-only fields. Tolerate old payload (null) and
@@ -245,6 +262,7 @@ class ForSaleResponseDto extends Equatable {
       sellerUsername: json['seller_username'] as String?,
       sellerFarmName: json['seller_farm_name'] as String?,
       sellerAvatarUrl: json['seller_avatar_url'] as String?,
+      publicOriginLine: json['public_origin_line'] as String?,
       // E8.2 — Walk the nested canonical PublicCard wire slot
       // (`forSale.seller.user.lifecycle`). Pre-E8.1 payloads omit it →
       // null fall-through.
@@ -261,6 +279,8 @@ class ForSaleResponseDto extends Equatable {
               json['viewer_capabilities'] as Map<String, dynamic>,
             )
           : null,
+      // Detail-only deal binding — absent on every other payload class.
+      viewerNegotiationId: json['viewer_negotiation_id'] as String?,
     );
   }
 
@@ -357,7 +377,9 @@ class ForSaleListResponseDto extends Equatable {
           .toList(),
       page: json['page'] as int? ?? 1,
       limit: json['limit'] as int? ?? 20,
-      total: json['total'] as int? ?? (json['has_more'] != null ? effective.length : effective.length),
+      total:
+          json['total'] as int? ??
+          (json['has_more'] != null ? effective.length : effective.length),
     );
   }
 
@@ -378,7 +400,7 @@ class CreateForSaleRequestDto {
   final int price;
   final int quantity;
   final bool negotiationEnabled;
-  final List<String> mediaUrls;
+  final List<Map<String, Object?>> media;
   final String? variety;
   final int? sizeCm;
   final int? ageMonths;
@@ -390,7 +412,6 @@ class CreateForSaleRequestDto {
   // Shipping selection (OWNER CANONICAL: create = publish — mandatory ≥1).
   final List<String> shippingSetupIds;
   final String? preparationTime;
-  final String? preparationNote;
 
   const CreateForSaleRequestDto({
     required this.title,
@@ -398,7 +419,7 @@ class CreateForSaleRequestDto {
     required this.price,
     required this.quantity,
     this.negotiationEnabled = false,
-    this.mediaUrls = const [],
+    this.media = const [],
     this.variety,
     this.sizeCm,
     this.ageMonths,
@@ -409,7 +430,6 @@ class CreateForSaleRequestDto {
     this.farmAddressId,
     this.shippingSetupIds = const [],
     this.preparationTime,
-    this.preparationNote,
   });
 
   Map<String, dynamic> toJson() => {
@@ -418,7 +438,7 @@ class CreateForSaleRequestDto {
     'price': price,
     'quantity': quantity,
     'negotiation_enabled': negotiationEnabled,
-    if (mediaUrls.isNotEmpty) 'media_urls': mediaUrls,
+    if (media.isNotEmpty) 'media': media,
     if (variety != null) 'variety': variety,
     if (sizeCm != null) 'size_cm': sizeCm,
     if (ageMonths != null) 'age_months': ageMonths,
@@ -429,7 +449,6 @@ class CreateForSaleRequestDto {
     if (farmAddressId != null) 'farm_address_id': farmAddressId,
     'shipping_setup_ids': shippingSetupIds,
     if (preparationTime != null) 'preparation_time': preparationTime,
-    if (preparationNote != null) 'preparation_note': preparationNote,
   };
 }
 
@@ -453,7 +472,7 @@ class UpdateForSaleRequestDto {
   final int? price;
   final bool? negotiationEnabled;
   final String? status; // draft, active, withdrawn, sold
-  final List<String>? mediaUrls;
+  final List<Map<String, Object?>>? media;
   final String? variety;
   final int? sizeCm;
   final int? ageMonths;
@@ -462,7 +481,6 @@ class UpdateForSaleRequestDto {
   final String? bloodline;
   final List<String>? certificates;
   final String? preparationTime;
-  final String? preparationNote;
 
   const UpdateForSaleRequestDto({
     this.title,
@@ -470,7 +488,7 @@ class UpdateForSaleRequestDto {
     this.price,
     this.negotiationEnabled,
     this.status,
-    this.mediaUrls,
+    this.media,
     this.variety,
     this.sizeCm,
     this.ageMonths,
@@ -479,7 +497,6 @@ class UpdateForSaleRequestDto {
     this.bloodline,
     this.certificates,
     this.preparationTime,
-    this.preparationNote,
   });
 
   Map<String, dynamic> toJson() => {
@@ -488,7 +505,7 @@ class UpdateForSaleRequestDto {
     if (price != null) 'price': price,
     if (negotiationEnabled != null) 'negotiation_enabled': negotiationEnabled,
     if (status != null) 'status': status,
-    if (mediaUrls != null) 'media_urls': mediaUrls,
+    if (media != null) 'media': media,
     if (variety != null) 'variety': variety,
     if (sizeCm != null) 'size_cm': sizeCm,
     if (ageMonths != null) 'age_months': ageMonths,
@@ -497,6 +514,5 @@ class UpdateForSaleRequestDto {
     if (bloodline != null) 'bloodline': bloodline,
     if (certificates != null) 'certificates': certificates,
     if (preparationTime != null) 'preparation_time': preparationTime,
-    if (preparationNote != null) 'preparation_note': preparationNote,
   };
 }

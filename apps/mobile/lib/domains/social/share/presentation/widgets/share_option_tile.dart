@@ -45,19 +45,19 @@ class ShareOptionTile extends StatelessWidget {
             child: Icon(
               destination.iconData,
               color: destinationColor ?? iconColor,
-              size: 24,
+              size: AppIconSize.header,
             ),
           ),
           title: Text(
             destination.label,
-            style: AppTypography.bodyLarge.copyWith(
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
               fontWeight: FontWeight.w500,
               color: textColor,
             ),
           ),
           trailing: Icon(
             Icons.arrow_forward_ios,
-            size: 16,
+            size: AppIconSize.inlineGlyph,
             color: scheme.onSurfaceVariant,
           ),
         ),

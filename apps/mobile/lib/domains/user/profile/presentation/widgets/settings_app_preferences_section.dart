@@ -47,7 +47,7 @@ class SettingsAppPreferencesSection extends StatelessWidget {
         children: [
           Icon(
             icon,
-            size: 20,
+            size: AppIconSize.action,
             color: scheme.onSurfaceVariant,
           ),
           const SizedBox(width: 8),
@@ -86,12 +86,12 @@ color: scheme.onSurfaceVariant,
         subtitle,
         style: TextStyle(
           color: scheme.onSurfaceVariant,
-          fontSize: AppType.s13,
+          fontSize: AppType.s14,
         ),
       ),
       trailing: Icon(
         Icons.arrow_forward_ios,
-        size: 16,
+        size: AppIconSize.inlineGlyph,
         color: scheme.onSurfaceVariant,
       ),
       onTap: onTap,

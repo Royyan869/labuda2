@@ -135,11 +135,12 @@ class AuthInterceptor extends Interceptor {
       _logger?.debug('AuthInterceptor: skipping auth for ${options.method} ${options.path} (skipAuth)');
       return handler.next(options);
     }
-    final isPublic = _isPublicEndpoint(options.path, method: options.method);
-    if (isPublic) {
-      _logger?.debug('AuthInterceptor: Skipping auth for public endpoint: ${options.path}');
-      return handler.next(options);
-    }
+    // CANONICAL VIEWER-IDENTITY RULE: the Labuda access token is attached to
+    // EVERY request that has one — including the public browse GETs. The
+    // backend browse group is built on optional auth (StrictBrowse: no header
+    // → anonymous, valid header → authenticated viewer with full context), and
+    // viewer-scoped blocks (viewer_capabilities) are only correct when the
+    // identity travels. A guest simply has no token, so it stays anonymous.
     try {
       final token = await _getLabudaToken();
       if (token != null && token.isNotEmpty) {
@@ -161,14 +162,12 @@ class AuthInterceptor extends Interceptor {
     if (err.response?.statusCode != 401) return handler.next(err);
 
     final reqPath = err.requestOptions.path;
-    final reqMethod = err.requestOptions.method;
 
     _logger?.warning('AuthInterceptor: Received 401 for $reqPath');
 
-    if (_isPublicEndpoint(reqPath, method: reqMethod)) {
-      _logger?.warning('AuthInterceptor: 401 on public browse endpoint — skipping refresh');
-      return handler.next(err);
-    }
+    // Browse GETs carry the token too, so a 401 there means a stale
+    // credential — same single-flight refresh path as any other request.
+    // (An anonymous request never receives a 401 from the browse group.)
 
     // Do not refresh the refresh endpoint itself
     if (_normalizeApiPath(reqPath) == '/auth/refresh') {
@@ -390,47 +389,6 @@ class AuthInterceptor extends Interceptor {
   }
 
   bool _shouldSkipAuth(RequestOptions options) => options.extra['skipAuth'] == true;
-
-  bool _isPublicEndpoint(String path, {String method = 'GET'}) {
-    final n = _normalizeApiPath(path);
-    if (method.toUpperCase() != 'GET') return false;
-    const exactPaths = ['/health'];
-    for (final p in exactPaths) {
-      if (n == p) return true;
-    }
-    const browsePrefixes = ['/for-sale', '/auctions', '/search/for-sale', '/search/auctions', '/search/content', '/search/users', '/likes/stats'];
-    for (final p in browsePrefixes) {
-      if (n.startsWith(p)) return true;
-    }
-    if (n.startsWith('/users/') && !n.startsWith('/users/me') && !n.startsWith('/users/check-username')) return true;
-    final contentsWithId = RegExp(r'^/contents/[^/]+$');
-    if (contentsWithId.hasMatch(n)) return true;
-    return false;
-  }
-
-  static String classifyAuthSemantics(String path, {Map<String, dynamic>? extra, String method = 'GET'}) {
-    final normalized = AuthInterceptor._normalizeStatic(path);
-    if (extra?['skipAuth'] == true) {
-      if (normalized == '/auth/firebase/exchange') return 'firebase-boundary';
-      if (normalized == '/auth/complete-profile') return 'restricted-completion';
-      if (normalized == '/auth/refresh') return 'refresh-isolated';
-      return 'special-skipAuth';
-    }
-    const exactPaths = ['/health'];
-    if (method.toUpperCase() == 'GET') {
-      for (final p in exactPaths) {
-        if (normalized == p) return 'public';
-      }
-      const browsePrefixes = ['/for-sale', '/auctions', '/search/for-sale', '/search/auctions', '/search/content', '/search/users', '/likes/stats'];
-      for (final p in browsePrefixes) {
-        if (normalized.startsWith(p)) return 'public';
-      }
-      if (normalized.startsWith('/users/') && !normalized.startsWith('/users/me') && !normalized.startsWith('/users/check-username')) return 'public';
-      final contentsWithId = RegExp(r'^/contents/[^/]+$');
-      if (contentsWithId.hasMatch(normalized)) return 'public';
-    }
-    return 'normal-labuda';
-  }
 
   static String _normalizeStatic(String path) {
     if (path == '/api/v1') return '/';

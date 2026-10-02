@@ -40,7 +40,7 @@ class EditProfileContactSection extends StatelessWidget {
         Text(
           'Privacy Settings',
           style: TextStyle(
-            fontSize: AppType.s13,
+            fontSize: AppType.s14,
             fontWeight: FontWeight.w600,
             color: scheme.onSurfaceVariant,
           ),
@@ -69,7 +69,7 @@ class EditProfileContactSection extends StatelessWidget {
         Text(
           'Social Media',
           style: TextStyle(
-            fontSize: AppType.s13,
+            fontSize: AppType.s14,
             fontWeight: FontWeight.w600,
             color: scheme.onSurfaceVariant,
           ),

@@ -36,7 +36,7 @@ func ownerAuction(status entity.Status) *entity.Auction {
 			ID:        uuid.New(),
 			SellerID:  uuid.New(),
 			Title:     "Boundary Auction",
-			MediaURLs: []string{"https://cdn.example.com/a.jpg"},
+			MediaURLs: []productEntity.ProductMedia{{URL: "https://cdn.example.com/a.jpg"}},
 		},
 	}
 }

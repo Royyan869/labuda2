@@ -381,7 +381,7 @@ class _SellerRenewalScreenState extends ConsumerState<SellerRenewalScreen> {
                   : activationMode
                       ? 'Profil seller terdeteksi. Aktifkan langganan untuk mulai jual dan lelang — identitas seller Anda tetap dipakai.'
                       : 'Profil seller terdeteksi. Perpanjang dini menjaga identitas seller Anda tetap utuh.',
-              style: TextStyle(fontSize: AppType.s13, color: scheme.onSurfaceVariant),
+              style: TextStyle(fontSize: AppType.s14, color: scheme.onSurfaceVariant),
             ),
           ]),
         ),
@@ -417,7 +417,7 @@ class _SellerRenewalScreenState extends ConsumerState<SellerRenewalScreen> {
     final err = _methodsError;
     final label = loading ? 'Memuat metode pembayaran...' : methods.isEmpty ? (err ?? 'Tidak ada metode pembayaran tersedia') : (sel?.displayName ?? 'Pilih metode pembayaran');
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text('Payment method', style: TextStyle(fontSize: AppType.s13, fontWeight: FontWeight.w600, color: scheme.onSurfaceVariant)),
+      Text('Payment method', style: TextStyle(fontSize: AppType.s14, fontWeight: FontWeight.w600, color: scheme.onSurfaceVariant)),
       const SizedBox(height: 6),
       InkWell(
         onTap: loading ? null : methods.isEmpty ? () => _loadMethods() : () => _pickMethod(),
@@ -425,7 +425,7 @@ class _SellerRenewalScreenState extends ConsumerState<SellerRenewalScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p12),
           decoration: BoxDecoration(borderRadius: BorderRadius.circular(AppShape.r8), border: Border.all(color: scheme.outlineVariant)),
-          child: Row(children: [Expanded(child: Text(label, style: TextStyle(fontSize: AppType.s14, color: methods.isEmpty && !loading ? context.statusColors.error : scheme.onSurface))), if (!loading) Icon(Icons.chevron_right, size: 20, color: scheme.onSurfaceVariant)]),
+          child: Row(children: [Expanded(child: Text(label, style: TextStyle(fontSize: AppType.s14, color: methods.isEmpty && !loading ? context.statusColors.error : scheme.onSurface))), if (!loading) Icon(Icons.chevron_right, size: AppIconSize.action, color: scheme.onSurfaceVariant)]),
         ),
       ),
     ]);

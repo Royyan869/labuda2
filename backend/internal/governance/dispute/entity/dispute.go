@@ -78,26 +78,26 @@ var SellerReasonCodes = map[string]bool{
 // Dispute represents an order dispute between buyer and seller.
 // This is the V1 dispute entity with proper escrow integration and deadlock prevention.
 type Dispute struct {
-	ID       uuid.UUID
-	OrderID  uuid.UUID
-	BuyerID  uuid.UUID
-	SellerID uuid.UUID
+	ID       uuid.UUID `json:"id"`
+	OrderID  uuid.UUID `json:"order_id"`
+	BuyerID  uuid.UUID `json:"buyer_id"`
+	SellerID uuid.UUID `json:"seller_id"`
 
-	Reason      string
-	Description *string
+	Reason      string  `json:"reason"`
+	Description *string `json:"description,omitempty"`
 
-	Status DisputeStatus
+	Status DisputeStatus `json:"status"`
 
-	OpenedAt   time.Time
-	ResolvedAt *time.Time
+	OpenedAt   time.Time  `json:"opened_at"`
+	ResolvedAt *time.Time `json:"resolved_at,omitempty"`
 
 	// ResolvedBy contains the admin user ID who resolved this dispute.
 	// This provides auditability for financial dispute decisions.
-	ResolvedBy *uuid.UUID
+	ResolvedBy *uuid.UUID `json:"resolved_by,omitempty"`
 
 	// ResolutionNotes contains the admin's reasoning for the resolution decision.
 	// This provides context for audit trail and dispute history.
-	ResolutionNotes *string
+	ResolutionNotes *string `json:"resolution_notes,omitempty"`
 
 	// =============================================================================
 	// FAIRNESS & ABUSE PREVENTION FIELDS
@@ -105,41 +105,41 @@ type Dispute struct {
 
 	// CallerID tracks who opened the dispute (buyer or seller).
 	// This is used for abuse detection and fair policy enforcement.
-	CallerID *uuid.UUID
+	CallerID *uuid.UUID `json:"caller_id,omitempty"`
 
 	// ReasonCode is a standardized reason code for the dispute.
 	// Required for all disputes to enable better analytics and policy enforcement.
 	// Valid values: "item_not_received", "item_not_as_described", "shipping_damage",
 	//               "buyer_not_responding", "seller_not_shipping", "payment_issue", "other"
-	ReasonCode *string
+	ReasonCode *string `json:"reason_code,omitempty"`
 
 	// EvidenceURLs contains URLs to evidence supporting the dispute claim.
 	// For buyers: Required (video evidence)
 	// For sellers: Optional but recommended for faster resolution
-	EvidenceURLs []string
+	EvidenceURLs []string `json:"evidence_urls"`
 
 	// DEADLOCK PREVENTION FIELDS
 
 	// TimeoutDays is the number of days after which the dispute is auto-resolved.
 	// Default is DefaultDisputeTimeoutDays (14).
-	TimeoutDays int
+	TimeoutDays int `json:"timeout_days"`
 
 	// IsOverdue indicates if the dispute has exceeded the escalation threshold
 	// and needs admin attention. Set to true after DisputeOverdueThresholdDays (3).
-	IsOverdue bool
+	IsOverdue bool `json:"is_overdue"`
 
 	// OverdueMarkedAt is the timestamp when the dispute was marked as overdue.
-	OverdueMarkedAt *time.Time
+	OverdueMarkedAt *time.Time `json:"overdue_marked_at,omitempty"`
 
 	// AutoResolvedAt is the timestamp when the dispute was auto-resolved by the timeout worker.
-	AutoResolvedAt *time.Time
+	AutoResolvedAt *time.Time `json:"auto_resolved_at,omitempty"`
 
 	// AutoResolutionType stores the resolution type for auto-resolved disputes.
 	// Either "release" (to seller) or "refund" (to buyer).
-	AutoResolutionType *string
+	AutoResolutionType *string `json:"auto_resolution_type,omitempty"`
 
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 // InvalidTransitionError is returned when attempting an invalid dispute state transition.

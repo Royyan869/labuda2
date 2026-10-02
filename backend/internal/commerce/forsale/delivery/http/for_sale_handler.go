@@ -2,6 +2,7 @@ package http
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,8 +16,11 @@ import (
 	for_saleApp "github.com/labuda/backend/internal/commerce/forsale/application"
 	"github.com/labuda/backend/internal/commerce/forsale/entity"
 	for_saleRepo "github.com/labuda/backend/internal/commerce/forsale/repository"
-	commerceshared "github.com/labuda/backend/internal/commerce/shared"
+	negotiationEntity "github.com/labuda/backend/internal/commerce/negotiation/entity"
+	mediarequest "github.com/labuda/backend/internal/commerce/media/request"
+	productentity "github.com/labuda/backend/internal/commerce/product/entity"
 	orderRepo "github.com/labuda/backend/internal/commerce/order/repository"
+	commerceshared "github.com/labuda/backend/internal/commerce/shared"
 	shippingApp "github.com/labuda/backend/internal/commerce/shipping/application"
 	"github.com/labuda/backend/internal/governance/viewercontext"
 	"github.com/labuda/backend/internal/identity/auth"
@@ -35,6 +39,22 @@ type ForSaleHandler struct {
 	db              *db.DB
 	log             *zap.Logger
 	orderRepo       orderRepo.OrderRepository
+	// DEAL BINDING (owner truth: deal price valid 24h): resolves THIS
+	// viewer's settleable accepted negotiation so the detail CTA can carry
+	// `viewer_negotiation_id` into checkout. Consumer-side narrow interface,
+	// satisfied by the negotiation repository; nil = binding disabled.
+	negotiationLookup negotiationDealLookup
+}
+
+// negotiationDealLookup is the consumer-side view of the negotiation
+// repository needed by the detail wire.
+type negotiationDealLookup interface {
+	GetAcceptedSessionByResourceAndBuyer(
+		ctx context.Context,
+		tx db.Tx,
+		resourceType negotiationEntity.NegotiationResourceType,
+		resourceID, buyerID uuid.UUID,
+	) (*negotiationEntity.NegotiationSession, error)
 }
 
 // NewForSaleHandler creates a new ForSaleHandler.
@@ -43,15 +63,17 @@ func NewForSaleHandler(
 	database *db.DB,
 	log *zap.Logger,
 	orderRepo orderRepo.OrderRepository,
+	negotiationLookup negotiationDealLookup,
 ) *ForSaleHandler {
 	if log == nil {
 		log = zap.NewNop()
 	}
 	return &ForSaleHandler{
-		for_saleService: for_saleService,
-		db:              database,
-		log:             log,
-		orderRepo:       orderRepo,
+		for_saleService:   for_saleService,
+		db:                database,
+		log:               log,
+		orderRepo:         orderRepo,
+		negotiationLookup: negotiationLookup,
 	}
 }
 
@@ -67,10 +89,11 @@ type CreateForSaleRequest struct {
 	// Quantity is optional — PASS_19E: a fixed-price for_sale defaults to
 	// unique-item mode (quantity=1) when omitted. Sellers with real stock
 	// set it explicitly to enable multi-quantity sale.
-	Quantity           *int   `json:"quantity" binding:"omitempty,min=1"`
-	NegotiationEnabled bool   `json:"negotiation_enabled"`
+	Quantity           *int `json:"quantity" binding:"omitempty,min=1"`
+	NegotiationEnabled bool `json:"negotiation_enabled"`
 	// Optional koi-specific fields
 	MediaURLs    []string `json:"media_urls"`
+	Media        []mediarequest.MediaRequest `json:"media,omitempty"`
 	Variety      string   `json:"variety"`
 	SizeCM       *int     `json:"size_cm"`
 	AgeMonths    *int     `json:"age_months"`
@@ -84,8 +107,7 @@ type CreateForSaleRequest struct {
 	// at least one shipping_setup_id is REQUIRED; create is publish.)
 	ShippingSetupIDs []string `json:"shipping_setup_ids" binding:"required,min=1,dive,uuid"`
 	// Shipping readiness
-	PreparationTime *string `json:"preparation_time" binding:"omitempty,oneof=immediate short medium long"`
-	PreparationNote *string `json:"preparation_note"`
+	PreparationTime *string `json:"preparation_time" binding:"omitempty,oneof=1_3_days 4_7_days 8_15_days"`
 }
 
 // CreateForSale handles POST /api/v1/for_sales
@@ -210,17 +232,24 @@ func (h *ForSaleHandler) CreateForSale(c *gin.Context) {
 		}
 	}
 
+	// Resolve write-side media before the transaction: typed XOR legacy.
+	media, verr := mediarequest.ResolveProductMedia(req.Media, req.MediaURLs)
+	if verr != nil {
+		response.Error(c, 400, verr.Code, verr.Message)
+		return
+	}
+
 	// Execute within transaction
 	var for_sale *entity.ForSale
 	err = h.db.WithTx(ctx, func(tx db.Tx) error {
 		var err error
 
-		// Parse preparation time, default to immediate if not provided
-		preparationTime := entity.PreparationTimeImmediate
+		// Parse preparation time, default to the 1-3 day range if not provided
+		preparationTime := entity.PreparationTime1To3Days
 		if req.PreparationTime != nil {
 			preparationTime = entity.PreparationTime(*req.PreparationTime)
 			if !preparationTime.IsValid() {
-				preparationTime = entity.PreparationTimeImmediate
+				preparationTime = entity.PreparationTime1To3Days
 			}
 		}
 
@@ -235,7 +264,7 @@ func (h *ForSaleHandler) CreateForSale(c *gin.Context) {
 			ProductID:          productID,
 			Title:              req.Title,
 			Description:        req.Description,
-			MediaURLs:          req.MediaURLs,
+			Media:              media,
 			Variety:            req.Variety,
 			SizeCM:             req.SizeCM,
 			AgeMonths:          req.AgeMonths,
@@ -252,7 +281,6 @@ func (h *ForSaleHandler) CreateForSale(c *gin.Context) {
 			ShippingSetupIDs: shippingSetupIDs,
 			// Shipping readiness
 			PreparationTime: preparationTime,
-			PreparationNote: req.PreparationNote,
 		})
 		return err
 	})
@@ -314,6 +342,7 @@ type UpdateForSaleRequest struct {
 	Status             *string `json:"status" binding:"omitempty,oneof=draft active withdrawn sold"`
 	// Optional koi-specific fields
 	MediaURLs    *[]string `json:"media_urls"`
+	Media        *[]mediarequest.MediaRequest `json:"media,omitempty"`
 	Variety      *string   `json:"variety"`
 	SizeCM       *int      `json:"size_cm"`
 	AgeMonths    *int      `json:"age_months"`
@@ -322,8 +351,7 @@ type UpdateForSaleRequest struct {
 	Bloodline    *string   `json:"bloodline"`
 	Certificates *[]string `json:"certificates"`
 	// Shipping readiness
-	PreparationTime *string `json:"preparation_time" binding:"omitempty,oneof=immediate short medium long"`
-	PreparationNote *string `json:"preparation_note"`
+	PreparationTime *string `json:"preparation_time" binding:"omitempty,oneof=1_3_days 4_7_days 8_15_days"`
 }
 
 // requiresMarketAuthorityForPublish reports whether a requested status
@@ -375,6 +403,25 @@ func (h *ForSaleHandler) UpdateForSale(c *gin.Context) {
 		return
 	}
 
+	// Resolve write-side media before the transaction: typed XOR legacy.
+	var updateTyped []mediarequest.MediaRequest
+	if req.Media != nil {
+		updateTyped = *req.Media
+	}
+	var updateLegacy []string
+	if req.MediaURLs != nil {
+		updateLegacy = *req.MediaURLs
+	}
+	updateMedia, updateVerr := mediarequest.ResolveProductMedia(updateTyped, updateLegacy)
+	if updateVerr != nil {
+		response.Error(c, 400, updateVerr.Code, updateVerr.Message)
+		return
+	}
+	var updateMediaPtr *[]productentity.ProductMedia
+	if req.MediaURLs != nil || req.Media != nil {
+		updateMediaPtr = &updateMedia
+	}
+
 	var updatedForSale *entity.ForSale
 	err = h.db.WithTx(ctx, func(tx db.Tx) error {
 		// Detect publish intent (draft → active) without mutating entity.
@@ -402,9 +449,9 @@ func (h *ForSaleHandler) UpdateForSale(c *gin.Context) {
 
 		// Check if request contains seller-controlled content fields.
 		hasContent := req.Title != nil || req.Description != nil || req.Price != nil || req.NegotiationEnabled != nil ||
-			req.MediaURLs != nil || req.Variety != nil || req.SizeCM != nil || req.AgeMonths != nil ||
+			req.MediaURLs != nil || req.Media != nil || req.Variety != nil || req.SizeCM != nil || req.AgeMonths != nil ||
 			req.Gender != nil || req.Breeder != nil || req.Bloodline != nil || req.Certificates != nil ||
-			req.PreparationTime != nil || req.PreparationNote != nil
+			req.PreparationTime != nil
 
 		isPublishIntent := req.Status != nil && entity.ForSaleStatus(*req.Status) == entity.ForSaleStatusActive
 
@@ -417,7 +464,7 @@ func (h *ForSaleHandler) UpdateForSale(c *gin.Context) {
 				Description:        req.Description,
 				Price:              req.Price,
 				NegotiationEnabled: req.NegotiationEnabled,
-				MediaURLs:          req.MediaURLs,
+				Media:              updateMediaPtr,
 				Variety:            req.Variety,
 				SizeCM:             req.SizeCM,
 				AgeMonths:          req.AgeMonths,
@@ -426,7 +473,6 @@ func (h *ForSaleHandler) UpdateForSale(c *gin.Context) {
 				Bloodline:          req.Bloodline,
 				Certificates:       req.Certificates,
 				PreparationTime:    req.PreparationTime,
-				PreparationNote:    req.PreparationNote,
 			}
 			saved, err := h.for_saleService.UpdateSeller(ctx, tx, input)
 			if err != nil {
@@ -552,6 +598,9 @@ func (h *ForSaleHandler) GetForSale(c *gin.Context) {
 
 	var for_sale *entity.ForSale
 	var sellerInfo sellerdisplay.Info
+	var publicOriginLine string
+	// DEAL BINDING slot for this viewer (nil = no settleable deal).
+	var viewerNegotiationID *uuid.UUID
 	err = h.db.WithTx(ctx, func(tx db.Tx) error {
 		var err error
 		for_sale, err = h.for_saleService.GetByID(ctx, tx, for_saleID)
@@ -574,6 +623,29 @@ func (h *ForSaleHandler) GetForSale(c *gin.Context) {
 		// (seller_username/seller_farm_name/seller_avatar_url) inside
 		// the same transaction. Single query; no N+1.
 		sellerInfo, _ = sellerdisplay.FetchOne(ctx, tx, for_sale.SellerID)
+
+		// Buyer-facing listing origin (city, province of the sender address),
+		// resolved in the same transaction as the seller block so the detail
+		// card renders identity + origin from one read.
+		publicOriginLine = h.for_saleService.PublicOriginLine(ctx, tx, for_sale)
+
+		// DEAL BINDING (owner truth): resolve THIS viewer's settleable
+		// accepted session in the SAME transaction — fail-open: a lookup
+		// problem never blocks the detail, it only omits the binding.
+		if callerID != nil && h.negotiationLookup != nil {
+			session, negErr := h.negotiationLookup.GetAcceptedSessionByResourceAndBuyer(
+				ctx,
+				tx,
+				negotiationEntity.NegotiationResourceForSale,
+				for_saleID,
+				*callerID,
+			)
+			if negErr != nil {
+				h.log.Warn("negotiation binding lookup failed, fail-open", zap.Error(negErr))
+			} else {
+				viewerNegotiationID = viewerNegotiationBinding(session)
+			}
+		}
 
 		return nil
 	})
@@ -599,7 +671,12 @@ func (h *ForSaleHandler) GetForSale(c *gin.Context) {
 		}
 	}
 
-	resp := forSaleToDetailResponseWithViewerCapabilities(for_sale, sellerInfo, callerID)
+	resp := forSaleToDetailResponseWithViewerCapabilities(for_sale, sellerInfo, publicOriginLine, callerID)
+	// Detail-only binding slot (mirrors viewer_capabilities): present ONLY
+	// when the viewer holds a settleable deal for this listing.
+	if viewerNegotiationID != nil {
+		resp["viewer_negotiation_id"] = viewerNegotiationID.String()
+	}
 	response.Success(c, resp)
 }
 
@@ -1045,10 +1122,9 @@ func for_saleToResponseWithSeller(
 	var renderedMedia []map[string]interface{}
 	var thumbnail *string
 	if product != nil {
-		mediaURLs = commerceshared.ResolveReadableMediaReferences(product.MediaURLs)
+		mediaURLs = commerceshared.ResolveReadableMediaReferences(productentity.URLs(product.MediaURLs))
 		renderedMedia = commerceshared.MediaWireItems(product.MediaURLs, l.CreatedAt)
-		if len(product.MediaURLs) > 0 {
-			t := commerceshared.ResolveReadableThumbnailURL(product.MediaURLs[0])
+		if t := commerceshared.ResolveReadableCardThumbnailURL(product.MediaURLs); t != "" {
 			thumbnail = &t
 		}
 	} else {
@@ -1107,7 +1183,7 @@ func for_saleToResponseWithSeller(
 		"price":               l.PricePerUnit.Int64(),
 		"quantity":            l.QuantityAvailable,
 		"negotiation_enabled": l.NegotiationEnabled,
-		"visibility":       string(l.Visibility),
+		"visibility":          string(l.Visibility),
 		// PUBLIC BOUNDARY: `status` is the coarsened public lifecycle
 		// ({active, sold, unavailable}); the raw internal enum crosses the
 		// wire ONLY via `seller_status` for the owning seller (Scope 3 parity
@@ -1116,14 +1192,13 @@ func for_saleToResponseWithSeller(
 		"lifecycle":        l.Status.PublicLifecycle(),
 		"seller_status":    sellerStatusForViewer(l, viewerID),
 		"preparation_time": product.PreparationTime,
-		"preparation_note": product.PreparationNote,
 		"published_at":     l.PublishedAt,
 		// Internal transition timestamps are owner-scoped truth — hidden
 		// from every other viewer (Scope 3 parity with auction).
 		"sold_at":      soldAtForViewer(l, viewerID),
 		"withdrawn_at": withdrawnAtForViewer(l, viewerID),
-		"created_at":       l.CreatedAt.Format(time.RFC3339),
-		"updated_at":       l.UpdatedAt.Format(time.RFC3339),
+		"created_at":   l.CreatedAt.Format(time.RFC3339),
+		"updated_at":   l.UpdatedAt.Format(time.RFC3339),
 		// Phase 5 Stage 1 additive seller convergence fields.
 		// seller_username   = user_profiles.username (NEVER store_name)
 		// seller_farm_name  = seller_profiles.store_name (NEVER username)

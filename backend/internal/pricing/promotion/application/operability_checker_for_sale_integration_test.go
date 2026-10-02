@@ -50,7 +50,7 @@ func TestCheckOperability_ForSale_RealRowIsOperable(t *testing.T) {
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time)
 			VALUES ($1, $2, $3, $4, $5, $6, $7)
-		`, productID, sellerID, "Sanke Koi", "A fine sanke", `["https://cdn.example.com/sanke.jpg"]`, "sanke", "immediate"); err != nil {
+		`, productID, sellerID, "Sanke Koi", "A fine sanke", `["https://cdn.example.com/sanke.jpg"]`, "sanke", "1_3_days"); err != nil {
 			return err
 		}
 

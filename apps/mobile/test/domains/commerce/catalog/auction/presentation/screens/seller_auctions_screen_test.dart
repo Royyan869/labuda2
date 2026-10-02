@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import 'package:labuda/core/common/types/preparation_time.dart';
 import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/commerce/catalog/auction/data/auction_providers.dart';
@@ -69,8 +71,8 @@ class _FakeAuctionRepository implements AuctionRepository {
     DateTime? scheduledStartAt,
     required int durationHours,
     String? farmAddressId,
+    required PreparationTime preparationTime,
     required List<String> shippingSetupIds,
-    String? preparationNote,
   }) async {
     throw UnimplementedError();
   }

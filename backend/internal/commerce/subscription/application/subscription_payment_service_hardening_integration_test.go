@@ -67,9 +67,9 @@ type onboardingSuccessAddressRepo struct{}
 func (onboardingSuccessAddressRepo) GetByUserIDFiltered(context.Context, db.Tx, uuid.UUID, string) ([]*addressEntity.Address, error) {
 	return []*addressEntity.Address{
 		{
-			ID:      uuid.New(),
-			UserID:  uuid.New(),
-			Purpose: addressEntity.AddressPurposeSender,
+			ID:     uuid.New(),
+			UserID: uuid.New(),
+			Tags:   []addressEntity.AddressTag{addressEntity.TagSender},
 		},
 	}, nil
 }

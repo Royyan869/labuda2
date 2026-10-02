@@ -1,9 +1,11 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
-import 'package:shimmer/shimmer.dart';
 import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:labuda/shared/widgets/app_image.dart';
 
 /// Fullscreen Video Player Widget untuk Media Viewer
 ///
@@ -12,12 +14,22 @@ import 'package:labuda/core/src/theme/app_theme.dart';
 /// - Fullscreen support dengan orientation lock
 /// - Progress bar, seek, duration display
 /// - Error handling dengan retry functionality
-/// - Shimmer loading state
+/// - Static loading mat (shimmer is banned on media surfaces)
 /// - Auto-dispose resources
 class MediaViewerVideoPlayer extends StatefulWidget {
   final String videoUrl;
+  final String? posterUrl;
 
-  const MediaViewerVideoPlayer({super.key, required this.videoUrl});
+  /// True when this page is the viewer's current page. Sibling pages render
+  /// the poster backdrop without initializing a controller.
+  final bool isActive;
+
+  const MediaViewerVideoPlayer({
+    super.key,
+    required this.videoUrl,
+    this.posterUrl,
+    this.isActive = true,
+  });
 
   @override
   State<MediaViewerVideoPlayer> createState() => _MediaViewerVideoPlayerState();
@@ -32,13 +44,42 @@ class _MediaViewerVideoPlayerState extends State<MediaViewerVideoPlayer> {
   @override
   void initState() {
     super.initState();
-    _initializeVideo();
+    // Lazy init: sibling pages stay on the poster backdrop (zero video
+    // bytes) until swiped to — see didUpdateWidget.
+    if (widget.isActive) {
+      _initializeVideo();
+    }
     // Force landscape for fullscreen video
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
       DeviceOrientation.portraitUp,
     ]);
+  }
+
+  @override
+  void didUpdateWidget(MediaViewerVideoPlayer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.videoUrl != widget.videoUrl) {
+      _chewieController?.dispose();
+      _chewieController = null;
+      _videoPlayerController?.dispose();
+      _videoPlayerController = null;
+      _isInitialized = false;
+      _hasError = false;
+      if (widget.isActive) {
+        _initializeVideo();
+      }
+      return;
+    }
+    if (widget.isActive && !oldWidget.isActive) {
+      if (!_isInitialized && !_hasError) {
+        _initializeVideo();
+      }
+    }
+    if (!widget.isActive && oldWidget.isActive) {
+      _videoPlayerController?.pause();
+    }
   }
 
   Future<void> _initializeVideo() async {
@@ -69,7 +110,7 @@ class _MediaViewerVideoPlayerState extends State<MediaViewerVideoPlayer> {
                   .onSurfaceVariant
                   .withValues(alpha: 0.5),
             ),
-            placeholder: _buildShimmerPlaceholder(),
+            placeholder: _buildLoadingMat(),
             autoInitialize: true,
             errorBuilder: (context, errorMessage) {
               return _buildErrorState();
@@ -124,57 +165,78 @@ class _MediaViewerVideoPlayerState extends State<MediaViewerVideoPlayer> {
       width: double.infinity,
       height: double.infinity,
       color: Theme.of(context).colorScheme.scrim,
-      child: _isInitialized && _chewieController != null && !_hasError
-          ? SizedBox(
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Poster backdrop (cached photo, zero video bytes) behind player.
+          if (widget.posterUrl != null && widget.posterUrl!.isNotEmpty)
+            _buildPosterBackdrop(),
+          if (_isInitialized && _chewieController != null && !_hasError)
+            SizedBox(
               width: double.infinity,
               height: double.infinity,
               child: Chewie(controller: _chewieController!),
             )
-          : _hasError
-          ? _buildErrorState()
-          : _buildShimmerPlaceholder(),
+          else if (_hasError)
+            _buildErrorState()
+          else if (widget.posterUrl == null || widget.posterUrl!.isEmpty)
+            _buildLoadingMat(),
+        ],
+      ),
     );
   }
 
-  Widget _buildShimmerPlaceholder() {
-    final scheme = Theme.of(context).colorScheme;
-    return Shimmer.fromColors(
-      baseColor: scheme.outlineVariant,
-      highlightColor: scheme.onSurfaceVariant,
-      child: Container(
-        width: double.infinity,
-        height: double.infinity,
-        color: scheme.outlineVariant,
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.video_file_outlined,
-                size: 80,
-                color: scheme.onPrimary.withValues(alpha: 0.38),
-              ),
-              SizedBox(height: 16),
-              Text(
-                'Loading Video...',
-                style: TextStyle(
-                  color: scheme.onPrimary,
-                  fontSize: AppType.s18,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              SizedBox(height: 12),
-              SizedBox(
-                width: 200,
-                child: LinearProgressIndicator(
-                  backgroundColor: scheme.onPrimary.withValues(alpha: 0.24),
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    scheme.primary,
-                  ),
-                ),
-              ),
-            ],
+  Widget _buildPosterBackdrop() {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        ClipRect(
+          child: ImageFiltered(
+            imageFilter: ImageFilter.blur(
+              sigmaX: 20,
+              sigmaY: 20,
+              tileMode: TileMode.decal,
+            ),
+            child: AppImage(
+              imageUrl: widget.posterUrl,
+              fit: BoxFit.cover,
+              errorWidget: const SizedBox.shrink(),
+            ),
           ),
+        ),
+        Container(
+          color: Theme.of(context).colorScheme.scrim.withValues(alpha: 0.35),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLoadingMat() {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      color: scheme.scrim,
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.video_file_outlined,
+              size: AppIconSize.display,
+              color: scheme.onPrimary.withValues(alpha: 0.5),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: 200,
+              child: LinearProgressIndicator(
+                backgroundColor: scheme.onPrimary.withValues(alpha: 0.24),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  scheme.primary,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -192,7 +254,7 @@ class _MediaViewerVideoPlayerState extends State<MediaViewerVideoPlayer> {
           children: [
             Icon(
               Icons.error_outline,
-              size: 80,
+              size: AppIconSize.display,
               color: scheme.onPrimary.withValues(alpha: 0.7),
             ),
             const SizedBox(height: 16),
@@ -200,7 +262,7 @@ class _MediaViewerVideoPlayerState extends State<MediaViewerVideoPlayer> {
               'Video Failed to Load',
               style: TextStyle(
                 color: scheme.onPrimary,
-                fontSize: AppType.s18,
+                fontSize: AppType.s20,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -221,7 +283,7 @@ class _MediaViewerVideoPlayerState extends State<MediaViewerVideoPlayer> {
                 });
                 _initializeVideo();
               },
-              icon: const Icon(Icons.refresh, size: 20),
+              icon: const Icon(Icons.refresh, size: AppIconSize.action),
               label: const Text('Retry'),
             ),
           ],
@@ -398,7 +460,7 @@ class _CustomMaterialControlsState extends State<_CustomMaterialControls> {
                       ? Icons.volume_up
                       : Icons.volume_off,
                   color: Theme.of(context).colorScheme.onPrimary,
-                  size: 20,
+                  size: AppIconSize.action,
                 ),
                 onPressed: () {
                   setState(() {
@@ -418,7 +480,7 @@ class _CustomMaterialControlsState extends State<_CustomMaterialControls> {
                 icon: Icon(
                   Icons.speed,
                   color: Theme.of(context).colorScheme.onPrimary,
-                  size: 20,
+                  size: AppIconSize.action,
                 ),
                 onPressed: _showPlaybackSpeedMenu,
                 padding: EdgeInsets.zero,
@@ -433,7 +495,7 @@ class _CustomMaterialControlsState extends State<_CustomMaterialControls> {
                   icon: Icon(
                     Icons.fullscreen,
                     color: Theme.of(context).colorScheme.onPrimary,
-                    size: 20,
+                    size: AppIconSize.action,
                   ),
                   onPressed: widget.onFullscreenTap,
                   padding: EdgeInsets.zero,
@@ -485,7 +547,7 @@ class _CustomMaterialControlsState extends State<_CustomMaterialControls> {
                         : Theme.of(context).colorScheme.onPrimary.withValues(
                             alpha: 0.7,
                           ),
-                    size: 20,
+                    size: AppIconSize.action,
                   ),
                   title: Text(
                     '${speed}x',

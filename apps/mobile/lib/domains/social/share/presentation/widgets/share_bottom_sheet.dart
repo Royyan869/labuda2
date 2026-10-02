@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:labuda/shared/widgets/app_bottom_sheet_base.dart';
 import 'package:labuda/shared/widgets/app_snackbar.dart';
 import 'package:labuda/domains/social/share/domain/entities/share_target.dart';
 import 'package:labuda/domains/social/share/domain/entities/share_destination.dart';
@@ -55,16 +56,9 @@ class ShareBottomSheet extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Drag handle
-            Container(
-              margin: const EdgeInsets.only(top: AppMetrics.p12),
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: scheme.outlineVariant,
-                borderRadius: BorderRadius.circular(AppShape.r2),
-              ),
-            ),
+            // Drag handle — ONE authority: `AppDragHandle` beside the bottom-sheet
+            // base (this sheet keeps its `top p12`).
+            const AppDragHandle(padding: EdgeInsets.only(top: AppMetrics.p12)),
 
             // Scrollable content
             Flexible(

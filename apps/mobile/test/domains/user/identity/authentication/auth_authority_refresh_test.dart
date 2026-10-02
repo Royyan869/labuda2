@@ -1,4 +1,4 @@
-// PASS 2A / F2: refreshUserData()/_validateSession() must detect
+// PASS 2A / F2: forceRefreshAuthState()/_validateSession() must detect
 // authority-relevant changes, not just role changes.
 //
 // AuthController's mid-session refresh paths previously only compared
@@ -134,7 +134,7 @@ void main() {
         a == b,
         isTrue,
         reason:
-            'refreshUserData()/_validateSession() must NOT push a new '
+            'forceRefreshAuthState()/_validateSession() must NOT push a new '
             'AuthState (and rebuild the tree) when the fresh user is '
             'identical to the cached one',
       );

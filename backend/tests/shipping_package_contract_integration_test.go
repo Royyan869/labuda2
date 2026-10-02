@@ -152,7 +152,7 @@ func seedActiveForSaleLinkedTo(t *testing.T, ctx context.Context, tdb *testdb.Te
 	productID := uuid.New()
 	forSaleID := uuid.New()
 	require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
-		_, err := tx.Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, selling_surface, created_at, updated_at) VALUES ($1,$2,'live listing','desc','[]','Kohaku','immediate','for_sale',NOW(),NOW())`, productID, seller)
+		_, err := tx.Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, selling_surface, created_at, updated_at) VALUES ($1,$2,'live listing','desc','[]','Kohaku','1_3_days','for_sale',NOW(),NOW())`, productID, seller)
 		if err != nil {
 			return err
 		}

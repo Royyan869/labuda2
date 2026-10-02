@@ -142,7 +142,12 @@ func (r *feedRepositoryImpl) GetFeed(ctx context.Context, tx interface{}, viewer
 			COALESCE(json_agg(json_build_object(
 				'url', cm.media_url,
 				'type', cm.media_type,
-				'position', cm.position
+				'position', cm.position,
+				'blurhash', cm.blurhash,
+				'duration_ms', cm.duration_ms,
+				'width', cm.width,
+				'height', cm.height,
+				'status', cm.status
 			) ORDER BY cm.position) FILTER (WHERE cm.id IS NOT NULL), '[]') as media,
 			CASE
 				WHEN c.author_id = $1 OR f.follower_id IS NOT NULL THEN 0
@@ -334,8 +339,9 @@ func (r *feedRepositoryImpl) GetFeed(ctx context.Context, tx interface{}, viewer
 
 		// PHASE C — MediaRef convergence (Option D). Mirror legacy Type
 		// into the canonical-compatible Kind pointer for each hydrated
-		// FeedMedia element. Width/Height stay nil — no DB column, no
-		// inference. Legacy Type/Position remain populated as before.
+		// FeedMedia element. Width/Height/DurationMs hydrate from the
+		// content_media columns via the SQL aggregate above (NULL when
+		// unknown). Legacy Type/Position remain populated as before.
 		for idx := range item.Media {
 			t := item.Media[idx].Type
 			item.Media[idx].Kind = &t

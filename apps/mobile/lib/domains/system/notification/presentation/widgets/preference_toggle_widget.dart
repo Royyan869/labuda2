@@ -56,7 +56,7 @@ class PreferenceToggleWidget extends StatelessWidget {
                   color: effectiveEnabled
                       ? iconColor
                       : scheme.onSurfaceVariant,
-                  size: 22,
+                  size: AppIconSize.header,
                 ),
               ),
               const SizedBox(width: 12),
@@ -69,7 +69,7 @@ class PreferenceToggleWidget extends StatelessWidget {
                     Text(
                       title,
                       style: TextStyle(
-                        fontSize: AppType.s15,
+                        fontSize: AppType.s16,
                         fontWeight: FontWeight.w500,
                         color: effectiveEnabled
                             ? scheme.onSurface
@@ -80,7 +80,7 @@ class PreferenceToggleWidget extends StatelessWidget {
                     Text(
                       subtitle,
                       style: TextStyle(
-                        fontSize: AppType.s13,
+                        fontSize: AppType.s14,
                         color: effectiveEnabled
                             ? scheme.onSurfaceVariant
                             : scheme.onSurfaceVariant,

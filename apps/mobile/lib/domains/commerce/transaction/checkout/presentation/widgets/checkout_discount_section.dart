@@ -78,7 +78,7 @@ class _DiscountSection extends ConsumerWidget {
                 Icon(
                   Icons.check_circle,
                   color: context.statusColors.success,
-                  size: 20,
+                  size: AppIconSize.action,
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -88,7 +88,7 @@ class _DiscountSection extends ConsumerWidget {
                       Text(
                         'Kode "${appliedDiscount!.code}" berhasil diterapkan',
                         style: TextStyle(
-                          fontSize: AppType.s13,
+                          fontSize: AppType.s14,
                           fontWeight: FontWeight.w600,
                           color: context.statusColors.success,
                         ),

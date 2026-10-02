@@ -302,6 +302,17 @@ func (s *UserProfileService) GetPublicProfile(ctx context.Context, targetUserID 
 		pubStoreImageUpdatedAt = sellerState.StoreImageUpdatedAt
 	}
 
+	// Buyer-facing public origin ("City, Province") of the target's sender
+	// address — one redaction rule, one address authority, so the profile line
+	// and the commerce seller-card line can never disagree. Suppressed on
+	// degraded identities like every other public seller field.
+	var pubOriginLine *string
+	if lifecycle == "active" {
+		if line := publicOriginLineFor(ctx, tx, targetUserID); line != "" {
+			pubOriginLine = &line
+		}
+	}
+
 	// Build response.
 	//
 	// PUBLIC BOUNDARY: KYC verification flags (is_id_verified,
@@ -333,6 +344,7 @@ func (s *UserProfileService) GetPublicProfile(ctx context.Context, targetUserID 
 		StoreName:           pubStoreName,
 		StoreImageURL:       pubStoreImageURL,
 		StoreImageUpdatedAt: pubStoreImageUpdatedAt,
+		PublicOriginLine:    pubOriginLine,
 	}
 
 	return resp, nil
@@ -474,6 +486,12 @@ func (s *UserProfileService) entityToUserDTO(user *userEntity.User, roles []stri
 		SellerSubscriptionStatus: sellerState.SubscriptionStatus,
 		HasMarketAuthority:       sellerState.HasMarketAuthority,
 		SellerTier:               sellerState.Tier,
+		// Store identity travels with the self snapshot: same authority
+		// (seller_profiles) as the public projection, and the store image is
+		// resolved through the mediaresolve authority — never fabricated.
+		StoreName:           sellerState.StoreName,
+		StoreImageURL:       resolveMediaReadURL(sellerState.StoreImageURL),
+		StoreImageUpdatedAt: sellerState.StoreImageUpdatedAt,
 	}
 	return dto
 }

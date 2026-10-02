@@ -1,5 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:labuda/core/common/types/preparation_time.dart';
+
 import 'package:labuda/domains/commerce/catalog/auction/data/dto/auction_dto.dart';
 import 'package:labuda/domains/commerce/catalog/auction/data/mappers/auction_mapper.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
@@ -20,7 +22,12 @@ void main() {
         final dto = CreateAuctionDto(
           title: 'Showa Auction',
           description: 'Auction request payload',
-          mediaUrls: const ['https://cdn.example.com/a.jpg'],
+          media: const [
+            {
+              'url': 'https://cdn.example.com/a.jpg',
+              'blurhash': 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
+            },
+          ],
           variety: 'showa',
           sizeCm: 28,
           ageMonths: 18,
@@ -29,19 +36,25 @@ void main() {
           bloodline: 'Sakai',
           certificates: const ['cert-1'],
           farmAddressId: 'address-1',
+          preparationTime: '1_3_days',
           shippingSetupIds: const ['option-1', 'option-2'],
           startPrice: 1000000,
           bidIncrement: 50000,
           buyNowPrice: 2500000,
           startMode: 'now',
           durationHours: 72,
-          preparationNote: 'Handle with care',
         );
 
         final json = dto.toJson();
 
         expect(json['title'], 'Showa Auction');
-        expect(json['media_urls'], const ['https://cdn.example.com/a.jpg']);
+        expect(json['media'], const [
+          {
+            'url': 'https://cdn.example.com/a.jpg',
+            'blurhash': 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
+          },
+        ]);
+        expect(json.containsKey('media_urls'), isFalse);
         expect(json['variety'], 'showa');
         expect(json['size_cm'], 28);
         expect(json['age_months'], 18);
@@ -50,13 +63,13 @@ void main() {
         expect(json['bloodline'], 'Sakai');
         expect(json['certificates'], const ['cert-1']);
         expect(json['farm_address_id'], 'address-1');
+        expect(json['preparation_time'], '1_3_days');
         expect(json['shipping_option_ids'], const ['option-1', 'option-2']);
         expect(json['start_price'], 1000000);
         expect(json['bid_increment'], 50000);
         expect(json['buy_now_price'], 2500000);
         expect(json['start_mode'], 'now');
         expect(json['duration_hours'], 72);
-        expect(json['preparation_note'], 'Handle with care');
         expect(json.containsKey('scheduled_start_at'), isFalse);
 
         // Regression guard: the exact stale keys PASS_18D found must never
@@ -80,7 +93,7 @@ void main() {
       () {
         final dto = CreateAuctionDto(
           title: 'Showa Auction',
-          mediaUrls: const [],
+          media: const [],
           shippingSetupIds: const [],
           startPrice: 1000000,
           startMode: 'now',
@@ -103,7 +116,9 @@ void main() {
         final dto = CreateAuctionDto(
           title: 'Showa Auction',
           description: 'Auction request payload',
-          mediaUrls: const ['https://cdn.example.com/a.jpg'],
+          media: const [
+            {'url': 'https://cdn.example.com/a.jpg'},
+          ],
           shippingSetupIds: const ['option-1'],
           startPrice: 1000000,
           startMode: 'scheduled',
@@ -121,7 +136,7 @@ void main() {
 
     test(
       'AuctionMapper.toCreateDto threads koiDetails and shippingSetupIds through to the DTO, with no product/forSale ID',
-      () {
+      () async {
         final params = CreateAuctionParams(
           sellerId: 'seller-1',
           title: 'Showa Auction',
@@ -143,11 +158,11 @@ void main() {
           startMode: 'now',
           durationHours: 72,
           farmAddressId: 'address-1',
+          preparationTime: PreparationTime.days1_3,
           shippingSetupIds: const ['option-1', 'option-2'],
-          preparationNote: 'Handle with care',
         );
 
-        final dto = AuctionMapper.toCreateDto(params);
+        final dto = await AuctionMapper.toCreateDto(params);
         final json = dto.toJson();
 
         expect(json['variety'], 'showa');
@@ -158,9 +173,15 @@ void main() {
         expect(json['bloodline'], 'Sakai');
         expect(json['certificates'], const ['cert-1']);
         expect(json['farm_address_id'], 'address-1');
+        expect(json['preparation_time'], '1_3_days');
         expect(json['shipping_option_ids'], const ['option-1', 'option-2']);
-        expect(json['media_urls'], const ['https://cdn.example.com/a.jpg']);
-        expect(json['preparation_note'], 'Handle with care');
+        expect(
+          json['media'],
+          const [
+            {'type': 'image', 'url': 'https://cdn.example.com/a.jpg'},
+          ],
+        );
+        expect(json.containsKey('media_urls'), isFalse);
         expect(json.containsKey('product_id'), isFalse);
         expect(json.containsKey('for_sale_id'), isFalse);
       },
@@ -168,7 +189,7 @@ void main() {
 
     test(
       'AuctionMapper.toCreateDto omits empty certificates rather than sending []',
-      () {
+      () async {
         final params = CreateAuctionParams(
           sellerId: 'seller-1',
           title: 'Showa Auction',
@@ -185,10 +206,11 @@ void main() {
           bidIncrement: 50000,
           startMode: 'now',
           durationHours: 24,
+          preparationTime: PreparationTime.days1_3,
           shippingSetupIds: const ['option-1'],
         );
 
-        final dto = AuctionMapper.toCreateDto(params);
+        final dto = await AuctionMapper.toCreateDto(params);
 
         expect(dto.certificates, isNull);
         expect(dto.toJson().containsKey('certificates'), isFalse);

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
-import 'package:shimmer/shimmer.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 import 'package:labuda/core/src/theme/app_theme.dart';
+import 'package:labuda/shared/widgets/app_image.dart';
 
 /// Video Player Widget untuk Media Carousel
 ///
@@ -12,7 +13,10 @@ import 'package:labuda/core/src/theme/app_theme.dart';
 /// - Duration display
 /// - Custom fullscreen button (opens MediaViewerWidget, NOT Chewie fullscreen)
 /// - Error handling dan retry
-/// - Shimmer loading states
+/// - Static loading mat (shimmer is banned on media surfaces)
+/// - Visibility-aware: only initializes when [isActive] (the carousel's
+///   current page) and pauses when scrolled off-screen — adjacent/off-screen
+///   pages render the poster mat without ever calling `initialize()`.
 /// - Auto-dispose resources
 class CarouselVideoPlayer extends StatefulWidget {
   final String videoUrl;
@@ -20,6 +24,11 @@ class CarouselVideoPlayer extends StatefulWidget {
   final double height;
   final BoxFit fit;
   final VoidCallback? onFullscreenTap;
+  final String? posterUrl;
+
+  /// True when this player is the carousel's current page. Inactive pages
+  /// stay on the poster mat — no controller, no buffering, no battery drain.
+  final bool isActive;
 
   const CarouselVideoPlayer({
     super.key,
@@ -28,6 +37,8 @@ class CarouselVideoPlayer extends StatefulWidget {
     required this.height,
     this.fit = BoxFit.cover,
     this.onFullscreenTap,
+    this.posterUrl,
+    this.isActive = true,
   });
 
   @override
@@ -44,7 +55,11 @@ class _CarouselVideoPlayerState extends State<CarouselVideoPlayer> {
   @override
   void initState() {
     super.initState();
-    _initializeVideo();
+    // Lazy init: only the active page pays for a controller. Inactive pages
+    // render the poster mat until swiped to (see didUpdateWidget).
+    if (widget.isActive) {
+      _initializeVideo();
+    }
   }
 
   @override
@@ -53,7 +68,27 @@ class _CarouselVideoPlayerState extends State<CarouselVideoPlayer> {
     // Re-initialize if video URL changed
     if (oldWidget.videoUrl != widget.videoUrl) {
       _disposeControllers();
-      _initializeVideo();
+      if (widget.isActive) {
+        _initializeVideo();
+      }
+      return;
+    }
+    // Page became current → initialize now (was poster mat before).
+    if (widget.isActive && !oldWidget.isActive) {
+      if (!_isInitialized && !_hasError) {
+        _initializeVideo();
+      }
+    }
+    // Page left the viewport → stop playback immediately; the controller is
+    // kept so swiping back resumes without re-buffering.
+    if (!widget.isActive && oldWidget.isActive) {
+      _videoPlayerController?.pause();
+    }
+  }
+
+  void _onVisibilityChanged(VisibilityInfo info) {
+    if (info.visibleFraction == 0) {
+      _videoPlayerController?.pause();
     }
   }
 
@@ -96,7 +131,7 @@ class _CarouselVideoPlayerState extends State<CarouselVideoPlayer> {
                   .onSurfaceVariant
                   .withValues(alpha: 0.5),
             ),
-            placeholder: _buildShimmerPlaceholder(),
+            placeholder: _buildLoadingMat(),
             autoInitialize: true,
             errorBuilder: (context, errorMessage) {
               debugPrint('Chewie Error: $errorMessage');
@@ -147,14 +182,18 @@ class _CarouselVideoPlayerState extends State<CarouselVideoPlayer> {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: widget.width,
-      height: widget.height,
-      child: _isInitialized && _chewieController != null && !_hasError
-          ? _buildVideoPlayer()
-          : _hasError
-          ? _buildErrorState()
-          : _buildShimmerPlaceholder(),
+    return VisibilityDetector(
+      key: Key('carousel_video_${widget.videoUrl}'),
+      onVisibilityChanged: _onVisibilityChanged,
+      child: SizedBox(
+        width: widget.width,
+        height: widget.height,
+        child: _isInitialized && _chewieController != null && !_hasError
+            ? _buildVideoPlayer()
+            : _hasError
+            ? _buildErrorState()
+            : _buildLoadingMat(),
+      ),
     );
   }
 
@@ -166,31 +205,37 @@ class _CarouselVideoPlayerState extends State<CarouselVideoPlayer> {
     );
   }
 
-  Widget _buildShimmerPlaceholder() {
+  Widget _buildLoadingMat() {
     final scheme = Theme.of(context).colorScheme;
-    return Shimmer.fromColors(
-      baseColor: scheme.outlineVariant,
-      highlightColor: scheme.onSurfaceVariant,
-      child: Container(
-        width: widget.width,
-        height: widget.height,
-        color: scheme.outlineVariant,
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.video_file_outlined,
-                size: 48,
-                color: scheme.onPrimary.withValues(alpha: 0.38),
-              ),
-              SizedBox(height: 8),
-              Text(
-                'Loading Video...',
-                style: TextStyle(color: scheme.onPrimary, fontSize: AppType.s14),
-              ),
-            ],
+    if (widget.posterUrl != null && widget.posterUrl!.isNotEmpty) {
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          AppImage(
+            imageUrl: widget.posterUrl,
+            fit: BoxFit.contain,
+            backgroundColor: scheme.surfaceContainerHighest,
+            errorWidget: const SizedBox.shrink(),
           ),
+          Center(
+            child: Icon(
+              Icons.play_circle_fill,
+              size: AppIconSize.display,
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      );
+    }
+    return Container(
+      width: widget.width,
+      height: widget.height,
+      color: scheme.surfaceContainerHighest,
+      child: Center(
+        child: Icon(
+          Icons.video_file_outlined,
+          size: AppIconSize.display,
+          color: scheme.onSurfaceVariant.withValues(alpha: 0.5),
         ),
       ),
     );
@@ -208,7 +253,7 @@ class _CarouselVideoPlayerState extends State<CarouselVideoPlayer> {
           children: [
             Icon(
               Icons.error_outline,
-              size: 48,
+              size: AppIconSize.display,
               color: scheme.onPrimary.withValues(alpha: 0.7),
             ),
             const SizedBox(height: 8),
@@ -225,7 +270,7 @@ class _CarouselVideoPlayerState extends State<CarouselVideoPlayer> {
                 });
                 _initializeVideo();
               },
-              icon: const Icon(Icons.refresh, size: 16),
+              icon: const Icon(Icons.refresh, size: AppIconSize.inlineGlyph),
               label: const Text('Retry'),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(
@@ -408,7 +453,7 @@ class _CustomMaterialControlsState extends State<_CustomMaterialControls> {
                       ? Icons.volume_up
                       : Icons.volume_off,
                   color: Theme.of(context).colorScheme.onPrimary,
-                  size: 20,
+                  size: AppIconSize.action,
                 ),
                 onPressed: () {
                   setState(() {
@@ -428,7 +473,7 @@ class _CustomMaterialControlsState extends State<_CustomMaterialControls> {
                 icon: Icon(
                   Icons.speed,
                   color: Theme.of(context).colorScheme.onPrimary,
-                  size: 20,
+                  size: AppIconSize.action,
                 ),
                 onPressed: _showPlaybackSpeedMenu,
                 padding: EdgeInsets.zero,
@@ -443,7 +488,7 @@ class _CustomMaterialControlsState extends State<_CustomMaterialControls> {
                   icon: Icon(
                     Icons.fullscreen,
                     color: Theme.of(context).colorScheme.onPrimary,
-                    size: 20,
+                    size: AppIconSize.action,
                   ),
                   onPressed: widget.onFullscreenTap,
                   padding: EdgeInsets.zero,
@@ -495,7 +540,7 @@ class _CustomMaterialControlsState extends State<_CustomMaterialControls> {
                         : Theme.of(context).colorScheme.onPrimary.withValues(
                             alpha: 0.7,
                           ),
-                    size: 20,
+                    size: AppIconSize.action,
                   ),
                   title: Text(
                     '${speed}x',

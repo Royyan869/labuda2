@@ -44,13 +44,18 @@ func (m *mockAddressRepo) Delete(_ context.Context, _ db.Tx, _ uuid.UUID) error 
 func (m *mockAddressRepo) GetByUserID(_ context.Context, _ db.Tx, _ uuid.UUID) ([]*addressEntity.Address, error) {
 	return nil, nil
 }
+
+// GetByUserIDForDisplay is the public-display read (no checkout filter).
+func (m *mockAddressRepo) GetByUserIDForDisplay(_ context.Context, _ db.Tx, _ uuid.UUID) ([]*addressEntity.Address, error) {
+	return nil, nil
+}
 func (m *mockAddressRepo) GetByUserIDFiltered(_ context.Context, _ db.Tx, _ uuid.UUID, _ string) ([]*addressEntity.Address, error) {
 	return nil, nil
 }
 func (m *mockAddressRepo) GetPrimaryByUserID(_ context.Context, _ db.Tx, _ uuid.UUID) (*addressEntity.Address, error) {
 	return nil, nil
 }
-func (m *mockAddressRepo) GetPrimaryByUserIDFiltered(_ context.Context, _ db.Tx, _ uuid.UUID, _ string) (*addressEntity.Address, error) {
+func (m *mockAddressRepo) GetPrimaryByTag(_ context.Context, _ db.Tx, _ uuid.UUID, _ string) (*addressEntity.Address, error) {
 	return nil, nil
 }
 func (m *mockAddressRepo) SetPrimary(_ context.Context, _ db.Tx, _ uuid.UUID) error { return nil }
@@ -112,9 +117,9 @@ func TestEnsureFarmAddressValid_WrongOwner(t *testing.T) {
 	svc := &ForSaleService{
 		addressRepo: &mockAddressRepo{
 			address: &addressEntity.Address{
-				ID:      addressID,
-				UserID:  otherUserID, // Different from seller
-				Purpose: addressEntity.AddressPurposeSender,
+				ID:     addressID,
+				UserID: otherUserID, // Different from seller
+				Tags:   []addressEntity.AddressTag{addressEntity.TagSender},
 			},
 		},
 	}
@@ -132,16 +137,16 @@ func TestEnsureFarmAddressValid_WrongOwner(t *testing.T) {
 	assert.Contains(t, err.Error(), "does not belong to seller")
 }
 
-func TestEnsureFarmAddressValid_WrongPurpose(t *testing.T) {
+func TestEnsureFarmAddressValid_MissingSenderTag(t *testing.T) {
 	sellerID := uuid.New()
 	addressID := uuid.New()
 
 	svc := &ForSaleService{
 		addressRepo: &mockAddressRepo{
 			address: &addressEntity.Address{
-				ID:      addressID,
-				UserID:  sellerID,
-				Purpose: addressEntity.AddressPurposeShipping, // Wrong: should be "sender"
+				ID:     addressID,
+				UserID: sellerID,
+				Tags:   []addressEntity.AddressTag{addressEntity.TagShipping}, // Wrong: not tagged sender
 			},
 		},
 	}
@@ -156,7 +161,7 @@ func TestEnsureFarmAddressValid_WrongPurpose(t *testing.T) {
 
 	require.Error(t, err)
 	assert.True(t, errors.Is(err, ErrFarmAddressNotConfigured))
-	assert.Contains(t, err.Error(), "must have purpose 'sender'")
+	assert.Contains(t, err.Error(), "must carry the 'sender' tag")
 }
 
 func TestEnsureFarmAddressValid_ValidSenderAddress(t *testing.T) {
@@ -166,9 +171,9 @@ func TestEnsureFarmAddressValid_ValidSenderAddress(t *testing.T) {
 	svc := &ForSaleService{
 		addressRepo: &mockAddressRepo{
 			address: &addressEntity.Address{
-				ID:      addressID,
-				UserID:  sellerID,
-				Purpose: addressEntity.AddressPurposeSender,
+				ID:     addressID,
+				UserID: sellerID,
+				Tags:   []addressEntity.AddressTag{addressEntity.TagSender},
 			},
 		},
 	}

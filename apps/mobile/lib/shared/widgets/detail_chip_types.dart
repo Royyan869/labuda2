@@ -27,7 +27,7 @@ class DetailChipStyleUtils {
       case DetailChipSize.small:
         return const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4);
       case DetailChipSize.medium:
-        return const EdgeInsets.symmetric(horizontal: AppMetrics.p10, vertical: AppMetrics.p6);
+        return const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p8);
       case DetailChipSize.large:
         return const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p8);
     }

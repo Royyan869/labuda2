@@ -129,7 +129,7 @@ func (s *SellerHandlerTestSuite) seedCompleteOnboardingFixture(
 	address := &addressEntity.Address{
 		ID:                     uuid.New(),
 		UserID:                 userID,
-		Purpose:                addressEntity.AddressPurposeSender,
+		Tags:                   []addressEntity.AddressTag{addressEntity.TagSender},
 		Nickname:               "Farm",
 		RecipientName:          storeName,
 		Phone:                  "+628123456789",

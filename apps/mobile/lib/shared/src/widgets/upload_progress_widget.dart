@@ -85,7 +85,7 @@ class UploadProgressWidget extends ConsumerWidget {
                 Icon(
                   Icons.check_circle,
                   color: scheme.primary,
-                  size: 20,
+                  size: AppIconSize.action,
                 )
               else if (task.status == UploadTaskStatus.failed)
                 GestureDetector(
@@ -95,7 +95,7 @@ class UploadProgressWidget extends ConsumerWidget {
                   child: Icon(
                     Icons.close,
                     color: scheme.error,
-                    size: 20,
+                    size: AppIconSize.action,
                   ),
                 ),
             ],
@@ -136,7 +136,7 @@ class UploadProgressWidget extends ConsumerWidget {
               Text(
                 'Langkah ${task.currentStep} dari ${task.totalSteps}',
                 style: TextStyle(
-                  fontSize: AppType.s11,
+                  fontSize: AppType.s12,
                   color: scheme.onSurfaceVariant,
                 ),
               ),
@@ -149,7 +149,7 @@ class UploadProgressWidget extends ConsumerWidget {
             Text(
               task.errorMessage!,
               style: TextStyle(
-                fontSize: AppType.s11,
+                fontSize: AppType.s12,
                 color: scheme.error,
               ),
               maxLines: 2,

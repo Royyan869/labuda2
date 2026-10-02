@@ -115,9 +115,7 @@ export 'presentation/widgets/profile_feed_tab.dart';
 export 'presentation/widgets/profile_reviews_tab.dart';
 // REMOVED: presentation/widgets/address_card_widget.dart — DEAD (zero callers;
 // AddressListScreen renders its own _buildAddressCard).
-export 'presentation/widgets/address_empty_state_widget.dart';
 export 'presentation/widgets/address_form_dialog.dart';
-export 'presentation/widgets/add_edit_address_dialog.dart';
 export 'presentation/widgets/bank_account_card_widget.dart';
 export 'presentation/widgets/bank_account_empty_state_widget.dart';
 export 'presentation/widgets/personal_information_section.dart';

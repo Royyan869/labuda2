@@ -19,7 +19,7 @@ class ProfileInfoRow extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 100,
+            width: AppContentSize.termLabel,
             child: Text(
               label,
               style: TextStyle(

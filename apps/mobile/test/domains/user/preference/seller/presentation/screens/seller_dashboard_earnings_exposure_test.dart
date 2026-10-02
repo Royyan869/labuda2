@@ -233,7 +233,7 @@ AddressEntity _senderAddress() {
   return AddressEntity(
     id: 'sender-address-001',
     userId: _sellerUser().id,
-    purpose: AddressPurpose.sender,
+    tags: const [AddressTag.sender],
     recipientName: 'Farm Sentosa',
     phone: '08123456789',
     province: const Province(id: '33', name: 'Jawa Tengah'),

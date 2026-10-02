@@ -246,7 +246,6 @@ class OrderApiResponse {
 
   // Shipping Readiness Snapshot - frozen at order creation time
   final String? preparationTimeSnapshot;
-  final String? preparationNoteSnapshot;
   final DateTime? readyToShipBy;
 
   // SHIPPING CONFIRMATION TRUTH: tracking reference fields.
@@ -306,7 +305,6 @@ class OrderApiResponse {
     this.items = const [],
     this.shippingAddress,
     this.preparationTimeSnapshot,
-    this.preparationNoteSnapshot,
     this.readyToShipBy,
     this.trackingNumber,
     this.proofType,
@@ -368,7 +366,6 @@ class OrderApiResponse {
             )
           : null,
       preparationTimeSnapshot: json['preparation_time_snapshot'] as String?,
-      preparationNoteSnapshot: json['preparation_note_snapshot'] as String?,
       readyToShipBy: _parseOrderTimestamp(json['ready_to_ship_by']),
       // SHIPPING CONFIRMATION TRUTH: canonical tracking reference fields
       trackingNumber: json['tracking_number'] as String?,

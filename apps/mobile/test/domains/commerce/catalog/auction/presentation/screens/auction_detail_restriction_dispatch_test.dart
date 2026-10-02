@@ -72,9 +72,9 @@ class _FakeAddressRepository implements IAddressRepository {
   final List<AddressEntity> _addresses;
 
   @override
-  Future<Result<List<AddressEntity>>> getAddressesByPurpose(
+  Future<Result<List<AddressEntity>>> getAddressesByTag(
     String userId,
-    AddressPurpose purpose,
+    AddressTag tag,
   ) async => Result.success(_addresses);
 
   @override
@@ -239,7 +239,7 @@ Auction _auction({
       gender: 'male',
       breeder: 'Hiro',
       bloodline: 'Miyabi',
-      certificates: ['ownership'],
+      certificates: ['import'],
     ),
     openingBid: 1000000,
     currentBid: 1500000,
@@ -260,7 +260,7 @@ AddressEntity _shippingAddress() {
   return AddressEntity(
     id: 'address-1',
     userId: 'buyer-1',
-    purpose: AddressPurpose.shipping,
+    tags: const [AddressTag.shipping],
     recipientName: 'Buyer',
     phone: '08123456789',
     province: const Province(id: 'province-1', name: 'Jawa Barat'),

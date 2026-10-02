@@ -55,7 +55,7 @@ class _CoinBalanceCardState extends State<CoinBalanceCard> {
                 '• Bonus pendaftaran pengguna baru\n'
                 '• Promo dan kampanye khusus\n'
                 '• Reward referral dan ulasan',
-                style: TextStyle(fontSize: AppType.s13, height: 1.6),
+                style: TextStyle(fontSize: AppType.s14, height: 1.6),
               ),
               SizedBox(height: 12),
               Text(
@@ -94,7 +94,7 @@ class _CoinBalanceCardState extends State<CoinBalanceCard> {
 
     return Container(
       margin: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p12, AppMetrics.p16, AppMetrics.p12),
-      padding: const EdgeInsets.all(AppMetrics.p20),
+      padding: const EdgeInsets.all(AppMetrics.p24),
       decoration: BoxDecoration(
         gradient: AppColors.coinGradient,
         borderRadius: BorderRadius.circular(AppShape.r16),
@@ -115,12 +115,12 @@ class _CoinBalanceCardState extends State<CoinBalanceCard> {
             children: [
               Row(
                 children: [
-                  Icon(Icons.stars, color: colorScheme.onPrimary, size: 16),
+                  Icon(Icons.stars, color: colorScheme.onPrimary, size: AppIconSize.inlineGlyph),
                   const SizedBox(width: 6),
                   Text(
                     'Coins',
                     style: TextStyle(
-                      fontSize: AppType.s13,
+                      fontSize: AppType.s14,
                       color: colorScheme.onPrimary,
                       fontWeight: FontWeight.w500,
                     ),
@@ -131,7 +131,7 @@ class _CoinBalanceCardState extends State<CoinBalanceCard> {
                 icon: Icon(
                   Icons.info_outline,
                   color: colorScheme.onPrimary,
-                  size: 18,
+                  size: AppIconSize.action,
                 ),
                 onPressed: _showCoinInfo,
                 padding: EdgeInsets.zero,
@@ -156,7 +156,7 @@ class _CoinBalanceCardState extends State<CoinBalanceCard> {
                           ? '${formatGroupedAmount(widget.balance.balance)} Coins'
                           : '******** Coins',
                       style: TextStyle(
-                        fontSize: AppType.s28,
+                        fontSize: AppType.s24,
                         fontWeight: FontWeight.bold,
                         color: colorScheme.onPrimary,
                       ),
@@ -167,7 +167,7 @@ class _CoinBalanceCardState extends State<CoinBalanceCard> {
                           ? '~Potongan Rp ${formatGroupedAmount(widget.balance.balance * 10)}'
                           : '~Potongan Rp ********',
                       style: TextStyle(
-                        fontSize: AppType.s13,
+                        fontSize: AppType.s14,
                         color: colorScheme.onPrimary.withValues(alpha: 0.9),
                       ),
                     ),
@@ -178,7 +178,7 @@ class _CoinBalanceCardState extends State<CoinBalanceCard> {
                 icon: Icon(
                   _isBalanceVisible ? Icons.visibility_off : Icons.visibility,
                   color: colorScheme.onPrimary,
-                  size: 20,
+                  size: AppIconSize.action,
                 ),
                 onPressed: () =>
                     setState(() => _isBalanceVisible = !_isBalanceVisible),
@@ -192,7 +192,7 @@ class _CoinBalanceCardState extends State<CoinBalanceCard> {
           if (isNearMaxBalance || isAtMaxBalance) ...[
             const SizedBox(height: 12),
             Container(
-              padding: const EdgeInsets.all(AppMetrics.p10),
+              padding: const EdgeInsets.all(AppMetrics.p12),
               decoration: BoxDecoration(
                 color: isAtMaxBalance
                     ? context.statusColors.error.withValues(alpha: 0.3)
@@ -204,7 +204,7 @@ class _CoinBalanceCardState extends State<CoinBalanceCard> {
                   Icon(
                     isAtMaxBalance ? Icons.block : Icons.warning_amber,
                     color: colorScheme.onPrimary,
-                    size: 16,
+                    size: AppIconSize.inlineGlyph,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -213,7 +213,7 @@ class _CoinBalanceCardState extends State<CoinBalanceCard> {
                           ? 'Maksimal coins tercapai (1.000.000)'
                           : 'Mendekati batas maksimal coins',
                       style: TextStyle(
-                        fontSize: AppType.s11,
+                        fontSize: AppType.s12,
                         color: colorScheme.onPrimary,
                         fontWeight: FontWeight.w500,
                       ),
@@ -231,10 +231,10 @@ class _CoinBalanceCardState extends State<CoinBalanceCard> {
               width: double.infinity,
               child: OutlinedButton.icon(
                 onPressed: widget.onViewHistory,
-                icon: const Icon(Icons.history, size: 16),
+                icon: const Icon(Icons.history, size: AppIconSize.inlineGlyph),
                 label: const Text(
                   'Lihat Riwayat',
-                  style: TextStyle(fontSize: AppType.s13),
+                  style: TextStyle(fontSize: AppType.s14),
                 ),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: colorScheme.onPrimary,
@@ -242,7 +242,7 @@ class _CoinBalanceCardState extends State<CoinBalanceCard> {
                     color: colorScheme.onPrimary,
                     width: 1.5,
                   ),
-                  padding: const EdgeInsets.symmetric(vertical: AppMetrics.p10),
+                  padding: const EdgeInsets.symmetric(vertical: AppMetrics.p12),
                 ),
               ),
             ),

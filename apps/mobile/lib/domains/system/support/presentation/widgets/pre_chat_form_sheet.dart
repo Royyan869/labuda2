@@ -6,6 +6,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:labuda/shared/widgets/app_bottom_sheet_base.dart';
 import 'package:labuda/shared/widgets/app_snackbar.dart';
 import 'package:labuda/domains/system/support/domain/domain.dart';
 import 'package:labuda/domains/system/support/presentation/providers/support_providers.dart';
@@ -175,16 +176,11 @@ class _PreChatFormSheetRefactoredState
               crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Handle bar
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    margin: const EdgeInsets.only(bottom: AppMetrics.p20),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.outlineVariant,
-                      borderRadius: BorderRadius.circular(AppShape.r2),
-                    ),
+                // Handle bar — ONE authority: `AppDragHandle` beside the bottom-sheet
+                // base (this sheet keeps its larger `bottom p24` breath).
+                const Center(
+                  child: AppDragHandle(
+                    padding: EdgeInsets.only(bottom: AppMetrics.p24),
                   ),
                 ),
 
@@ -261,7 +257,7 @@ class _PreChatFormSheetRefactoredState
                           ),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.close, size: 20),
+                          icon: const Icon(Icons.close, size: AppIconSize.action),
                           onPressed: () {
                             setState(() => _linkedOrderId = null);
                           },

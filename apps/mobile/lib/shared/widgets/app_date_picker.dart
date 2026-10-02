@@ -165,6 +165,12 @@ class AppDatePicker extends StatelessWidget {
         final scheme = Theme.of(context).colorScheme;
         return StatefulBuilder(
           builder: (context, setState) {
+            // ONE name per number: the wheel shows three rows, so the
+            // viewport IS the item extent times three — retuning the row can
+            // no longer leave the box behind (or the reverse). Component-local
+            // policy: only this picker knows what a row is.
+            const wheelItemExtent = 40.0;
+            const wheelColumnWidth = 60.0;
             return AlertDialog(
               backgroundColor: scheme.surfaceContainerHigh,
               title: Text(
@@ -188,10 +194,10 @@ class AppDatePicker extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       SizedBox(
-                        height: 120,
-                        width: 60,
+                        height: wheelItemExtent * 3,
+                        width: wheelColumnWidth,
                         child: ListWheelScrollView.useDelegate(
-                          itemExtent: 40,
+                          itemExtent: wheelItemExtent,
                           physics: const FixedExtentScrollPhysics(),
                           onSelectedItemChanged: (index) {
                             setState(() {
@@ -208,7 +214,7 @@ class AppDatePicker extends StatelessWidget {
                                 child: Text(
                                   index.toString().padLeft(2, '0'),
                                   style: TextStyle(
-                                    fontSize: AppType.s18,
+                                    fontSize: AppType.s20,
                                     color: scheme.onSurface,
                                   ),
                                 ),
@@ -238,10 +244,10 @@ class AppDatePicker extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       SizedBox(
-                        height: 120,
-                        width: 60,
+                        height: wheelItemExtent * 3,
+                        width: wheelColumnWidth,
                         child: ListWheelScrollView.useDelegate(
-                          itemExtent: 40,
+                          itemExtent: wheelItemExtent,
                           physics: const FixedExtentScrollPhysics(),
                           onSelectedItemChanged: (index) {
                             setState(() {
@@ -259,7 +265,7 @@ class AppDatePicker extends StatelessWidget {
                                 child: Text(
                                   minute.toString().padLeft(2, '0'),
                                   style: TextStyle(
-                                    fontSize: AppType.s18,
+                                    fontSize: AppType.s20,
                                     color: scheme.onSurface,
                                   ),
                                 ),

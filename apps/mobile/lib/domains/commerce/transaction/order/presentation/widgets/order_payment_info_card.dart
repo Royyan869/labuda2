@@ -24,7 +24,7 @@ class OrderPaymentInfoCard extends StatelessWidget {
             children: [
               Icon(
                 Icons.payment_outlined,
-                size: 20,
+                size: AppIconSize.action,
                 color: _getPaymentStatusColor(context, colorScheme),
               ),
               const SizedBox(width: 8),
@@ -162,7 +162,7 @@ class _PaymentStatusBadge extends StatelessWidget {
         style: theme.textTheme.bodySmall?.copyWith(
           color: _getBadgeColor(context, ),
           fontWeight: FontWeight.w600,
-          fontSize: core.AppType.s11,
+          fontSize: core.AppType.s12,
         ),
       ),
     );

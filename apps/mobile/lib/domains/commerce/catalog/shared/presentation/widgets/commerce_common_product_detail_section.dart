@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:labuda/core/common/types/preparation_time.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/domain/entities/for_sale.dart';
+import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_certificate_selector.dart';
 import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_detail_primitives.dart';
 import 'package:labuda/core/src/theme/app_theme.dart';
 
@@ -16,7 +17,6 @@ class CommerceCommonProductDetailsData {
   final String? bloodline;
   final List<String> certificates;
   final PreparationTime? preparationTime;
-  final String? preparationNote;
   final String? description;
 
   const CommerceCommonProductDetailsData({
@@ -28,7 +28,6 @@ class CommerceCommonProductDetailsData {
     this.bloodline,
     this.certificates = const [],
     this.preparationTime,
-    this.preparationNote,
     this.description,
   });
 
@@ -40,9 +39,11 @@ class CommerceCommonProductDetailsData {
       gender: forSale.gender,
       breeder: forSale.breeder,
       bloodline: forSale.bloodline,
-      certificates: const [],
+      // Certificates are canonical Product content on the forSale read model —
+      // never hardcoded empty, otherwise seller-declared certificates would be
+      // stored on the backend and permanently invisible to buyers.
+      certificates: forSale.certificates,
       preparationTime: forSale.preparationTime,
-      preparationNote: forSale.preparationNote,
       description: forSale.description,
     );
   }
@@ -57,16 +58,14 @@ class CommerceCommonProductDetailsData {
       bloodline: auction.koiDetails.bloodline,
       certificates: auction.koiDetails.certificates,
       // Shipping readiness is canonical Product content on the auction detail
-      // wire (preparation_time / preparation_note) and is preserved on the
+      // wire (preparation_time) and is preserved on the
       // Auction read model — never dropped here.
       preparationTime: auction.preparationTime,
-      preparationNote: auction.preparationNote,
       description: auction.description,
     );
   }
 
-  bool get hasPreparationInfo =>
-      preparationTime != null || _isNotBlank(preparationNote);
+  bool get hasPreparationInfo => preparationTime != null;
 }
 
 class CommerceCommonProductDetailSection extends StatelessWidget {
@@ -179,11 +178,7 @@ class CommerceCommonProductDetailSection extends StatelessWidget {
     required String value,
     CommerceDetailValueLayout layout = CommerceDetailValueLayout.auto,
   }) {
-    return CommerceDetailLabelValue(
-      label: label,
-      value: value,
-      layout: layout,
-    );
+    return CommerceDetailLabelValue(label: label, value: value, layout: layout);
   }
 }
 
@@ -198,17 +193,9 @@ class _PreparationInfoBanner extends StatelessWidget {
     final preparationTime = data.preparationTime;
     final resolvedTitle = preparationTime == null
         ? 'Waktu persiapan'
-        : (preparationTime.isImmediate
-              ? 'Siap kirim langsung'
-              : 'Estimasi siap kirim: ${preparationTime.displayName.toLowerCase()}');
-    final resolvedDescription = preparationTime == null
-        ? (data.preparationNote ?? '')
-        : preparationTime.description;
-    final resolvedIcon = preparationTime == null
-        ? Icons.schedule_outlined
-        : (preparationTime.isImmediate
-              ? Icons.local_shipping_outlined
-              : Icons.schedule_outlined);
+        : 'Estimasi siap kirim: ${preparationTime.displayName.toLowerCase()}';
+    final resolvedDescription = preparationTime?.description ?? '';
+    final resolvedIcon = Icons.schedule_outlined;
 
     return Container(
       padding: const EdgeInsets.all(AppMetrics.p12),
@@ -225,7 +212,7 @@ class _PreparationInfoBanner extends StatelessWidget {
             children: [
               Icon(
                 resolvedIcon,
-                size: 16,
+                size: AppIconSize.inlineGlyph,
                 color: theme.colorScheme.onSurfaceVariant,
               ),
               const SizedBox(width: 8),
@@ -258,15 +245,6 @@ class _PreparationInfoBanner extends StatelessWidget {
               fontStyle: FontStyle.italic,
             ),
           ),
-          if (_isNotBlank(data.preparationNote) && preparationTime != null) ...[
-            const SizedBox(height: 8),
-            Text(
-              data.preparationNote!,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
         ],
       ),
     );
@@ -317,19 +295,17 @@ String? _formatCertificates(List<String> certificates) {
 }
 
 String? _formatCertificate(String value) {
-  switch (value.trim().toLowerCase()) {
-    case 'breeder':
-      return 'Breeder';
-    case 'contest':
-      return 'Kontes';
-    case 'ownership':
-      return 'Kepemilikan';
-    case 'health':
-      return 'Kesehatan';
-    default:
-      return null;
+  // Label authority lives in [commerceCertificateOptions]; this function only
+  // resolves a wire value to that list's label.
+  final normalized = value.trim().toLowerCase();
+  for (final option in commerceCertificateOptions) {
+    if (option.value == normalized) {
+      return option.label;
+    }
   }
+  return null;
 }
+
 String _titleCase(String value) {
   return value
       .split(RegExp(r'\s+'))

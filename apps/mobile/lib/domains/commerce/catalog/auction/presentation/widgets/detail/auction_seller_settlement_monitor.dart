@@ -128,7 +128,7 @@ class _AuctionSellerSettlementMonitorState
           child: Text(
             _getStatusTitle(),
             style: TextStyle(
-              fontSize: AppType.s15,
+              fontSize: AppType.s16,
               fontWeight: FontWeight.w600,
               color: colorScheme.onSurface,
             ),
@@ -198,14 +198,14 @@ class _AuctionSellerSettlementMonitorState
       children: [
         Text(
           'Menunggu pembayaran dari pemenang',
-          style: TextStyle(fontSize: AppType.s13, color: colorScheme.onSurface),
+          style: TextStyle(fontSize: AppType.s14, color: colorScheme.onSurface),
         ),
         const SizedBox(height: 8),
         Row(
           children: [
             Icon(
               Icons.schedule,
-              size: 14,
+              size: AppIconSize.inlineGlyph,
               color: colorScheme.onSurfaceVariant,
             ),
             const SizedBox(width: 4),
@@ -231,7 +231,7 @@ class _AuctionSellerSettlementMonitorState
       children: [
         Text(
           'Pembayaran sedang diproses',
-          style: TextStyle(fontSize: AppType.s13, color: colorScheme.onSurface),
+          style: TextStyle(fontSize: AppType.s14, color: colorScheme.onSurface),
         ),
         const SizedBox(height: 12),
         // TODO: Add link to order when order_id is available
@@ -239,7 +239,7 @@ class _AuctionSellerSettlementMonitorState
         // or a separate API to get order info for auction
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: AppMetrics.p10),
+          padding: const EdgeInsets.symmetric(vertical: AppMetrics.p12),
           decoration: BoxDecoration(
             color: _getStatusIconColor().withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(AppShape.r6),
@@ -249,14 +249,14 @@ class _AuctionSellerSettlementMonitorState
             children: [
               Icon(
                 Icons.receipt_long,
-                size: 16,
+                size: AppIconSize.inlineGlyph,
                 color: colorScheme.onSurface,
               ),
               const SizedBox(width: 8),
               Text(
                 'Lihat Pesanan',
                 style: TextStyle(
-                  fontSize: AppType.s13,
+                  fontSize: AppType.s14,
                   fontWeight: FontWeight.w500,
                   color: colorScheme.onSurface,
                 ),
@@ -303,12 +303,12 @@ class _AuctionSellerSettlementMonitorState
 
         return Row(
           children: [
-            Icon(Icons.access_time, size: 14, color: timeColor),
+            Icon(Icons.access_time, size: AppIconSize.inlineGlyph, color: timeColor),
             const SizedBox(width: 4),
             Text(
               timeText,
               style: TextStyle(
-                fontSize: AppType.s13,
+                fontSize: AppType.s14,
                 fontWeight: FontWeight.w600,
                 color: timeColor,
               ),

@@ -29,8 +29,9 @@ import (
 //     unmarshal of the per-row aggregate). Never nil in practice
 //     once hydrated; nil only if the entity is constructed without
 //     going through repository hydration.
-//   - Width / Height are always nil in this layer — no DB column,
-//     no inference, no remote fetch.
+//   - Width / Height / DurationMs hydrate from the content_media
+//     columns (client-provisional until the video worker
+//     canonicalizes them). NULL when unknown.
 type FeedMedia struct {
 	URL      string `json:"url"`
 	Type     string `json:"type"` // "image" or "video"
@@ -42,9 +43,17 @@ type FeedMedia struct {
 	Kind   *string `json:"kind"`
 	Width  *int    `json:"width"`
 	Height *int    `json:"height"`
+	// Video duration in milliseconds, hydrated from content_media.
+	// NULL for images and for videos whose metadata never arrived.
+	DurationMs *int `json:"duration_ms"`
+	// Processing state, hydrated from content_media (column is NOT NULL
+	// with legacy default ready, so this is always present post-query).
+	Status *string `json:"status"`
 	// Lambda thumbnail variant of URL, hydrated at projection. List
 	// surfaces render it; detail renders URL (untouched original).
 	ThumbnailURL *string `json:"thumbnail_url"`
+	// BlurHash placeholder persisted at upload, hydrated from content_media.
+	Blurhash *string `json:"blurhash,omitempty"`
 }
 
 // FeedItem represents a single content item in the feed.

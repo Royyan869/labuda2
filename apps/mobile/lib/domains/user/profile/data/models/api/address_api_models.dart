@@ -2,26 +2,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'address_api_models.g.dart';
 
-/// Address purpose enum matching backend
-enum AddressPurposeApi {
-  @JsonValue('shipping')
-  shipping,
-  @JsonValue('sender')
-  sender,
-}
-
-/// Extension to convert API enum to domain enum
-extension AddressPurposeApiExt on AddressPurposeApi {
-  String get value {
-    switch (this) {
-      case AddressPurposeApi.shipping:
-        return 'shipping';
-      case AddressPurposeApi.sender:
-        return 'sender';
-    }
-  }
-}
-
 // =====================================
 // Request DTOs
 // =====================================
@@ -29,7 +9,8 @@ extension AddressPurposeApiExt on AddressPurposeApi {
 /// Create address request matching backend
 @JsonSerializable()
 class CreateAddressRequestApi {
-  final String purpose;
+  /// Role tags for this address: a non-empty subset of `shipping`/`sender`.
+  final List<String> tags;
   final String? nickname;
   @JsonKey(name: 'recipient_name')
   final String recipientName;
@@ -61,7 +42,7 @@ class CreateAddressRequestApi {
   final double? longitude;
 
   const CreateAddressRequestApi({
-    required this.purpose,
+    required this.tags,
     this.nickname,
     required this.recipientName,
     required this.phone,
@@ -90,6 +71,8 @@ class CreateAddressRequestApi {
 /// Update address request matching backend
 @JsonSerializable()
 class UpdateAddressRequestApi {
+  /// Role tags for this address. Null leaves the stored tag set untouched.
+  final List<String>? tags;
   final String? nickname;
   @JsonKey(name: 'recipient_name')
   final String? recipientName;
@@ -119,6 +102,7 @@ class UpdateAddressRequestApi {
   final double? longitude;
 
   const UpdateAddressRequestApi({
+    this.tags,
     this.nickname,
     this.recipientName,
     this.phone,
@@ -153,9 +137,14 @@ class AddressResponseApi {
   final String id;
   @JsonKey(name: 'user_id')
   final String userId;
-  final String purpose;
-  @JsonKey(name: 'purpose_label')
-  final String purposeLabel;
+
+  /// Role tags held by this address (`shipping`, `sender`, ...).
+  final List<String> tags;
+
+  /// Localized names for [tags], in the same order.
+  @JsonKey(name: 'tag_labels')
+  final List<String> tagLabels;
+
   final String? nickname;
   @JsonKey(name: 'display_label')
   final String displayLabel;
@@ -201,8 +190,8 @@ class AddressResponseApi {
   const AddressResponseApi({
     required this.id,
     required this.userId,
-    required this.purpose,
-    required this.purposeLabel,
+    required this.tags,
+    required this.tagLabels,
     this.nickname,
     required this.displayLabel,
     required this.recipientName,

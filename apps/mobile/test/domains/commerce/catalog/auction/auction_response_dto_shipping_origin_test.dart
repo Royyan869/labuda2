@@ -1,4 +1,4 @@
-// Auction detail wire — origin/shipping NEGATIVE CONTRACT + Product address
+// Auction detail wire — buyer-facing ORIGIN contract + Product address
 // POSITIVE CONTRACT.
 //
 // Backend authority (GET /api/v1/auctions → auctionToResponseWithSeller and
@@ -6,23 +6,29 @@
 // auction payload carries the shared Product content block
 // (shared.ProductContentWireKeys = title, description, media, media_urls,
 // variety, size_cm, age_months, gender, breeder, bloodline, certificates,
-// farm_address_id, preparation_time, preparation_note) plus seller scalars /
-// viewer_capabilities. It does NOT emit `origin` (a rendered address string)
-// or `shipping_options`.
+// farm_address_id, preparation_time) plus seller scalars /
+// viewer_capabilities. The DETAIL payload additionally carries
+// `public_origin_line` — the buyer-facing origin summary of the listing's
+// sender address ("City, Province").
 //
 // CANONICAL TRUTH (Product = single content authority):
 //   - `farm_address_id` IS Product content. The backend accepts it on create
 //     (CreateAuctionRequest.farm_address_id) and emits it on every read
 //     payload, exactly like for_sale. The Auction read model therefore maps
 //     it — an always-null slot would be a lie about the payload it received.
-//   - Shipping for an auction is resolved at CLAIM time through the canonical
-//     shipping domain (checkDeliveryAvailability → /auctions/:id/claim with
-//     address_id + shipping_option_id). The read model carries only the
-//     address ID — never a rendered origin/shipping surface.
+//   - `public_origin_line` is the ONE origin transport, and it is DETAIL-ONLY:
+//     it is resolved by the backend from Product.FarmAddressID (seller primary
+//     sender address as fallback) and is already redacted to city + province.
+//     A rendered FULL address string (`origin`) and `shipping_options` are
+//     still NOT emitted — street, district, recipient and phone never cross
+//     the public boundary, and shipping for an auction is resolved at CLAIM
+//     time (checkDeliveryAvailability → /auctions/:id/claim with address_id +
+//     shipping_option_id).
 //
-// These tests pin that: absence stays absent, the address ID maps honestly
-// (for_sale parity), and even an illegal payload that smuggles `origin` /
-// `shipping_options` is ignored (no model, no exception).
+// These tests pin that: absence stays absent (hidden, never fabricated), the
+// address ID maps honestly (for_sale parity), the origin summary maps, and
+// even an illegal payload that smuggles `origin` / `shipping_options` is
+// ignored (no model, no exception).
 import 'package:flutter_test/flutter_test.dart';
 import 'package:labuda/domains/commerce/catalog/auction/data/dto/auction_dto.dart';
 import 'package:labuda/domains/commerce/catalog/auction/data/mappers/auction_mapper.dart';
@@ -42,8 +48,7 @@ Map<String, dynamic> _canonicalDetailJson() {
     'breeder': 'Akira',
     'bloodline': 'Matsunosuke',
     'certificates': <String>['breeder', 'health'],
-    'preparation_time': 'immediate',
-    'preparation_note': 'Pickup ready',
+    'preparation_time': '1_3_days',
     'start_price': 500000,
     'bid_increment': 25000,
     'buy_now_price': 800000,
@@ -104,8 +109,29 @@ void main() {
       final entity = AuctionMapper.toEntity(dto);
 
       // Parsed without exception, and the read model does NOT adopt any
-      // rendered origin/shipping surface from the illegal keys.
+      // rendered origin/shipping surface from the illegal keys. A full street
+      // address string is not an acceptable origin transport.
       expect(entity.farmAddressId, isNull);
+      expect(entity.publicOriginLine, isNull);
     },
   );
+
+  test('canonical detail wire maps the buyer-facing origin summary', () {
+    final payload = _canonicalDetailJson()
+      ..['public_origin_line'] = 'Magelang, Jawa Tengah';
+
+    final dto = AuctionDto.fromJson(payload);
+    final entity = AuctionMapper.toEntity(dto);
+
+    expect(entity.publicOriginLine, 'Magelang, Jawa Tengah');
+  });
+
+  test('discovery payloads hide the origin instead of fabricating one', () {
+    final dto = AuctionDto.fromJson(_canonicalDetailJson());
+    final entity = AuctionMapper.toEntity(dto);
+
+    // The wire slot is detail-only; a list payload omits it and the read model
+    // keeps a null slot (the seller card then hides the line).
+    expect(entity.publicOriginLine, isNull);
+  });
 }

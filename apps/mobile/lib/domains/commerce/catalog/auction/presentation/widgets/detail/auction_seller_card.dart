@@ -22,6 +22,7 @@ class AuctionSellerCard extends StatelessWidget {
       username: auction.sellerUsername,
       storeName: auction.sellerFarmName,
       avatarUrl: auction.sellerAvatar,
+      originLine: auction.publicOriginLine,
       sellerUserLifecycle: auction.sellerUserLifecycle,
       sellerTrustLifecycle: auction.sellerTrustLifecycle,
       tier: auction.sellerTier,

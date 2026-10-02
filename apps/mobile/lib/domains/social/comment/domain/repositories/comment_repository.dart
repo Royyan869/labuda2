@@ -38,11 +38,15 @@ abstract class CommentRepository {
   /// CONTRACT: This creates a seller response attached to exactly one
   /// commerce resource identity. The backend enforces ownership and
   /// market authority.
+  ///
+  /// One tap = one row: [mediaUrls] ride on the same commerce-reference
+  /// row (persisted atomically), never as a second comment.
   Future<Result<Comment>> createCommerceReferenceComment({
     required String contentId,
     required String resourceType,
     required String resourceId,
     String? body,
+    List<String> mediaUrls = const [],
   });
 
   /// Delete a comment (soft delete)

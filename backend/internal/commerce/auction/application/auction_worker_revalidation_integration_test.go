@@ -112,7 +112,7 @@ func TestEndWorker_Revalidation_StaleEndCandidate_Skipped(t *testing.T) {
 	err := dbWrap.WithTx(ctx, func(tx db.Tx) error {
 		sellerID = seedRevalidationUser(t, ctx, tx)
 		productID = uuid.New()
-		_, err := tx.Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, created_at, updated_at) VALUES ($1,$2,'Koi','desc','[]','kohaku','immediate',NOW(),NOW())`, productID, sellerID)
+		_, err := tx.Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, created_at, updated_at) VALUES ($1,$2,'Koi','desc','[]','kohaku','1_3_days',NOW(),NOW())`, productID, sellerID)
 		return err
 	})
 	require.NoError(t, err)
@@ -161,7 +161,7 @@ func TestEndWorker_Revalidation_StaleWithWinner_Skipped(t *testing.T) {
 	err := dbWrap.WithTx(ctx, func(tx db.Tx) error {
 		sellerID = seedRevalidationUser(t, ctx, tx)
 		productID = uuid.New()
-		_, err := tx.Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, created_at, updated_at) VALUES ($1,$2,'Koi','desc','[]','kohaku','immediate',NOW(),NOW())`, productID, sellerID)
+		_, err := tx.Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, created_at, updated_at) VALUES ($1,$2,'Koi','desc','[]','kohaku','1_3_days',NOW(),NOW())`, productID, sellerID)
 		return err
 	})
 	require.NoError(t, err)
@@ -204,7 +204,7 @@ func TestEndWorker_NormalExpired_NoWinner_Ends(t *testing.T) {
 	err := dbWrap.WithTx(ctx, func(tx db.Tx) error {
 		sellerID = seedRevalidationUser(t, ctx, tx)
 		productID = uuid.New()
-		_, err := tx.Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, created_at, updated_at) VALUES ($1,$2,'Koi','desc','[]','kohaku','immediate',NOW(),NOW())`, productID, sellerID)
+		_, err := tx.Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, created_at, updated_at) VALUES ($1,$2,'Koi','desc','[]','kohaku','1_3_days',NOW(),NOW())`, productID, sellerID)
 		return err
 	})
 	require.NoError(t, err)
@@ -240,7 +240,7 @@ func TestEndWorker_NormalExpired_WithWinner_WaitingSettlement_EntityProof(t *tes
 	require.NoError(t, err)
 	_, err = pool.Exec(ctx, `INSERT INTO users (id, firebase_uid, email, email_verified_at, account_status, created_at, updated_at) VALUES ($1,$2,$3,NOW(),'active',NOW(),NOW())`, winnerID, "fb-"+winnerID.String(), winnerID.String()+"@test.invalid")
 	require.NoError(t, err)
-	_, err = pool.Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, created_at, updated_at) VALUES ($1,$2,'Koi','desc','[]','kohaku','immediate',NOW(),NOW())`, productID, sellerID)
+	_, err = pool.Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, created_at, updated_at) VALUES ($1,$2,'Koi','desc','[]','kohaku','1_3_days',NOW(),NOW())`, productID, sellerID)
 	require.NoError(t, err)
 
 	endExpired := time.Now().Add(-10 * time.Second)
@@ -266,7 +266,7 @@ func TestStartWorker_Revalidation_StaleScheduled_Skipped(t *testing.T) {
 	err := dbWrap.WithTx(ctx, func(tx db.Tx) error {
 		sellerID = seedRevalidationUser(t, ctx, tx)
 		productID = uuid.New()
-		_, err := tx.Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, created_at, updated_at) VALUES ($1,$2,'Koi','desc','[]','kohaku','immediate',NOW(),NOW())`, productID, sellerID)
+		_, err := tx.Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, created_at, updated_at) VALUES ($1,$2,'Koi','desc','[]','kohaku','1_3_days',NOW(),NOW())`, productID, sellerID)
 		return err
 	})
 	require.NoError(t, err)
@@ -311,7 +311,7 @@ func TestStartWorker_NormalScheduled_Activates(t *testing.T) {
 	err := dbWrap.WithTx(ctx, func(tx db.Tx) error {
 		sellerID = seedRevalidationUser(t, ctx, tx)
 		productID = uuid.New()
-		_, err := tx.Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, created_at, updated_at) VALUES ($1,$2,'Koi','desc','[]','kohaku','immediate',NOW(),NOW())`, productID, sellerID)
+		_, err := tx.Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, created_at, updated_at) VALUES ($1,$2,'Koi','desc','[]','kohaku','1_3_days',NOW(),NOW())`, productID, sellerID)
 		return err
 	})
 	require.NoError(t, err)
@@ -344,7 +344,7 @@ func TestStartWorker_FutureScheduled_RemainsScheduled(t *testing.T) {
 	err := dbWrap.WithTx(ctx, func(tx db.Tx) error {
 		sellerID = seedRevalidationUser(t, ctx, tx)
 		productID = uuid.New()
-		_, err := tx.Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, created_at, updated_at) VALUES ($1,$2,'Koi','desc','[]','kohaku','immediate',NOW(),NOW())`, productID, sellerID)
+		_, err := tx.Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, created_at, updated_at) VALUES ($1,$2,'Koi','desc','[]','kohaku','1_3_days',NOW(),NOW())`, productID, sellerID)
 		return err
 	})
 	require.NoError(t, err)
@@ -376,7 +376,7 @@ func TestCancellationInteraction_ScheduledCancelled_NoActivation(t *testing.T) {
 	err := dbWrap.WithTx(ctx, func(tx db.Tx) error {
 		sellerID = seedRevalidationUser(t, ctx, tx)
 		productID = uuid.New()
-		_, err := tx.Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, created_at, updated_at) VALUES ($1,$2,'Koi','desc','[]','kohaku','immediate',NOW(),NOW())`, productID, sellerID)
+		_, err := tx.Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, created_at, updated_at) VALUES ($1,$2,'Koi','desc','[]','kohaku','1_3_days',NOW(),NOW())`, productID, sellerID)
 		return err
 	})
 	require.NoError(t, err)
@@ -411,7 +411,7 @@ func TestCancellationInteraction_ActiveCancelled_NoEnd(t *testing.T) {
 	err := dbWrap.WithTx(ctx, func(tx db.Tx) error {
 		sellerID = seedRevalidationUser(t, ctx, tx)
 		productID = uuid.New()
-		_, err := tx.Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, created_at, updated_at) VALUES ($1,$2,'Koi','desc','[]','kohaku','immediate',NOW(),NOW())`, productID, sellerID)
+		_, err := tx.Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, created_at, updated_at) VALUES ($1,$2,'Koi','desc','[]','kohaku','1_3_days',NOW(),NOW())`, productID, sellerID)
 		return err
 	})
 	require.NoError(t, err)

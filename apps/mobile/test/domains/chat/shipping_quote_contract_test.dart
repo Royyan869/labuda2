@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:labuda/domains/chat/chat/presentation/screens/chat_detail_screen.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/data/dto/shipping_quote_dto.dart';
+import 'package:labuda/domains/commerce/transaction/shipping/presentation/shipping_quote_intent.dart';
 import 'package:labuda/shared/attachment/entities/attachment.dart';
 
 // Canonical distinct UUIDs for ID-confusion proof tests.
@@ -19,6 +20,8 @@ void main() {
         forSaleId: _fixedPriceSaleId,
         cost: 25000,
         note: 'catatan',
+        destinationCityId: '3171',
+        destinationProvinceId: '31',
       );
 
       expect(request.productId, _productId);
@@ -33,6 +36,9 @@ void main() {
       expect(json['source_id'], _fixedPriceSaleId);
       expect(json['cost'], 25000);
       expect(json['note'], 'catatan');
+      // Destination lock travels on every FPS quote wire (kota/kabupaten).
+      expect(json['destination_city_id'], '3171');
+      expect(json['destination_province_id'], '31');
       expect(json.containsKey('for_sale_id'), isFalse);
       expect(json.containsKey('auction_id'), isFalse);
     },
@@ -41,7 +47,7 @@ void main() {
   // ── B. Auction shipping quote checkout target ───────────────────────────────
 
   test(
-    'auction ShippingQuoteCheckoutTarget carries productId and auctionId distinctly',
+    'auction ShippingQuoteCheckoutTarget carries the auctionId surface only',
     () async {
       final attachment = ShippingQuoteAttachment(
         offerId: 'offer-1',
@@ -60,21 +66,14 @@ void main() {
 
       final target = await resolveShippingQuoteCheckoutTarget(
         shippingQuote: attachment,
-        resolveAuctionProductId: (auctionId) async {
-          // Callback returns the product ID — must differ from auctionId
-          expect(auctionId, _auctionId);
-          return _productId;
-        },
       );
 
       expect(target, isNotNull);
-      // Auction path: auctionId and productId are populated, fixedPriceSaleId is null
+      // Auction path: the auctionId surface is what chat forwards.
+      // The physical product id is resolved by the commerce intent
+      // (openAuctionCheckout) — never by chat.
       expect(target!.auctionId, _auctionId);
-      expect(target.productId, _productId);
       expect(target.forSaleId, isNull);
-
-      // Distinct-ID proof: productId must not equal auctionId
-      expect(target.productId, isNot(equals(target.auctionId)));
       // productId must not appear in the auctionId slot
       expect(target.auctionId, isNot(equals(_productId)));
       // auctionId must not appear in the fixedPriceSaleId slot
@@ -104,15 +103,11 @@ void main() {
 
       final target = await resolveShippingQuoteCheckoutTarget(
         shippingQuote: attachment,
-        resolveAuctionProductId: (_) async {
-          fail('resolveAuctionProductId must not be called for FPS quotes');
-        },
       );
 
       expect(target, isNotNull);
       expect(target!.forSaleId, _fixedPriceSaleId);
       expect(target.auctionId, isNull);
-      expect(target.productId, isNull);
       // FPS: fixedPriceSaleId is not productId and not auctionId
       expect(target.forSaleId, isNot(equals(_productId)));
       expect(target.forSaleId, isNot(equals(_auctionId)));

@@ -13,6 +13,8 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/domains/social/comment/domain/entities/comment.dart';
+import 'package:labuda/domains/social/content/domain/entities/content.dart';
+import 'package:labuda/features/home/presentation/widgets/feed_media_mosaic.dart';
 import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/domains/social/content/presentation/widgets/content_resource_projection_card.dart';
 import 'package:labuda/domains/social/like/domain/entities/like.dart';
@@ -160,41 +162,26 @@ class CommentCard extends ConsumerWidget {
     }
   }
 
+  /// Comment media renders through the canonical [FeedMediaMosaic] — the same
+  /// frame family as content. Taps bubble to the card.
   Widget _buildMedia(BuildContext context) {
-    final ordered = [...comment.media]..sort((a, b) => a.position.compareTo(b.position));
-    return SizedBox(
-      height: 96,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: ordered.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          final media = ordered[index];
-          return ClipRRect(
-            borderRadius: BorderRadius.circular(AppShape.r8),
-            child: media.isVideo
-                ? Container(
-                    width: 96,
-                    height: 96,
-                    color: Theme.of(context).colorScheme.scrim,
-                    child: Icon(Icons.play_circle_outline,
-                        color: Theme.of(context).colorScheme.onPrimary,
-                        size: 36),
-                  )
-                : AppImage(
-                    imageUrl: media.mediaUrl,
-                    width: 96,
-                    height: 96,
-                    cacheWidth: 192,
-                    fit: BoxFit.cover,
-                    errorWidget: Container(
-                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                      child: const Icon(Icons.broken_image_outlined),
-                    ),
-                  ),
-          );
-        },
-      ),
+    final ordered = [...comment.media]
+      ..sort((a, b) => a.position.compareTo(b.position));
+    return FeedMediaMosaic(
+      media: [
+        for (final item in ordered)
+          MediaEntity(
+            id: item.id,
+            originalUrl: item.mediaUrl,
+            type: item.isVideo ? MediaType.video : MediaType.image,
+            position: item.position,
+            createdAt: comment.createdAt,
+            variants: {
+              if (item.thumbnailUrl != null && item.thumbnailUrl!.isNotEmpty)
+                'thumbnail': item.thumbnailUrl!,
+            },
+          ),
+      ],
     );
   }
 
@@ -244,11 +231,11 @@ class CommentCard extends ConsumerWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.reply, size: 16, color: scheme.onSurfaceVariant),
+            Icon(Icons.reply, size: AppIconSize.inlineGlyph, color: scheme.onSurfaceVariant),
             const SizedBox(width: 4),
             Text(
               'Balas',
-              style: TextStyle(fontSize: AppType.s13, color: scheme.onSurfaceVariant),
+              style: TextStyle(fontSize: AppType.s14, color: scheme.onSurfaceVariant),
             ),
           ],
         ),
@@ -315,8 +302,8 @@ class CommentCard extends ConsumerWidget {
                     const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: AppMetrics.p6,
-                        vertical: AppMetrics.p2,
+                        horizontal: AppMetrics.p8,
+                        vertical: AppMetrics.p4,
                       ),
                       decoration: BoxDecoration(
                         color: scheme.primary.withValues(alpha: 0.1),
@@ -325,7 +312,7 @@ class CommentCard extends ConsumerWidget {
                       child: Text(
                         'Respons Penjual',
                         style: TextStyle(
-                          fontSize: AppType.s10,
+                          fontSize: AppType.s12,
                           fontWeight: FontWeight.w600,
                           color: scheme.primary,
                         ),
@@ -361,7 +348,7 @@ class CommentCard extends ConsumerWidget {
         if (userId != null && currentUserId != null)
           if (userId == currentUserId)
             PopupMenuButton<String>(
-              icon: Icon(Icons.more_horiz, size: 16, color: scheme.onSurfaceVariant),
+              icon: Icon(Icons.more_horiz, size: AppIconSize.inlineGlyph, color: scheme.onSurfaceVariant),
               onSelected: (value) {
                 if (value == 'edit' && onEdit != null) onEdit!.call();
                 if (value == 'delete' && onDelete != null) onDelete!.call();
@@ -480,14 +467,14 @@ class _LikeButton extends StatelessWidget {
           children: [
             Icon(
               isLiked ? Icons.favorite : Icons.favorite_border,
-              size: 16,
+              size: AppIconSize.inlineGlyph,
               color: isLiked ? scheme.error : scheme.onSurfaceVariant,
             ),
             if (likeCount != null) ...[
               const SizedBox(width: 4),
               Text(
                 likeCount! > 0 ? '$likeCount' : '',
-                style: TextStyle(fontSize: AppType.s13, color: scheme.onSurfaceVariant),
+                style: TextStyle(fontSize: AppType.s14, color: scheme.onSurfaceVariant),
               ),
             ],
           ],

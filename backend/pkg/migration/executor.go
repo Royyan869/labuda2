@@ -1,9 +1,11 @@
 // Package migration provides the canonical PostgreSQL migration executor.
 //
-// It is the single authority for applying numbered *.up.sql migration files.
-// Both the production CLI (cmd/migrate) and the test infrastructure (pkg/testdb)
-// use this package so that every path through the codebase executes migrations
-// with identical semantics.
+// It is the single authority for the whole migration concern: locating the
+// chain (ResolveDir), splitting statements (Split), loading versions
+// (LoadMigrations), applying them in order (Run), and reading the applied
+// version (CurrentVersion). cmd/migrate is a thin CLI over this package and
+// pkg/testdb bootstraps through it, so production, CI, and tests all execute
+// migrations with identical semantics.
 //
 // The SQL statement splitter handles:
 //   - $$ dollar-quoted strings (PL/pgSQL function bodies, DO blocks)
@@ -52,7 +54,7 @@ type Migration struct {
 //   - '' escaped quotes inside string literals (doubled single-quote preserved)
 //   - ; statement terminators
 //
-// This is the canonical SQL splitter, extracted from cmd/migrate/main.go.
+// This is the canonical SQL splitter for every migration path.
 func Split(sql string) []string {
 	var statements []string
 	var current strings.Builder
@@ -184,6 +186,58 @@ func CurrentVersion(ctx context.Context, pool *pgxpool.Pool) (int, error) {
 		return 0, fmt.Errorf("query max migration version: %w", err)
 	}
 	return version, nil
+}
+
+// DefaultDir is the canonical directory name of the migration chain,
+// relative to the backend module root.
+const DefaultDir = "migrations"
+
+// canonicalBaselineFile marks a directory as the migration chain. A directory
+// named "migrations" that lacks it is not the chain.
+const canonicalBaselineFile = "000001_canonical_schema.up.sql"
+
+// ErrMigrationsDirNotFound is returned by ResolveDir when no directory
+// containing the canonical baseline can be found.
+var ErrMigrationsDirNotFound = fmt.Errorf("no %s directory containing %s found", DefaultDir, canonicalBaselineFile)
+
+// ResolveDir locates the canonical migration chain from startDir upward.
+//
+// It is the single authority for "where does the chain live": callers never
+// build their own candidate lists. At each level it checks <dir>/migrations,
+// then <dir>/backend/migrations (so a server started from the repository root
+// resolves the same chain as one started from backend/), and finally startDir
+// itself when it already is the chain directory.
+func ResolveDir(startDir string) (string, error) {
+	dir, err := filepath.Abs(startDir)
+	if err != nil {
+		return "", fmt.Errorf("resolve absolute path of %q: %w", startDir, err)
+	}
+
+	for {
+		candidates := []string{
+			filepath.Join(dir, DefaultDir),
+			filepath.Join(dir, "backend", DefaultDir),
+		}
+		if filepath.Base(dir) == DefaultDir {
+			candidates = append([]string{dir}, candidates...)
+		}
+
+		for _, candidate := range candidates {
+			if info, statErr := os.Stat(candidate); statErr == nil && info.IsDir() {
+				if _, baseErr := os.Stat(filepath.Join(candidate, canonicalBaselineFile)); baseErr == nil {
+					return candidate, nil
+				}
+			}
+		}
+
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			break
+		}
+		dir = parent
+	}
+
+	return "", fmt.Errorf("%w (searched upward from %s)", ErrMigrationsDirNotFound, startDir)
 }
 
 // ErrLegacyMigrationTable is returned when a golang-migrate-format

@@ -79,13 +79,13 @@ class ClickableLocationWidget extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.location_on, size: 16, color: scheme.primary),
+              Icon(Icons.location_on, size: AppIconSize.inlineGlyph, color: scheme.primary),
               const SizedBox(width: 4),
               Flexible(
                 child: Text(
                   location.address,
                   style: TextStyle(
-                    fontSize: AppType.s13,
+                    fontSize: AppType.s14,
                     color: scheme.secondary,
                     decoration: TextDecoration.underline,
                   ),
@@ -94,7 +94,7 @@ class ClickableLocationWidget extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 4),
-              Icon(Icons.open_in_new, size: 12, color: scheme.secondary),
+              Icon(Icons.open_in_new, size: AppIconSize.inlineGlyph, color: scheme.secondary),
             ],
           ),
         ),
@@ -125,7 +125,7 @@ class ClickableLocationWidget extends StatelessWidget {
               child: Icon(
                 Icons.location_on,
                 color: scheme.primary,
-                size: 20,
+                size: AppIconSize.action,
               ),
             ),
             const SizedBox(width: 12),
@@ -148,7 +148,7 @@ class ClickableLocationWidget extends StatelessWidget {
                     Text(
                       '${location.latitude!.toStringAsFixed(6)}, ${location.longitude!.toStringAsFixed(6)}',
                       style: TextStyle(
-                        fontSize: AppType.s11,
+                        fontSize: AppType.s12,
                         fontFamily: 'monospace',
                         color: scheme.onSurfaceVariant,
                       ),
@@ -158,7 +158,7 @@ class ClickableLocationWidget extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            Icon(Icons.open_in_new, color: scheme.secondary, size: 18),
+            Icon(Icons.open_in_new, color: scheme.secondary, size: AppIconSize.action),
           ],
         ),
       ),

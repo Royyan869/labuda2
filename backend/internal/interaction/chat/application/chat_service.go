@@ -906,20 +906,19 @@ func (s *Service) sendMessage(
 		return nil, chatRepo.ErrTooManyMediaAssets
 	}
 
-	// Validate body length for text messages
-	if messageType == chatEntity.MessageTypeText && body != nil {
-		if len(*body) == 0 {
-			return nil, fmt.Errorf("text message body cannot be empty")
+	// A text message must carry SOMETHING: a body, media, a commerce
+	// reference, or an attachment. A media-only message (caption-less
+	// foto/video) and a product-only share are legitimate; an entirely
+	// empty message is not.
+	if messageType == chatEntity.MessageTypeText {
+		hasBody := body != nil && len(*body) > 0
+		hasPayload := hasBody || len(mediaAssetIDs) > 0 || resourceOccurrence != nil || attachmentJSON != nil
+		if !hasPayload {
+			return nil, fmt.Errorf("text message requires a body, media, or product reference")
 		}
-		if len(*body) > MaxMessageBodyLength {
+		if body != nil && len(*body) > MaxMessageBodyLength {
 			return nil, chatRepo.ErrMessageBodyTooLong
 		}
-	}
-
-	// A text message must carry SOMETHING: a body, or media. A media-only
-	// message (caption-less foto/video) is legitimate and has no body.
-	if messageType == chatEntity.MessageTypeText && body == nil && len(mediaAssetIDs) == 0 {
-		return nil, fmt.Errorf("text message requires a body or media")
 	}
 
 	// Account status enforcement: sender must be active before any persistence.

@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import 'package:labuda/core/common/types/preparation_time.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/commerce/catalog/auction/data/auction_providers.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/domain.dart';
@@ -64,8 +66,8 @@ class _FakeAuctionRepository implements AuctionRepository {
     DateTime? scheduledStartAt,
     required int durationHours,
     String? farmAddressId,
+    required PreparationTime preparationTime,
     required List<String> shippingSetupIds,
-    String? preparationNote,
   }) async {
     createCalls += 1;
     lastSellerId = sellerId;
@@ -252,6 +254,7 @@ Future<bool> _submitCreateAuction(ProviderContainer container) {
         bidIncrement: 100000,
         startMode: 'now',
         durationHours: 24,
+        preparationTime: PreparationTime.days1_3,
         shippingSetupIds: const ['ship-1'],
       );
 }

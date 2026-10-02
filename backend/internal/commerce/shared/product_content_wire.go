@@ -28,5 +28,4 @@ var ProductContentWireKeys = []string{
 	"certificates",
 	"farm_address_id",
 	"preparation_time",
-	"preparation_note",
 }

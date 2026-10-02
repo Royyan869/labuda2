@@ -85,6 +85,15 @@ func (m *forSaleQuoteRepoStub) GetByID(_ context.Context, _ db.Tx, _ uuid.UUID) 
 	}, nil
 }
 
+func (m *forSaleQuoteRepoStub) GetByProductID(_ context.Context, _ db.Tx, _ uuid.UUID) (*forsaleEntity.ForSale, error) {
+	m.called = true
+	return &forsaleEntity.ForSale{
+		ID:       uuid.New(),
+		SellerID: m.sellerID,
+		Status:   forsaleEntity.ForSaleStatusActive,
+	}, nil
+}
+
 type shippingQuoteRepoStub struct {
 	supersedeCalled bool
 	createCalled    bool

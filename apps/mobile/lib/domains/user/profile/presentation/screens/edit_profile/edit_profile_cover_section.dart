@@ -77,7 +77,7 @@ class EditProfileCoverSection extends StatelessWidget {
                       child: Icon(
                         Icons.camera_alt_outlined,
                         color: scheme.onPrimary,
-                        size: 28,
+                        size: AppIconSize.emphasis,
                       ),
                     ),
                   ),
@@ -92,7 +92,7 @@ class EditProfileCoverSection extends StatelessWidget {
             padding: const EdgeInsets.only(top: AppMetrics.p8),
             child: TextButton.icon(
               onPressed: onRemoveCover,
-              icon: const Icon(Icons.delete_outline, size: 18),
+              icon: const Icon(Icons.delete_outline, size: AppIconSize.action),
               label: const Text('Remove Cover'),
               style: TextButton.styleFrom(foregroundColor: context.statusColors.error),
             ),

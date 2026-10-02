@@ -2,16 +2,15 @@ package worker
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"runtime/debug"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
+	notificationentity "github.com/labuda/backend/internal/interaction/notification/entity"
+	notificationrepository "github.com/labuda/backend/internal/interaction/notification/infrastructure/repository"
 	"github.com/labuda/backend/internal/interaction/notification/policy"
 	platformevent "github.com/labuda/backend/internal/platform/event"
 	"github.com/labuda/backend/internal/platform/events"
-	dbpkg "github.com/labuda/backend/pkg/db"
 	"go.uber.org/zap"
 )
 
@@ -82,9 +81,17 @@ type CapabilityLister interface {
 	ListUsersByCapability(ctx context.Context, capability string) ([]uuid.UUID, error)
 }
 
-// NotificationInserter defines the interface for inserting notifications with navigation payload.
+// NotificationInserter defines the canonical write authority for notifications.
+//
+// It is satisfied by the notification repository — there is exactly one insert
+// implementation, one actor binding, and one dedup key in the system. The
+// actor is a typed value; an unpersistable sentinel cannot be passed.
+//
+// Insert reports (id, inserted, error); inserted=false with a nil error is the
+// canonical idempotent no-op for a replayed (recipient, actor_key, type,
+// entity) tuple.
 type NotificationInserter interface {
-	InsertNotification(ctx context.Context, tx dbpkg.Tx, recipientID, actorID uuid.UUID, notificationType string, entityID uuid.UUID, data map[string]interface{}) (uuid.UUID, error)
+	Insert(ctx context.Context, tx interface{}, notification *notificationentity.Notification) (uuid.UUID, bool, error)
 }
 
 // NewNotificationEventHandler creates a new NotificationEventHandler.
@@ -521,13 +528,18 @@ func (h *NotificationEventHandler) sendPushAsync(ctx context.Context, info notif
 		return
 	}
 
-	// Create a minimal notification object for the push sender
-	// The actual notification was already inserted to DB
+	// Create a minimal notification object for the push sender.
+	// The actual notification was already inserted to DB. actor_id is present
+	// only for a visible human; system/anonymized causes carry kind + display.
 	notif := map[string]interface{}{
-		"id":           info.notificationID.String(),
-		"recipient_id": info.recipientID.String(),
-		"actor_id":     info.actorID.String(),
-		"type":         info.notifyType,
+		"id":            info.notificationID.String(),
+		"recipient_id":  info.recipientID.String(),
+		"actor_kind":    string(info.actor.Kind()),
+		"actor_display": info.actor.Display(),
+		"type":          info.notifyType,
+	}
+	if info.actor.IsUser() {
+		notif["actor_id"] = info.actor.UserID().String()
 	}
 
 	err := h.pushSender.SendNotification(ctx, nil, notif, info.title, info.body)
@@ -549,44 +561,6 @@ func (h *NotificationEventHandler) sendPushAsync(ctx context.Context, info notif
 			"category": string(info.category),
 		})
 	}
-}
-
-type NotificationServiceInserter struct{}
-
-// NewNotificationServiceInserter creates a new NotificationServiceInserter.
-func NewNotificationServiceInserter() *NotificationServiceInserter {
-	return &NotificationServiceInserter{}
-}
-
-// InsertNotification inserts a notification into the database with navigation payload.
-// Returns the ID of the inserted notification.
-func (s *NotificationServiceInserter) InsertNotification(
-	ctx context.Context,
-	tx dbpkg.Tx,
-	recipientID, actorID uuid.UUID,
-	notificationType string,
-	entityID uuid.UUID,
-	data map[string]interface{},
-) (uuid.UUID, error) {
-	query := `
-		INSERT INTO notifications (id, recipient_id, actor_id, type, entity_id, data, is_read, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
-		ON CONFLICT (recipient_id, actor_id, type, entity_id) DO NOTHING
-		RETURNING id
-	`
-
-	id := uuid.New()
-	err := tx.QueryRow(ctx, query, id, recipientID, actorID, notificationType, entityID, data, false).Scan(&id)
-	if err != nil {
-		// ON CONFLICT DO NOTHING returns no rows when a duplicate exists.
-		// This is expected dedup behavior, not an error.
-		if errors.Is(err, pgx.ErrNoRows) {
-			return uuid.Nil, nil
-		}
-		return uuid.Nil, fmt.Errorf("insert notification query failed: %w", err)
-	}
-
-	return id, nil
 }
 
 // =============================================================================
@@ -619,7 +593,9 @@ func (w *OutboxWorker) SetupNotificationHandlers(
 	accountStatusChecker AccountStatusChecker,
 	mutePolicy *policy.MutePolicy,
 ) (*OutboxWorker, *NotificationEventHandler) {
-	inserter := NewNotificationServiceInserter()
+	// One canonical write authority: the notification repository owns the
+	// insert statement, the actor binding, and the dedup key.
+	inserter := notificationrepository.NewNotificationRepository()
 	handler := NewNotificationEventHandler(db, blockChecker, inserter, pushSender, accountStatusChecker, w.log)
 	handler.SetMutePolicy(mutePolicy)
 

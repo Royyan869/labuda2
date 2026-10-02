@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/shared/widgets/app_bottom_sheet_base.dart';
 import 'package:labuda/shared/widgets/app_snackbar.dart';
 import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.dart';
@@ -135,13 +136,15 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
               style: TextStyle(
                 fontSize: AppType.s24,
                 fontWeight: FontWeight.bold,
-                color: context.statusColors.success,
+                // Money reads as the brand price role — same authority the
+                // ForSale detail price and the checkout totals use.
+                color: Theme.of(dialogContext).colorScheme.primary,
               ),
             ),
             const SizedBox(height: 16),
             // TRANSACTION CLARITY: Consequence warning for auction inaction
             Container(
-              padding: const EdgeInsets.all(AppMetrics.p10),
+              padding: const EdgeInsets.all(AppMetrics.p12),
               decoration: BoxDecoration(
                 color: context.statusColors.warning.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(AppShape.r8),
@@ -154,7 +157,7 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
                 children: [
                   Icon(
                     Icons.info_outline,
-                    size: 16,
+                    size: AppIconSize.inlineGlyph,
                     color: context.statusColors.warning,
                   ),
                   const SizedBox(width: 8),
@@ -185,9 +188,7 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
               Navigator.of(context).pop();
               widget.onPlaceBid(amount);
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: context.statusColors.success,
-            ),
+            // CTA fill comes from the button theme (scheme.primary).
             child: const Text('Konfirmasi'),
           ),
         ],
@@ -227,22 +228,13 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Handle
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: scheme.outlineVariant,
-                borderRadius: BorderRadius.circular(AppShape.r2),
-              ),
-            ),
-          ),
+          // Handle — ONE authority: `AppDragHandle` beside the bottom-sheet base
+          const Center(child: AppDragHandle(padding: EdgeInsets.zero)),
           const SizedBox(height: 16),
           // Title
           const Text(
             'Tawar Lelang',
-            style: TextStyle(fontSize: AppType.s18, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: AppType.s20, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
           // Current bid info
@@ -260,7 +252,7 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
                   'Rp ${formatGroupedAmount(currentBid)}',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: context.statusColors.success,
+                    color: scheme.primary,
                   ),
                 ),
               ],
@@ -320,9 +312,9 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
           // Place bid button
           ElevatedButton(
             onPressed: sellerInactive ? null : _handlePlaceBid,
+            // CTA fill comes from the button theme (scheme.primary).
             style: ElevatedButton.styleFrom(
-              backgroundColor: context.statusColors.success,
-              padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
+              padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
             ),
             child: const Text(
               'Pasang Bid',
@@ -341,7 +333,7 @@ class _AuctionActionModalState extends ConsumerState<AuctionActionModal> {
                     },
               style: OutlinedButton.styleFrom(
                 foregroundColor: scheme.secondary,
-                padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
+                padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
                 side: BorderSide(color: scheme.secondary),
               ),
               child: Text(

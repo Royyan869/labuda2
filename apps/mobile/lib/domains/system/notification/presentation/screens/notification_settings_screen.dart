@@ -172,7 +172,7 @@ class _ReadOnlyRow extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 20, color: colorScheme.primary),
+          Icon(icon, size: AppIconSize.action, color: colorScheme.primary),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -189,7 +189,7 @@ class _ReadOnlyRow extends StatelessWidget {
                 Text(
                   subtitle,
                   style: TextStyle(
-                    fontSize: AppType.s13,
+                    fontSize: AppType.s14,
                     color: colorScheme.onSurfaceVariant,
                     height: 1.4,
                   ),

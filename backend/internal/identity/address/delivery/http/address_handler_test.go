@@ -53,7 +53,7 @@ func TestCreateAddress_Unauthenticated(t *testing.T) {
 	handler := &AddressHandler{}
 	r := setupTestRouter(handler)
 
-	body := `{"purpose":"shipping","recipient_name":"Ali","phone":"08123456789","province_id":"32","city_id":"3204","street_address":"Jl Test"}`
+	body := `{"tags":["shipping"],"recipient_name":"Ali","phone":"08123456789","province_id":"32","city_id":"3204","street_address":"Jl Test"}`
 	req := httptest.NewRequest(http.MethodPost, "/addresses", bytes.NewBufferString(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -116,7 +116,7 @@ func TestToAddressResponse_ComputedFields(t *testing.T) {
 	addr := &addressEntity.Address{
 		ID:                     uuid.New(),
 		UserID:                 uuid.New(),
-		Purpose:                addressEntity.AddressPurposeShipping,
+		Tags:                   []addressEntity.AddressTag{addressEntity.TagShipping},
 		Nickname:               "Rumah",
 		RecipientName:          "Ali",
 		Phone:                  "08123456789",
@@ -141,8 +141,8 @@ func TestToAddressResponse_ComputedFields(t *testing.T) {
 
 	resp := toAddressResponse(addr)
 
-	// purpose_label
-	assert.Equal(t, "Alamat Pengiriman", resp.PurposeLabel)
+	// tag_labels
+	assert.Equal(t, []string{"Alamat Pengiriman"}, resp.TagLabels)
 
 	// display_label
 	assert.Equal(t, "Rumah (Alamat Pengiriman)", resp.DisplayLabel)
@@ -170,21 +170,36 @@ func TestToAddressResponse_ComputedFields(t *testing.T) {
 	assert.False(t, resp3.HasCoordinates)
 }
 
-func TestToAddressResponse_SenderPurposeLabel(t *testing.T) {
+func TestToAddressResponse_SenderTagLabel(t *testing.T) {
 	addr := &addressEntity.Address{
 		ID:        uuid.New(),
 		UserID:    uuid.New(),
-		Purpose:   addressEntity.AddressPurposeSender,
+		Tags:      []addressEntity.AddressTag{addressEntity.TagSender},
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
 
 	resp := toAddressResponse(addr)
-	assert.Equal(t, "Alamat Pengirim", resp.PurposeLabel)
+	assert.Equal(t, []string{"Alamat Pengirim"}, resp.TagLabels)
+}
+
+// An address may carry BOTH roles at once; the response exposes every tag.
+func TestToAddressResponse_DualTaggedAddress(t *testing.T) {
+	addr := &addressEntity.Address{
+		ID:        uuid.New(),
+		UserID:    uuid.New(),
+		Tags:      []addressEntity.AddressTag{addressEntity.TagShipping, addressEntity.TagSender},
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	resp := toAddressResponse(addr)
+	assert.Equal(t, []string{"shipping", "sender"}, resp.Tags)
+	assert.Equal(t, []string{"Alamat Pengiriman", "Alamat Pengirim"}, resp.TagLabels)
 }
 
 // ============================================================================
-// Test: Sender purpose is account-owned, not seller-gated
+// Test: The sender tag is account-owned, not seller-gated
 // ============================================================================
 
 func TestCreateAddress_SenderDoesNotRequireSellerCapability(t *testing.T) {
@@ -200,7 +215,7 @@ func TestCreateAddress_SenderDoesNotRequireSellerCapability(t *testing.T) {
 		c.Next()
 	}, handler.CreateAddress)
 
-	body := `{"purpose":"sender","recipient_name":"Ali","phone":"08123456789","province_id":"32","city_id":"3204","street_address":"Jl Test"}`
+	body := `{"tags":["sender"],"recipient_name":"Ali","phone":"08123456789","province_id":"32","city_id":"3204","street_address":"Jl Test"}`
 	req := httptest.NewRequest(http.MethodPost, "/addresses", bytes.NewBufferString(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -211,7 +226,7 @@ func TestCreateAddress_SenderDoesNotRequireSellerCapability(t *testing.T) {
 }
 
 func TestCreateAddress_ShippingAllowedForNormalUser(t *testing.T) {
-	// Shipping purpose should NOT check seller capability.
+	// The sender tag should NOT check seller capability.
 	// Without a DB, it will panic at BeginTx — use Recovery to catch.
 	// The important thing is it does NOT return 403 before the db call.
 	handler := &AddressHandler{}
@@ -223,7 +238,7 @@ func TestCreateAddress_ShippingAllowedForNormalUser(t *testing.T) {
 		c.Next()
 	}, handler.CreateAddress)
 
-	body := `{"purpose":"shipping","recipient_name":"Ali","phone":"08123456789","province_id":"32","city_id":"3204","street_address":"Jl Test"}`
+	body := `{"tags":["shipping"],"recipient_name":"Ali","phone":"08123456789","province_id":"32","city_id":"3204","street_address":"Jl Test"}`
 	req := httptest.NewRequest(http.MethodPost, "/addresses", bytes.NewBufferString(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -243,22 +258,22 @@ func TestCreateAddress_BodyUserIDIgnored(t *testing.T) {
 	// Since createAddressRequest doesn't have a user_id field, body spoofing
 	// is structurally impossible.
 	var req createAddressRequest
-	body := `{"purpose":"shipping","recipient_name":"Ali","phone":"08123456789","province_id":"32","city_id":"3204","street_address":"Jl Test","user_id":"00000000-0000-0000-0000-000000000001"}`
+	body := `{"tags":["shipping"],"recipient_name":"Ali","phone":"08123456789","province_id":"32","city_id":"3204","street_address":"Jl Test","user_id":"00000000-0000-0000-0000-000000000001"}`
 
 	err := json.Unmarshal([]byte(body), &req)
 	require.NoError(t, err)
 
 	// Confirm there's no UserID field in the request struct
-	assert.Equal(t, "shipping", req.Purpose)
+	assert.Equal(t, []string{"shipping"}, req.Tags)
 	assert.Equal(t, "Ali", req.RecipientName)
 	// user_id from body is silently dropped — no field to bind to
 }
 
 // ============================================================================
-// Test: List filters by purpose
+// Test: List filters by tag
 // ============================================================================
 
-func TestListAddresses_InvalidPurposeFilter(t *testing.T) {
+func TestListAddresses_InvalidTagFilter(t *testing.T) {
 	handler := &AddressHandler{}
 
 	r := gin.New()
@@ -267,16 +282,16 @@ func TestListAddresses_InvalidPurposeFilter(t *testing.T) {
 		c.Next()
 	}, handler.ListAddresses)
 
-	req := httptest.NewRequest(http.MethodGet, "/addresses?purpose=invalid", nil)
+	req := httptest.NewRequest(http.MethodGet, "/addresses?tag=invalid", nil)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Contains(t, w.Body.String(), "Invalid purpose filter")
+	assert.Contains(t, w.Body.String(), "Invalid tag filter")
 }
 
-func TestListAddresses_ValidPurposeFilterAccepted(t *testing.T) {
-	// Valid purpose should not fail at validation — it will panic at db (use Recovery)
+func TestListAddresses_ValidTagFilterAccepted(t *testing.T) {
+	// A valid tag should not fail at validation — it will panic at db (use Recovery)
 	handler := &AddressHandler{}
 
 	r := gin.New()
@@ -286,12 +301,30 @@ func TestListAddresses_ValidPurposeFilterAccepted(t *testing.T) {
 		c.Next()
 	}, handler.ListAddresses)
 
-	req := httptest.NewRequest(http.MethodGet, "/addresses?purpose=shipping", nil)
+	req := httptest.NewRequest(http.MethodGet, "/addresses?tag=shipping", nil)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	// Should NOT be 400 — purpose is valid
+	// Should NOT be 400 — 'shipping' is a valid tag
 	assert.NotEqual(t, http.StatusBadRequest, w.Code)
+}
+
+// An unknown tag must be rejected before it reaches the database.
+func TestListAddresses_DualTagFilterRejectedAsUnknown(t *testing.T) {
+	handler := &AddressHandler{}
+
+	r := gin.New()
+	r.GET("/addresses", func(c *gin.Context) {
+		setUserID(c, uuid.New())
+		c.Next()
+	}, handler.ListAddresses)
+
+	req := httptest.NewRequest(http.MethodGet, "/addresses?tag=warehouse", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "Invalid tag filter")
 }
 
 // ============================================================================
@@ -390,7 +423,7 @@ func TestAddressCountResponse_JSONShape(t *testing.T) {
 // Test: Create validation
 // ============================================================================
 
-func TestCreateAddress_InvalidPurpose(t *testing.T) {
+func TestCreateAddress_InvalidTag(t *testing.T) {
 	handler := &AddressHandler{}
 
 	r := gin.New()
@@ -399,14 +432,36 @@ func TestCreateAddress_InvalidPurpose(t *testing.T) {
 		c.Next()
 	}, handler.CreateAddress)
 
-	body := `{"purpose":"invalid","recipient_name":"Ali","phone":"08123456789","province_id":"32","city_id":"3204","street_address":"Jl Test"}`
+	body := `{"tags":["invalid"],"recipient_name":"Ali","phone":"08123456789","province_id":"32","city_id":"3204","street_address":"Jl Test"}`
 	req := httptest.NewRequest(http.MethodPost, "/addresses", bytes.NewBufferString(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Contains(t, w.Body.String(), "Invalid purpose")
+	assert.Contains(t, w.Body.String(), "Invalid tag")
+}
+
+// An empty tag list must be rejected: an address always declares at least one
+// usage. gin's `required` binding lets a non-nil empty slice through, so the
+// handler owns this guard.
+func TestCreateAddress_EmptyTagList(t *testing.T) {
+	handler := &AddressHandler{}
+
+	r := gin.New()
+	r.POST("/addresses", func(c *gin.Context) {
+		setUserID(c, uuid.New())
+		c.Next()
+	}, handler.CreateAddress)
+
+	body := `{"tags":[],"recipient_name":"Ali","phone":"08123456789","province_id":"32","city_id":"3204","street_address":"Jl Test"}`
+	req := httptest.NewRequest(http.MethodPost, "/addresses", bytes.NewBufferString(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "at least one")
 }
 
 func TestCreateAddress_MissingRequiredFields(t *testing.T) {
@@ -419,7 +474,7 @@ func TestCreateAddress_MissingRequiredFields(t *testing.T) {
 	}, handler.CreateAddress)
 
 	// Missing recipient_name
-	body := `{"purpose":"shipping","phone":"08123456789","province_id":"32","city_id":"3204","street_address":"Jl Test"}`
+	body := `{"tags":["shipping"],"phone":"08123456789","province_id":"32","city_id":"3204","street_address":"Jl Test"}`
 	req := httptest.NewRequest(http.MethodPost, "/addresses", bytes.NewBufferString(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()

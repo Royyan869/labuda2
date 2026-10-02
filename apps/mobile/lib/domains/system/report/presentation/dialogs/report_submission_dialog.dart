@@ -70,10 +70,10 @@ class _ReportSubmissionDialogState
       child: SafeArea(
         child: Padding(
           padding: EdgeInsets.only(
-            left: AppMetrics.p20,
-            right: AppMetrics.p20,
-            top: AppMetrics.p20,
-            bottom: MediaQuery.of(context).viewInsets.bottom + AppMetrics.p20,
+            left: AppMetrics.p24,
+            right: AppMetrics.p24,
+            top: AppMetrics.p24,
+            bottom: MediaQuery.of(context).viewInsets.bottom + AppMetrics.p24,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -179,7 +179,7 @@ class _ReportSubmissionDialogState
       ),
       child: Row(
         children: [
-          Icon(Icons.info_outline, color: Theme.of(context).colorScheme.secondary, size: 20),
+          Icon(Icons.info_outline, color: Theme.of(context).colorScheme.secondary, size: AppIconSize.action),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -187,7 +187,7 @@ class _ReportSubmissionDialogState
                   ? 'This report will be reviewed and may result in content removal.'
                   : 'This report will be reviewed by our team. Enforcement requires manual review.',
               style: TextStyle(
-                fontSize: AppType.s13,
+                fontSize: AppType.s14,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
@@ -206,7 +206,7 @@ class _ReportSubmissionDialogState
       ),
       child: Row(
         children: [
-          Icon(_getIconForTargetType(), color: Theme.of(context).colorScheme.secondary, size: 20),
+          Icon(_getIconForTargetType(), color: Theme.of(context).colorScheme.secondary, size: AppIconSize.action),
           const SizedBox(width: 12),
           Expanded(
             child: Column(

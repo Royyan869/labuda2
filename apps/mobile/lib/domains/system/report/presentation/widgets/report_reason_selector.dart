@@ -103,7 +103,7 @@ class _ReasonCard extends StatelessWidget {
                 color: isSelected
                     ? Theme.of(context).colorScheme.onPrimary
                     : (Theme.of(context).colorScheme.onSurfaceVariant),
-                size: 20,
+                size: AppIconSize.action,
               ),
             ),
             const SizedBox(height: 8),

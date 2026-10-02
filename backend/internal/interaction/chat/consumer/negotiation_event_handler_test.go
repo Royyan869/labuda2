@@ -40,12 +40,22 @@ func TestBuildNegotiationProposalFromStarted_Canonical(t *testing.T) {
 func TestBuildNegotiationProposalFromMessageSent_Canonical(t *testing.T) {
 	p := &NegotiationMessageSentPayload{
 		SessionID:        uuid.New(),
+		ResourceType:     "for_sale",
+		ResourceID:       uuid.New(),
 		Price:            99999,
 		ProposalSequence: 3,
 	}
 
 	att := buildNegotiationProposalFromMessageSent(p)
 	assertCanonicalNegotiationProposal(t, att)
+
+	data := att["data"].(map[string]interface{})
+	if got, _ := data["resource_type"].(string); got != "for_sale" {
+		t.Fatalf("expected data.resource_type for_sale, got %#v", data["resource_type"])
+	}
+	if got, _ := data["resource_id"].(string); got != p.ResourceID.String() {
+		t.Fatalf("expected data.resource_id %s, got %#v", p.ResourceID, data["resource_id"])
+	}
 
 	if _, ok := att["session_id"]; ok {
 		t.Fatal("flat root key session_id must not exist")
@@ -55,6 +65,25 @@ func TestBuildNegotiationProposalFromMessageSent_Canonical(t *testing.T) {
 	}
 	if _, ok := att["proposal_sequence"]; ok {
 		t.Fatal("flat root key proposal_sequence must not exist")
+	}
+}
+
+func TestBuildNegotiationProposalFromMessageSent_LegacyPayloadOmitsResource(t *testing.T) {
+	// Events queued before the resource fields existed must not gain a
+	// nil-uuid resource_id the mobile card would treat as a real product id.
+	att := buildNegotiationProposalFromMessageSent(&NegotiationMessageSentPayload{
+		SessionID:        uuid.New(),
+		Price:            1000,
+		ProposalSequence: 2,
+	})
+	assertCanonicalNegotiationProposal(t, att)
+
+	data := att["data"].(map[string]interface{})
+	if _, ok := data["resource_id"]; ok {
+		t.Fatal("resource_id must be omitted when payload carries none")
+	}
+	if _, ok := data["resource_type"]; ok {
+		t.Fatal("resource_type must be omitted when payload carries none")
 	}
 }
 

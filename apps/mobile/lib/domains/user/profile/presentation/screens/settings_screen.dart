@@ -18,6 +18,7 @@ import 'package:labuda/domains/user/profile/presentation/widgets/settings_app_pr
 import 'package:labuda/domains/user/profile/presentation/widgets/settings_support_section.dart';
 import 'package:labuda/domains/user/profile/presentation/widgets/settings_account_management_section.dart';
 import 'package:labuda/domains/user/profile/presentation/widgets/settings_marketing_section.dart';
+import 'package:labuda/domains/commerce/pricing/discount/discount.dart';
 import 'package:labuda/domains/system/report/presentation/screens/my_reports_screen.dart';
 
 /// Unified Settings Screen (Personal + Business Management)
@@ -73,7 +74,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 sellerCapabilityStatus == SellerCapabilityStatus.active)
               SettingsMarketingSection(
                 onNavigate: _handleNavigation,
-                userId: currentUser.id,
               ),
 
             // 🔒 Security & Privacy Section
@@ -136,6 +136,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       case 'myReports':
         _navigateToMyReports(context);
         break;
+      case 'discount':
+        _navigateToDiscountManagement(context);
+        break;
+      case 'promotion':
+        context.push(RoutePaths.sellerCanonicalPromotions);
+        break;
       case 'about':
         _showAboutDialog(context, l10n);
         break;
@@ -166,6 +172,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         extra: UnifiedEditProfileSection.business,
       );
     }
+  }
+
+  void _navigateToDiscountManagement(BuildContext context) {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const SellerDiscountListScreen()));
   }
 
   Future<void> _navigateToUpgradeSeller(BuildContext context) async {
@@ -281,7 +293,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           onTap: () => _navigateToSellerDashboard(context),
           borderRadius: BorderRadius.circular(AppShape.r16),
           child: Padding(
-            padding: const EdgeInsets.all(AppMetrics.p20),
+            padding: const EdgeInsets.all(AppMetrics.p24),
             child: Row(
               children: [
                 Container(
@@ -293,7 +305,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   child: Icon(
                     Icons.dashboard,
                     color: scheme.onPrimary,
-                    size: 28,
+                    size: AppIconSize.emphasis,
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -305,7 +317,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         'Seller Dashboard',
                         style: TextStyle(
                           color: scheme.onPrimary,
-                          fontSize: AppType.s18,
+                          fontSize: AppType.s20,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -324,7 +336,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 Icon(
                   Icons.arrow_forward_ios,
                   color: scheme.onPrimary,
-                  size: 18,
+                  size: AppIconSize.action,
                 ),
               ],
             ),
@@ -354,7 +366,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(AppMetrics.p10),
+                  padding: const EdgeInsets.all(AppMetrics.p12),
                   decoration: BoxDecoration(
                     color: context.statusColors.info.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(AppShape.r10),
@@ -362,7 +374,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   child: Icon(
                     Icons.local_shipping_outlined,
                     color: context.statusColors.info,
-                    size: 22,
+                    size: AppIconSize.header,
                   ),
                 ),
                 const SizedBox(width: 14),
@@ -373,7 +385,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       Text(
                         'Shipping',
                         style: TextStyle(
-                          fontSize: AppType.s15,
+                          fontSize: AppType.s16,
                           fontWeight: FontWeight.w600,
                           color: scheme.onSurface,
                         ),
@@ -391,7 +403,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 Icon(
                   Icons.arrow_forward_ios,
-                  size: 16,
+                  size: AppIconSize.inlineGlyph,
                   color: scheme.onSurfaceVariant,
                 ),
               ],

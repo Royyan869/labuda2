@@ -58,15 +58,18 @@ class ErrorDisplayWidget extends StatelessWidget {
           children: [
             Icon(
               icon ?? Icons.error_outline,
-              size: 64,
+              size: AppIconSize.display,
               color: context.colorScheme.error.withValues(alpha: 0.7),
             ),
             const SizedBox(height: 16),
             if (title != null) ...[
               Text(
                 title!,
-                style: AppTypography.h5.copyWith(
+                // Type role from the theme; the ladder's emphasis stays as a
+                // weight override so the title keeps its weight.
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   color: context.colorScheme.onSurface,
+                  fontWeight: FontWeight.w600,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -74,7 +77,7 @@ class ErrorDisplayWidget extends StatelessWidget {
             ],
             Text(
               message,
-              style: AppTypography.bodyMedium.copyWith(
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: context.colorScheme.onSurface.withValues(alpha: 0.7),
               ),
               textAlign: TextAlign.center,
@@ -86,7 +89,7 @@ class ErrorDisplayWidget extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.refresh, size: 20),
+                    const Icon(Icons.refresh, size: AppIconSize.action),
                     const SizedBox(width: 8),
                     const Text('Coba Lagi'),
                   ],
@@ -100,7 +103,7 @@ class ErrorDisplayWidget extends StatelessWidget {
               const SizedBox(height: 12),
               TextButton.icon(
                 onPressed: onContactSupport,
-                icon: const Icon(Icons.support_agent, size: 16),
+                icon: const Icon(Icons.support_agent, size: AppIconSize.inlineGlyph),
                 label: const Text('Butuh bantuan?'),
                 style: TextButton.styleFrom(
                   foregroundColor: context.colorScheme.onSurface.withValues(

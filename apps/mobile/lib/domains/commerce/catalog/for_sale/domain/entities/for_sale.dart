@@ -120,7 +120,6 @@ class ForSale extends Equatable {
   // BUYER EXPECTATION: This is what buyers see before purchasing
   // ORDER SNAPSHOT: When order is created, this value is frozen as preparation_time_snapshot
   final PreparationTime preparationTime;
-  final String? preparationNote;
 
   /// Rich media entities with metadata.
   /// Provides blurhash for placeholders, dimensions for aspect ratio,
@@ -130,6 +129,11 @@ class ForSale extends Equatable {
   final String? sellerUsername;
   final String? sellerFarmName;
   final String? sellerAvatar;
+
+  /// Buyer-facing origin summary of the listing's sender address
+  /// ("City, Province"). Detail payloads only — null on discovery payloads,
+  /// and the seller card HIDES the line rather than fabricating one.
+  final String? publicOriginLine;
 
   /// E8.2 — Canonical seller user-identity lifecycle ({active, unavailable,
   /// removed}). Sourced from the wire's nested
@@ -181,6 +185,13 @@ class ForSale extends Equatable {
   /// when null, transaction CTAs are not rendered.
   final CommerceViewerCapabilities? viewerCapabilities;
 
+  /// Viewer-scoped DEAL BINDING from the detail wire
+  /// (`viewer_negotiation_id`): the settleable accepted negotiation for this
+  /// listing. The detail CTA forwards it to checkout as `negotiation_id` so
+  /// the agreed deal price is charged (owner truth: deal valid 24h). Null on
+  /// discovery payloads and when the viewer holds no settleable deal.
+  final String? viewerNegotiationId;
+
   final ForSaleStatus status;
   final ForSaleVisibility visibility;
   final bool isNegotiable;
@@ -196,6 +207,12 @@ class ForSale extends Equatable {
   final String? breeder;
   final String? bloodline;
 
+  /// Seller-declared certificates (canonical values: breeder, contest, import,
+  /// health). Product content like breeder/bloodline — plain text statements
+  /// from the seller, never documents. Rendered for buyers on the detail
+  /// surface.
+  final List<String> certificates;
+
   const ForSale({
     required this.forSaleId,
     this.productId,
@@ -208,16 +225,17 @@ class ForSale extends Equatable {
     this.sellerUsername,
     this.sellerFarmName,
     this.sellerAvatar,
+    this.publicOriginLine,
     this.sellerUserLifecycle = ContentLifecycle.active,
     this.sellerTrustLifecycle = ContentLifecycle.active,
     this.sellerTier,
     this.viewerCapabilities,
+    this.viewerNegotiationId,
     required this.status,
     this.visibility = ForSaleVisibility.public,
     this.isNegotiable = false,
     this.viewCount = 0,
-    this.preparationTime = PreparationTime.immediate,
-    this.preparationNote,
+    this.preparationTime = PreparationTime.days1_3,
     required this.createdAt,
     required this.updatedAt,
     this.variety,
@@ -226,6 +244,7 @@ class ForSale extends Equatable {
     this.gender,
     this.breeder,
     this.bloodline,
+    this.certificates = const [],
   });
 
   // ═══════════════════════════════════════════════════════════════════════════════
@@ -296,16 +315,17 @@ class ForSale extends Equatable {
     String? sellerUsername,
     String? sellerFarmName,
     String? sellerAvatar,
+    String? publicOriginLine,
     ContentLifecycle? sellerUserLifecycle,
     ContentLifecycle? sellerTrustLifecycle,
     String? sellerTier,
     CommerceViewerCapabilities? viewerCapabilities,
+    String? viewerNegotiationId,
     ForSaleStatus? status,
     ForSaleVisibility? visibility,
     bool? isNegotiable,
     int? viewCount,
     PreparationTime? preparationTime,
-    String? preparationNote,
     DateTime? createdAt,
     DateTime? updatedAt,
     String? variety,
@@ -314,6 +334,7 @@ class ForSale extends Equatable {
     String? gender,
     String? breeder,
     String? bloodline,
+    List<String>? certificates,
   }) {
     return ForSale(
       forSaleId: forSaleId ?? this.forSaleId,
@@ -327,16 +348,17 @@ class ForSale extends Equatable {
       sellerUsername: sellerUsername ?? this.sellerUsername,
       sellerFarmName: sellerFarmName ?? this.sellerFarmName,
       sellerAvatar: sellerAvatar ?? this.sellerAvatar,
+      publicOriginLine: publicOriginLine ?? this.publicOriginLine,
       sellerUserLifecycle: sellerUserLifecycle ?? this.sellerUserLifecycle,
       sellerTrustLifecycle: sellerTrustLifecycle ?? this.sellerTrustLifecycle,
       sellerTier: sellerTier ?? this.sellerTier,
       viewerCapabilities: viewerCapabilities ?? this.viewerCapabilities,
+      viewerNegotiationId: viewerNegotiationId ?? this.viewerNegotiationId,
       status: status ?? this.status,
       visibility: visibility ?? this.visibility,
       isNegotiable: isNegotiable ?? this.isNegotiable,
       viewCount: viewCount ?? this.viewCount,
       preparationTime: preparationTime ?? this.preparationTime,
-      preparationNote: preparationNote ?? this.preparationNote,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       variety: variety ?? this.variety,
@@ -345,6 +367,7 @@ class ForSale extends Equatable {
       gender: gender ?? this.gender,
       breeder: breeder ?? this.breeder,
       bloodline: bloodline ?? this.bloodline,
+      certificates: certificates ?? this.certificates,
     );
   }
 
@@ -361,16 +384,17 @@ class ForSale extends Equatable {
     sellerUsername,
     sellerFarmName,
     sellerAvatar,
+    publicOriginLine,
     sellerUserLifecycle,
     sellerTrustLifecycle,
     sellerTier,
     viewerCapabilities,
+    viewerNegotiationId,
     status,
     visibility,
     isNegotiable,
     viewCount,
     preparationTime,
-    preparationNote,
     createdAt,
     updatedAt,
     variety,
@@ -379,6 +403,7 @@ class ForSale extends Equatable {
     gender,
     breeder,
     bloodline,
+    certificates,
   ];
 }
 
@@ -540,7 +565,6 @@ class CreateForSaleRequest {
   final List<String> shippingSetupIds;
   // Shipping readiness
   final PreparationTime? preparationTime;
-  final String? preparationNote;
 
   const CreateForSaleRequest({
     required this.title,
@@ -559,7 +583,6 @@ class CreateForSaleRequest {
     this.farmAddressId,
     this.shippingSetupIds = const [],
     this.preparationTime,
-    this.preparationNote,
   });
 }
 
@@ -584,7 +607,6 @@ class UpdateForSaleRequest {
   final List<String>? certificates;
   // Shipping readiness
   final PreparationTime? preparationTime;
-  final String? preparationNote;
 
   const UpdateForSaleRequest({
     this.title,
@@ -601,6 +623,5 @@ class UpdateForSaleRequest {
     this.bloodline,
     this.certificates,
     this.preparationTime,
-    this.preparationNote,
   });
 }

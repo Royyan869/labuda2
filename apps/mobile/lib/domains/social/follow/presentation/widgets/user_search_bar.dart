@@ -41,7 +41,7 @@ class UserSearchBar extends StatelessWidget {
           child: Row(
             children: [
               const SizedBox(width: 16),
-              Icon(Icons.search, color: colorScheme.onSurfaceVariant, size: 20),
+              Icon(Icons.search, color: colorScheme.onSurfaceVariant, size: AppIconSize.action),
               const SizedBox(width: 12),
               Expanded(
                 child: TextField(
@@ -52,7 +52,7 @@ class UserSearchBar extends StatelessWidget {
                       color: colorScheme.onSurfaceVariant,
                     ),
                     border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
+                    contentPadding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
                   ),
                   style: theme.textTheme.bodyMedium,
                 ),
@@ -75,7 +75,7 @@ class UserSearchBar extends StatelessWidget {
                   icon: Icon(
                     Icons.clear,
                     color: colorScheme.onSurfaceVariant,
-                    size: 20,
+                    size: AppIconSize.action,
                   ),
                 ),
             ],

@@ -59,7 +59,7 @@ class SettingsProfileIdentitySection extends StatelessWidget {
         children: [
           Icon(
             icon,
-            size: 20,
+            size: AppIconSize.action,
             color: scheme.onSurfaceVariant,
           ),
           const SizedBox(width: 8),

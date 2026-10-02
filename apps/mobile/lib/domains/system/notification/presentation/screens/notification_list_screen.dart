@@ -74,8 +74,6 @@ class NotificationListScreen extends ConsumerWidget {
     NotificationFilter filter,
   ) {
     return AppBar(
-      elevation: AppElevation.none,
-      surfaceTintColor: Colors.transparent,
       leading: IconButton(
         icon: const Icon(Icons.arrow_back),
         onPressed: () => Navigator.of(context).pop(),
@@ -92,7 +90,7 @@ class NotificationListScreen extends ConsumerWidget {
               value: 'mark_all_read',
               child: Row(
                 children: [
-                  Icon(Icons.done_all, size: 20),
+                  Icon(Icons.done_all, size: AppIconSize.action),
                   SizedBox(width: 12),
                   Text('Mark All as Read'),
                 ],
@@ -111,51 +109,60 @@ class NotificationListScreen extends ConsumerWidget {
     NotificationFilter selectedFilter,
     Map<NotificationFilter, int> counts,
   ) {
-    return Container(
-      height: 50,
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16),
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: NotificationFilter.values.length,
-        itemBuilder: (context, index) {
-          final filter = NotificationFilter.values[index];
-          final isSelected = filter == selectedFilter;
-          final count = counts[filter] ?? 0;
+    // CONTENT-DRIVEN height, deliberately. This rail used to promise
+    // `height: 50` around a horizontal ListView — and a horizontal list CLIPS
+    // its cross axis in silence, without a single overflow stripe, so a chip
+    // that grew with the type ladder would have been cut off unnoticed. The
+    // filters are a CLOSED enum (nothing lazy to pay for), so a Row inside a
+    // horizontal scroll view follows the chips instead of boxing them.
+    Widget chip(NotificationFilter filter) {
+      final isSelected = filter == selectedFilter;
+      final count = counts[filter] ?? 0;
+      return Padding(
+        padding: const EdgeInsets.only(right: AppMetrics.p12),
+        child: FilterChip(
+          avatar: Icon(filter.icon, size: AppIconSize.action),
+          label: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(filter.displayLabel),
+              if (count > 0) ...[
+                const SizedBox(width: 6),
+                Text(
+                  '($count)',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: isSelected
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ],
+          ),
+          selected: isSelected,
+          onSelected: (_) {
+            ref
+                .read(selectedFilterNotifierProvider.notifier)
+                .setFilter(filter);
+          },
+          backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+          selectedColor: Theme.of(context).colorScheme.primaryContainer,
+          checkmarkColor: Theme.of(context).colorScheme.primary,
+        ),
+      );
+    }
 
-          return Padding(
-            padding: const EdgeInsets.only(right: AppMetrics.p12),
-            child: FilterChip(
-              avatar: Icon(filter.icon, size: 18),
-              label: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(filter.displayLabel),
-                  if (count > 0) ...[
-                    const SizedBox(width: 6),
-                    Text(
-                      '($count)',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        color: isSelected
-                            ? Theme.of(context).colorScheme.primary
-                            : Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-              selected: isSelected,
-              onSelected: (_) {
-                ref
-                    .read(selectedFilterNotifierProvider.notifier)
-                    .setFilter(filter);
-              },
-              backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-              selectedColor: Theme.of(context).colorScheme.primaryContainer,
-              checkmarkColor: Theme.of(context).colorScheme.primary,
-            ),
-          );
-        },
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppMetrics.p16,
+        vertical: AppMetrics.p8,
+      ),
+      child: Row(
+        children: [
+          for (final filter in NotificationFilter.values) chip(filter),
+        ],
       ),
     );
   }
@@ -196,11 +203,11 @@ class NotificationListScreen extends ConsumerWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline, size: 64, color: Theme.of(context).colorScheme.error),
+            Icon(Icons.error_outline, size: AppIconSize.display, color: Theme.of(context).colorScheme.error),
             const SizedBox(height: 16),
             const Text(
               'Failed to Load Notifications',
-              style: TextStyle(fontSize: AppType.s18, fontWeight: FontWeight.w600),
+              style: TextStyle(fontSize: AppType.s20, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
             Text(

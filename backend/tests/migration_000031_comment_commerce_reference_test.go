@@ -196,7 +196,7 @@ func seedMigrationProduct(t *testing.T, ctx context.Context, pool *pgxpool.Pool,
 	id := uuid.New()
 	_, err := pool.Exec(ctx,
 		`INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-		id, sellerID, "Product", "desc", `["https://example.com/1.jpg"]`, "kohaku", "immediate")
+		id, sellerID, "Product", "desc", `["https://example.com/1.jpg"]`, "kohaku", "1_3_days")
 	require.NoError(t, err)
 	return id
 }

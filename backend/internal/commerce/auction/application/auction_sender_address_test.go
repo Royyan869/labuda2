@@ -85,7 +85,7 @@ func TestCreateDraft_PassesFarmAddressIDToCanonicalProduct(t *testing.T) {
 		BuyNowPrice:       ptrInt64(12000),
 		StartMode:         entity.StartModeNow,
 		Duration:          24 * time.Hour,
-		MediaURLs:         []string{"https://example.com/1.jpg"},
+		Media:            []productEntity.ProductMedia{{URL: "https://example.com/1.jpg"}},
 		Variety:           "Kohaku",
 		SizeCM:            intPtr(50),
 		FarmAddressID:     &farmAddressID,

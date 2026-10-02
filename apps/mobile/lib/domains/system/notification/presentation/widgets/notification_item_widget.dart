@@ -123,7 +123,7 @@ class NotificationItemWidget extends StatelessWidget {
                       children: [
                         Icon(
                           Icons.access_time,
-                          size: 14,
+                          size: AppIconSize.inlineGlyph,
                           color: theme.colorScheme.onSurface.withValues(
                             alpha: 0.5,
                           ),
@@ -143,7 +143,7 @@ class NotificationItemWidget extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: AppMetrics.p8,
-                              vertical: AppMetrics.p2,
+                              vertical: AppMetrics.p4,
                             ),
                             decoration: BoxDecoration(
                               color: theme.colorScheme.error.withValues(alpha: 0.12),
@@ -156,7 +156,7 @@ class NotificationItemWidget extends StatelessWidget {
 child: Text(
                                'Perlu tindakan',
                                style: TextStyle(
-                                 fontSize: AppType.s10,
+                                 fontSize: AppType.s12,
                                  fontWeight: FontWeight.w700,
                                  color: theme.colorScheme.error,
                                  letterSpacing: 0.3,
@@ -170,7 +170,7 @@ child: Text(
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: AppMetrics.p8,
-                              vertical: AppMetrics.p2,
+                              vertical: AppMetrics.p4,
                             ),
                             decoration: BoxDecoration(
                               color: context.statusColors.warning.withValues(alpha: 0.12),
@@ -179,7 +179,7 @@ child: Text(
                             child: Text(
                               'BARU',
                               style: TextStyle(
-                                fontSize: AppType.s11,
+                                fontSize: AppType.s12,
                                 fontWeight: FontWeight.w700,
                                 color: context.statusColors.warning,
                                 letterSpacing: 0.5,

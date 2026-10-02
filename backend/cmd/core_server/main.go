@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -21,6 +22,7 @@ import (
 	"github.com/labuda/backend/pkg/database"
 	"github.com/labuda/backend/pkg/firebase"
 	"github.com/labuda/backend/pkg/midtrans"
+	"github.com/labuda/backend/pkg/migration"
 	pkgRedis "github.com/labuda/backend/pkg/redis"
 	"go.uber.org/zap"
 )
@@ -100,6 +102,18 @@ func main() {
 		os.Exit(1)
 	}
 
+	// FAIL-FAST: the listen port must be a real TCP port before any
+	// infrastructure is touched.
+	//
+	// Without this guard a PORT of "0" boots the whole server (migrations,
+	// workers, routes) onto a RANDOM free port: no error, no warning, and
+	// every client waiting on :8080 times out — a failure that surfaces
+	// "server unreachable" on the client, far from its cause.
+	if err := validateServerPort(cfg.Server.Port); err != nil {
+		fmt.Printf("Invalid PORT: %v\n", err)
+		os.Exit(1)
+	}
+
 	// Initialize logger
 	log, err := logger.New(cfg.Logging.Level, cfg.Logging.Format, cfg.Logging.Output)
 	if err != nil {
@@ -121,6 +135,13 @@ func main() {
 
 	appCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
+
+	// SCHEMA AUTHORITY: the migration chain is the single authority for the
+	// expected schema and pkg/migration is the single executor that applies it.
+	// A database behind the chain must not serve: every drifted column becomes
+	// a runtime 500 or an outbox retry storm far from its cause (the missing
+	// notifications.actor_kind column was exactly this class of failure).
+	assertSchemaCurrentOrFatal(db, log)
 
 	// FINANCE RESURRECTION PR-C: activate canonical finance runtime.
 	// The finance ledger is the canonical accounting authority and silent
@@ -280,6 +301,69 @@ func bootstrapFinanceOrFatal(db *database.DB, log *logger.Logger) {
 
 	log.Info("finance_bootstrap_completed",
 		zap.Int("created_count", createdCount),
+	)
+}
+
+// schemaVersionGate is the pure decision authority for schema drift: the
+// database may be at the chain head or ahead of it, never behind.
+func schemaVersionGate(current, expected int) error {
+	if current < expected {
+		return fmt.Errorf(
+			"applied schema version %d is behind the migration chain head %d (%d migration(s) pending)",
+			current, expected, expected-current,
+		)
+	}
+	return nil
+}
+
+// assertSchemaCurrentOrFatal halts boot when the database schema is behind the
+// canonical migration chain.
+//
+// The chain on disk is the expected version because it is the same artifact the
+// running code was written against; pkg/migration both resolves the chain and
+// reports what the database has applied, so this check shares one authority
+// with the migration runner itself.
+func assertSchemaCurrentOrFatal(db *database.DB, log *logger.Logger) {
+	ctx := context.Background()
+
+	dir, err := migration.ResolveDir(".")
+	if err != nil {
+		log.Fatal("schema_chain_unavailable: migration chain not found - run the server from backend/ or ship the migrations directory",
+			zap.String("phase", "schema_version_check"),
+			zap.Error(err),
+		)
+	}
+
+	migrations, err := migration.LoadMigrations(dir)
+	if err != nil || len(migrations) == 0 {
+		log.Fatal("schema_chain_unavailable: cannot read the migration chain",
+			zap.String("phase", "schema_version_check"),
+			zap.String("dir", dir),
+			zap.Error(err),
+		)
+	}
+	expected := migrations[len(migrations)-1].Version
+
+	current, err := migration.CurrentVersion(ctx, db.Pool())
+	if err != nil {
+		log.Fatal("schema_version_unreadable: schema_migrations is missing or unreadable - run `go run ./cmd/migrate` from backend/ before starting the server",
+			zap.String("phase", "schema_version_check"),
+			zap.Error(err),
+		)
+	}
+
+	if err := schemaVersionGate(current, expected); err != nil {
+		log.Fatal("schema_version_stale: database schema is behind the code - run `go run ./cmd/migrate` from backend/ before starting the server",
+			zap.String("phase", "schema_version_check"),
+			zap.Int("applied_version", current),
+			zap.Int("chain_head", expected),
+			zap.Error(err),
+		)
+	}
+
+	log.Info("schema_version_current",
+		zap.Int("applied_version", current),
+		zap.Int("chain_head", expected),
 	)
 }
 
@@ -502,6 +586,27 @@ func validateMidtransConfig(cfg *config.Config) error {
 	return nil
 }
 
+// validateServerPort is the boot guard for the listen port.
+//
+// THE INVARIANT: main hands ":" + cfg.Server.Port to the HTTP server verbatim,
+// and net/http treats ":0" as "ask the OS for any free port". That is the one
+// invalid value that never fails: the server boots, workers run, nothing is
+// logged, and the port every client expects stays closed. Reject anything that
+// is not a usable TCP port so the break happens here, loudly, at boot.
+func validateServerPort(raw string) error {
+	if raw == "" {
+		return fmt.Errorf("PORT is empty; set PORT=8080")
+	}
+	port, err := strconv.Atoi(raw)
+	if err != nil {
+		return fmt.Errorf("PORT %q is not a number; set PORT=8080", raw)
+	}
+	if port < 1 || port > 65535 {
+		return fmt.Errorf("PORT %q is out of range 1-65535 (0 binds a random free port and breaks every client silently); set PORT=8080", raw)
+	}
+	return nil
+}
+
 // setupRouter creates and configures the Gin router
 func setupRouter(cfg *config.Config, log *logger.Logger) (*gin.Engine, *middleware.ManagedRateLimiter) {
 	gin.SetMode(cfg.Server.GinMode)
@@ -544,17 +649,31 @@ func setupRouter(cfg *config.Config, log *logger.Logger) (*gin.Engine, *middlewa
 
 // startServer starts the HTTP server with graceful shutdown
 func startServer(appCtx context.Context, cfg *config.Config, router *gin.Engine, deps *serverboot.Dependencies, rateLimiter *middleware.ManagedRateLimiter, log *logger.Logger) {
+	addr := ":" + cfg.Server.Port
+
+	// BIND FIRST, THEN LOG THE ADDRESS WE ACTUALLY GOT.
+	//
+	// `ListenAndServe` on a ":0" address would bind a random free port while
+	// logging the configured one, so a healthy-looking log line could coexist
+	// with a closed :8080. Binding explicitly makes the logged address the
+	// bound address, and a bind failure (port already taken) is fatal here
+	// instead of being reported from inside a goroutine.
+	ln, err := net.Listen("tcp", addr)
+	if err != nil {
+		log.Fatal("Failed to bind listener", zap.String("address", addr), zap.Error(err))
+	}
+	log.Info("Server listening", zap.String("address", ln.Addr().String()))
+
 	srv := &http.Server{
-		Addr:         ":" + cfg.Server.Port,
+		Addr:         addr,
 		Handler:      router,
 		ReadTimeout:  cfg.Server.ReadTimeout,
 		WriteTimeout: cfg.Server.WriteTimeout,
 	}
 
-	// Start server in a goroutine
+	// Serve on the listener that was already bound and logged.
 	go func() {
-		log.Info("Server listening", zap.String("address", srv.Addr))
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := srv.Serve(ln); err != nil && err != http.ErrServerClosed {
 			log.Fatal("Failed to start server", zap.Error(err))
 		}
 	}()

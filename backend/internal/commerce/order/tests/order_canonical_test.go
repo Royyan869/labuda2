@@ -91,8 +91,7 @@ func TestDoubleCheckoutProtection(t *testing.T) {
 	Bloodline: nil,
 	Certificates: []string{"global"},
 	FarmAddressID: nil,
-	PreparationTime: string(forsaleEntity.PreparationTimeImmediate),
-	PreparationNote: nil,
+	PreparationTime: string(forsaleEntity.PreparationTime1To3Days),
 	SellingSurface: productEntity.SellingSurfaceForSale,
 }
 	productRepo := productInfraRepo.NewProductRepository()
@@ -165,8 +164,7 @@ func TestDoubleCheckoutProtection(t *testing.T) {
 					nil, // shippingSetupID: nil for test
 					"JNE",
 					"truck",
-					"immediate", // preparationTimeSnapshot
-					nil,         // preparationNoteSnapshot
+					"1_3_days", // preparationTimeSnapshot
 					nil,         // shippingSource
 					nil,         // shippingQuoteID
 					nil,         // shippingQuotePrice
@@ -285,8 +283,7 @@ func TestStockRaceCondition(t *testing.T) {
 	Bloodline: nil,
 	Certificates: []string{"global"},
 	FarmAddressID: nil,
-	PreparationTime: string(forsaleEntity.PreparationTimeImmediate),
-	PreparationNote: nil,
+	PreparationTime: string(forsaleEntity.PreparationTime1To3Days),
 	SellingSurface: productEntity.SellingSurfaceForSale,
 }
 	productRepo := productInfraRepo.NewProductRepository()
@@ -360,8 +357,7 @@ func TestStockRaceCondition(t *testing.T) {
 					nil, // shippingSetupID: nil for test
 					"JNE",
 					"truck",
-					"immediate", // preparationTimeSnapshot
-					nil,         // preparationNoteSnapshot
+					"1_3_days", // preparationTimeSnapshot
 					nil,         // shippingSource
 					nil,         // shippingQuoteID
 					nil,         // shippingQuotePrice
@@ -450,8 +446,7 @@ func TestOrderCreationIdempotency(t *testing.T) {
 	Bloodline: nil,
 	Certificates: []string{"global"},
 	FarmAddressID: nil,
-	PreparationTime: string(forsaleEntity.PreparationTimeImmediate),
-	PreparationNote: nil,
+	PreparationTime: string(forsaleEntity.PreparationTime1To3Days),
 	SellingSurface: productEntity.SellingSurfaceForSale,
 }
 	productRepo := productInfraRepo.NewProductRepository()
@@ -507,8 +502,7 @@ func TestOrderCreationIdempotency(t *testing.T) {
 			nil, // shippingSetupID: nil for test
 			"JNE",
 			"truck",
-			"immediate", // preparationTimeSnapshot
-			nil,         // preparationNoteSnapshot
+			"1_3_days", // preparationTimeSnapshot
 			nil,         // shippingSource
 			nil,         // shippingQuoteID
 			nil,         // shippingQuotePrice
@@ -590,8 +584,7 @@ func TestDifferentBuyersSameIdempotencyKey(t *testing.T) {
 	Bloodline: nil,
 	Certificates: []string{"global"},
 	FarmAddressID: nil,
-	PreparationTime: string(forsaleEntity.PreparationTimeImmediate),
-	PreparationNote: nil,
+	PreparationTime: string(forsaleEntity.PreparationTime1To3Days),
 	SellingSurface: productEntity.SellingSurfaceForSale,
 }
 	productRepo := productInfraRepo.NewProductRepository()
@@ -645,8 +638,7 @@ func TestDifferentBuyersSameIdempotencyKey(t *testing.T) {
 			nil, // shippingSetupID: nil for test
 			"JNE",
 			"truck",
-			"immediate", // preparationTimeSnapshot
-			nil,         // preparationNoteSnapshot
+			"1_3_days", // preparationTimeSnapshot
 			nil,         // shippingSource
 			nil,         // shippingQuoteID
 			nil,         // shippingQuotePrice
@@ -696,8 +688,7 @@ func TestDifferentBuyersSameIdempotencyKey(t *testing.T) {
 			nil, // shippingSetupID: nil for test
 			"JNE",
 			"truck",
-			"immediate", // preparationTimeSnapshot
-			nil,         // preparationNoteSnapshot
+			"1_3_days", // preparationTimeSnapshot
 			nil,         // shippingSource
 			nil,         // shippingQuoteID
 			nil,         // shippingQuotePrice

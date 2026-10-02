@@ -56,7 +56,7 @@ func TestCanonicalPricingSnapshot_DiscountedOrder_RoundTrip(t *testing.T) {
 				0, $5,
 				$6,
 				'pending_payment', 'none', false,
-				$7, 'immediate',
+				$7, '1_3_days',
 				'ORD-20260808-TEST01', $8, $8
 			)
 		`, orderID, buyerID, sellerID, uuid.New(),
@@ -137,7 +137,7 @@ func TestCanonicalPricingSnapshot_NoDiscountOrder_RoundTrip(t *testing.T) {
 				0, $5,
 				$6,
 				'pending_payment', 'none', false,
-				$7, 'immediate',
+				$7, '1_3_days',
 				'ORD-20260808-TEST02', $8, $8
 			)
 		`, orderID, buyerID, sellerID, uuid.New(),
@@ -202,7 +202,7 @@ func TestCanonicalPricingSnapshot_DiscountMetadataNotOnOrderRow(t *testing.T) {
 				0, $5,
 				$6,
 				'pending_payment', 'none', false,
-				$7, 'immediate',
+				$7, '1_3_days',
 				'ORD-20260808-TEST03', $8, $8
 			)
 		`, orderID, buyerID, sellerID, uuid.New(),
@@ -286,7 +286,7 @@ func TestCanonicalPricingSnapshot_CommissionNotInBuyerPath(t *testing.T) {
 				0, $5,
 				$6,
 				'pending_payment', 'none', false,
-				$7, 'immediate',
+				$7, '1_3_days',
 				'ORD-20260808-TEST04', $8, $8
 			)
 		`, orderID, buyerID, sellerID, uuid.New(),

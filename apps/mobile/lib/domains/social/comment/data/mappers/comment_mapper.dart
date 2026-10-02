@@ -24,12 +24,14 @@ class CommentMapper {
        resourceProjection: dto.resourceProjection,
        media: dto.media
            .map(
-             (item) => CommentMedia(
-               id: item.id,
-               mediaUrl: item.mediaUrl,
-               mediaType: item.mediaType,
-               position: item.position,
-             ),
+              (item) => CommentMedia(
+                id: item.id,
+                mediaUrl: item.mediaUrl,
+                mediaType: item.mediaType,
+                position: item.position,
+                thumbnailUrl: item.thumbnailUrl,
+                blurhash: item.blurhash,
+              )
            )
            .toList(),
        parentId: dto.parentId,

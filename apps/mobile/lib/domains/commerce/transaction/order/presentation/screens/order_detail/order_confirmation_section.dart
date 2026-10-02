@@ -6,6 +6,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:labuda/core/core.dart' as core;
+import 'package:labuda/core/src/theme/app_theme.dart';
 import 'package:labuda/domains/commerce/transaction/order/order.dart';
 import 'package:labuda/shared/utils/app_formatters.dart';
 
@@ -62,7 +63,7 @@ class OrderConfirmationSection extends StatelessWidget {
                 child: Icon(
                   _getIconForStatus(order.status),
                   color: _getIconColorForStatus(context, order.status, colorScheme),
-                  size: 20,
+                  size: AppIconSize.action,
                 ),
               ),
               const SizedBox(width: 12),
@@ -150,7 +151,7 @@ class OrderConfirmationSection extends StatelessWidget {
                   Icon(
                     Icons.info_outline,
                     color: context.statusColors.info,
-                    size: 20,
+                    size: AppIconSize.action,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -361,7 +362,7 @@ class _ShippingNoteSection extends StatelessWidget {
     final colorScheme = theme.colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(core.AppMetrics.p10),
+      padding: const EdgeInsets.all(core.AppMetrics.p12),
       decoration: BoxDecoration(
         color: colorScheme.secondaryContainer,
         borderRadius: BorderRadius.circular(core.AppShape.r8),
@@ -372,7 +373,7 @@ class _ShippingNoteSection extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.info_outline, size: 14, color: colorScheme.secondary),
+          Icon(Icons.info_outline, size: AppIconSize.inlineGlyph, color: colorScheme.secondary),
           const SizedBox(width: 8),
           Expanded(
             child: Text(

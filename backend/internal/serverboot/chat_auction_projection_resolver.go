@@ -52,7 +52,6 @@ type auctionProjectionSourceRow struct {
 	productBreeder     *string
 	productBloodline   *string
 	productPreparation string
-	productNote        *string
 }
 
 type auctionProjectionSellerRow struct {
@@ -153,8 +152,7 @@ func (r *auctionProjectionBatchResolver) ResolveAuctions(
 				p.gender,
 				p.breeder,
 				p.bloodline,
-				p.preparation_time AS product_preparation_time,
-				p.preparation_note AS product_preparation_note
+				p.preparation_time AS product_preparation_time
 			FROM requested r
 			JOIN auctions a ON a.id = r.id
 			JOIN products p ON p.id = a.product_id
@@ -193,7 +191,6 @@ func (r *auctionProjectionBatchResolver) ResolveAuctions(
 				&row.productBreeder,
 				&row.productBloodline,
 				&row.productPreparation,
-				&row.productNote,
 			); err != nil {
 				return fmt.Errorf("chat: auction source batch scan failed: %w", err)
 			}

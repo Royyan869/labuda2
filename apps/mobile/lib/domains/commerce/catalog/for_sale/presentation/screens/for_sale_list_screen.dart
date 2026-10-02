@@ -101,11 +101,6 @@ class _ForSaleListScreenState extends ConsumerState<ForSaleListScreen> {
             icon: const Icon(Icons.arrow_back),
             onPressed: () => Navigator.of(context).pop(),
           ),
-          backgroundColor: scheme.surface,
-          foregroundColor: scheme.onSurface,
-          elevation: AppElevation.none,
-          surfaceTintColor: Colors.transparent,
-          scrolledUnderElevation: 0,
           actions: [
             IconButton(
               onPressed: _showFilterBottomSheet,
@@ -254,7 +249,9 @@ class _ForSaleFilterSheetState extends State<_ForSaleFilterSheet> {
       padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(AppShape.r20)),
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(AppShape.r20),
+        ),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,

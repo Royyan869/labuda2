@@ -95,7 +95,7 @@ class RatingCard extends StatelessWidget {
           return Icon(
             index < rating.ratingValue ? Icons.star : Icons.star_border,
             color: AppColors.koiGold,
-            size: 20,
+            size: AppIconSize.action,
           );
         }),
         const SizedBox(width: 8),
@@ -130,7 +130,7 @@ class RatingCard extends StatelessWidget {
           onPressed: null, // Ratings are immutable
           icon: Icon(
             Icons.more_vert,
-            size: 16,
+            size: AppIconSize.inlineGlyph,
             color: colorScheme.onSurfaceVariant,
           ),
         ),

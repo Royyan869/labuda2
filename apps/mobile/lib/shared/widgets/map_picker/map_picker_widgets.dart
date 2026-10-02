@@ -26,7 +26,7 @@ class MapPickerHeader extends StatelessWidget {
             child: Text(
               'Pilih Lokasi',
               style: TextStyle(
-                fontSize: AppType.s18,
+                fontSize: AppType.s20,
                 fontWeight: FontWeight.w600,
                 color: scheme.onSurface,
               ),
@@ -68,7 +68,7 @@ class MapCenterPin extends StatelessWidget {
               ),
             ],
           ),
-          child: Icon(Icons.place, color: scheme.onPrimary, size: 36),
+          child: Icon(Icons.place, color: scheme.onPrimary, size: AppIconSize.emphasis),
         ),
         const SizedBox(height: 4),
         // Shadow untuk depth effect
@@ -140,7 +140,7 @@ class MapSearchBar extends StatelessWidget {
                     )
                   : isSearching
                   ? const Padding(
-                      padding: EdgeInsets.all(AppMetrics.p14),
+                      padding: EdgeInsets.all(AppMetrics.p16),
                       child: SizedBox(
                         width: 20,
                         height: 20,
@@ -151,7 +151,7 @@ class MapSearchBar extends StatelessWidget {
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: AppMetrics.p16,
-                vertical: AppMetrics.p14,
+                vertical: AppMetrics.p16,
               ),
             ),
             style: TextStyle(
@@ -228,7 +228,7 @@ class _SearchResultItem extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p12),
           child: Row(
             children: [
-              Icon(Icons.location_on, color: scheme.primary, size: 20),
+              Icon(Icons.location_on, color: scheme.primary, size: AppIconSize.action),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -303,7 +303,7 @@ class MapLocationInfoCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.place, color: scheme.primary, size: 20),
+              Icon(Icons.place, color: scheme.primary, size: AppIconSize.action),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -331,14 +331,14 @@ class MapLocationInfoCard extends StatelessWidget {
                     children: [
                       Icon(
                         Icons.warning_amber_rounded,
-                        size: 12,
+                        size: AppIconSize.inlineGlyph,
                         color: scheme.primary,
                       ),
                       const SizedBox(width: 4),
                       Text(
                         'Default Location',
                         style: TextStyle(
-                          fontSize: AppType.s10,
+                          fontSize: AppType.s12,
                           fontWeight: FontWeight.w500,
                           color: scheme.primary,
                         ),
@@ -377,7 +377,7 @@ class MapLocationInfoCard extends StatelessWidget {
                 Text(
                   address ?? 'Pilih lokasi di peta',
                   style: TextStyle(
-                    fontSize: AppType.s15,
+                    fontSize: AppType.s16,
                     fontWeight: FontWeight.w500,
                     height: 1.4,
                     color: scheme.onSurface,
@@ -391,7 +391,7 @@ class MapLocationInfoCard extends StatelessWidget {
                     child: Text(
                       '$latitude, $longitude',
                       style: TextStyle(
-                        fontSize: AppType.s11,
+                        fontSize: AppType.s12,
                         fontFamily: 'monospace',
                         color: scheme.onSurfaceVariant,
                       ),
@@ -442,7 +442,7 @@ class MapConfirmButton extends StatelessWidget {
         child: FilledButton(
           onPressed: canConfirm ? onConfirm : null,
           style: FilledButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
+            padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
           ),
           child: const Text(
             'Pilih Lokasi Ini',

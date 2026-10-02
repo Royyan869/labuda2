@@ -13,19 +13,20 @@ import 'package:labuda/domains/user/profile/presentation/providers/profile_core_
 import 'package:labuda/generated/app_localizations.dart';
 
 /// Address Form Bottom Sheet - Modal for adding/editing address
+///
+/// This is the ONE address form in the app (Settings list, checkout CTA and
+/// the seller wizard all open it). The old per-tab copy with its own rules
+/// (`AddEditAddressDialog`) was the competing authority and is gone.
 class AddressFormDialog extends ConsumerStatefulWidget {
   final AddressEntity? addressToEdit;
-  final AddressPurpose? initialPurpose; // Pre-select purpose when creating new
 
-  /// If set, locks the purpose dropdown to this value (cannot be changed)
-  /// Used when adding address from a specific tab (shipping/sender)
-  final AddressPurpose? forcedPurpose;
+  /// Tags pre-selected when creating a new address.
+  final List<AddressTag>? presetTags;
 
   const AddressFormDialog({
     super.key,
     this.addressToEdit,
-    this.initialPurpose,
-    this.forcedPurpose,
+    this.presetTags,
   });
 
   @override
@@ -59,8 +60,16 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
   Village? _selectedVillage;
 
   // Address fields
-  AddressPurpose _selectedPurpose = AddressPurpose.shipping;
+  final Set<AddressTag> _selectedTags = {AddressTag.shipping};
   bool _isLoading = false;
+
+  /// Total active addresses of this account. Role tags are only a real
+  /// CHOICE at 2+ addresses — a lone address is simply everything
+  /// (backend reconciler enforces both tags + primary), so the selector
+  /// stands down below that.
+  int? _addressCount;
+
+  bool get _showTagSelector => (_addressCount ?? 0) >= 2;
 
   // Map coordinates
   double? _latitude;
@@ -77,17 +86,31 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
     if (widget.addressToEdit != null) {
       _loadAddressData(widget.addressToEdit!);
     } else {
-      // New address - set purpose and autofill from profile
-      if (widget.forcedPurpose != null) {
-        _selectedPurpose = widget.forcedPurpose!;
-      } else if (widget.initialPurpose != null) {
-        _selectedPurpose = widget.initialPurpose!;
+      // New address - preselect the tags this flow requires.
+      final preset = <AddressTag>{...?widget.presetTags};
+      if (preset.isNotEmpty) {
+        _selectedTags
+          ..clear()
+          ..addAll(preset);
       }
       // Autofill after build (needs ref)
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _autofillFromProfile();
       });
     }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadAddressCount();
+    });
+  }
+
+  Future<void> _loadAddressCount() async {
+    final currentUser = ref.read(authenticatedUserProvider);
+    if (currentUser == null) return;
+    final result = await ref
+        .read(addressRepositoryProvider)
+        .countAddresses(currentUser.id);
+    if (!mounted || !result.isSuccess) return;
+    setState(() => _addressCount = result.data);
   }
 
   /// Autofill name and phone from user profile
@@ -95,9 +118,9 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
     final currentUser = ref.read(authenticatedUserProvider);
     if (currentUser == null) return;
 
-    final effectivePurpose = widget.forcedPurpose ?? _selectedPurpose;
+    final isSenderFlow = _selectedTags.contains(AddressTag.sender);
 
-    if (effectivePurpose == AddressPurpose.sender &&
+    if (isSenderFlow &&
         currentUser.hasCreatedSellerProfile) {
       // Seller sender address: use business name (locked)
       final profileAsync = await ref.read(
@@ -151,13 +174,15 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
       _selectedVillage = address.village;
       _streetAddressController.text = address.streetAddress;
       _postalCodeController.text = address.postalCode;
-      _selectedPurpose = address.purpose;
+      _selectedTags
+        ..clear()
+        ..addAll(address.tags);
       // Map coordinates
       _latitude = address.latitude;
       _longitude = address.longitude;
 
       // Load nickname for shipping addresses
-      if (address.purpose == AddressPurpose.shipping &&
+      if (address.hasTag(AddressTag.shipping) &&
           address.nickname != null) {
         if (_nicknameOptions.contains(address.nickname)) {
           _selectedNickname = address.nickname;
@@ -170,17 +195,9 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
     });
   }
 
-  List<AddressPurpose> _getAvailablePurposes() {
-    final currentUser = ref.watch(authenticatedUserProvider);
-
-    // If user is seller, show all purposes
-    if (currentUser?.hasCreatedSellerProfile ?? false) {
-      return AddressPurpose.values;
-    }
-
-    // If user is buyer, only shipping purpose
-    return [AddressPurpose.shipping];
-  }
+  List<AddressTag> _sortedSelectedTags() => AddressTag.values
+      .where(_selectedTags.contains)
+      .toList();
 
   /// Auto-fill postal code ketika village dipilih
   Future<void> _autoFillPostalCode() async {
@@ -217,6 +234,11 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
       return;
     }
 
+    if (_selectedTags.isEmpty) {
+      AppSnackBar.showError(context, 'Pick at least one role for this address');
+      return;
+    }
+
     if (_selectedProvince == null ||
         _selectedCity == null ||
         _selectedDistrict == null ||
@@ -236,10 +258,10 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
       final repository = ref.read(addressRepositoryProvider);
       final now = DateTime.now();
 
-      // Determine nickname based on purpose
+      // Nickname belongs to the shipping role of this address
       String? nickname;
-      if (_selectedPurpose == AddressPurpose.shipping) {
-        // Only shipping addresses have nickname
+      if (_selectedTags.contains(AddressTag.shipping)) {
+        // Only shipping-tagged addresses have nickname
         if (_selectedNickname != null) {
           if (_isCustomNickname) {
             nickname = _customNicknameController.text.trim().isEmpty
@@ -250,12 +272,17 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
           }
         }
       }
-      // Sender addresses don't have nickname (null)
+      // Sender-only addresses don't have nickname (null)
 
       final address = AddressEntity(
         id: widget.addressToEdit?.id ?? '',
         userId: currentUser.id,
-        purpose: _selectedPurpose,
+        // Below 2 addresses the account's address is everything (and the
+        // backend reconciler forces it anyway): never save a roleless
+        // single address.
+        tags: _showTagSelector
+            ? _sortedSelectedTags()
+            : const [AddressTag.shipping, AddressTag.sender],
         nickname: nickname,
         recipientName: _recipientNameController.text.trim(),
         phone: _phoneController.text.trim(),
@@ -311,7 +338,6 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final availablePurposes = _getAvailablePurposes();
 
     return DraggableScrollableSheet(
       initialChildSize: 0.9,
@@ -319,8 +345,11 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
       maxChildSize: 0.95,
       expand: false,
       builder: (context, scrollController) => Container(
+        // Sheet surface follows the canonical transparent-sheet convention
+        // (LinkPickerModal): `surface` + r20 top. `onSurfaceVariant` used to
+        // be the LAYER colour here — a mid-grey slab.
         decoration: BoxDecoration(
-          color: scheme.onSurfaceVariant,
+          color: scheme.surface,
           borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(AppShape.r20),
             topRight: Radius.circular(AppShape.r20),
@@ -328,16 +357,12 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
         ),
         child: Column(
           children: [
+            // Handle bar — ONE authority: `AppDragHandle` beside the bottom-sheet
+            // base. What matched the link picker by hand is now guaranteed by it.
+            const AppDragHandle(padding: EdgeInsets.only(top: AppMetrics.p12)),
             // Header
             Container(
-              padding: const EdgeInsets.all(AppMetrics.p20),
-              decoration: BoxDecoration(
-                color: scheme.onSurfaceVariant,
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(AppShape.r20),
-                  topRight: Radius.circular(AppShape.r20),
-                ),
-              ),
+              padding: const EdgeInsets.all(AppMetrics.p24),
               child: Row(
                 children: [
                   Icon(
@@ -353,9 +378,11 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
                           ? 'Edit Address'
                           : 'Add New Address',
                       style: TextStyle(
-                        fontSize: AppType.s18,
+                        fontSize: AppType.s20,
                         fontWeight: FontWeight.bold,
-                        color: scheme.onSurfaceVariant,
+                        // Primary ink on a surface — was `onSurfaceVariant`
+                        // ink on an `onSurfaceVariant` surface (invisible).
+                        color: scheme.onSurface,
                       ),
                     ),
                   ),
@@ -375,51 +402,30 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
                 child: ListView(
                   controller: scrollController,
                   padding: EdgeInsets.fromLTRB(
-                    AppMetrics.p20,
-                    AppMetrics.p20,
-                    AppMetrics.p20,
-                    AppMetrics.p20 + MediaQuery.of(context).viewInsets.bottom,
+                    AppMetrics.p24,
+                    AppMetrics.p24,
+                    AppMetrics.p24,
+                    AppMetrics.p24 + MediaQuery.of(context).viewInsets.bottom,
                   ),
                   children: [
-                    // Purpose - show locked indicator if forcedPurpose is set
-                    if (widget.forcedPurpose != null)
-                      _buildLockedPurposeIndicator(scheme)
-                    else
-                      DropdownButtonFormField<AddressPurpose>(
-                        initialValue:
-                            availablePurposes.contains(_selectedPurpose)
-                            ? _selectedPurpose
-                            : availablePurposes.first,
-                        items: availablePurposes.map((purpose) {
-                          return DropdownMenuItem<AddressPurpose>(
-                            value: purpose,
-                            child: Text(purpose.label),
-                          );
-                        }).toList(),
-                        onChanged: (value) {
-                          if (value != null) {
-                            setState(() => _selectedPurpose = value);
-                          }
-                        },
-                        decoration: InputDecoration(
-                          labelText: 'Purpose *',
-                          hintText: 'Select address purpose',
-                          prefixIcon: Icon(_getPurposeIcon(_selectedPurpose)),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(AppShape.r12),
-                          ),
+                    // Role tags — only a CHOICE when the account owns 2+
+                    // addresses. A lone address is simply everything.
+                    if (_showTagSelector) ...[
+                      _buildTagSelector(scheme),
+                      const SizedBox(height: 16),
+                    ] else ...[
+                      Text(
+                        'Applies to shipping & sender',
+                        style: TextStyle(
+                          fontSize: AppType.s12,
+                          color: scheme.onSurfaceVariant,
                         ),
-                        validator: (value) {
-                          if (value == null) {
-                            return 'Please select a purpose';
-                          }
-                          return null;
-                        },
                       ),
-                    const SizedBox(height: 16),
+                      const SizedBox(height: 16),
+                    ],
 
-                    // Nickname field (only for shipping addresses)
-                    if (_selectedPurpose == AddressPurpose.shipping) ...[
+                    // Nickname field (only for shipping-tagged addresses)
+                    if (_selectedTags.contains(AddressTag.shipping)) ...[
                       _buildNicknameDropdown(scheme),
                       const SizedBox(height: 16),
                     ],
@@ -431,16 +437,16 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
                     else
                       AppTextField(
                         controller: _recipientNameController,
-                        labelText: _selectedPurpose == AddressPurpose.sender
+                        labelText: _isSenderTagged
                             ? 'Sender Name *'
                             : 'Recipient Name *',
-                        hintText: _selectedPurpose == AddressPurpose.sender
+                        hintText: _isSenderTagged
                             ? 'Store/farm name'
                             : 'Full name of recipient',
                         prefixIcon: Icons.person_outline,
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
-                            return _selectedPurpose == AddressPurpose.sender
+                            return _isSenderTagged
                                 ? 'Sender name is required'
                                 : 'Recipient name is required';
                           }
@@ -583,9 +589,14 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
             SafeArea(
               top: false,
               child: Container(
-                padding: const EdgeInsets.all(AppMetrics.p20),
+                padding: const EdgeInsets.all(AppMetrics.p24),
+                // Sticky action bar = the same surface + top divider the
+                // address list's own sticky bar uses.
                 decoration: BoxDecoration(
-                  color: scheme.onSurfaceVariant,
+                  color: scheme.surface,
+                  border: Border(
+                    top: BorderSide(color: scheme.outlineVariant),
+                  ),
                 ),
                 child: SizedBox(
                   width: double.infinity,
@@ -624,68 +635,71 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
     );
   }
 
-  IconData _getPurposeIcon(AddressPurpose purpose) {
-    switch (purpose) {
-      case AddressPurpose.shipping:
+  bool get _isSenderTagged => _selectedTags.contains(AddressTag.sender);
+
+  IconData _getTagIcon(AddressTag tag) {
+    switch (tag) {
+      case AddressTag.shipping:
         return Icons.home;
-      case AddressPurpose.sender:
+      case AddressTag.sender:
         return Icons.agriculture;
     }
   }
 
-  /// Build locked purpose indicator when forcedPurpose is set
-  Widget _buildLockedPurposeIndicator(ColorScheme scheme) {
-    final purpose = widget.forcedPurpose!;
-    final isShipping = purpose == AddressPurpose.shipping;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: AppMetrics.p12, horizontal: AppMetrics.p16),
-      decoration: BoxDecoration(
-        color: scheme.onSurfaceVariant,
-        borderRadius: BorderRadius.circular(AppShape.r12),
-        border: Border.all(
-          color: scheme.onSurfaceVariant,
-        ),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            isShipping
-                ? Icons.local_shipping_outlined
-                : Icons.storefront_outlined,
-            size: 20,
-            color: scheme.primary,
+  /// Role tags: what this address is FOR. Multi-select — one address may be
+  /// both a delivery destination and a shipping origin. Shown only at 2+
+  /// addresses; below that the lone address is everything.
+  Widget _buildTagSelector(ColorScheme scheme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Use this address for *',
+          style: TextStyle(
+            fontSize: AppType.s14,
+            fontWeight: FontWeight.w600,
+            color: scheme.onSurface,
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  isShipping
-                      ? 'Recipient Address (Buyer)'
-                      : 'Sender Address (Seller)',
-                  style: TextStyle(
-                    fontSize: AppType.s14,
-                    fontWeight: FontWeight.w600,
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  isShipping
-                      ? 'Shipping destination address'
-                      : 'Shipping origin address',
-                  style: TextStyle(
-                    fontSize: AppType.s12,
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'One address can serve more than one role.',
+          style: TextStyle(
+            fontSize: AppType.s12,
+            color: scheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: AppMetrics.p8,
+          runSpacing: AppMetrics.p8,
+          children: [
+            for (final tag in AddressTag.values)
+              ChoiceChip(
+                avatar: Icon(_getTagIcon(tag), size: 16),
+                label: Text(tag.shortLabel),
+                selected: _selectedTags.contains(tag),
+                onSelected: (selected) {
+                  setState(() {
+                    if (selected) {
+                      _selectedTags.add(tag);
+                    } else {
+                      _selectedTags.remove(tag);
+                    }
+                  });
+                },
+              ),
+          ],
+        ),
+        if (_selectedTags.isEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: AppMetrics.p8),
+            child: Text(
+              'Pick at least one role',
+              style: TextStyle(fontSize: AppType.s12, color: scheme.error),
             ),
           ),
-        ],
-      ),
+      ],
     );
   }
 
@@ -731,25 +745,25 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
   /// Build locked name field for seller - prominent display (not faded like hint)
   Widget _buildLockedNameField(ColorScheme scheme) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14, horizontal: AppMetrics.p16),
+      padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16, horizontal: AppMetrics.p16),
       decoration: BoxDecoration(
-        color: scheme.onSurfaceVariant.withValues(alpha: 0.05),
+        // Container roles: neutral subtle fill + outline border (was ink at
+        // 5%/20% alpha, which dark-mode flips to a light grey blob).
+        color: scheme.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(AppShape.r12),
-        border: Border.all(
-          color: scheme.onSurfaceVariant.withValues(alpha: 0.2),
-        ),
+        border: Border.all(color: scheme.outlineVariant),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(AppMetrics.p8),
             decoration: BoxDecoration(
-              color: scheme.onSurfaceVariant.withValues(alpha: 0.1),
+              color: scheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(AppShape.r8),
             ),
             child: Icon(
               Icons.storefront,
-              size: 20,
+              size: AppIconSize.action,
               color: scheme.primary,
             ),
           ),
@@ -761,7 +775,7 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
                 Text(
                   'Sender Name',
                   style: TextStyle(
-                    fontSize: AppType.s11,
+                    fontSize: AppType.s12,
                     fontWeight: FontWeight.w500,
                     color: scheme.onSurfaceVariant,
                   ),
@@ -772,9 +786,9 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
                       ? _recipientNameController.text
                       : 'Store Name',
                   style: TextStyle(
-                    fontSize: AppType.s15,
+                    fontSize: AppType.s16,
                     fontWeight: FontWeight.w600,
-                    color: scheme.onSurfaceVariant,
+                    color: scheme.onSurface,
                   ),
                 ),
               ],
@@ -783,8 +797,10 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
           const SizedBox(width: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
+            // M3 chip pair: secondaryContainer/onSecondaryContainer — the old
+            // copy was a solid ink box with ink text on it.
             decoration: BoxDecoration(
-              color: scheme.onSurfaceVariant,
+              color: scheme.secondaryContainer,
               borderRadius: BorderRadius.circular(AppShape.r6),
             ),
             child: Row(
@@ -792,16 +808,16 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
               children: [
                 Icon(
                   Icons.lock_outline,
-                  size: 12,
-                  color: scheme.onSurfaceVariant,
+                  size: AppIconSize.inlineGlyph,
+                  color: scheme.onSecondaryContainer,
                 ),
                 const SizedBox(width: 4),
                 Text(
                   'From Profile',
                   style: TextStyle(
-                    fontSize: AppType.s10,
+                    fontSize: AppType.s12,
                     fontWeight: FontWeight.w500,
-                    color: scheme.onSurfaceVariant,
+                    color: scheme.onSecondaryContainer,
                   ),
                 ),
               ],
@@ -823,12 +839,12 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: AppMetrics.p12, horizontal: AppMetrics.p16),
             decoration: BoxDecoration(
-              color: scheme.onSurfaceVariant,
+              color: scheme.surfaceContainerHigh,
               borderRadius: BorderRadius.circular(AppShape.r12),
               border: Border.all(
                 color: hasCoordinates
                     ? context.statusColors.success
-                    : (scheme.onSurfaceVariant),
+                    : scheme.outlineVariant,
                 width: hasCoordinates ? 2 : 1,
               ),
             ),
@@ -836,10 +852,10 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
               children: [
                 Icon(
                   hasCoordinates ? Icons.check_circle : Icons.map_outlined,
-                  size: 20,
+                  size: AppIconSize.action,
                   color: hasCoordinates
                       ? context.statusColors.success
-                      : (scheme.onSurfaceVariant),
+                      : scheme.onSurfaceVariant,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -855,14 +871,14 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
                           fontWeight: FontWeight.w500,
                           color: hasCoordinates
                               ? context.statusColors.success
-                              : (scheme.onSurfaceVariant),
+                              : scheme.onSurface,
                         ),
                       ),
                       if (hasCoordinates)
                         Text(
                           '${_latitude!.toStringAsFixed(6)}, ${_longitude!.toStringAsFixed(6)}',
                           style: TextStyle(
-                            fontSize: AppType.s11,
+                            fontSize: AppType.s12,
                             fontFamily: 'monospace',
                             color: scheme.onSurfaceVariant,
                           ),
@@ -872,7 +888,7 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
                 ),
                 Icon(
                   Icons.chevron_right,
-                  size: 20,
+                  size: AppIconSize.action,
                   color: scheme.onSurfaceVariant,
                 ),
               ],
@@ -883,7 +899,7 @@ class _AddressFormDialogState extends ConsumerState<AddressFormDialog> {
         Text(
           'Pinpoint location to facilitate delivery',
           style: TextStyle(
-            fontSize: AppType.s11,
+            fontSize: AppType.s12,
             color: scheme.onSurfaceVariant,
           ),
         ),

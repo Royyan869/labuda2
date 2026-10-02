@@ -16,10 +16,18 @@ class ChatResourceProjectionCard extends StatelessWidget {
   /// wired, the button falls back to the canonical resource detail page.
   final VoidCallback? onBuy;
 
+  /// Shipping-quote (ongkir) entry intent — rendered ONLY when the server
+  /// projection marks the viewer as manager of this LIVE for_sale
+  /// (canManage). The form, request and API call live in the Shipping
+  /// domain; this card merely forwards the tap (Owner rule 2026-10-01:
+  /// chat owns display, never shipping).
+  final VoidCallback? onQuoteShipping;
+
   const ChatResourceProjectionCard({
     super.key,
     required this.resourceProjection,
     this.onBuy,
+    this.onQuoteShipping,
   });
 
   @override
@@ -177,10 +185,27 @@ class ChatResourceProjectionCard extends StatelessWidget {
         );
       }
     }
+    // Owner-only ongkir entry: the server already decided who manages this
+    // listing (canManage on the LIVE for_sale envelope). Buyers and guests
+    // never see it — no client-side identity guessing.
+    if (onQuoteShipping != null &&
+        actions.canManage &&
+        resourceProjection.resourceType ==
+            ResourceProjectionType.fixedPriceSale) {
+      buttons.add(
+        _ctaButton(
+          context,
+          label: 'Kirim Ongkir',
+          icon: Icons.local_shipping_outlined,
+          emphasis: false,
+          onPressed: onQuoteShipping!,
+        ),
+      );
+    }
     if (buttons.isEmpty) return null;
 
     return Padding(
-      padding: const EdgeInsets.only(top: AppMetrics.p10),
+      padding: const EdgeInsets.only(top: AppMetrics.p12),
       child: Wrap(spacing: 8, runSpacing: 8, children: buttons),
     );
   }
@@ -201,7 +226,7 @@ class ChatResourceProjectionCard extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return FilledButton.icon(
       onPressed: onPressed,
-      icon: Icon(icon, size: 16),
+      icon: Icon(icon, size: AppIconSize.inlineGlyph),
       label: Text(label),
       style: FilledButton.styleFrom(
         visualDensity: VisualDensity.compact,
@@ -211,7 +236,7 @@ class ChatResourceProjectionCard extends StatelessWidget {
             ? scheme.primary
             : scheme.surfaceContainerHighest,
         foregroundColor: emphasis ? scheme.onPrimary : scheme.onSurface,
-        textStyle: const TextStyle(fontSize: AppType.s13, fontWeight: FontWeight.w700),
+        textStyle: const TextStyle(fontSize: AppType.s14, fontWeight: FontWeight.w700),
       ),
     );
   }
@@ -336,7 +361,7 @@ class ChatResourceProjectionCard extends StatelessWidget {
     return Container(
       color: scheme.surfaceContainerHighest,
       child: Center(
-        child: Icon(icon, color: scheme.onSurfaceVariant, size: 36),
+        child: Icon(icon, color: scheme.onSurfaceVariant, size: AppIconSize.emphasis),
       ),
     );
   }

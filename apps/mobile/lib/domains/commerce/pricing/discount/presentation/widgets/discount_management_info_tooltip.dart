@@ -80,7 +80,7 @@ class DiscountManagementInfoTooltip extends StatelessWidget {
                     Icon(
                       Icons.lightbulb_outline,
                       color: context.statusColors.warning,
-                      size: 20,
+                      size: AppIconSize.action,
                     ),
                     const SizedBox(width: 8),
                     Expanded(
@@ -122,7 +122,7 @@ class DiscountManagementInfoTooltip extends StatelessWidget {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: iconColor, size: 20),
+            Icon(icon, color: iconColor, size: AppIconSize.action),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
@@ -152,7 +152,7 @@ class DiscountManagementInfoTooltip extends StatelessWidget {
             child: Text(
               rule,
               style: TextStyle(
-                fontSize: AppType.s13,
+                fontSize: AppType.s14,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               softWrap: true,

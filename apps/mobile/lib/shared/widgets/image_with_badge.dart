@@ -191,6 +191,7 @@ class ImageWithBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
     Widget content = AspectRatio(
       aspectRatio: aspectRatio,
@@ -209,15 +210,16 @@ class ImageWithBadge extends StatelessWidget {
               ),
 
             // Video badge
-            if (videoBadge?.show == true) _buildVideoBadge(videoBadge!, scheme),
+            if (videoBadge?.show == true)
+              _buildVideoBadge(videoBadge!, scheme, textTheme),
 
             // Status overlay
             if (statusOverlay != null)
-              _buildStatusOverlay(statusOverlay!, scheme),
+              _buildStatusOverlay(statusOverlay!, scheme, textTheme),
 
             // Image count badge
             if (imageCount?.show == true)
-              _buildImageCountBadge(imageCount!, scheme),
+              _buildImageCountBadge(imageCount!, scheme, textTheme),
 
             // Custom badges
             if (customBadges != null) ...customBadges!,
@@ -240,7 +242,7 @@ class ImageWithBadge extends StatelessWidget {
         child: Center(
           child: Icon(
             Icons.image_outlined,
-            size: 32,
+            size: AppIconSize.emphasis,
             color: scheme.onSurfaceVariant,
           ),
         ),
@@ -255,7 +257,11 @@ class ImageWithBadge extends StatelessWidget {
     );
   }
 
-  Widget _buildVideoBadge(VideoBadgeConfig config, ColorScheme scheme) {
+  Widget _buildVideoBadge(
+    VideoBadgeConfig config,
+    ColorScheme scheme,
+    TextTheme textTheme,
+  ) {
     return Positioned(
       top:
           config.position == BadgePosition.topLeft ||
@@ -289,13 +295,13 @@ class ImageWithBadge extends StatelessWidget {
             Icon(
               Icons.play_circle_filled,
               color: scheme.onPrimary,
-              size: 16,
+              size: AppIconSize.inlineGlyph,
             ),
             if (config.label != null) ...[
               const SizedBox(width: 4),
               Text(
                 config.label!,
-                style: AppTypography.labelSmall.copyWith(
+                style: textTheme.labelSmall?.copyWith(
                   color: scheme.onPrimary,
                 ),
               ),
@@ -306,7 +312,11 @@ class ImageWithBadge extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusOverlay(StatusOverlayConfig config, ColorScheme scheme) {
+  Widget _buildStatusOverlay(
+    StatusOverlayConfig config,
+    ColorScheme scheme,
+    TextTheme textTheme,
+  ) {
     final bg = config.backgroundColor ?? scheme.onSurfaceVariant;
     final ink = config.textColor ??
         (config.backgroundColor == null
@@ -334,7 +344,7 @@ class ImageWithBadge extends StatelessWidget {
           ? 8
           : null,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p6, vertical: AppMetrics.p3),
+        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
         decoration: BoxDecoration(
           color: bg,
           borderRadius: BorderRadius.circular(AppShape.r4),
@@ -343,15 +353,15 @@ class ImageWithBadge extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (config.icon != null) ...[
-              Icon(config.icon, size: 12, color: ink),
+              Icon(config.icon, size: AppIconSize.inlineGlyph, color: ink),
               const SizedBox(width: 2),
             ],
             Text(
               config.label,
-              style: AppTypography.labelSmall.copyWith(
+              style: textTheme.labelSmall?.copyWith(
                 color: ink,
                 fontWeight: FontWeight.bold,
-                fontSize: AppType.s10,
+                fontSize: AppType.s12,
               ),
             ),
           ],
@@ -360,7 +370,11 @@ class ImageWithBadge extends StatelessWidget {
     );
   }
 
-  Widget _buildImageCountBadge(ImageCountBadgeConfig config, ColorScheme scheme) {
+  Widget _buildImageCountBadge(
+    ImageCountBadgeConfig config,
+    ColorScheme scheme,
+    TextTheme textTheme,
+  ) {
     return Positioned(
       top:
           config.position == BadgePosition.topLeft ||
@@ -391,11 +405,11 @@ class ImageWithBadge extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.photo_library, size: 14, color: scheme.onPrimary),
+            Icon(Icons.photo_library, size: AppIconSize.inlineGlyph, color: scheme.onPrimary),
             const SizedBox(width: 4),
             Text(
               '${config.count}',
-              style: AppTypography.labelSmall.copyWith(
+              style: textTheme.labelSmall?.copyWith(
                 color: scheme.onPrimary,
                 fontWeight: FontWeight.w600,
               ),

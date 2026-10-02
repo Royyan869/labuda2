@@ -374,10 +374,10 @@ func newProcessServiceForStacking(
 		&processAddressRepo{
 			addresses: []*addressEntity.Address{
 				{
-					ID:      uuid.New(),
-					UserID:  userID,
-					Purpose: addressEntity.AddressPurposeSender,
-					Phone:   userPhone,
+					ID:     uuid.New(),
+					UserID: userID,
+					Tags:   []addressEntity.AddressTag{addressEntity.TagSender},
+					Phone:  userPhone,
 				},
 			},
 		},

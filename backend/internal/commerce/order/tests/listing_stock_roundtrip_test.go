@@ -76,8 +76,7 @@ func TestForSaleStockRoundTrip_Qty1(t *testing.T) {
 	Bloodline: nil,
 	Certificates: []string{"global"},
 	FarmAddressID: nil,
-	PreparationTime: string(forsaleEntity.PreparationTimeImmediate),
-	PreparationNote: nil,
+	PreparationTime: string(forsaleEntity.PreparationTime1To3Days),
 	SellingSurface: productEntity.SellingSurfaceForSale,
 }
 	productRepo := productInfraRepo.NewProductRepository()
@@ -204,8 +203,7 @@ func TestForSaleStockRoundTrip_MultiQty(t *testing.T) {
 	Bloodline: nil,
 	Certificates: []string{"global"},
 	FarmAddressID: nil,
-	PreparationTime: string(forsaleEntity.PreparationTimeImmediate),
-	PreparationNote: nil,
+	PreparationTime: string(forsaleEntity.PreparationTime1To3Days),
 	SellingSurface: productEntity.SellingSurfaceForSale,
 }
 	productRepo := productInfraRepo.NewProductRepository()
@@ -298,8 +296,7 @@ func TestNegativeQuantityStillBlocked(t *testing.T) {
 	Bloodline: nil,
 	Certificates: []string{"global"},
 	FarmAddressID: nil,
-	PreparationTime: string(forsaleEntity.PreparationTimeImmediate),
-	PreparationNote: nil,
+	PreparationTime: string(forsaleEntity.PreparationTime1To3Days),
 	SellingSurface: productEntity.SellingSurfaceForSale,
 }
 	productRepo := productInfraRepo.NewProductRepository()

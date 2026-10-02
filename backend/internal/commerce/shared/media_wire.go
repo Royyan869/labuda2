@@ -6,6 +6,8 @@ import (
 	"time"
 
 	mediaentity "github.com/labuda/backend/internal/commerce/media/entity"
+	productentity "github.com/labuda/backend/internal/commerce/product/entity"
+	"github.com/labuda/backend/internal/pkg/mediaref"
 	"github.com/labuda/backend/internal/platform/mediaresolve"
 )
 
@@ -13,10 +15,10 @@ import (
 //
 // OWNER CANONICAL: ForSale and Auction are siblings under the same Product
 // authority, so both emit the IDENTICAL `media` shape (id, type, url,
-// position, thumbnail_url, width, height, duration, created_at). Mobile
-// renders both surfaces with one parser. Product.MediaURLs is the sole
-// content authority; the typed block is a projection of it, never a
-// competing source.
+// position, thumbnail_url, blurhash, width, height, duration, status,
+// created_at). Mobile renders both surfaces with one parser.
+// Product.MediaURLs is the sole content authority; the typed block is a
+// projection of it, never a competing source.
 
 // ResolveReadableMediaReference projects a stored media reference onto the
 // canonical CloudFront read URL. Fail-open per item: unresolvable references
@@ -63,6 +65,19 @@ func ResolveReadableMediaReferences(references []string) []string {
 // external absolute URLs pass through untouched (no variant exists for
 // content the pipeline never processed). Empty stays empty.
 func ThumbnailVariantKey(reference string) string {
+	return VariantKey(reference, ListVariantDir)
+}
+
+// ListVariantDir is the Lambda variant served on every list surface
+// (feed, marketplace cards, search rows): 600px q85 — sharp on phones,
+// ~30x lighter than the original. The 150px thumbnail/ variant is too small
+// for cards (it rendered blurry); detail/viewer always use the original.
+const ListVariantDir = "medium"
+
+// VariantKey derives a Lambda variant key from a stored media reference
+// using the SAME rule as aws-lambda/image-processor getVariantKey:
+// {dir}/{variant}/{file}.
+func VariantKey(reference, variant string) string {
 	trimmed := strings.TrimSpace(reference)
 	if trimmed == "" {
 		return ""
@@ -79,7 +94,7 @@ func ThumbnailVariantKey(reference string) string {
 		return ""
 	}
 	// Idempotent: a reference that already names a pipeline variant is
-	// returned unchanged so the rule can never stack (/thumbnail/thumbnail).
+	// returned unchanged so the rule can never stack (medium/medium).
 	for _, segment := range strings.Split(path, "/") {
 		switch segment {
 		case "thumbnail", "medium", "large", "webp":
@@ -88,40 +103,152 @@ func ThumbnailVariantKey(reference string) string {
 	}
 	idx := strings.LastIndex(path, "/")
 	if idx <= 0 {
-		return "thumbnail/" + path
+		return variant + "/" + path
 	}
-	return path[:idx] + "/thumbnail/" + path[idx+1:]
+	return path[:idx] + "/" + variant + "/" + path[idx+1:]
 }
 
 // ResolveReadableThumbnailURL projects a stored media reference onto the
-// canonical CloudFront URL of its Lambda thumbnail variant. Fail-open:
-// unresolvable references fall back to the trimmed raw reference, never erased.
+// canonical CloudFront URL of a Lambda variant (ListVariantDir by default).
+// Fail-open: unresolvable references fall back to the trimmed raw reference,
+// never erased.
 func ResolveReadableThumbnailURL(reference string) string {
-	variant := ThumbnailVariantKey(reference)
-	if variant == "" {
+	return ResolveReadableVariantURL(reference, ListVariantDir)
+}
+
+// ResolveReadableVariantURL projects a stored media reference onto the
+// canonical CloudFront URL of the named Lambda variant.
+func ResolveReadableVariantURL(reference, variant string) string {
+	key := VariantKey(reference, variant)
+	if key == "" {
 		return ""
 	}
-	resolved, err := mediaresolve.ResolveMediaReadURL(variant)
+	resolved, err := mediaresolve.ResolveMediaReadURL(key)
 	if err != nil {
 		return strings.TrimSpace(reference)
 	}
 	return resolved
 }
 
-// MediaWireItems renders the typed media block from Product media
-// references. createdAt anchors deterministic media IDs. Never nil — an
+// FirstImageRef returns the first stored reference that is an image.
+// Videos carry a poster frame instead of an image variant (see
+// VideoPosterKey), so list thumbnails derive only from images; empty when
+// the list holds video alone.
+func FirstImageRef(references []string) string {
+	for _, ref := range references {
+		trimmed := strings.TrimSpace(ref)
+		if trimmed == "" {
+			continue
+		}
+		if mediaentity.InferMediaType(trimmed) == mediaentity.MediaTypeVideo {
+			continue
+		}
+		return trimmed
+	}
+	return ""
+}
+
+// VideoPosterKey derives the poster-frame key for a stored video reference:
+// {dir}/{name}_poster.jpg next to the mp4. Produced by the remux Lambda
+// (faststart + middle frame) at upload time; the mediaupload contract
+// already authorizes the _poster.jpg suffix.
+func VideoPosterKey(reference string) string {
+	trimmed := strings.TrimSpace(reference)
+	if trimmed == "" {
+		return ""
+	}
+	path := trimmed
+	if u, err := url.Parse(trimmed); err == nil && u.IsAbs() {
+		if u.Path == "" || u.Path == "/" {
+			return trimmed
+		}
+		path = strings.Trim(u.Path, "/")
+	}
+	path = strings.Trim(path, "/")
+	if path == "" {
+		return ""
+	}
+	// Idempotent: an existing poster path is returned unchanged.
+	if strings.HasSuffix(path, "_poster.jpg") {
+		return trimmed
+	}
+	if idx := strings.LastIndex(path, "."); idx > strings.LastIndex(path, "/") {
+		path = path[:idx]
+	}
+	return path + "_poster.jpg"
+}
+
+// ResolveReadablePosterURL projects a stored video reference onto the
+// canonical CloudFront URL of its poster frame. Fail-open like the rest.
+func ResolveReadablePosterURL(reference string) string {
+	key := VideoPosterKey(reference)
+	if key == "" {
+		return ""
+	}
+	resolved, err := mediaresolve.ResolveMediaReadURL(key)
+	if err != nil {
+		return strings.TrimSpace(reference)
+	}
+	return resolved
+}
+
+// ResolveReadableCardThumbnailURL resolves a product media list's display
+// thumbnail: the Lambda image variant of the first image, else the poster
+// frame of the first video, else "". One rule for every card/row/list slot.
+func ResolveReadableCardThumbnailURL(media []productentity.ProductMedia) string {
+	if first := FirstImageRef(productentity.URLs(media)); first != "" {
+		return ResolveReadableThumbnailURL(first)
+	}
+	for _, m := range media {
+		trimmed := strings.TrimSpace(m.URL)
+		if trimmed == "" {
+			continue
+		}
+		if mediaentity.InferMediaType(trimmed) == mediaentity.MediaTypeVideo {
+			return ResolveReadablePosterURL(trimmed)
+		}
+	}
+	return ""
+}
+
+// MediaWireItems renders the typed media block from Product media.
+// createdAt anchors deterministic media IDs. Never nil — an
 // empty list is emitted so the wire shape stays stable.
-func MediaWireItems(references []string, createdAt time.Time) []map[string]interface{} {
-	if len(references) == 0 {
+//
+// Persisted per-item metadata (thumbnail, dimensions, duration) is
+// overlaid onto the inferred items by URL: the wire emits what is stored,
+// and MediaWireItem only derives the thumbnail/poster fallback when the
+// slot carries no explicit thumbnail.
+func MediaWireItems(media []productentity.ProductMedia, createdAt time.Time) []map[string]interface{} {
+	if len(media) == 0 {
 		return []map[string]interface{}{}
 	}
-	items, err := mediaentity.NewListFromReferences(references, createdAt)
+	items, err := mediaentity.NewListFromReferences(productentity.URLs(media), createdAt)
 	if err != nil {
 		return []map[string]interface{}{}
 	}
+	byURL := make(map[string]productentity.ProductMedia, len(media))
+	hashes := make(map[string]string, len(media))
+	for _, m := range media {
+		trimmed := strings.TrimSpace(m.URL)
+		if trimmed == "" {
+			continue
+		}
+		byURL[trimmed] = m
+		if m.Blurhash != nil && *m.Blurhash != "" {
+			hashes[trimmed] = *m.Blurhash
+		}
+	}
 	rendered := make([]map[string]interface{}, 0, len(items))
 	for _, item := range items {
-		rendered = append(rendered, MediaWireItem(item))
+		if persisted, ok := byURL[item.URL]; ok {
+			item.ThumbnailURL = persisted.ThumbnailURL
+			item.Width = persisted.Width
+			item.Height = persisted.Height
+			item.Duration = persisted.DurationMs
+			item.Status = persisted.Status
+		}
+		rendered = append(rendered, MediaWireItem(item, hashes[item.URL]))
 	}
 	return rendered
 }
@@ -130,16 +257,18 @@ func MediaWireItems(references []string, createdAt time.Time) []map[string]inter
 //
 // `thumbnail_url` is the Lambda thumbnail variant derived from the item URL
 // by deterministic rule — an explicitly provided item ThumbnailURL wins when
-// present. List surfaces render the thumbnail; detail/viewer render `url`
-// (untouched original).
-func MediaWireItem(item mediaentity.Media) map[string]interface{} {
+// present. Videos resolve to their poster frame. List surfaces render the
+// thumbnail; detail/viewer render `url` (untouched original).
+func MediaWireItem(item mediaentity.Media, blurhash string) map[string]interface{} {
 	thumbnail := ""
 	if item.ThumbnailURL != nil {
 		thumbnail = ResolveReadableMediaReference(*item.ThumbnailURL)
+	} else if item.Type == mediaentity.MediaTypeVideo {
+		thumbnail = ResolveReadablePosterURL(item.URL)
 	} else {
 		thumbnail = ResolveReadableThumbnailURL(item.URL)
 	}
-	return map[string]interface{}{
+	out := map[string]interface{}{
 		"id":            item.ID.String(),
 		"type":          item.Type.String(),
 		"url":           ResolveReadableMediaReference(item.URL),
@@ -148,6 +277,13 @@ func MediaWireItem(item mediaentity.Media) map[string]interface{} {
 		"width":         item.Width,
 		"height":        item.Height,
 		"duration":      item.Duration,
-		"created_at":    item.CreatedAt.Format(time.RFC3339),
+		// Always a vocabulary string, never null: legacy slots without a
+		// persisted status read as ready (NormalizeStatus).
+		"status": string(mediaref.NormalizeStatus(item.Status)),
+		"created_at": item.CreatedAt.Format(time.RFC3339),
 	}
+	if blurhash != "" {
+		out["blurhash"] = blurhash
+	}
+	return out
 }

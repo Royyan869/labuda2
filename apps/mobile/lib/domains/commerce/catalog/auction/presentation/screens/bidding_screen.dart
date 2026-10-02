@@ -125,7 +125,7 @@ class _BiddingScreenState extends ConsumerState<BiddingScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.error_outline, size: 64, color: scheme.error),
+          Icon(Icons.error_outline, size: AppIconSize.display, color: scheme.error),
           const SizedBox(height: 16),
           Text(
             'Error loading bidding data',
@@ -157,7 +157,7 @@ class _BiddingScreenState extends ConsumerState<BiddingScreen> {
         children: [
           Icon(
             Icons.gavel_outlined,
-            size: 64,
+            size: AppIconSize.display,
             color: scheme.onSurfaceVariant,
           ),
           const SizedBox(height: 16),
@@ -228,7 +228,7 @@ class BiddingItemCard extends ConsumerWidget {
     return InkWell(
       onTap: () => _navigateToAuction(context),
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p6),
+        margin: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p8),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(AppShape.r12),
@@ -290,7 +290,7 @@ class BiddingItemCard extends ConsumerWidget {
                 children: [
                   Icon(
                     Icons.access_time,
-                    size: 14,
+                    size: AppIconSize.inlineGlyph,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                   const SizedBox(width: 4),
@@ -308,7 +308,7 @@ class BiddingItemCard extends ConsumerWidget {
                 const SizedBox(height: 10),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: AppMetrics.p10,
+                    horizontal: AppMetrics.p12,
                     vertical: AppMetrics.p8,
                   ),
                   decoration: BoxDecoration(
@@ -331,7 +331,7 @@ class BiddingItemCard extends ConsumerWidget {
                         ),
                         child: Icon(
                           Icons.warning_amber_rounded,
-                          size: 14,
+                          size: AppIconSize.inlineGlyph,
                           color: context.statusColors.warning,
                         ),
                       ),
@@ -358,7 +358,7 @@ class BiddingItemCard extends ConsumerWidget {
                                     color: Theme.of(
                                       context,
                                     ).colorScheme.onSurfaceVariant,
-                                    fontSize: AppType.s10,
+                                    fontSize: AppType.s12,
                                   ),
                             ),
                           ],
@@ -445,7 +445,7 @@ class _StatusChip extends StatelessWidget {
     final info = _getStatusInfo(context);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p10, vertical: AppMetrics.p4),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p4),
       decoration: BoxDecoration(
         color: info.backgroundColor,
         borderRadius: BorderRadius.circular(AppShape.r12),

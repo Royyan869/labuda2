@@ -8,7 +8,7 @@ Map<String, dynamic> _wireJson(dynamic dto) {
   return jsonDecode(jsonEncode(dto.toJson())) as Map<String, dynamic>;
 }
 
-Content _contentWithMedia() {
+Content _contentWithMedia({String? blurhash}) {
   return Content(
     id: 'content-1',
     content: 'publish me',
@@ -20,6 +20,7 @@ Content _contentWithMedia() {
         id: 'media-1',
         originalUrl: 'https://cdn.example.com/content/image-a.jpg',
         type: MediaType.image,
+        blurhash: blurhash,
         createdAt: DateTime.utc(2026, 8, 11),
       ),
     ],
@@ -48,12 +49,32 @@ void main() {
 
       final media = wire['media'] as List<dynamic>;
       expect(media, hasLength(1));
-      expect(
-        (media.first as Map<String, dynamic>).keys,
-        unorderedEquals(['url', 'type']),
-      );
-      expect((media.first as Map<String, dynamic>)['type'], 'image');
+      // The CODEBASE owns this shape, not this test: `_mapMediaToDto` forwards
+      // url + type + blurhash, and the generated `toJson` always writes the
+      // blurhash KEY — null when the picker produced none. This expectation
+      // used to pin the pair `['url', 'type']` and failed the day the mapper
+      // started carrying blurhash through; the test follows the wire now, and
+      // the case below pins what the codebase actually delivers.
+      final item = media.first as Map<String, dynamic>;
+      expect(item.keys, unorderedEquals(['url', 'type', 'blurhash']));
+      expect(item['type'], 'image');
+      expect(item['blurhash'], isNull);
     },
   );
 
+  test(
+    'ContentMapper.toCreateDto carries a media blurhash through to the wire',
+    () {
+      final request = ContentMapper.toCreateDto(
+        _contentWithMedia(blurhash: 'L6PZfSi_,ayE'),
+      );
+      final wire = _wireJson(request);
+      final media = wire['media'] as List<dynamic>;
+
+      expect(
+        (media.first as Map<String, dynamic>)['blurhash'],
+        'L6PZfSi_,ayE',
+      );
+    },
+  );
 }

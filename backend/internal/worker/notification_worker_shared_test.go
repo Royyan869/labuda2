@@ -12,8 +12,10 @@ import (
 	"github.com/jackc/pgx/v5"
 	"go.uber.org/zap/zaptest"
 
-	platformevent "github.com/labuda/backend/internal/platform/event"
+	notificationentity "github.com/labuda/backend/internal/interaction/notification/entity"
+	notificationrepository "github.com/labuda/backend/internal/interaction/notification/infrastructure/repository"
 	"github.com/labuda/backend/internal/interaction/notification/policy"
+	platformevent "github.com/labuda/backend/internal/platform/event"
 	"github.com/labuda/backend/internal/platform/events"
 	dbpkg "github.com/labuda/backend/pkg/db"
 )
@@ -25,7 +27,7 @@ func TestP1_PushPayload_StringContract(t *testing.T) {
 	h := NewNotificationEventHandler(
 		&mockDBForNotification{},
 		&mockBlockCheckerForNotification{},
-		NewNotificationServiceInserter(),
+		notificationrepository.NewNotificationRepository(),
 		push,
 		&mockAccountStatusCheckerForNotification{},
 		zaptest.NewLogger(t),
@@ -35,7 +37,7 @@ func TestP1_PushPayload_StringContract(t *testing.T) {
 		notificationID: uuid.New(),
 		inserted:       true,
 		recipientID:    uuid.New(),
-		actorID:        uuid.New(),
+		actor:          notificationentity.UserActor(uuid.New()),
 		notifyType:     "withdrawal.requested",
 		allowPush:      true,
 	}
@@ -84,7 +86,7 @@ func TestP1_DedupReplay_NoDuplicatePush(t *testing.T) {
 	h := NewNotificationEventHandler(
 		mockDB,
 		&mockBlockCheckerForNotification{},
-		NewNotificationServiceInserter(),
+		notificationrepository.NewNotificationRepository(),
 		push,
 		&mockAccountStatusCheckerForNotification{},
 		zaptest.NewLogger(t),
@@ -159,7 +161,7 @@ func TestO3_HandlePanic_ReturnsError(t *testing.T) {
 func TestO3_HandleNormal_StillSucceeds(t *testing.T) {
 	log := zaptest.NewLogger(t)
 	mockDB := &mockDBForNotification{}
-	inserter := NewNotificationServiceInserter()
+	inserter := notificationrepository.NewNotificationRepository()
 
 	handler := NewNotificationEventHandler(
 		mockDB,
@@ -216,7 +218,7 @@ func TestO3_SendPushAsyncPanic_DoesNotCrash(t *testing.T) {
 
 // TestN4A3_FinalBypassCount_Zero proves:
 //   - Across all notification_worker*.go source files there is exactly 1
-//     InsertNotification call site: the internal DB write inside
+//     inserter.Insert call site: the internal write inside
 //     insertNotificationWithPolicy.
 //   - Any additional occurrence = regression (a new direct bypass was introduced).
 func TestN4A3_FinalBypassCount_Zero(t *testing.T) {
@@ -227,7 +229,7 @@ func TestN4A3_FinalBypassCount_Zero(t *testing.T) {
 	// Count direct call-site pattern across all domain split files.
 	// Interface definitions and method signatures use a different form and are
 	// not matched by this substring.
-	const pattern = "h.notificationInserter.InsertNotification("
+	const pattern = "h.notificationInserter.Insert("
 	total := 0
 	for _, f := range files {
 		if strings.HasSuffix(f, "_test.go") {
@@ -240,7 +242,7 @@ func TestN4A3_FinalBypassCount_Zero(t *testing.T) {
 		total += strings.Count(string(src), pattern)
 	}
 	if total != 1 {
-		t.Errorf("direct InsertNotification bypass count = %d, want 1 "+
+		t.Errorf("direct inserter.Insert bypass count = %d, want 1 "+
 			"(only the internal write inside insertNotificationWithPolicy); "+
 			"extra occurrences are ungoverneed bypass regressions",
 			total)
@@ -306,5 +308,3 @@ func TestModerationPushPolicy_RemovalTypesInAppOnly(t *testing.T) {
 		}
 	}
 }
-
-

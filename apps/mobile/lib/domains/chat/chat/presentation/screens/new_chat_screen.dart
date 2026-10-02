@@ -127,7 +127,7 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
         children: [
           Icon(
             Icons.search,
-            size: 64,
+            size: AppIconSize.display,
             color: scheme.onSurfaceVariant,
           ),
           const SizedBox(height: 16),
@@ -182,7 +182,7 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.error_outline, size: 64, color: scheme.error),
+          Icon(Icons.error_outline, size: AppIconSize.display, color: scheme.error),
           const SizedBox(height: 16),
           Text(
             'Failed to search users',
@@ -210,7 +210,7 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
         children: [
           Icon(
             Icons.search_off,
-            size: 64,
+            size: AppIconSize.display,
             color: scheme.onSurfaceVariant,
           ),
           const SizedBox(height: 16),

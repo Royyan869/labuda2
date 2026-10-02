@@ -14,6 +14,7 @@ import (
 	"github.com/labuda/backend/internal/identity/auth"
 	"github.com/labuda/backend/internal/platform/events"
 	idempotencyRepo "github.com/labuda/backend/internal/platform/idempotency/repository"
+	"github.com/labuda/backend/internal/pkg/mediaref"
 	"github.com/labuda/backend/internal/social/content/entity"
 	contentrepo "github.com/labuda/backend/internal/social/content/infrastructure/repository"
 	"github.com/labuda/backend/internal/social/content/repository"
@@ -63,6 +64,10 @@ type CommentMediaInput struct {
 	MediaType  entity.MediaType
 	Position   int
 	ByteSize   *int64
+	Blurhash   *string
+	DurationMs *int
+	Width      *int
+	Height     *int
 }
 
 // OutboxInserter defines the interface for inserting outbox events.
@@ -146,11 +151,14 @@ func (s *CommentService) SetCommentMediaRepository(r repository.CommentMediaRepo
 }
 
 // CommerceReferenceInput carries the canonical commerce-reference payload.
+// Media is optional: a product share may carry foto+video on the same row
+// (one tap = one comment), persisted atomically with the reference.
 type CommerceReferenceInput struct {
 	TargetID     uuid.UUID
 	ResourceType entity.ResourceType
 	ResourceID   uuid.UUID
 	Body         *string
+	Media        []CommentMediaInput
 }
 
 // AddComment adds a normal comment to content.
@@ -347,7 +355,13 @@ func (s *CommentService) AddCommentWithMedia(
 			if m.ByteSize != nil {
 				bs = m.ByteSize
 			}
-			items = append(items, entity.NewCommentMedia(comment.ID, m.StorageKey, m.MediaURL, m.MediaType, i, bs))
+			item := entity.NewCommentMedia(comment.ID, m.StorageKey, m.MediaURL, m.MediaType, i, bs)
+			item.Blurhash = m.Blurhash
+			item.DurationMs = m.DurationMs
+			item.Width = m.Width
+			item.Height = m.Height
+			item.Status = string(mediaref.StatusForNewRow(string(m.MediaType)))
+			items = append(items, item)
 		}
 		if err := s.commentMediaRepo.CreateBatch(ctx, tx, items); err != nil {
 			return nil, fmt.Errorf("create comment media failed: %w", err)
@@ -469,6 +483,30 @@ func (s *CommentService) AddCommerceReferenceComment(
 		return nil, &entity.ErrInvalidComment{Reason: "target_id and resource_id are required"}
 	}
 
+	// Media validation — same foto+video 5 max (4 image +1 video) as normal comments.
+	if len(input.Media) > 5 {
+		return nil, &entity.ErrInvalidComment{Reason: "max 5 media per comment"}
+	}
+	if len(input.Media) > 0 {
+		img, vid := 0, 0
+		for _, m := range input.Media {
+			if m.MediaType == entity.MediaTypeVideo {
+				vid++
+			} else {
+				img++
+			}
+			if m.StorageKey == "" || m.MediaURL == "" {
+				return nil, &entity.ErrInvalidComment{Reason: "media storage_key and url required"}
+			}
+			if m.MediaType != entity.MediaTypeImage && m.MediaType != entity.MediaTypeVideo {
+				return nil, &entity.ErrInvalidComment{Reason: "invalid media type"}
+			}
+		}
+		if img > 4 || vid > 1 {
+			return nil, &entity.ErrInvalidComment{Reason: "max 4 images + 1 video per comment"}
+		}
+	}
+
 	content, err := s.loadVisibleContentForComment(ctx, tx, callerID, input.TargetID)
 	if err != nil {
 		return nil, err
@@ -518,7 +556,7 @@ func (s *CommentService) AddCommerceReferenceComment(
 		// in-memory read-throughs; read directly from the canonical Product.
 		var imageURL string
 		if forSale.Product != nil && len(forSale.Product.MediaURLs) > 0 {
-			imageURL = forSale.Product.MediaURLs[0]
+			imageURL = forSale.Product.MediaURLs[0].URL
 		}
 		saleTitle := ""
 		if forSale.Product != nil {
@@ -547,7 +585,7 @@ func (s *CommentService) AddCommerceReferenceComment(
 		if auction.Product != nil {
 			auctionTitle = auction.Product.Title
 			if len(auction.Product.MediaURLs) > 0 {
-				auctionImageURL = auction.Product.MediaURLs[0]
+				auctionImageURL = auction.Product.MediaURLs[0].URL
 			}
 		}
 		shareReference = entity.NewShareReferenceFromAuction(
@@ -570,6 +608,31 @@ func (s *CommentService) AddCommerceReferenceComment(
 
 	if err := s.commentRepo.Create(ctx, tx, comment); err != nil {
 		return nil, fmt.Errorf("create commerce reference comment failed: %w", err)
+	}
+
+	// Persist foto+video on the same row: one tap = one comment, either the
+	// row exists with all of its media or neither. Mirrors the normal path.
+	if len(input.Media) > 0 && s.commentMediaRepo != nil {
+		items := make([]*entity.CommentMedia, 0, len(input.Media))
+		for i, m := range input.Media {
+			var bs *int64
+			if m.ByteSize != nil {
+				bs = m.ByteSize
+			}
+			item := entity.NewCommentMedia(comment.ID, m.StorageKey, m.MediaURL, m.MediaType, i, bs)
+			item.Blurhash = m.Blurhash
+			item.DurationMs = m.DurationMs
+			item.Width = m.Width
+			item.Height = m.Height
+			item.Status = string(mediaref.StatusForNewRow(string(m.MediaType)))
+			items = append(items, item)
+		}
+		if err := s.commentMediaRepo.CreateBatch(ctx, tx, items); err != nil {
+			return nil, fmt.Errorf("create comment media failed: %w", err)
+		}
+	} else if len(input.Media) > 0 && s.commentMediaRepo == nil {
+		// Media requested but repo not wired — fail closed to avoid silent drop
+		return nil, fmt.Errorf("comment media repository not configured")
 	}
 
 	if content.AuthorID != callerID && s.outboxRepo != nil {
@@ -649,13 +712,22 @@ func (s *CommentService) commerceReferenceOperationFingerprint(actorID uuid.UUID
 	if input.Body != nil {
 		bodyToken = *input.Body
 	}
+	mediaToken := "<no-media>"
+	if len(input.Media) > 0 {
+		keys := make([]string, 0, len(input.Media))
+		for _, m := range input.Media {
+			keys = append(keys, m.StorageKey+"|"+m.MediaURL+"|"+string(m.MediaType))
+		}
+		mediaToken = strings.Join(keys, ",")
+	}
 	return fmt.Sprintf(
-		"comment.commerce:%s:%s:%s:%s:%s",
+		"comment.commerce:%s:%s:%s:%s:%s:%s",
 		actorID.String(),
 		input.TargetID.String(),
 		string(input.ResourceType),
 		input.ResourceID.String(),
 		bodyToken,
+		mediaToken,
 	)
 }
 

@@ -43,7 +43,7 @@ class DiscountCard extends StatelessWidget {
                     child: Text(
                       discount.code,
                       style: const TextStyle(
-                        fontSize: AppType.s18,
+                        fontSize: AppType.s20,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -166,7 +166,7 @@ class DiscountCard extends StatelessWidget {
             children: [
               Icon(
                 Icons.edit_outlined,
-                size: 20,
+                size: AppIconSize.action,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               const SizedBox(width: 12),
@@ -184,7 +184,7 @@ class DiscountCard extends StatelessWidget {
                 discount.isActive
                     ? Icons.visibility_off_outlined
                     : Icons.visibility_outlined,
-                size: 20,
+                size: AppIconSize.action,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               const SizedBox(width: 12),
@@ -201,7 +201,7 @@ class DiscountCard extends StatelessWidget {
               children: [
                 Icon(
                   Icons.delete_outline,
-                  size: 20,
+                  size: AppIconSize.action,
                   color: context.statusColors.error,
                 ),
                 const SizedBox(width: 12),
@@ -216,7 +216,7 @@ class DiscountCard extends StatelessWidget {
               children: [
                 Icon(
                   Icons.delete_outline,
-                  size: 20,
+                  size: AppIconSize.action,
                   color: Theme.of(context).colorScheme.outline,
                 ),
                 const SizedBox(width: 12),

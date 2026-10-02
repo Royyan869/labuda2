@@ -285,7 +285,7 @@ class _ReusableFundingCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(AppMetrics.p14),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
@@ -505,7 +505,7 @@ class _PromotionFundingPaymentSheetState
             children: [
               const Text(
                 'Kekurangan dana promosi',
-                style: TextStyle(fontSize: AppType.s18, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: AppType.s20, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
               _summaryRow(
@@ -531,7 +531,7 @@ class _PromotionFundingPaymentSheetState
               const SizedBox(height: 16),
               const Text(
                 'Metode pembayaran',
-                style: TextStyle(fontSize: AppType.s13, fontWeight: FontWeight.w600),
+                style: TextStyle(fontSize: AppType.s14, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 6),
               _methodSelector(disclosure, selected),
@@ -549,7 +549,7 @@ class _PromotionFundingPaymentSheetState
                 Text(
                   _error!,
                   style: TextStyle(
-                    fontSize: AppType.s13,
+                    fontSize: AppType.s14,
                     color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
@@ -585,7 +585,7 @@ class _PromotionFundingPaymentSheetState
       fontWeight: bold ? FontWeight.w700 : FontWeight.w400,
     );
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppMetrics.p2),
+      padding: const EdgeInsets.symmetric(vertical: AppMetrics.p4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -639,7 +639,7 @@ class _PromotionFundingPaymentSheetState
             ),
             Icon(
               Icons.chevron_right,
-              size: 20,
+              size: AppIconSize.action,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ],

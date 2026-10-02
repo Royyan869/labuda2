@@ -23,10 +23,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/user/identity/authentication/domain/entities/account_status.dart';
-import 'package:labuda/domains/user/profile/domain/entities/address_entity.dart';
 import 'package:labuda/domains/user/profile/domain/entities/profile_entity.dart';
-import 'package:labuda/domains/user/profile/presentation/providers/address_list_provider.dart'
-    show addressesStreamProvider;
 import 'package:labuda/domains/user/profile/presentation/providers/profile_stream_provider.dart'
     show profileStreamProvider;
 import 'package:labuda/domains/user/profile/presentation/providers/user_data_provider.dart'
@@ -281,15 +278,12 @@ Widget _wrap(AuthUser user) {
       apiClientProvider.overrideWithValue(const _FakeApiClient()),
       loggerServiceProvider.overrideWithValue(const _FakeLoggerService()),
       authControllerProvider.overrideWith(() => _HarnessAuthController(user)),
-      // About-tab data pipeline: user comes from the snapshot under test,
-      // extended profile / addresses are empty (non-expiry behavior only).
+      // About-tab data pipeline: user comes from the snapshot under test and
+      // the extended profile is empty (non-expiry behavior only). Location is
+      // a payload value now — the address-record composition is purged.
       userDataProvider.overrideWith((ref, userId) async => user),
       profileStreamProvider.overrideWith(
         (ref, userId) => Stream<ProfileEntity?>.value(null),
-      ),
-      addressesStreamProvider.overrideWith(
-        (ref, userId) =>
-            Stream<Result<List<AddressEntity>>>.value(Result.success(const [])),
       ),
     ],
     child: const MaterialApp(

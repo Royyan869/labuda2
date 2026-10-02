@@ -126,13 +126,13 @@ class AttachmentWidget extends ConsumerWidget {
             ),
             child: Row(
               children: [
-                Icon(Icons.handshake_outlined, size: 18, color: statusColor),
+                Icon(Icons.handshake_outlined, size: AppIconSize.action, color: statusColor),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     headerLabel,
                     style: TextStyle(
-                      fontSize: AppType.s13,
+                      fontSize: AppType.s14,
                       fontWeight: FontWeight.w600,
                       color: statusColor,
                     ),
@@ -149,7 +149,7 @@ class AttachmentWidget extends ConsumerWidget {
                 Text(
                   'Harga Penawaran',
                   style: TextStyle(
-                    fontSize: AppType.s11,
+                    fontSize: AppType.s12,
                     color: scheme.onSurfaceVariant,
                   ),
                 ),
@@ -271,7 +271,7 @@ class AttachmentWidget extends ConsumerWidget {
               children: [
                 Icon(
                   Icons.local_shipping_outlined,
-                  size: 18,
+                  size: AppIconSize.action,
                   color: statusColor,
                 ),
                 const SizedBox(width: 8),
@@ -279,7 +279,7 @@ class AttachmentWidget extends ConsumerWidget {
                   child: Text(
                     'Penawaran Ongkir',
                     style: TextStyle(
-                      fontSize: AppType.s13,
+                      fontSize: AppType.s14,
                       fontWeight: FontWeight.w600,
                       color: statusColor,
                     ),
@@ -288,8 +288,8 @@ class AttachmentWidget extends ConsumerWidget {
                 // Status badge
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: AppMetrics.p6,
-                    vertical: AppMetrics.p2,
+                    horizontal: AppMetrics.p8,
+                    vertical: AppMetrics.p4,
                   ),
                   decoration: BoxDecoration(
                     color: statusColor.withValues(alpha: 0.2),
@@ -298,7 +298,7 @@ class AttachmentWidget extends ConsumerWidget {
                   child: Text(
                     statusLabel,
                     style: TextStyle(
-                      fontSize: AppType.s10,
+                      fontSize: AppType.s12,
                       fontWeight: FontWeight.w600,
                       color: statusColor,
                     ),
@@ -318,7 +318,7 @@ class AttachmentWidget extends ConsumerWidget {
                 Text(
                   itemName,
                   style: TextStyle(
-                    fontSize: AppType.s13,
+                    fontSize: AppType.s14,
                     fontWeight: FontWeight.w500,
                     color: scheme.onSurface,
                   ),
@@ -378,7 +378,7 @@ class AttachmentWidget extends ConsumerWidget {
                     child: Text(
                       shipping.notes!,
                       style: TextStyle(
-                        fontSize: AppType.s11,
+                        fontSize: AppType.s12,
                         color: scheme.onSurfaceVariant,
                       ),
                     ),
@@ -391,14 +391,14 @@ class AttachmentWidget extends ConsumerWidget {
                   children: [
                     Icon(
                       Icons.access_time,
-                      size: 11,
+                      size: AppIconSize.inlineGlyph,
                       color: scheme.onSurfaceVariant,
                     ),
                     const SizedBox(width: 4),
                     Text(
                       'Berlaku sampai ${_formatDate(shipping.validUntil)}',
                       style: TextStyle(
-                        fontSize: AppType.s10,
+                        fontSize: AppType.s12,
                         color: scheme.onSurfaceVariant,
                       ),
                     ),
@@ -417,7 +417,7 @@ class AttachmentWidget extends ConsumerWidget {
                             style: OutlinedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: AppMetrics.p8,
-                                vertical: AppMetrics.p6,
+                                vertical: AppMetrics.p8,
                               ),
                               foregroundColor: canInteract
                                   ? null
@@ -449,7 +449,7 @@ class AttachmentWidget extends ConsumerWidget {
                                   : scheme.onSurfaceVariant,
                               padding: const EdgeInsets.symmetric(
                                 horizontal: AppMetrics.p8,
-                                vertical: AppMetrics.p6,
+                                vertical: AppMetrics.p8,
                               ),
                             ),
                             child: Text(
@@ -503,7 +503,7 @@ class AttachmentWidget extends ConsumerWidget {
         children: [
           Icon(
             icon,
-            size: 48,
+            size: AppIconSize.display,
             color: isFromCurrentUser
                 ? colorScheme.onPrimary.withValues(alpha: 0.6)
                 : colorScheme.primary.withValues(alpha: 0.6),

@@ -535,7 +535,7 @@ class NotificationNavigationService {
             Expanded(
               child: Text(
                 notification.title,
-                style: const TextStyle(fontSize: AppType.s18),
+                style: const TextStyle(fontSize: AppType.s20),
               ),
             ),
           ],
@@ -563,7 +563,7 @@ class NotificationNavigationService {
             Icon(Icons.build, color: context.statusColors.warning),
             const SizedBox(width: 8),
             const Expanded(
-              child: Text('Maintenance System', style: TextStyle(fontSize: AppType.s18)),
+              child: Text('Maintenance System', style: TextStyle(fontSize: AppType.s20)),
             ),
           ],
         ),

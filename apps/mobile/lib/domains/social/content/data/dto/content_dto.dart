@@ -20,8 +20,10 @@ part 'content_dto.g.dart';
 class CreateContentMediaRequestDto {
   final String url;
   final String type;
+  final String? blurhash;
 
-  const CreateContentMediaRequestDto({required this.url, required this.type});
+  const CreateContentMediaRequestDto(
+      {required this.url, required this.type, this.blurhash});
 
   factory CreateContentMediaRequestDto.fromJson(Map<String, dynamic> json) =>
       _$CreateContentMediaRequestDtoFromJson(json);

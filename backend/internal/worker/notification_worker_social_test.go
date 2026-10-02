@@ -16,6 +16,8 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"go.uber.org/zap/zaptest"
 
+	notificationentity "github.com/labuda/backend/internal/interaction/notification/entity"
+	notificationrepository "github.com/labuda/backend/internal/interaction/notification/infrastructure/repository"
 	"github.com/labuda/backend/internal/interaction/notification/policy"
 	platformevent "github.com/labuda/backend/internal/platform/event"
 	"github.com/labuda/backend/internal/platform/events"
@@ -71,9 +73,9 @@ func TestChatNotification_ActiveActive_Delivered(t *testing.T) {
 			return fn(&mockTxForNotification{
 				QueryRowFunc: func(ctx context.Context, sql string, args ...any) pgx.Row {
 					if len(args) >= 4 {
-						insertedRecipientID, _ = args[1].(uuid.UUID)
-						insertedActorID, _ = args[2].(uuid.UUID)
-						insertedType, _ = args[3].(string)
+						insertedRecipientID = insertArg(args).Recipient
+						insertedActorID = insertArg(args).ActorIDValue()
+						insertedType = insertArg(args).TypeString()
 					}
 					return &mockRowForNotification{scanValue: uuid.New()}
 				},
@@ -84,7 +86,7 @@ func TestChatNotification_ActiveActive_Delivered(t *testing.T) {
 	handler := NewNotificationEventHandler(
 		mockDB,
 		&mockBlockCheckerChat{blocked: false},
-		NewNotificationServiceInserter(),
+		notificationrepository.NewNotificationRepository(),
 		&mockPushSenderForNotification{},
 		&mockAccountStatusCheckerChat{statuses: map[uuid.UUID]string{
 			senderID:    "active",
@@ -138,7 +140,7 @@ func TestChatNotification_Blocked_NoDelivery(t *testing.T) {
 	handler := NewNotificationEventHandler(
 		mockDB,
 		&mockBlockCheckerChat{blocked: true}, // block exists in either direction
-		NewNotificationServiceInserter(),
+		notificationrepository.NewNotificationRepository(),
 		&mockPushSenderForNotification{},
 		&mockAccountStatusCheckerChat{},
 		zaptest.NewLogger(t),
@@ -177,7 +179,7 @@ func TestChatNotification_RecipientSuspended_NoDelivery(t *testing.T) {
 	handler := NewNotificationEventHandler(
 		mockDB,
 		&mockBlockCheckerChat{blocked: false},
-		NewNotificationServiceInserter(),
+		notificationrepository.NewNotificationRepository(),
 		&mockPushSenderForNotification{},
 		&mockAccountStatusCheckerChat{statuses: map[uuid.UUID]string{
 			senderID:    "active",
@@ -219,7 +221,7 @@ func TestChatNotification_RecipientBanned_NoDelivery(t *testing.T) {
 	handler := NewNotificationEventHandler(
 		mockDB,
 		&mockBlockCheckerChat{blocked: false},
-		NewNotificationServiceInserter(),
+		notificationrepository.NewNotificationRepository(),
 		&mockPushSenderForNotification{},
 		&mockAccountStatusCheckerChat{statuses: map[uuid.UUID]string{
 			senderID:    "active",
@@ -261,7 +263,7 @@ func TestChatNotification_SenderBanned_NoDelivery(t *testing.T) {
 	handler := NewNotificationEventHandler(
 		mockDB,
 		&mockBlockCheckerChat{blocked: false},
-		NewNotificationServiceInserter(),
+		notificationrepository.NewNotificationRepository(),
 		&mockPushSenderForNotification{},
 		&mockAccountStatusCheckerChat{statuses: map[uuid.UUID]string{
 			senderID:    "banned",
@@ -302,7 +304,7 @@ func TestChatNotification_SelfMessage_NoDelivery(t *testing.T) {
 	handler := NewNotificationEventHandler(
 		mockDB,
 		&mockBlockCheckerChat{blocked: false},
-		NewNotificationServiceInserter(),
+		notificationrepository.NewNotificationRepository(),
 		&mockPushSenderForNotification{},
 		&mockAccountStatusCheckerChat{},
 		zaptest.NewLogger(t),
@@ -328,7 +330,7 @@ func TestChatNotification_InvalidPayload_Error(t *testing.T) {
 	handler := NewNotificationEventHandler(
 		&mockDBForNotification{},
 		&mockBlockCheckerChat{},
-		NewNotificationServiceInserter(),
+		notificationrepository.NewNotificationRepository(),
 		&mockPushSenderForNotification{},
 		&mockAccountStatusCheckerChat{},
 		zaptest.NewLogger(t),
@@ -367,7 +369,7 @@ func TestChatNotification_SenderSuspended_InAppOnly(t *testing.T) {
 	handler := NewNotificationEventHandler(
 		mockDB,
 		&mockBlockCheckerChat{blocked: false},
-		NewNotificationServiceInserter(),
+		notificationrepository.NewNotificationRepository(),
 		&mockPushSenderForNotification{},
 		&mockAccountStatusCheckerChat{statuses: map[uuid.UUID]string{
 			senderID:    "suspended",
@@ -417,7 +419,7 @@ func TestChatNotification_Regression_UserFollowed_StillWorks(t *testing.T) {
 	handler := NewNotificationEventHandler(
 		mockDB,
 		&mockBlockCheckerChat{blocked: false},
-		NewNotificationServiceInserter(),
+		notificationrepository.NewNotificationRepository(),
 		&mockPushSenderForNotification{},
 		&mockAccountStatusCheckerChat{},
 		zaptest.NewLogger(t),
@@ -512,7 +514,7 @@ func TestChatMute_RecipientMutedSender_SuppressesDBAndPush(t *testing.T) {
 	handler := NewNotificationEventHandler(
 		makeMuteDB(&dbCalls),
 		&mockBlockCheckerChat{blocked: false},
-		NewNotificationServiceInserter(),
+		notificationrepository.NewNotificationRepository(),
 		push,
 		&mockAccountStatusCheckerChat{},
 		zaptest.NewLogger(t),
@@ -549,7 +551,7 @@ func TestChatMute_NotMuted_DeliversDBAndPush(t *testing.T) {
 	handler := NewNotificationEventHandler(
 		makeMuteDB(&dbCalls),
 		&mockBlockCheckerChat{blocked: false},
-		NewNotificationServiceInserter(),
+		notificationrepository.NewNotificationRepository(),
 		push,
 		&mockAccountStatusCheckerChat{},
 		zaptest.NewLogger(t),
@@ -589,7 +591,7 @@ func TestChatMute_SenderMutedRecipient_NoEffect(t *testing.T) {
 	handler := NewNotificationEventHandler(
 		makeMuteDB(&dbCalls),
 		&mockBlockCheckerChat{blocked: false},
-		NewNotificationServiceInserter(),
+		notificationrepository.NewNotificationRepository(),
 		&mockPushSenderForNotification{},
 		&mockAccountStatusCheckerChat{},
 		zaptest.NewLogger(t),
@@ -623,7 +625,7 @@ func TestChatMute_MutualMute_RecipientSemanticsApply(t *testing.T) {
 	handler := NewNotificationEventHandler(
 		makeMuteDB(&dbCalls),
 		&mockBlockCheckerChat{blocked: false},
-		NewNotificationServiceInserter(),
+		notificationrepository.NewNotificationRepository(),
 		&mockPushSenderForNotification{},
 		&mockAccountStatusCheckerChat{},
 		zaptest.NewLogger(t),
@@ -656,7 +658,7 @@ func TestChatMute_BlockPlusMute_BlockWins(t *testing.T) {
 	handler := NewNotificationEventHandler(
 		makeMuteDB(&dbCalls),
 		&mockBlockCheckerChat{blocked: true}, // block exists
-		NewNotificationServiceInserter(),
+		notificationrepository.NewNotificationRepository(),
 		&mockPushSenderForNotification{},
 		&mockAccountStatusCheckerChat{},
 		zaptest.NewLogger(t),
@@ -689,7 +691,7 @@ func TestChatMute_SuspendedRecipientPlusMute_AccountStatusWins(t *testing.T) {
 	handler := NewNotificationEventHandler(
 		makeMuteDB(&dbCalls),
 		&mockBlockCheckerChat{blocked: false},
-		NewNotificationServiceInserter(),
+		notificationrepository.NewNotificationRepository(),
 		&mockPushSenderForNotification{},
 		&mockAccountStatusCheckerChat{statuses: map[uuid.UUID]string{
 			recipientID: "suspended",
@@ -728,7 +730,7 @@ func TestChatMute_NonChatNotification_MuteSkipped(t *testing.T) {
 	handler := NewNotificationEventHandler(
 		makeMuteDB(&dbCalls),
 		&mockBlockCheckerChat{blocked: false},
-		NewNotificationServiceInserter(),
+		notificationrepository.NewNotificationRepository(),
 		&mockPushSenderForNotification{},
 		&mockAccountStatusCheckerChat{},
 		zaptest.NewLogger(t),
@@ -761,7 +763,7 @@ func TestChatMute_PolicyError_FailOpen(t *testing.T) {
 	handler := NewNotificationEventHandler(
 		makeMuteDB(&dbCalls),
 		&mockBlockCheckerChat{blocked: false},
-		NewNotificationServiceInserter(),
+		notificationrepository.NewNotificationRepository(),
 		&mockPushSenderForNotification{},
 		&mockAccountStatusCheckerChat{},
 		zaptest.NewLogger(t),
@@ -795,7 +797,7 @@ func TestChatMute_NoPolicySet_NoChange(t *testing.T) {
 	handler := NewNotificationEventHandler(
 		makeMuteDB(&dbCalls),
 		&mockBlockCheckerChat{blocked: false},
-		NewNotificationServiceInserter(),
+		notificationrepository.NewNotificationRepository(),
 		&mockPushSenderForNotification{},
 		&mockAccountStatusCheckerChat{},
 		zaptest.NewLogger(t),
@@ -815,9 +817,9 @@ func TestChatMute_NoPolicySet_NoChange(t *testing.T) {
 	}
 }
 
-// TestNotificationServiceInserter_InsertNotification tests inserting a notification.
-func TestNotificationServiceInserter_InsertNotification(t *testing.T) {
-	inserter := NewNotificationServiceInserter()
+// TestNotificationRepository_Insert tests inserting a notification.
+func TestNotificationRepository_Insert(t *testing.T) {
+	inserter := notificationrepository.NewNotificationRepository()
 
 	recipientID := uuid.New()
 	actorID := uuid.New()
@@ -838,13 +840,17 @@ func TestNotificationServiceInserter_InsertNotification(t *testing.T) {
 
 	data := map[string]interface{}{"test": "value"}
 
-	id, err := inserter.InsertNotification(context.Background(), mockTx, recipientID, actorID, events.EventUserFollowed, entityID, data)
+	id, inserted, err := inserter.Insert(context.Background(), mockTx,
+		notificationentity.NewNotification(recipientID, notificationentity.UserActor(actorID), events.EventUserFollowed, entityID, data))
 	if err != nil {
-		t.Fatalf("InsertNotification() error = %v", err)
+		t.Fatalf("Insert() error = %v", err)
+	}
+	if !inserted {
+		t.Error("Insert() inserted = false, want true")
 	}
 
 	if id != expectedID {
-		t.Errorf("InsertNotification() = %v, want %v", id, expectedID)
+		t.Errorf("Insert() = %v, want %v", id, expectedID)
 	}
 }
 
@@ -872,7 +878,7 @@ func TestNotificationEventHandler_ContentLikedInvalidContentID(t *testing.T) {
 	}
 
 	mockDB := &mockDBForNotification{}
-	inserter := NewNotificationServiceInserter()
+	inserter := notificationrepository.NewNotificationRepository()
 	handler := NewNotificationEventHandler(mockDB, &mockBlockCheckerForNotification{}, inserter, &mockPushSenderForNotification{}, &mockAccountStatusCheckerForNotification{}, log)
 
 	err := handler.Handle(context.Background(), event)
@@ -1005,7 +1011,7 @@ func buildSocialGovernanceHandler(
 	logger DeliveryLogger,
 ) *NotificationEventHandler {
 	t.Helper()
-	h := NewNotificationEventHandler(db, block, NewNotificationServiceInserter(), nil, status, zaptest.NewLogger(t))
+	h := NewNotificationEventHandler(db, block, notificationrepository.NewNotificationRepository(), nil, status, zaptest.NewLogger(t))
 	if logger != nil {
 		h.SetDeliveryLogger(logger)
 	}
@@ -1029,19 +1035,19 @@ func insertCaptureTx(
 				}
 				if len(args) >= 6 {
 					if capturedRecipient != nil {
-						*capturedRecipient = args[1].(uuid.UUID)
+						*capturedRecipient = insertArg(args).Recipient
 					}
 					if capturedActor != nil {
-						*capturedActor = args[2].(uuid.UUID)
+						*capturedActor = insertArg(args).ActorIDValue()
 					}
 					if capturedType != nil {
-						*capturedType = args[3].(string)
+						*capturedType = insertArg(args).TypeString()
 					}
 					if capturedEntityID != nil {
-						*capturedEntityID = args[4].(uuid.UUID)
+						*capturedEntityID = insertArg(args).EntityID
 					}
 					if capturedData != nil {
-						*capturedData = args[5].(map[string]interface{})
+						*capturedData = insertArg(args).Data
 					}
 				}
 				return &mockRowForNotification{scanValue: uuid.New()}
@@ -1249,9 +1255,9 @@ func TestSocialGovernance_CommentReply_ContentLookupFailure_FallbackToPost(t *te
 			return fn(&mockTxForNotification{
 				QueryRowFunc: func(_ context.Context, sql string, args ...any) pgx.Row {
 					if len(args) >= 6 {
-						capturedActor = args[2].(uuid.UUID)
-						capturedType = args[3].(string)
-						capturedData = args[5].(map[string]interface{})
+						capturedActor = insertArg(args).ActorIDValue()
+						capturedType = insertArg(args).TypeString()
+						capturedData = insertArg(args).Data
 					}
 					return &mockRowForNotification{scanValue: uuid.New()}
 				},
@@ -1527,8 +1533,8 @@ func TestSocialGovernance_CommentCreated_RecipientResolutionFromDB(t *testing.T)
 			return fn(&mockTxForNotification{
 				QueryRowFunc: func(_ context.Context, _ string, args ...any) pgx.Row {
 					if len(args) >= 3 {
-						capturedRecipient = args[1].(uuid.UUID)
-						capturedActor = args[2].(uuid.UUID)
+						capturedRecipient = insertArg(args).Recipient
+						capturedActor = insertArg(args).ActorIDValue()
 					}
 					return &mockRowForNotification{scanValue: uuid.New()}
 				},
@@ -1603,7 +1609,7 @@ func TestHandleUserBlocked_DeletesSocialPreservesCommerce(t *testing.T) {
 		},
 	}
 
-	inserter := NewNotificationServiceInserter()
+	inserter := notificationrepository.NewNotificationRepository()
 	handler := NewNotificationEventHandler(mockDB, &mockBlockCheckerForNotification{}, inserter, &mockPushSenderForNotification{}, &mockAccountStatusCheckerForNotification{}, log)
 
 	err := handler.Handle(context.Background(), event)
@@ -1690,7 +1696,7 @@ func TestHandleUserBlocked_DoesNotCreateNotification(t *testing.T) {
 		},
 	}
 
-	inserter := NewNotificationServiceInserter()
+	inserter := notificationrepository.NewNotificationRepository()
 	handler := NewNotificationEventHandler(mockDB, &mockBlockCheckerForNotification{}, inserter, &mockPushSenderForNotification{}, &mockAccountStatusCheckerForNotification{}, log)
 
 	err := handler.Handle(context.Background(), event)
@@ -1740,7 +1746,7 @@ func TestHandleUserUnfollowed_DeletesOnlyFollowedNotification(t *testing.T) {
 		},
 	}
 
-	inserter := NewNotificationServiceInserter()
+	inserter := notificationrepository.NewNotificationRepository()
 	handler := NewNotificationEventHandler(mockDB, &mockBlockCheckerForNotification{}, inserter, &mockPushSenderForNotification{}, &mockAccountStatusCheckerForNotification{}, log)
 
 	err := handler.Handle(context.Background(), event)
@@ -1825,7 +1831,7 @@ func TestHandleUserBlocked_InvalidPayload(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockDB := &mockDBForNotification{}
-			inserter := NewNotificationServiceInserter()
+			inserter := notificationrepository.NewNotificationRepository()
 			handler := NewNotificationEventHandler(mockDB, &mockBlockCheckerForNotification{}, inserter, &mockPushSenderForNotification{}, &mockAccountStatusCheckerForNotification{}, log)
 
 			event := platformevent.OutboxEvent{
@@ -1855,12 +1861,12 @@ func TestHandleUserBlocked_InvalidPayload(t *testing.T) {
 // fields.
 
 // TestSocialGovernance_ContentMentioned_ActiveRecipient_Delivered proves:
-//   1. content.mentioned event is parsed correctly
-//   2. Notification recipient = mentioned_user_id (not author)
-//   3. Notification actor = author_id
-//   4. Notification type = "content.mentioned"
-//   5. Notification data = { targetId: contentID, targetType: "content" }
-//   6. Self-mention is skipped
+//  1. content.mentioned event is parsed correctly
+//  2. Notification recipient = mentioned_user_id (not author)
+//  3. Notification actor = author_id
+//  4. Notification type = "content.mentioned"
+//  5. Notification data = { targetId: contentID, targetType: "content" }
+//  6. Self-mention is skipped
 //
 // This is the single authoritative proof that the canonical wire contract
 // is implemented correctly at the handler level.
@@ -1937,8 +1943,9 @@ func TestSocialGovernance_ContentMentioned_ActiveRecipient_Delivered(t *testing.
 }
 
 // TestSocialGovernance_ContentMentioned_SelfMention_Skipped proves:
-//   When author == mentioned_user, notification is NOT created.
-//   Self-mention is a no-op at the handler level.
+//
+//	When author == mentioned_user, notification is NOT created.
+//	Self-mention is a no-op at the handler level.
 func TestSocialGovernance_ContentMentioned_SelfMention_Skipped(t *testing.T) {
 	userA := uuid.New()
 	contentID := uuid.New()
@@ -1976,8 +1983,9 @@ func TestSocialGovernance_ContentMentioned_SelfMention_Skipped(t *testing.T) {
 }
 
 // TestSocialGovernance_ContentMentioned_BlockedActor_Dropped proves:
-//   When the actor (author) is blocked by the recipient, the mention notification
-//   is dropped (Social category policy).
+//
+//	When the actor (author) is blocked by the recipient, the mention notification
+//	is dropped (Social category policy).
 func TestSocialGovernance_ContentMentioned_BlockedActor_Dropped(t *testing.T) {
 	authorID := uuid.New()
 	mentionedUserID := uuid.New()
@@ -2019,7 +2027,8 @@ func TestSocialGovernance_ContentMentioned_BlockedActor_Dropped(t *testing.T) {
 }
 
 // TestSocialGovernance_ContentMentioned_BannedActor_Dropped proves:
-//   Banned author → mention notification is not created.
+//
+//	Banned author → mention notification is not created.
 func TestSocialGovernance_ContentMentioned_BannedActor_Dropped(t *testing.T) {
 	authorID := uuid.New()
 	mentionedUserID := uuid.New()
@@ -2061,7 +2070,8 @@ func TestSocialGovernance_ContentMentioned_BannedActor_Dropped(t *testing.T) {
 }
 
 // TestSocialGovernance_ContentMentioned_CategoryIsSocial proves:
-//   content.mentioned is classified as Social in the notification policy.
+//
+//	content.mentioned is classified as Social in the notification policy.
 func TestSocialGovernance_ContentMentioned_CategoryIsSocial(t *testing.T) {
 	cat := policy.GetCategory(events.EventContentMentioned)
 	if cat != policy.Social {

@@ -106,31 +106,22 @@ class CoordinatePreviewModal extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Drag handle
-          Center(
-            child: Container(
-              margin: const EdgeInsets.only(top: AppMetrics.p12, bottom: AppMetrics.p8),
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: scheme.onSurfaceVariant,
-                borderRadius: BorderRadius.circular(AppShape.r2),
-              ),
-            ),
-          ),
+          // Drag handle — ONE authority: `AppDragHandle` beside the bottom-sheet
+          // base (the default spacing is this sheet's `top p12 + bottom p8`).
+          const Center(child: AppDragHandle()),
 
           // Header
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p8),
             child: Row(
               children: [
-                Icon(Icons.location_on, color: scheme.primary, size: 24),
+                Icon(Icons.location_on, color: scheme.primary, size: AppIconSize.header),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     'Pinpoint Location',
                     style: TextStyle(
-                      fontSize: AppType.s18,
+                      fontSize: AppType.s20,
                       fontWeight: FontWeight.bold,
                       color: scheme.onSurfaceVariant,
                     ),
@@ -151,7 +142,7 @@ class CoordinatePreviewModal extends StatelessWidget {
 
           // Static Map Preview
           Container(
-            height: 180,
+            height: AppContentSize.preview,
             width: double.infinity,
             margin: const EdgeInsets.symmetric(horizontal: AppMetrics.p16),
             decoration: BoxDecoration(
@@ -177,13 +168,11 @@ class CoordinatePreviewModal extends StatelessWidget {
               decoration: BoxDecoration(
                 color: scheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(AppShape.r8),
-                border: Border.all(
-                  color: scheme.onSurfaceVariant,
-                ),
+                border: Border.all(color: scheme.outlineVariant),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.pin_drop, size: 18, color: scheme.primary),
+                  Icon(Icons.pin_drop, size: AppIconSize.action, color: scheme.primary),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
@@ -221,7 +210,7 @@ class CoordinatePreviewModal extends StatelessWidget {
               child: Text(
                 address!,
                 style: TextStyle(
-                  fontSize: AppType.s13,
+                  fontSize: AppType.s14,
                   color: scheme.onSurfaceVariant,
                 ),
                 textAlign: TextAlign.center,
@@ -240,7 +229,7 @@ class CoordinatePreviewModal extends StatelessWidget {
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: () => _openMapPicker(context),
-                      icon: const Icon(Icons.edit_location, size: 18),
+                      icon: const Icon(Icons.edit_location, size: AppIconSize.action),
                       label: const Text('Edit'),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: AppMetrics.p12),
@@ -254,7 +243,7 @@ class CoordinatePreviewModal extends StatelessWidget {
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: () => _openInGoogleMaps(context),
-                    icon: const Icon(Icons.map_outlined, size: 18),
+                    icon: const Icon(Icons.map_outlined, size: AppIconSize.action),
                     label: const Text('View Maps'),
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: AppMetrics.p12),
@@ -279,7 +268,7 @@ class CoordinatePreviewModal extends StatelessWidget {
         children: [
           Icon(
             Icons.map_outlined,
-            size: 48,
+            size: AppIconSize.display,
             color: scheme.onSurfaceVariant,
           ),
           const SizedBox(height: 8),

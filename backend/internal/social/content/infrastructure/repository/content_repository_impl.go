@@ -81,14 +81,19 @@ func (r *ContentRepositoryImpl) CreateMedia(
 
 	for _, m := range media {
 		_, err := dbTx.Exec(ctx, `
-			INSERT INTO content_media (id, content_id, media_url, media_type, position, created_at)
-			VALUES ($1, $2, $3, $4, $5, $6)
+			INSERT INTO content_media (id, content_id, media_url, media_type, position, blurhash, duration_ms, width, height, status, created_at)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 		`,
 			m.ID,
 			m.ContentID,
 			m.MediaURL,
 			string(m.MediaType),
 			m.Position,
+			m.Blurhash,
+			m.DurationMs,
+			m.Width,
+			m.Height,
+			m.Status,
 			m.CreatedAt,
 		)
 		if err != nil {
@@ -428,7 +433,7 @@ func (r *ContentRepositoryImpl) GetMedia(
 	}
 
 	query := `
-		SELECT id, content_id, media_url, media_type, position, created_at
+		SELECT id, content_id, media_url, media_type, position, blurhash, duration_ms, width, height, status, created_at
 		FROM content_media
 		WHERE content_id = $1
 		ORDER BY position
@@ -446,20 +451,28 @@ func (r *ContentRepositoryImpl) GetMedia(
 		var mediaURL string
 		var mediaType string
 		var position int
+		var blurhash *string
+		var durationMs, width, height *int
+		var status string
 		var createdAt time.Time
 
-		err := rows.Scan(&id, &contentID, &mediaURL, &mediaType, &position, &createdAt)
+		err := rows.Scan(&id, &contentID, &mediaURL, &mediaType, &position, &blurhash, &durationMs, &width, &height, &status, &createdAt)
 		if err != nil {
 			return nil, fmt.Errorf("scan media failed: %w", err)
 		}
 
 		media = append(media, &entity.ContentMedia{
-			ID:        id,
-			ContentID: contentID,
-			MediaURL:  mediaURL,
-			MediaType: entity.MediaType(mediaType),
-			Position:  position,
-			CreatedAt: createdAt,
+			ID:         id,
+			ContentID:  contentID,
+			MediaURL:   mediaURL,
+			Blurhash:   blurhash,
+			MediaType:  entity.MediaType(mediaType),
+			Position:   position,
+			DurationMs: durationMs,
+			Width:      width,
+			Height:     height,
+			Status:     status,
+			CreatedAt:  createdAt,
 		})
 	}
 

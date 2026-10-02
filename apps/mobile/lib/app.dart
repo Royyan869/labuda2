@@ -36,11 +36,17 @@ class LabudaApp extends ConsumerWidget {
       // D2 HARD GATE (design scope v2): no email-verification banner — every
       // authenticated user has already proven a verified email before the
       // exchange, so a persistent "verify your email" surface is dead UI.
+      //
+      // SessionLifecycleObserver sits at the top of this chain because the
+      // foreground/resume work it owns (realtime reconnect + backend re-read)
+      // belongs to the session and must run on every route.
       builder: (context, child) {
-        return NotificationInitializer(
-          child: KeyboardDismissWrapper(
-            child: NavigationScope(
-              child: child ?? const SizedBox(),
+        return SessionLifecycleObserver(
+          child: NotificationInitializer(
+            child: KeyboardDismissWrapper(
+              child: NavigationScope(
+                child: child ?? const SizedBox(),
+              ),
             ),
           ),
         );

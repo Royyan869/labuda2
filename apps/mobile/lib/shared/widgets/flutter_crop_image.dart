@@ -155,7 +155,7 @@ class _FlutterImageCropperState extends State<FlutterImageCropper> {
                           widget.title,
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.onPrimary,
-                            fontSize: AppType.s18,
+                            fontSize: AppType.s20,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -177,7 +177,7 @@ class _FlutterImageCropperState extends State<FlutterImageCropper> {
                   left: 0,
                   right: 0,
                   child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: AppMetrics.p20),
+                    margin: const EdgeInsets.symmetric(horizontal: AppMetrics.p24),
                     padding: const EdgeInsets.all(AppMetrics.p12),
                     decoration: BoxDecoration(
                       color: Theme.of(
@@ -190,7 +190,7 @@ class _FlutterImageCropperState extends State<FlutterImageCropper> {
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.onPrimary,
-                        fontSize: AppType.s13,
+                        fontSize: AppType.s14,
                       ),
                     ),
                   ),

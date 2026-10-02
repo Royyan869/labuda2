@@ -14,7 +14,7 @@ import 'package:labuda/domains/chat/chat/presentation/providers/chat_providers.d
 import 'package:labuda/domains/chat/chat/domain/usecases/chat_usecases.dart';
 import 'package:labuda/shared/attachment/entities/share_reference.dart';
 import 'package:labuda/domains/system/notification/data/notification_providers.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/data/dto/shipping_quote_dto.dart';
+import 'package:labuda/domains/commerce/negotiation/negotiation/presentation/providers/negotiation_providers.dart';
 import 'package:labuda/shared/providers/auth_status_providers.dart'
     show currentUserIdProvider;
 
@@ -401,6 +401,25 @@ class ChatDetail extends _$ChatDetail {
         incoming.senderId != userId) {
       await markAsRead(userId);
     }
+
+    // CTA LIVENESS: a message can also move the negotiation session — a
+    // counter arrives, or accept / reject / counter emits the proposal
+    // message. The proposal card reads the SESSION for its CTA authority,
+    // not the message list, so a message-bearing signal re-pulls the
+    // per-room session (exact-set contract: it also clears a session the
+    // server no longer returns). Body-less signals (read state, order link)
+    // leave the session read alone. Best-effort with an isolated catch: a
+    // failing session read must never break the message refresh or the
+    // read-marking above — the card keeps its last known session.
+    if (event.lastMessage != null) {
+      try {
+        await ref
+            .read(negotiationNotifierProvider.notifier)
+            .getNegotiation(chatRoomId: chatId);
+      } catch (_) {
+        // Session liveness is display refresh, not message truth.
+      }
+    }
   }
 
   /// Merges the canonical latest page into local state.
@@ -728,25 +747,6 @@ class ChatDetail extends _$ChatDetail {
     }).toList();
 
     state = state.copyWith(messages: updatedMessages);
-  }
-
-  /// Create a shipping quote
-  ///
-  /// Used by sellers to provide manual shipping cost quotes to buyers.
-  /// Creates a shipping quote and sends a message to the chat.
-  Future<void> createShippingQuote(
-    CreateShippingQuoteRequestDto request,
-  ) async {
-    final repository = ref.read(chatRepositoryProvider);
-    final result = await repository.createShippingQuote(
-      chatId: chatId,
-      request: request,
-    );
-
-    if (result.isError) {
-      state = state.copyWith(error: result.error);
-      throw Exception(result.error ?? 'Failed to create shipping quote');
-    }
   }
 
   void clearError() {

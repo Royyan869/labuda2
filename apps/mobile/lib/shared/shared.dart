@@ -41,7 +41,10 @@ export 'widgets/follow_button.dart'; // ⭐ Follow button component
 export 'widgets/app_text_field.dart'; // ⭐ Modern text fields
 export 'widgets/app_dropdown.dart'; // ⭐ Modern dropdown fields
 export 'widgets/app_date_picker.dart'; // ⭐ Modern date picker
+export 'widgets/count_badge.dart'; // ⭐ THE count badge renderer (app-bar counters)
 export 'widgets/password_strength_indicator.dart'; // ⭐ Password validation
+export 'widgets/shipping_address_card.dart'; // ⭐ Canonical shipping-address card + empty prompt
+export 'widgets/pending_commerce_chip.dart'; // ⭐ Canonical pre-send product chip (comment + chat composers)
 export 'widgets/app_logo.dart'; // ⭐ Logo component
 export 'widgets/app_back_button.dart'; // ⭐ Navigation
 export 'widgets/app_bar_custom.dart'; // ⭐ Custom AppBar

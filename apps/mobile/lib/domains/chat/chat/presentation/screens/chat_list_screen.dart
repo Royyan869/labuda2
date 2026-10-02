@@ -198,7 +198,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
         children: [
           Icon(
             Icons.error_outline,
-            size: 64,
+            size: AppIconSize.display,
             color: Theme.of(context).colorScheme.error,
           ),
           const SizedBox(height: 16),
@@ -229,8 +229,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
           children: [
             // Icon with background
             Container(
-              width: 80,
-              height: 80,
+              padding: const EdgeInsets.all(AppMetrics.p16),
               decoration: BoxDecoration(
                 color: Theme.of(
                   context,
@@ -239,7 +238,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
               ),
               child: Icon(
                 hasNoChats ? Icons.message_outlined : Icons.search_off,
-                size: 40,
+                size: AppIconSize.display,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
@@ -249,7 +248,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
             Text(
               hasNoChats ? 'Belum Ada Pesan' : 'Tidak Ada Chat Ditemukan',
               style: TextStyle(
-                fontSize: AppType.s18,
+                fontSize: AppType.s20,
                 fontWeight: FontWeight.w600,
                 color: Theme.of(context).colorScheme.onSurface,
               ),
@@ -273,14 +272,14 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
             if (hasNoChats) ...[
               const SizedBox(height: 32),
               SizedBox(
-                width: 240,
+                width: AppContentSize.actionWidth,
                 child: FilledButton.icon(
-                  icon: const Icon(Icons.chat_outlined, size: 20),
+                  icon: const Icon(Icons.chat_outlined, size: AppIconSize.action),
                   label: const Text('Mulai Chat'),
                   onPressed: () => _showNewChatDialog(context),
                   style: FilledButton.styleFrom(
                     padding: const EdgeInsets.symmetric(
-                      vertical: AppMetrics.p14,
+                      vertical: AppMetrics.p16,
                       horizontal: AppMetrics.p24,
                     ),
                   ),

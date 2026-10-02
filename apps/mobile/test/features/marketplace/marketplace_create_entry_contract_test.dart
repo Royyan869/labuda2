@@ -7,20 +7,29 @@ import 'package:labuda/features/home/home.dart';
 import 'package:labuda/features/marketplace/marketplace.dart';
 
 // ============================================================================
-// MARKETPLACE CREATE ENTRY CONTRACT
+// MARKETPLACE CREATE ENTRY CONTRACT (owner canonical, 2026-09-29)
 //
-// The Create FAB lands on the MARKETPLACE, on the tab that matches the choice,
-// instead of pushing the form directly — the form sits one tap away behind the
-// entry rendered here. Two things this locks, both of which were broken before:
+// The marketplace surface carries ZERO create buttons. The single create
+// entry is the bottom bar (main screen): the sheet pushes the create form
+// DIRECTLY, and on success the create screens set a pending marketplace
+// switch (for-sale → sub-tab 0, auction → sub-tab 1) so the user lands on
+// the surface where the listing now lives.
 //
-// 1. The pending switch was read ONCE in initState. This screen lives in an
-//    IndexedStack, so initState runs exactly once and every later request (the
-//    FAB, a deep link) was dropped.
-// 2. Nobody claimed the sub-tab: main screen cleared the pending switch in a
-//    microtask while this screen read it in a post-frame callback.
+// Three things this locks:
+//
+// 1. No create buttons on either marketplace tab (the regression the owner
+//    rejected: "Buat Listing" / "Buat Lelang" inside the marketplace).
+// 2. The bottom-bar sheet pushes the form; it does not merely move a tab and
+//    leave the form one tap away.
+// 3. Successful creates request the marketplace landing themselves — main
+//    screen must not pre-set a switch before the form exists.
+//
+// The pending-switch plumbing (listener instead of a one-shot initState read)
+// stays locked: this screen lives in an IndexedStack, so initState runs
+// exactly once and later requests would be dropped.
 //
 // Comment and chat are NOT part of this contract: they are pickers that push
-// the create screen directly and consume its result.
+// the create screen directly and consume its result (no landing switch).
 // ============================================================================
 
 void main() {
@@ -45,51 +54,53 @@ void main() {
     );
   }
 
-  testWidgets('the create entry follows the active tab', (tester) async {
+  testWidgets('the For Sale tab carries NO create button', (tester) async {
+    await pumpScreen(tester, initialTab: 0);
+
+    expect(find.text('Buat Listing'), findsNothing);
+    expect(find.text('Buat Lelang'), findsNothing);
+    expect(find.byType(FilledButton), findsNothing);
+  });
+
+  testWidgets('the Auction tab carries NO create button', (tester) async {
+    await pumpScreen(tester, initialTab: 1);
+
+    expect(find.text('Buat Lelang'), findsNothing);
+    expect(find.text('Buat Listing'), findsNothing);
+    expect(find.byType(FilledButton), findsNothing);
+  });
+
+  testWidgets('the pending switch still moves the marketplace sub-tab', (
+    tester,
+  ) async {
     final container = await pumpScreen(tester, initialTab: 0);
 
-    expect(find.text('Buat Listing'), findsOneWidget);
-    expect(find.text('Buat Lelang'), findsNothing);
-
-    // The exact path the Create FAB takes for "Buat Lelang".
+    // The exact request a successful auction create issues on pop.
     container
         .read(pendingTabSwitchProvider.notifier)
         .setSwitch('marketplace', subTab: 1);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 
-    expect(find.text('Buat Lelang'), findsOneWidget);
-    expect(find.text('Buat Listing'), findsNothing);
-
     // Consumed by its one owner, so the same request cannot fire twice.
     expect(container.read(pendingTabSwitchProvider).hasSwitch, isFalse);
   });
 
-  testWidgets('the entry exists on the Auction tab from the start', (
-    tester,
-  ) async {
-    await pumpScreen(tester, initialTab: 1);
-
-    expect(find.text('Buat Lelang'), findsOneWidget);
-    expect(find.text('Buat Listing'), findsNothing);
-  });
-
-  test('the create FAB lands on the marketplace, not on the form', () {
+  test('the bottom-bar sheet pushes the create forms directly', () {
     final main = File(
       'lib/features/home/presentation/screens/main_screen.dart',
     ).readAsStringSync();
 
-    expect(main.contains("setSwitch('marketplace', subTab: 0)"), isTrue);
-    expect(main.contains("setSwitch('marketplace', subTab: 1)"), isTrue);
+    // The sheet entry points push the forms — no "land on the tab first" hop.
+    expect(main.contains('context.push(RoutePaths.createForSale)'), isTrue);
+    expect(main.contains('context.push(RoutePaths.createAuction)'), isTrue);
 
-    // Negative proof: the FAB no longer pushes either create screen. The push
-    // stays only where a caller NEEDS the result (comment/chat pickers) or on
-    // seller surfaces that manage listings.
-    expect(main.contains('navigation.navigateToCreateForSale'), isFalse);
-    expect(main.contains('navigation.navigateToCreateAuction'), isFalse);
+    // No pre-set landing switch before the form succeeds: the create screens
+    // own the landing, not the sheet.
+    expect(main.contains("setSwitch('marketplace'"), isFalse);
 
-    // Stronger negative proof: the interface and its one implementation no
-    // longer expose those helpers at all, so nothing can route through them.
+    // Negative proof: the helper seams stay dead so nothing can route around
+    // the sheet (seller surfaces manage listings via their own push).
     for (final path in const [
       'lib/core/navigation/navigation_handler.dart',
       'lib/core/src/router/app_router.dart',
@@ -108,6 +119,26 @@ void main() {
     }
   });
 
+  test('successful creates land on the matching marketplace tab', () {
+    final forSale = File(
+      'lib/domains/commerce/catalog/for_sale/presentation/screens/create_for_sale_screen.dart',
+    ).readAsStringSync();
+    expect(
+      forSale.contains("setSwitch('marketplace', subTab: 0)"),
+      isTrue,
+      reason: 'successful for-sale create must land on the For Sale tab',
+    );
+
+    final auction = File(
+      'lib/domains/commerce/catalog/auction/presentation/screens/create_auction_screen.dart',
+    ).readAsStringSync();
+    expect(
+      auction.contains("setSwitch('marketplace', subTab: 1)"),
+      isTrue,
+      reason: 'successful auction create must land on the Auction tab',
+    );
+  });
+
   test('the marketplace listens for the switch instead of reading it once', () {
     final screen = File(
       'lib/features/marketplace/presentation/screens/marketplace_screen.dart',
@@ -117,7 +148,10 @@ void main() {
       screen.contains('ref.listen(pendingTabSwitchProvider, (previous, next)'),
       isTrue,
     );
-    expect(screen.contains('RoutePaths.createForSale'), isTrue);
-    expect(screen.contains('RoutePaths.createAuction'), isTrue);
+    // Negative proof: no create buttons, no create routes on this surface.
+    expect(screen.contains('RoutePaths.createForSale'), isFalse);
+    expect(screen.contains('RoutePaths.createAuction'), isFalse);
+    expect(screen.contains('Buat Listing'), isFalse);
+    expect(screen.contains('Buat Lelang'), isFalse);
   });
 }

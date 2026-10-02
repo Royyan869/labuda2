@@ -59,7 +59,6 @@ class _SellerVerificationScreenState
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final authState = ref.watch(authControllerProvider);
 
     if (authState is! AuthStateAuthenticated) {
@@ -71,9 +70,9 @@ class _SellerVerificationScreenState
 
     return Scaffold(
       appBar: AppBar(
+        // Chrome colour is theme data: this bar used to paint the BRAND
+        // colour edge-to-edge with white ink — no other screen does that.
         title: const Text('Verifikasi Penjual'),
-        backgroundColor: scheme.primary,
-        foregroundColor: scheme.onPrimary,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppMetrics.p16),
@@ -123,13 +122,14 @@ class _SellerVerificationScreenState
 
   Widget _buildAuthRequired() {
     return Scaffold(
+      appBar: AppBar(title: const Text('Verifikasi Penjual')),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               Icons.lock_outline,
-              size: 64,
+              size: AppIconSize.display,
               color: Theme.of(context).colorScheme.primary,
             ),
             const SizedBox(height: 16),
@@ -189,8 +189,10 @@ class _SellerVerificationScreenState
             'Mohon periksa dokumen Anda dan ajukan kembali. Pastikan dokumen terbaca dengan jelas.';
         break;
       case SellerVerificationStatus.underInvestigation:
-        bgColor = AppColors.primaryYellow.withValues(alpha: 0.1);
-        textColor = AppColors.primaryYellow;
+        // Status tone lives in ONE palette (context.statusColors); the raw
+        // brand yellow was a second, off-palette amber.
+        bgColor = context.statusColors.warning.withValues(alpha: 0.1);
+        textColor = context.statusColors.warning;
         icon = Icons.manage_search;
         title = 'Dalam Investigasi';
         message =
@@ -237,7 +239,7 @@ class _SellerVerificationScreenState
       ),
       child: Row(
         children: [
-          Icon(icon, color: textColor, size: 32),
+          Icon(icon, color: textColor, size: AppIconSize.emphasis),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
@@ -254,9 +256,11 @@ class _SellerVerificationScreenState
                 const SizedBox(height: 4),
                 Text(
                   message,
+                  // Body copy reads primary ink: an 80%-opacity status tone on
+                  // a 10% tint of the same tone fails AA at 13px.
                   style: TextStyle(
-                    fontSize: AppType.s13,
-                    color: textColor.withValues(alpha: 0.8),
+                    fontSize: AppType.s14,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 if ((state.status == SellerVerificationStatus.rejected ||
@@ -268,7 +272,7 @@ class _SellerVerificationScreenState
                     'Alasan: ${state.rejectionReason}',
                     style: TextStyle(
                       fontSize: AppType.s12,
-                      color: textColor.withValues(alpha: 0.85),
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontStyle: FontStyle.italic,
                     ),
                   ),
@@ -277,7 +281,7 @@ class _SellerVerificationScreenState
                   const SizedBox(height: 12),
                   TextButton.icon(
                     onPressed: () => _showVerificationHelpDialog(),
-                    icon: const Icon(Icons.support_agent, size: 16),
+                    icon: const Icon(Icons.support_agent, size: AppIconSize.inlineGlyph),
                     label: const Text('Dapatkan Bantuan'),
                     style: TextButton.styleFrom(
                       foregroundColor: textColor,
@@ -313,11 +317,9 @@ class _SellerVerificationScreenState
                 const SizedBox(width: 8),
                 Text(
                   'Dokumen yang Diperlukan',
-                  style: TextStyle(
-                    fontSize: AppType.s16,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
+                  // Section header role (canonical map: section → titleMedium).
+                  // This used to be s16 here and s18 two sections below.
+                  style: Theme.of(context).textTheme.titleMedium,
                 ),
               ],
             ),
@@ -366,7 +368,7 @@ class _SellerVerificationScreenState
           ),
           child: Icon(
             icon,
-            size: 20,
+            size: AppIconSize.action,
             color: Theme.of(context).colorScheme.primary,
           ),
         ),
@@ -402,11 +404,7 @@ class _SellerVerificationScreenState
       children: [
         Text(
           'Informasi Pribadi',
-          style: TextStyle(
-            fontSize: AppType.s18,
-            fontWeight: FontWeight.bold,
-            color: Theme.of(context).colorScheme.onSurface,
-          ),
+          style: Theme.of(context).textTheme.titleMedium,
         ),
         const SizedBox(height: 16),
         TextFormField(
@@ -458,18 +456,14 @@ class _SellerVerificationScreenState
       children: [
         Text(
           'Foto KTP',
-          style: TextStyle(
-            fontSize: AppType.s16,
-            fontWeight: FontWeight.bold,
-            color: Theme.of(context).colorScheme.onSurface,
-          ),
+          style: Theme.of(context).textTheme.titleMedium,
         ),
         const SizedBox(height: 8),
         InkWell(
           onTap: () => _captureKtp(),
           borderRadius: BorderRadius.circular(AppShape.r12),
           child: Container(
-            height: 200,
+            height: AppContentSize.capture,
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.surfaceContainer,
               borderRadius: BorderRadius.circular(AppShape.r12),
@@ -518,7 +512,7 @@ class _SellerVerificationScreenState
                     children: [
                       Icon(
                         Icons.camera_alt,
-                        size: 48,
+                        size: AppIconSize.display,
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                       const SizedBox(height: 12),
@@ -550,11 +544,7 @@ class _SellerVerificationScreenState
       children: [
         Text(
           'Foto Selfie dengan KTP',
-          style: TextStyle(
-            fontSize: AppType.s16,
-            fontWeight: FontWeight.bold,
-            color: Theme.of(context).colorScheme.onSurface,
-          ),
+          style: Theme.of(context).textTheme.titleMedium,
         ),
         const SizedBox(height: 4),
         Text(
@@ -569,7 +559,7 @@ class _SellerVerificationScreenState
           onTap: () => _captureSelfie(),
           borderRadius: BorderRadius.circular(AppShape.r12),
           child: Container(
-            height: 200,
+            height: AppContentSize.capture,
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.surfaceContainer,
               borderRadius: BorderRadius.circular(AppShape.r12),
@@ -618,7 +608,7 @@ class _SellerVerificationScreenState
                     children: [
                       Icon(
                         Icons.face,
-                        size: 48,
+                        size: AppIconSize.display,
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                       const SizedBox(height: 12),
@@ -655,10 +645,9 @@ class _SellerVerificationScreenState
       width: double.infinity,
       child: ElevatedButton(
         onPressed: canSubmit ? () => _submitVerification(user) : null,
+        // Enabled/disabled fill and the label ink come from the button theme —
+        // the screen must not re-decide them (same rule as the auction CTA).
         style: ElevatedButton.styleFrom(
-          backgroundColor: canSubmit
-              ? scheme.primary
-              : scheme.surfaceContainerHighest,
           padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
         ),
         child: _isUploading || state.isLoading
@@ -677,10 +666,7 @@ class _SellerVerificationScreenState
                   const Text('Memproses...'),
                 ],
               )
-            : const Text(
-                'Ajukan Verifikasi',
-                style: TextStyle(fontSize: AppType.s16, fontWeight: FontWeight.bold),
-              ),
+            : const Text('Ajukan Verifikasi'),
       ),
     );
   }
@@ -691,11 +677,7 @@ class _SellerVerificationScreenState
       children: [
         Text(
           'Dokumen Terupload',
-          style: TextStyle(
-            fontSize: AppType.s16,
-            fontWeight: FontWeight.bold,
-            color: Theme.of(context).colorScheme.onSurface,
-          ),
+          style: Theme.of(context).textTheme.titleMedium,
         ),
         const SizedBox(height: 12),
         ...state.documents.map(
@@ -775,15 +757,11 @@ class _SellerVerificationScreenState
   Future<void> _submitVerification(AuthUser user) async {
     if (!_formKey.currentState!.validate()) return;
     if (_ktpImage == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Silakan ambil foto KTP')));
+      AppSnackBar.showError(context, 'Silakan ambil foto KTP');
       return;
     }
     if (_selfieImage == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Silakan ambil foto selfie dengan KTP')),
-      );
+      AppSnackBar.showError(context, 'Silakan ambil foto selfie dengan KTP');
       return;
     }
 
@@ -955,13 +933,13 @@ class _SellerVerificationScreenState
             SizedBox(height: 16),
             Text(
               '• Pastikan KTP terbaca jelas',
-              style: TextStyle(fontSize: AppType.s13),
+              style: TextStyle(fontSize: AppType.s14),
             ),
             Text(
               '• Nama harus sesuai dengan KTP',
-              style: TextStyle(fontSize: AppType.s13),
+              style: TextStyle(fontSize: AppType.s14),
             ),
-            Text('• NIK harus 16 digit', style: TextStyle(fontSize: AppType.s13)),
+            Text('• NIK harus 16 digit', style: TextStyle(fontSize: AppType.s14)),
           ],
         ),
         actions: [

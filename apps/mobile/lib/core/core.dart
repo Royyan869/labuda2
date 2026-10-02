@@ -37,7 +37,6 @@ export 'src/enums/koi_gender.dart';
 // Theme exports
 export 'src/theme/app_theme.dart';
 export 'src/theme/app_colors.dart';
-export 'src/theme/app_typography.dart';
 export 'src/theme/theme_provider.dart';
 
 // Localization exports
@@ -81,6 +80,9 @@ export '../../shared/providers/core_providers.dart';
 // Core Infra exports (Messaging)
 export 'messaging/notification_service.dart';
 export 'observability/providers.dart';
+
+// Session lifecycle exports — single owner of foreground/resume session work
+export 'session/session_lifecycle_observer.dart';
 
 // Auth Helper exports
 // Canonical Role Vocabulary - SINGLE SOURCE OF TRUTH for all Flutter roles

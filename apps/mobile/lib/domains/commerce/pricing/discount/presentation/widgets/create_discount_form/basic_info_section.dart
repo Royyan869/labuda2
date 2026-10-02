@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/core/core.dart' as core;
+import 'package:labuda/core/src/theme/app_theme.dart';
 import 'package:labuda/shared/widgets/app_text_field.dart';
 
 /// Section untuk basic info discount (kode & deskripsi)
@@ -115,7 +116,7 @@ class _BasicInfoSectionState extends State<BasicInfoSection> {
                 children: [
                   Icon(
                     Icons.info_outline,
-                    size: 16,
+                    size: AppIconSize.inlineGlyph,
                     color: context.statusColors.info,
                   ),
                   const SizedBox(width: 8),

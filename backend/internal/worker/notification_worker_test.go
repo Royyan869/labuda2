@@ -13,10 +13,74 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"go.uber.org/zap/zaptest"
 
+	notificationentity "github.com/labuda/backend/internal/interaction/notification/entity"
+	notificationrepository "github.com/labuda/backend/internal/interaction/notification/infrastructure/repository"
 	platformevent "github.com/labuda/backend/internal/platform/event"
 	"github.com/labuda/backend/internal/platform/events"
 	dbpkg "github.com/labuda/backend/pkg/db"
 )
+
+// insertArgView is the canonical decode of one notifications INSERT as bound by
+// the repository (see notificationColumns): the actor is THREE columns
+// (actor_id, actor_kind, actor_display), so no test may index the positional
+// bind args directly.
+type insertArgView struct {
+	ID        uuid.UUID
+	Recipient uuid.UUID
+	ActorID   *uuid.UUID // nil for system/anonymized actors
+	ActorKind notificationentity.ActorKind
+	Display   string
+	Type      notificationentity.NotificationType
+	EntityID  uuid.UUID
+	Data      map[string]interface{}
+	IsRead    bool
+}
+
+// insertArg decodes repository INSERT bind args. It returns the zero value when
+// the args do not have the canonical insert shape, so callers stay nil-safe.
+func insertArg(args []any) insertArgView {
+	var a insertArgView
+	if len(args) < 10 {
+		return a
+	}
+	a.ID, _ = args[0].(uuid.UUID)
+	a.Recipient, _ = args[1].(uuid.UUID)
+	if id, ok := args[2].(uuid.UUID); ok {
+		a.ActorID = &id
+	}
+	a.Type, _ = args[3].(notificationentity.NotificationType)
+	a.EntityID, _ = args[4].(uuid.UUID)
+	a.Data, _ = args[5].(map[string]interface{})
+	a.IsRead, _ = args[6].(bool)
+	if kind, ok := args[8].(string); ok {
+		a.ActorKind = notificationentity.ActorKind(kind)
+	}
+	a.Display, _ = args[9].(string)
+	return a
+}
+
+// ActorIDValue returns the visible actor user id, or uuid.Nil for system and
+// anonymized actors.
+func (a insertArgView) ActorIDValue() uuid.UUID {
+	if a.ActorID == nil {
+		return uuid.Nil
+	}
+	return *a.ActorID
+}
+
+// TypeString returns the notification type as a plain string.
+func (a insertArgView) TypeString() string { return string(a.Type) }
+
+// IsUserActor reports a visible human cause.
+func (a insertArgView) IsUserActor() bool { return a.ActorKind == notificationentity.ActorKindUser }
+
+// IsSystemActor reports a platform cause (no human exists).
+func (a insertArgView) IsSystemActor() bool { return a.ActorKind == notificationentity.ActorKindSystem }
+
+// IsAnonymizedActor reports a human cause hidden by block policy.
+func (a insertArgView) IsAnonymizedActor() bool {
+	return a.ActorKind == notificationentity.ActorKindAnonymized
+}
 
 // mockTxForNotification implements db.Tx for notification testing
 type mockTxForNotification struct {
@@ -187,7 +251,7 @@ func (m *mockDBForNotification) WithTx(ctx context.Context, fn func(tx dbpkg.Tx)
 // TestNewNotificationEventHandler tests creating a new NotificationEventHandler.
 func TestNewNotificationEventHandler(t *testing.T) {
 	log := zaptest.NewLogger(t)
-	inserter := NewNotificationServiceInserter()
+	inserter := notificationrepository.NewNotificationRepository()
 
 	// Pass nil for db and blockChecker since we don't need them for this test
 	handler := NewNotificationEventHandler(nil, &mockBlockCheckerForNotification{}, inserter, &mockPushSenderForNotification{}, &mockAccountStatusCheckerForNotification{}, log)
@@ -235,10 +299,10 @@ func TestNotificationEventHandler_HandleUserFollowed(t *testing.T) {
 				QueryRowFunc: func(ctx context.Context, sql string, args ...any) pgx.Row {
 					// Capture the arguments passed to INSERT ... RETURNING
 					if len(args) >= 6 {
-						insertedRecipientID = args[1].(uuid.UUID)
-						insertedActorID = args[2].(uuid.UUID)
-						insertedType = args[3].(string)
-						insertedEntityID = args[4].(uuid.UUID)
+						insertedRecipientID = insertArg(args).Recipient
+						insertedActorID = insertArg(args).ActorIDValue()
+						insertedType = insertArg(args).TypeString()
+						insertedEntityID = insertArg(args).EntityID
 					}
 					// Return a valid UUID for the INSERT ... RETURNING id
 					return &mockRowForNotification{scanValue: uuid.New()}
@@ -248,7 +312,7 @@ func TestNotificationEventHandler_HandleUserFollowed(t *testing.T) {
 		},
 	}
 
-	inserter := NewNotificationServiceInserter()
+	inserter := notificationrepository.NewNotificationRepository()
 	handler := NewNotificationEventHandler(mockDB, &mockBlockCheckerForNotification{}, inserter, &mockPushSenderForNotification{}, &mockAccountStatusCheckerForNotification{}, log)
 
 	err := handler.Handle(context.Background(), event)
@@ -315,10 +379,10 @@ func TestNotificationEventHandler_HandleContentLiked(t *testing.T) {
 					}
 					// Capture the arguments passed to INSERT ... RETURNING
 					if len(args) >= 6 {
-						insertedRecipientID = args[1].(uuid.UUID)
-						insertedActorID = args[2].(uuid.UUID)
-						insertedType = args[3].(string)
-						insertedEntityID = args[4].(uuid.UUID)
+						insertedRecipientID = insertArg(args).Recipient
+						insertedActorID = insertArg(args).ActorIDValue()
+						insertedType = insertArg(args).TypeString()
+						insertedEntityID = insertArg(args).EntityID
 					}
 					// Return a valid UUID for the INSERT ... RETURNING id
 					return &mockRowForNotification{scanValue: uuid.New()}
@@ -328,7 +392,7 @@ func TestNotificationEventHandler_HandleContentLiked(t *testing.T) {
 		},
 	}
 
-	inserter := NewNotificationServiceInserter()
+	inserter := notificationrepository.NewNotificationRepository()
 	handler := NewNotificationEventHandler(mockDB, &mockBlockCheckerForNotification{}, inserter, &mockPushSenderForNotification{}, &mockAccountStatusCheckerForNotification{}, log)
 
 	err := handler.Handle(context.Background(), event)
@@ -383,7 +447,7 @@ func TestNotificationEventHandler_HandleContentLiked_SelfLike(t *testing.T) {
 		},
 	}
 
-	inserter := NewNotificationServiceInserter()
+	inserter := notificationrepository.NewNotificationRepository()
 	handler := NewNotificationEventHandler(mockDB, &mockBlockCheckerForNotification{}, inserter, &mockPushSenderForNotification{}, &mockAccountStatusCheckerForNotification{}, log)
 
 	err := handler.Handle(context.Background(), event)
@@ -410,7 +474,7 @@ func TestNotificationEventHandler_HandleUnknownEventType(t *testing.T) {
 	}
 
 	mockDB := &mockDBForNotification{}
-	inserter := NewNotificationServiceInserter()
+	inserter := notificationrepository.NewNotificationRepository()
 	handler := NewNotificationEventHandler(mockDB, &mockBlockCheckerForNotification{}, inserter, &mockPushSenderForNotification{}, &mockAccountStatusCheckerForNotification{}, log)
 
 	err := handler.Handle(context.Background(), event)
@@ -432,7 +496,7 @@ func TestNotificationEventHandler_InvalidPayload(t *testing.T) {
 	}
 
 	mockDB := &mockDBForNotification{}
-	inserter := NewNotificationServiceInserter()
+	inserter := notificationrepository.NewNotificationRepository()
 	handler := NewNotificationEventHandler(mockDB, &mockBlockCheckerForNotification{}, inserter, &mockPushSenderForNotification{}, &mockAccountStatusCheckerForNotification{}, log)
 
 	err := handler.Handle(context.Background(), event)
@@ -450,17 +514,14 @@ func TestNotificationEventHandler_InvalidPayload(t *testing.T) {
 // Prove: nil-tx bug is gone; block checker reaches DB; policy decisions are correct.
 // =============================================================================
 
-// buildMockDB returns a mockDB that captures the actorID passed to InsertNotification.
+// buildMockDB returns a mockDB that captures the actor id bound to the notifications INSERT.
 func buildMockDB(insertedActorID *uuid.UUID) *mockDBForNotification {
 	return &mockDBForNotification{
 		WithTxFunc: func(ctx context.Context, fn func(tx dbpkg.Tx) error) error {
 			return fn(&mockTxForNotification{
 				QueryRowFunc: func(ctx context.Context, sql string, args ...any) pgx.Row {
-					// args: id(0), recipientID(1), actorID(2), type(3), entityID(4), data(5), false(6)
-					if len(args) >= 3 {
-						if id, ok := args[2].(uuid.UUID); ok {
-							*insertedActorID = id
-						}
+					if arg := insertArg(args); arg.ID != uuid.Nil {
+						*insertedActorID = arg.ActorIDValue()
 					}
 					return &mockRowForNotification{scanValue: uuid.New()}
 				},
@@ -486,7 +547,7 @@ func TestN1_Social_NotBlocked_Delivers(t *testing.T) {
 
 	var capturedActorID uuid.UUID
 	mockDB := buildMockDB(&capturedActorID)
-	inserter := NewNotificationServiceInserter()
+	inserter := notificationrepository.NewNotificationRepository()
 	handler := NewNotificationEventHandler(mockDB, &mockBlockCheckerForNotification{}, inserter, nil, &mockAccountStatusCheckerForNotification{}, log)
 
 	if err := handler.Handle(context.Background(), event); err != nil {
@@ -522,7 +583,7 @@ func TestN1_Social_Blocked_Drops(t *testing.T) {
 			return fn(&mockTxForNotification{})
 		},
 	}
-	inserter := NewNotificationServiceInserter()
+	inserter := notificationrepository.NewNotificationRepository()
 	handler := NewNotificationEventHandler(mockDB, &mockBlockCheckerBlocked{}, inserter, nil, &mockAccountStatusCheckerForNotification{}, log)
 
 	if err := handler.Handle(context.Background(), event); err != nil {
@@ -555,7 +616,7 @@ func TestN1_Commerce_NotBlocked_ActorPreserved(t *testing.T) {
 
 	var capturedActorID uuid.UUID
 	mockDB := buildMockDB(&capturedActorID)
-	inserter := NewNotificationServiceInserter()
+	inserter := notificationrepository.NewNotificationRepository()
 	handler := NewNotificationEventHandler(mockDB, &mockBlockCheckerForNotification{}, inserter, nil, &mockAccountStatusCheckerForNotification{}, log)
 
 	if err := handler.Handle(context.Background(), event); err != nil {
@@ -591,7 +652,7 @@ func TestN1_Commerce_Blocked_ActorAnonymized(t *testing.T) {
 
 	var capturedActorID uuid.UUID
 	mockDB := buildMockDB(&capturedActorID)
-	inserter := NewNotificationServiceInserter()
+	inserter := notificationrepository.NewNotificationRepository()
 	handler := NewNotificationEventHandler(mockDB, &mockBlockCheckerBlocked{}, inserter, nil, &mockAccountStatusCheckerForNotification{}, log)
 
 	if err := handler.Handle(context.Background(), event); err != nil {
@@ -624,7 +685,7 @@ func TestN1_NoInvalidTxTypeReason(t *testing.T) {
 	}
 
 	mockDB := &mockDBForNotification{}
-	inserter := NewNotificationServiceInserter()
+	inserter := notificationrepository.NewNotificationRepository()
 	// Error checker: simulates any DB error but NOT "invalid transaction type"
 	handler := NewNotificationEventHandler(mockDB, &mockBlockCheckerError{}, inserter, nil, &mockAccountStatusCheckerForNotification{}, log)
 
@@ -653,7 +714,7 @@ func TestNotificationEventHandler_InvalidActorID(t *testing.T) {
 	}
 
 	mockDB := &mockDBForNotification{}
-	inserter := NewNotificationServiceInserter()
+	inserter := notificationrepository.NewNotificationRepository()
 	handler := NewNotificationEventHandler(mockDB, &mockBlockCheckerForNotification{}, inserter, &mockPushSenderForNotification{}, &mockAccountStatusCheckerForNotification{}, log)
 
 	err := handler.Handle(context.Background(), event)
@@ -684,7 +745,7 @@ func TestNotificationEventHandler_InvalidRecipientID(t *testing.T) {
 	}
 
 	mockDB := &mockDBForNotification{}
-	inserter := NewNotificationServiceInserter()
+	inserter := notificationrepository.NewNotificationRepository()
 	handler := NewNotificationEventHandler(mockDB, &mockBlockCheckerForNotification{}, inserter, &mockPushSenderForNotification{}, &mockAccountStatusCheckerForNotification{}, log)
 
 	err := handler.Handle(context.Background(), event)
@@ -781,7 +842,7 @@ func TestAsyncPush_NilTx_OrderPartiallyRefunded(t *testing.T) {
 	}
 
 	sender := &panicCapturePushSender{}
-	inserter := NewNotificationServiceInserter()
+	inserter := notificationrepository.NewNotificationRepository()
 	handler := NewNotificationEventHandler(mockDB, &mockBlockCheckerForNotification{}, inserter, sender, &mockAccountStatusCheckerForNotification{}, log)
 
 	err := handler.Handle(context.Background(), event)
@@ -828,7 +889,7 @@ func TestAsyncPush_NilTx_DisputeResolved(t *testing.T) {
 	}
 
 	sender := &panicCapturePushSender{}
-	inserter := NewNotificationServiceInserter()
+	inserter := notificationrepository.NewNotificationRepository()
 	handler := NewNotificationEventHandler(mockDB, &mockBlockCheckerForNotification{}, inserter, sender, &mockAccountStatusCheckerForNotification{}, log)
 
 	err := handler.Handle(context.Background(), event)
@@ -870,7 +931,7 @@ func TestAsyncPush_NilTx_SellerSubscriptionExpiring(t *testing.T) {
 	}
 
 	sender := &panicCapturePushSender{}
-	inserter := NewNotificationServiceInserter()
+	inserter := notificationrepository.NewNotificationRepository()
 	handler := NewNotificationEventHandler(mockDB, &mockBlockCheckerForNotification{}, inserter, sender, &mockAccountStatusCheckerForNotification{}, log)
 
 	err := handler.Handle(context.Background(), event)

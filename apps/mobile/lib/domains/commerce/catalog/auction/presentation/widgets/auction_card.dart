@@ -46,7 +46,7 @@ class AuctionCard extends StatelessWidget {
         overlay: _mediaOverlay(context, scheme),
         fallback: Icon(
           Icons.image_outlined,
-          size: 48,
+          size: AppIconSize.display,
           color: scheme.onSurfaceVariant,
         ),
       ),

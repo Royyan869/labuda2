@@ -10,6 +10,7 @@ import 'package:labuda/core/core.dart' as core;
 import 'package:labuda/core/media/media_upload_config.dart';
 import 'package:labuda/core/media/media_upload_orchestrator.dart';
 import 'package:labuda/core/providers/core_providers.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 import 'package:labuda/domains/commerce/transaction/order/data/dto/dispute_dto.dart';
 import 'package:labuda/domains/commerce/transaction/order/data/order_providers.dart';
 import 'package:labuda/shared/widgets/app_snackbar.dart';
@@ -202,13 +203,13 @@ class _DirectDisputeDialogState extends ConsumerState<DirectDisputeDialog> {
           Icon(
             Icons.report_problem_rounded,
             color: context.statusColors.warning,
-            size: 24,
+            size: AppIconSize.header,
           ),
           const SizedBox(width: 12),
           const Expanded(
             child: Text(
               'Buka Dispute',
-              style: TextStyle(fontSize: core.AppType.s18, fontWeight: FontWeight.w600),
+              style: TextStyle(fontSize: core.AppType.s20, fontWeight: FontWeight.w600),
             ),
           ),
         ],
@@ -236,7 +237,7 @@ class _DirectDisputeDialogState extends ConsumerState<DirectDisputeDialog> {
                     Icon(
                       Icons.info_outline_rounded,
                       color: colorScheme.secondary,
-                      size: 18,
+                      size: AppIconSize.action,
                     ),
                     const SizedBox(width: 8),
                     Expanded(
@@ -336,7 +337,7 @@ class _DirectDisputeDialogState extends ConsumerState<DirectDisputeDialog> {
                       Icon(
                         Icons.videocam_rounded,
                         color: context.statusColors.success,
-                        size: 20,
+                        size: AppIconSize.action,
                       ),
                       const SizedBox(width: 8),
                       Expanded(
@@ -347,7 +348,7 @@ class _DirectDisputeDialogState extends ConsumerState<DirectDisputeDialog> {
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.close, size: 18),
+                        icon: const Icon(Icons.close, size: AppIconSize.action),
                         onPressed: () {
                           setState(() {
                             _videoFile = null;
@@ -362,7 +363,7 @@ class _DirectDisputeDialogState extends ConsumerState<DirectDisputeDialog> {
               else
                 OutlinedButton.icon(
                   onPressed: _isSubmitting ? null : _pickVideo,
-                  icon: const Icon(Icons.videocam_rounded, size: 18),
+                  icon: const Icon(Icons.videocam_rounded, size: AppIconSize.action),
                   label: const Text('Pilih Video Bukti'),
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size(double.infinity, 44),
@@ -372,7 +373,7 @@ class _DirectDisputeDialogState extends ConsumerState<DirectDisputeDialog> {
               Text(
                 'Rekam video unboxing atau bukti masalah (maks. 2 menit)',
                 style: TextStyle(
-                  fontSize: core.AppType.s11,
+                  fontSize: core.AppType.s12,
                   color: colorScheme.onSurfaceVariant,
                 ),
               ),
@@ -413,14 +414,14 @@ class _DirectDisputeDialogState extends ConsumerState<DirectDisputeDialog> {
                                 });
                               },
                               child: Container(
-                                padding: const EdgeInsets.all(core.AppMetrics.p2),
+                                padding: const EdgeInsets.all(core.AppMetrics.p4),
                                 decoration: BoxDecoration(
                                   color: colorScheme.error,
                                   shape: BoxShape.circle,
                                 ),
                                 child: Icon(
                                   Icons.close,
-                                  size: 12,
+                                  size: AppIconSize.inlineGlyph,
                                   color: colorScheme.onError,
                                 ),
                               ),
@@ -450,7 +451,7 @@ class _DirectDisputeDialogState extends ConsumerState<DirectDisputeDialog> {
               else
                 OutlinedButton.icon(
                   onPressed: _isSubmitting ? null : _pickPhotos,
-                  icon: const Icon(Icons.add_photo_alternate, size: 18),
+                  icon: const Icon(Icons.add_photo_alternate, size: AppIconSize.action),
                   label: const Text('Tambah Foto'),
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size(double.infinity, 44),
@@ -471,14 +472,14 @@ class _DirectDisputeDialogState extends ConsumerState<DirectDisputeDialog> {
                     Icon(
                       Icons.lock_clock,
                       color: context.statusColors.warning,
-                      size: 16,
+                      size: AppIconSize.inlineGlyph,
                     ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Dana akan dibekukan selama proses peninjauan admin.',
                         style: TextStyle(
-                          fontSize: core.AppType.s11,
+                          fontSize: core.AppType.s12,
                           color: context.statusColors.warning,
                         ),
                       ),

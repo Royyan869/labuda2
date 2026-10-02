@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart' as core;
+import 'package:labuda/core/src/theme/app_theme.dart';
 import 'package:labuda/domains/commerce/transaction/order/order.dart';
 import 'package:labuda/domains/finance/transaction/payment/payment.dart';
 import 'package:labuda/domains/social/rating/rating.dart';
@@ -392,7 +393,7 @@ mixin OrderDetailHandlersMixin on ConsumerState<OrderDetailScreen> {
         icon: Icon(
           Icons.error_outline,
           color: context.statusColors.error,
-          size: 48,
+          size: AppIconSize.display,
         ),
         title: Text(title),
         content: Text(message),

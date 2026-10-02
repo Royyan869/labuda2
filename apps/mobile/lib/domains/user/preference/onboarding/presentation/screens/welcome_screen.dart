@@ -286,7 +286,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
         // Sign Up button
         SizedBox(
           width: double.infinity,
-          height: 52,
+          height: AppContentSize.control,
           child: OutlinedButton(
             onPressed: _navigateToSignUp,
             child: const Text(
@@ -301,7 +301,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
         // Sign In button
         SizedBox(
           width: double.infinity,
-          height: 52,
+          height: AppContentSize.control,
           child: OutlinedButton(
             onPressed: _navigateToSignIn,
             style: OutlinedButton.styleFrom(

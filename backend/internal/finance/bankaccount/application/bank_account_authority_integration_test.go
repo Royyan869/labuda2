@@ -16,6 +16,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	bankaccountrepo "github.com/labuda/backend/internal/finance/bankaccount/infrastructure/repository"
 	"github.com/labuda/backend/pkg/db"
+	"github.com/labuda/backend/pkg/migration"
 	"github.com/labuda/backend/pkg/testdb"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -144,8 +145,10 @@ func fetchDefaultBankAccountID(t *testing.T, ctx context.Context, tx db.Tx, user
 func loadPrimaryInvariantProbeMigrationSQL(t *testing.T) string {
 	t.Helper()
 
-	path, err := filepath.Abs(filepath.Join("..", "..", "..", "..", "migrations", "000028_bank_account_primary_invariant_hardening.up.sql"))
+	dir, err := migration.ResolveDir(".")
 	require.NoError(t, err)
+
+	path := filepath.Join(dir, "000028_bank_account_primary_invariant_hardening.up.sql")
 
 	data, err := os.ReadFile(path)
 	require.NoError(t, err)

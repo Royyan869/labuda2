@@ -93,10 +93,10 @@ class _UsernameFieldState extends State<UsernameField> {
 
   Widget? get _getSuffixIcon {
     if (_formatValid == true) {
-      return Icon(Icons.check_circle, color: context.statusColors.success, size: 20);
+      return Icon(Icons.check_circle, color: context.statusColors.success, size: AppIconSize.action);
     }
     if (_formatValid == false) {
-      return Icon(Icons.error, color: context.statusColors.error, size: 20);
+      return Icon(Icons.error, color: context.statusColors.error, size: AppIconSize.action);
     }
     return null;
   }
@@ -167,24 +167,28 @@ class _UsernameFieldState extends State<UsernameField> {
             return null;
           },
         ),
-        SizedBox(
-          height: _getHelperText != null ? 20 : 0,
-          child: _getHelperText != null
-              ? Padding(
-                  padding: const EdgeInsets.only(left: AppMetrics.p12, top: AppMetrics.p4),
-                  child: Text(
-                    _getHelperText!,
-                    style: TextStyle(
-                      fontSize: AppType.s12,
-                      color: _getHelperTextColor(context),
-                      fontWeight: FontWeight.normal,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                )
-              : null,
-        ),
+        // Content-driven: the reserve used to be a hand-summed
+        // `height: 20` around this text (exactly the frozen-budget shape this
+        // lens exists for). The padding above IS the reserve — when the helper
+        // is absent the row disappears entirely, which is what `? 20 : 0`
+        // promised anyway.
+        if (_getHelperText != null)
+          Padding(
+            padding: const EdgeInsets.only(
+              left: AppMetrics.p12,
+              top: AppMetrics.p4,
+            ),
+            child: Text(
+              _getHelperText!,
+              style: TextStyle(
+                fontSize: AppType.s12,
+                color: _getHelperTextColor(context),
+                fontWeight: FontWeight.normal,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
       ],
     );
   }

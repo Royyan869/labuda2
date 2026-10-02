@@ -189,7 +189,7 @@ class AuctionBidPositionIndicator extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(display.icon, color: display.color, size: 20),
+          Icon(display.icon, color: display.color, size: AppIconSize.action),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -234,7 +234,7 @@ class AuctionBidPositionIndicator extends StatelessWidget {
                       children: [
                         Icon(
                           Icons.access_time,
-                          size: 12,
+                          size: AppIconSize.inlineGlyph,
                           color: context.statusColors.warning,
                         ),
                         const SizedBox(width: 4),
@@ -242,7 +242,7 @@ class AuctionBidPositionIndicator extends StatelessWidget {
                           'Selesaikan sebelum: ${display.deadline}',
                           style: TextStyle(
                             color: context.statusColors.warning,
-                            fontSize: AppType.s11,
+                            fontSize: AppType.s12,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -266,7 +266,7 @@ class AuctionBidPositionIndicator extends StatelessWidget {
                 'Bid: Rp ${formatGroupedAmount(userBids.map((b) => b.amount).reduce((a, b) => a > b ? a : b).round())}',
                 style: TextStyle(
                   color: display.color,
-                  fontSize: AppType.s11,
+                  fontSize: AppType.s12,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -309,7 +309,7 @@ class AuctionBidPositionIndicator extends StatelessWidget {
                   color: display.color.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(display.icon, color: display.color, size: 18),
+                child: Icon(display.icon, color: display.color, size: AppIconSize.action),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -341,7 +341,7 @@ class AuctionBidPositionIndicator extends StatelessWidget {
                       display.message,
                       style: TextStyle(
                         color: display.color.withValues(alpha: 0.9),
-                        fontSize: AppType.s13,
+                        fontSize: AppType.s14,
                       ),
                     ),
                   ],
@@ -353,7 +353,7 @@ class AuctionBidPositionIndicator extends StatelessWidget {
           if (userBids.isNotEmpty) ...[
             const SizedBox(height: 8),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p10, vertical: AppMetrics.p6),
+              padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p8),
               decoration: BoxDecoration(
                 color: display.color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(AppShape.r6),
@@ -376,12 +376,12 @@ class AuctionBidPositionIndicator extends StatelessWidget {
               onPressed: onBidAgain,
               style: ElevatedButton.styleFrom(
                 backgroundColor: display.color,
-                padding: const EdgeInsets.symmetric(vertical: AppMetrics.p10),
+                padding: const EdgeInsets.symmetric(vertical: AppMetrics.p12),
                 elevation: AppElevation.none,
               ),
               child: const Text(
                 'Pasang Bid Lagi',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: AppType.s13),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: AppType.s14),
               ),
             ),
           ),

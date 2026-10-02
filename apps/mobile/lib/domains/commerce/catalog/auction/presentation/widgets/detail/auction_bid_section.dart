@@ -43,7 +43,9 @@ class AuctionBidSection extends StatelessWidget {
                 style: TextStyle(
                   fontSize: AppType.s24,
                   fontWeight: FontWeight.bold,
-                  color: context.statusColors.success,
+                  // Money uses the brand price role — the same authority the
+                  // ForSale detail price headline reads from.
+                  color: colorScheme.primary,
                 ),
               ),
             ],

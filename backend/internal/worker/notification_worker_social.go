@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	notificationentity "github.com/labuda/backend/internal/interaction/notification/entity"
 	"github.com/labuda/backend/internal/platform/events"
 	dbpkg "github.com/labuda/backend/pkg/db"
 	"go.uber.org/zap"
@@ -36,7 +37,7 @@ func (h *NotificationEventHandler) handleUserFollowed(ctx context.Context, paylo
 	return h.insertNotificationWithPolicy(
 		ctx,
 		recipientID,
-		actorID,
+		notificationentity.UserActor(actorID),
 		events.EventUserFollowed,
 		actorID, // For follow, entity_id is the actor
 		data,
@@ -109,7 +110,7 @@ func (h *NotificationEventHandler) handleContentLiked(ctx context.Context, paylo
 	return h.insertNotificationWithPolicy(
 		ctx,
 		recipientID,
-		actorID,
+		notificationentity.UserActor(actorID),
 		events.EventContentLiked,
 		contentID,
 		data,
@@ -169,7 +170,7 @@ func (h *NotificationEventHandler) handleCommentCreated(ctx context.Context, pay
 	return h.insertNotificationWithPolicy(
 		ctx,
 		recipientID,
-		authorID,
+		notificationentity.UserActor(authorID),
 		"comment",
 		contentID,
 		data,
@@ -230,7 +231,7 @@ func (h *NotificationEventHandler) handleCommentReply(ctx context.Context, paylo
 	return h.insertNotificationWithPolicy(
 		ctx,
 		parentAuthorID,
-		authorID,
+		notificationentity.UserActor(authorID),
 		"comment_reply",
 		contentID,
 		data,
@@ -306,7 +307,7 @@ func (h *NotificationEventHandler) handleSellerResponse(ctx context.Context, pay
 	return h.insertNotificationWithPolicy(
 		ctx,
 		requestCreatorID,
-		sellerID,
+		notificationentity.UserActor(sellerID),
 		notifyType,
 		contentID,
 		data,
@@ -345,7 +346,7 @@ func (h *NotificationEventHandler) handleContentMentioned(ctx context.Context, p
 	return h.insertNotificationWithPolicy(
 		ctx,
 		mentionedID,
-		authorID,
+		notificationentity.UserActor(authorID),
 		events.EventContentMentioned,
 		contentID,
 		data,
@@ -405,7 +406,7 @@ func (h *NotificationEventHandler) handleChatMessage(ctx context.Context, payloa
 	return h.insertNotificationWithPolicy(
 		ctx,
 		recipientID,
-		senderID,
+		notificationentity.UserActor(senderID),
 		"chat_message",
 		roomID,
 		data,

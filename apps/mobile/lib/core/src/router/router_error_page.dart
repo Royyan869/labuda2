@@ -21,24 +21,25 @@ class RouterErrorPage extends StatelessWidget {
             children: [
               // Error icon
               Container(
-                padding: const EdgeInsets.all(AppMetrics.p20),
+                padding: const EdgeInsets.all(AppMetrics.p24),
                 decoration: BoxDecoration(
                   color: context.statusColors.error.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   Icons.error_outline,
-                  size: 64,
+                  size: AppIconSize.display,
                   color: context.statusColors.error,
                 ),
               ),
               const SizedBox(height: 24),
 
               // Title
+              // Role, not size: a 24 px headline is `headlineSmall` (plan
+              // mapping s24); the bold is the call site's own decision.
               Text(
                 'Page Not Found',
-                style: TextStyle(
-                  fontSize: AppType.s24,
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: scheme.onSurface,
                 ),
@@ -49,8 +50,7 @@ class RouterErrorPage extends StatelessWidget {
               Text(
                 'The page "${state.uri.path}" could not be found.',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: AppType.s16,
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   color: scheme.onSurfaceVariant,
                 ),
               ),
@@ -59,8 +59,7 @@ class RouterErrorPage extends StatelessWidget {
               Text(
                 'Full URI: ${state.uri}',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: AppType.s12,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: scheme.onSurfaceVariant,
                 ),
               ),
@@ -76,13 +75,14 @@ class RouterErrorPage extends StatelessWidget {
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
                       ),
-                      child: const Text(
-                        'Go to Home',
-                        style: TextStyle(
-                          fontSize: AppType.s16,
-                          fontWeight: FontWeight.w600,
-                        ),
+                    child: Text(
+                      'Go to Home',
+                      // Canonical button text: `labelLarge` (this page alone
+                      // was inflating it to 16); w600 stays at the call site.
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
                       ),
+                    ),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -102,8 +102,7 @@ class RouterErrorPage extends StatelessWidget {
                       ),
                       child: Text(
                         'Go Back',
-                        style: TextStyle(
-                          fontSize: AppType.s16,
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
                           fontWeight: FontWeight.w600,
                           color: scheme.onSurface,
                         ),

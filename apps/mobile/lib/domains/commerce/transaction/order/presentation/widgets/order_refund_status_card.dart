@@ -205,7 +205,7 @@ class _RefundStatusBadge extends StatelessWidget {
             style: theme.textTheme.bodySmall?.copyWith(
               color: _getBadgeColor(context, colorScheme),
               fontWeight: FontWeight.w600,
-              fontSize: core.AppType.s11,
+              fontSize: core.AppType.s12,
             ),
           ),
         ],
@@ -250,7 +250,7 @@ class _PendingReviewBanner extends StatelessWidget {
           Icon(
             Icons.info_outline,
             color: context.statusColors.warning,
-            size: 16,
+            size: AppIconSize.inlineGlyph,
           ),
           const SizedBox(width: 8),
           Expanded(

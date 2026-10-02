@@ -54,12 +54,12 @@ class RepostAttributionBar extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.repeat_rounded, size: 14, color: scheme.onSurfaceVariant),
+          Icon(Icons.repeat_rounded, size: AppIconSize.inlineGlyph, color: scheme.onSurfaceVariant),
           const SizedBox(width: 6),
           Flexible(
             child: Text(
               _buildAttributionText(),
-              style: AppTypography.bodySmall.copyWith(
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: scheme.onSurface,
                 fontStyle: FontStyle.italic,
               ),
@@ -100,11 +100,11 @@ class RepostIndicator extends StatelessWidget {
     Widget child = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.repeat_rounded, size: 12, color: scheme.onSurfaceVariant),
+        Icon(Icons.repeat_rounded, size: AppIconSize.inlineGlyph, color: scheme.onSurfaceVariant),
         const SizedBox(width: 4),
         Text(
           'Repost',
-          style: AppTypography.labelSmall.copyWith(
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
             color: scheme.onSurfaceVariant,
           ),
         ),

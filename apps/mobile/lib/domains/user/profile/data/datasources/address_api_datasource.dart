@@ -18,11 +18,11 @@ class AddressApiDatasource extends BaseApiRepository {
   }
 
   /// Get all addresses for current user
-  /// Optional [purpose] filter: 'shipping' or 'sender'
-  Future<Result<AddressListResponseApi>> getAddresses({String? purpose}) async {
+  /// Optional [tag] filter: 'shipping' or 'sender'
+  Future<Result<AddressListResponseApi>> getAddresses({String? tag}) async {
     final queryParams = <String, dynamic>{};
-    if (purpose != null) {
-      queryParams['purpose'] = purpose;
+    if (tag != null) {
+      queryParams['tag'] = tag;
     }
 
     return executeRequest(
@@ -41,14 +41,14 @@ class AddressApiDatasource extends BaseApiRepository {
     );
   }
 
-  /// Get primary address
-  /// Optional [purpose] filter: 'shipping' or 'sender'
+  /// Get the account's primary address
+  /// Optional [tag] filter: 'shipping' or 'sender'
   Future<Result<AddressResponseApi>> getPrimaryAddress({
-    String? purpose,
+    String? tag,
   }) async {
     final queryParams = <String, dynamic>{};
-    if (purpose != null) {
-      queryParams['purpose'] = purpose;
+    if (tag != null) {
+      queryParams['tag'] = tag;
     }
 
     return executeRequest(

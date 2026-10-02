@@ -190,15 +190,17 @@ class ProfileRepositoryApi implements IProfileRepository {
   // ========================================
 
   @override
-  Stream<ProfileEntity?> watchProfile(String userId) {
-    // API implementation uses polling instead of Firestore streams
-    // For real-time updates, WebSocket will be implemented in Phase 3D
-    return Stream.periodic(const Duration(seconds: 30), (_) => userId).asyncMap(
-      (id) async {
-        final result = await getProfile(id);
-        return result.fold((_) => null, (profile) => profile);
-      },
-    );
+  /// ONE FETCH PER SUBSCRIPTION — polling is dead.
+  ///
+  /// This used to be `Stream.periodic(30 seconds)`, which (a) made a viewer
+  /// wait up to 30 seconds before the first value appeared and (b) kept a
+  /// background GET alive forever on every subscriber. Writes now invalidate
+  /// [profileStreamProvider], which re-subscribes and therefore refetches —
+  /// so freshness is event-driven (one request, on change) instead of
+  /// time-driven (an endless request every 30s).
+  Stream<ProfileEntity?> watchProfile(String userId) async* {
+    final result = await getProfile(userId);
+    yield result.fold((_) => null, (profile) => profile);
   }
 
   // ========================================

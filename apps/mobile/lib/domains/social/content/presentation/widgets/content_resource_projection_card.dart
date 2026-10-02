@@ -43,7 +43,7 @@ class ContentResourceProjectionCard extends StatelessWidget {
       badges: _buildBadges(context),
       metadata: _buildMetadata(context),
       contentPadding: EdgeInsets.all(
-        compact ? AppMetrics.p10 : AppMetrics.p12,
+        compact ? AppMetrics.p12 : AppMetrics.p12,
       ),
     );
   }
@@ -121,7 +121,7 @@ class ContentResourceProjectionCard extends StatelessWidget {
     return Container(
       color: scheme.surfaceContainerHighest,
       child: Center(
-        child: Icon(icon, color: scheme.onSurfaceVariant, size: 36),
+        child: Icon(icon, color: scheme.onSurfaceVariant, size: AppIconSize.emphasis),
       ),
     );
   }

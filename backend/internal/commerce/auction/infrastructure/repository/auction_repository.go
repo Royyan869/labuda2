@@ -75,7 +75,7 @@ const joinedAuctionColumns = `a.id, a.seller_id, a.product_id, a.order_id,
 	a.status, a.created_at, a.updated_at, a.anti_snipe_extension_seconds,
 	p.id, p.seller_id, p.title, p.description, p.media_urls,
 	p.variety, p.size_cm, p.age_months, p.gender, p.breeder, p.bloodline, p.certificates,
-	p.farm_address_id, p.preparation_time, p.preparation_note,
+	p.farm_address_id, p.preparation_time,
 	p.created_at, p.updated_at`
 
 // scanJoinedAuction scans a row produced by joinedAuctionColumns into an
@@ -95,7 +95,7 @@ func scanJoinedAuction(row interface {
 	var antiSnipeExtensionSeconds int64
 	var mediaURLsRaw json.RawMessage
 	var sizeCM, ageMonths *int
-	var gender, breeder, bloodline, preparationNote *string
+	var gender, breeder, bloodline *string
 	var certificates []string
 	var farmAddressID *uuid.UUID
 	var productCreatedAt, productUpdatedAt time.Time
@@ -108,14 +108,14 @@ func scanJoinedAuction(row interface {
 		&status, &createdAt, &updatedAt, &antiSnipeExtensionSeconds,
 		&p.ID, &p.SellerID, &p.Title, &p.Description, &mediaURLsRaw,
 		&p.Variety, &sizeCM, &ageMonths, &gender, &breeder, &bloodline, &certificates,
-		&farmAddressID, &p.PreparationTime, &preparationNote,
+		&farmAddressID, &p.PreparationTime,
 		&productCreatedAt, &productUpdatedAt,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	var mediaURLs []string
+	var mediaURLs []productEntity.ProductMedia
 	if len(mediaURLsRaw) > 0 && string(mediaURLsRaw) != "null" {
 		if err := json.Unmarshal(mediaURLsRaw, &mediaURLs); err != nil {
 			return nil, fmt.Errorf("unmarshal product media urls failed: %w", err)
@@ -144,7 +144,6 @@ func scanJoinedAuction(row interface {
 	p.Bloodline = bloodline
 	p.Certificates = certificates
 	p.FarmAddressID = farmAddressID
-	p.PreparationNote = preparationNote
 	p.CreatedAt = productCreatedAt
 	p.UpdatedAt = productUpdatedAt
 	a.Product = &p

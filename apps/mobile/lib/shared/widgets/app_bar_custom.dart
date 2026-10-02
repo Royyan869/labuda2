@@ -2,14 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/core/core.dart';
 
-/// Custom AppBar yang konsisten dan tidak berubah warna saat scroll
+/// Wrapper AppBar yang konsisten — chrome DARI THEME, bukan dari call site.
 ///
-/// Features:
-/// - Mencegah scroll color change dengan surfaceTintColor
-/// - Theme adaptive (dark/light)
-/// - Shadow effect yang subtle
-/// - Consistent design across app
-/// - Support custom title dan actions
+/// Wrapper ini sengaja TIDAK menyetel warna/tint/elevasi: seluruh chrome
+/// (surface datar, tanpa tint, tanpa shadow, tetap 0 saat scroll) warisan
+/// `appBarTheme` di AppTheme. Yang dipilih hanya judul, leading kustom, dan
+/// actions — lihat test/core/theme/app_bar_authority_contract_test.dart.
 class AppBarCustom extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final List<Widget>? actions;
@@ -36,17 +34,12 @@ class AppBarCustom extends StatelessWidget implements PreferredSizeWidget {
       title: Text(
         title,
         style: TextStyle(
-          fontSize: AppType.s18,
+          fontSize: AppType.s20,
           fontWeight: FontWeight.w600,
           color: scheme.onSurface,
         ),
       ),
-      backgroundColor: scheme.surface,
-      foregroundColor: scheme.onSurface,
-      elevation: AppElevation.none,
       centerTitle: centerTitle,
-      surfaceTintColor: Colors.transparent, // CRITICAL: Prevent Material 3 tint
-      scrolledUnderElevation: 0, // CRITICAL: Prevent scroll color change
       automaticallyImplyLeading: false, // Use custom back button logic
       leading:
           leading ??

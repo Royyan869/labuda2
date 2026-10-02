@@ -211,7 +211,12 @@ func resolveReadableFeedMedia(in []feedentity.FeedMedia) []feedentity.FeedMedia 
 	for _, m := range in {
 		resolved := m
 		resolved.URL = resolveReadableFeedMediaReference(m.URL)
-		thumbnail := commerceshared.ResolveReadableThumbnailURL(m.URL)
+		var thumbnail string
+		if m.Type == "video" {
+			thumbnail = commerceshared.ResolveReadablePosterURL(m.URL)
+		} else {
+			thumbnail = commerceshared.ResolveReadableThumbnailURL(m.URL)
+		}
 		resolved.ThumbnailURL = &thumbnail
 		out = append(out, resolved)
 	}

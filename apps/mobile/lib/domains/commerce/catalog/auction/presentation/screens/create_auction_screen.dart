@@ -11,10 +11,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/core/common/types/preparation_time.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/domain.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/auction_providers.dart';
+import 'package:labuda/features/home/home.dart';
 import 'package:labuda/domains/commerce/catalog/shared/presentation/sender_address_provider.dart';
 import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_access_gate.dart';
+import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_certificate_selector.dart';
+import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_preparation_time_selector.dart';
 import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_detail_states.dart';
 import 'package:labuda/shared/widgets/media_grid_uploader.dart';
 import 'package:labuda/shared/shared.dart';
@@ -102,7 +106,6 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
   final _openingBidController = TextEditingController();
   final _bidIncrementController = TextEditingController();
   final _buyNowPriceController = TextEditingController();
-  final _preparationNoteController = TextEditingController();
   final _breederController = TextEditingController();
   final _bloodlineController = TextEditingController();
 
@@ -113,6 +116,11 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
   double? _sizeInCm;
   int? _ageInMonths;
   String? _gender;
+
+  /// Seller-declared certificates (canonical values: breeder, contest, import,
+  /// health). Optional product content — a certificate states that the fish is
+  /// certified, it never asks the seller to upload a document.
+  List<String> _certificates = const [];
 
   /// "now" (immediate start, default) or "scheduled" (custom future start).
   /// Backend enforces this — the picker below is a convenience only.
@@ -125,17 +133,47 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
   /// that must ship, same as a fixed-price forSale.
   List<String> _selectedShippingSetupIds = const [];
 
+  /// Preparation-time range this auction promises after checkout (owner:
+  /// exactly 3 ranges, default 1–3 days).
+  PreparationTime _preparationTime = PreparationTime.days1_3;
+
   bool _isSubmitting = false;
   String? _errorMessage;
 
+  /// Controllers feeding the pre-submit completeness gate — the CTA must
+  /// re-evaluate on every keystroke (a gate reading only setState-driven state
+  /// would never enable while the seller types).
+  Iterable<TextEditingController> get _gatedControllers => [
+        _titleController,
+        _descriptionController,
+        _openingBidController,
+        _bidIncrementController,
+        _buyNowPriceController,
+      ];
+
+  void _onFormFieldsChanged() {
+    // Re-evaluates the publish-CTA completeness gate after each keystroke.
+    setState(() {});
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    for (final controller in _gatedControllers) {
+      controller.addListener(_onFormFieldsChanged);
+    }
+  }
+
   @override
   void dispose() {
+    for (final controller in _gatedControllers) {
+      controller.removeListener(_onFormFieldsChanged);
+    }
     _titleController.dispose();
     _descriptionController.dispose();
     _openingBidController.dispose();
     _bidIncrementController.dispose();
     _buyNowPriceController.dispose();
-    _preparationNoteController.dispose();
     _breederController.dispose();
     _bloodlineController.dispose();
     super.dispose();
@@ -187,6 +225,39 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
     final hour = local.hour.toString().padLeft(2, '0');
     final minute = local.minute.toString().padLeft(2, '0');
     return '$day/$month/${local.year} $hour:$minute';
+  }
+
+  /// PRE-SUBMIT COMPLETENESS GATE (owner decision): the publish CTA stays
+  /// disabled until every required field carries a usable value. Format rules
+  /// (title length, numeric format, future start time) stay with the Form
+  /// validators and the guards inside _submitForm — this gate only answers
+  /// "is everything filled in", never "is everything valid".
+  bool get _isFormComplete {
+    final title = _titleController.text.trim();
+    final description = _descriptionController.text.trim();
+    final openingBid = int.tryParse(_openingBidController.text.trim());
+    final bidIncrement = int.tryParse(_bidIncrementController.text.trim());
+    final buyNowText = _buyNowPriceController.text.trim();
+    final buyNowPrice = buyNowText.isEmpty ? null : int.tryParse(buyNowText);
+
+    return title.isNotEmpty &&
+        description.isNotEmpty &&
+        _mediaUrls.isNotEmpty &&
+        _variety != null &&
+        _sizeInCm != null &&
+        _sizeInCm! > 0 &&
+        openingBid != null &&
+        openingBid > 0 &&
+        bidIncrement != null &&
+        bidIncrement > 0 &&
+        (buyNowText.isEmpty ||
+            (buyNowPrice != null && buyNowPrice >= openingBid)) &&
+        _durationHours != null &&
+        (_startMode == _AuctionStartMode.now ||
+            _scheduledStartTime != null) &&
+        _selectedShippingSetupIds.isNotEmpty &&
+        // Sender address: the shipping origin must exist before publishing.
+        ref.watch(senderAddressIdProvider).value != null;
   }
 
   Future<void> _submitForm() async {
@@ -296,6 +367,7 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
       sizeInCm: _sizeInCm!,
       ageInMonths: _ageInMonths ?? 0,
       gender: _gender ?? 'unknown',
+      certificates: _certificates,
       breeder: _breederController.text.trim().isEmpty
           ? null
           : _breederController.text.trim(),
@@ -335,10 +407,8 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
           scheduledStartAt: scheduledStartAt,
           durationHours: durationHours,
           farmAddressId: farmAddressId,
+          preparationTime: _preparationTime,
           shippingSetupIds: _selectedShippingSetupIds,
-          preparationNote: _preparationNoteController.text.trim().isEmpty
-              ? null
-              : _preparationNoteController.text.trim(),
         );
 
     if (!mounted) return;
@@ -372,6 +442,14 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
     }
 
     AppSnackBar.showSuccess(context, 'Lelang berhasil dibuat');
+
+    // OWNER CANONICAL LANDING: after a successful create, request the switch
+    // to the Marketplace Auction tab so the user lands on the surface where
+    // the auction now lives (list invalidation happens inside the notifier).
+    ref
+        .read(pendingTabSwitchProvider.notifier)
+        .setSwitch('marketplace', subTab: 1);
+
     Navigator.of(context).pop(true);
   }
 
@@ -381,7 +459,9 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
     final scheme = Theme.of(context).colorScheme;
     // Canonical expiry axis (RF-02). Capability gates access to selling; only
     // an ENDED subscription period may produce expiry/renewal copy.
-    final isSubscriptionExpired = ref.watch(isSellerSubscriptionExpiredProvider);
+    final isSubscriptionExpired = ref.watch(
+      isSellerSubscriptionExpiredProvider,
+    );
 
     // CHANNEL PARITY with the for-sale create screen: only a RESOLVED
     // "not signed in" session gets the login gate. Hydration and a restricted
@@ -445,7 +525,10 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
             children: [
               const Text(
                 'Informasi Dasar',
-                style: TextStyle(fontSize: AppType.s18, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: AppType.s20,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 12),
               TextFormField(
@@ -482,14 +565,20 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
               const SizedBox(height: 24),
               const Text(
                 'Foto Ikan',
-                style: TextStyle(fontSize: AppType.s18, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: AppType.s20,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 12),
               _buildMediaSection(),
               const SizedBox(height: 24),
               const Text(
                 'Detail Koi',
-                style: TextStyle(fontSize: AppType.s18, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: AppType.s20,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 12),
               _buildKoiDetailsSection(),
@@ -551,9 +640,17 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
               const SizedBox(height: 20),
               _buildDurationSection(context),
               const SizedBox(height: 20),
+              CommercePreparationTimeSelector(
+                selected: _preparationTime,
+                onChanged: (value) => setState(() => _preparationTime = value),
+              ),
+              const SizedBox(height: 20),
               const Text(
                 'Opsi Pengiriman *',
-                style: TextStyle(fontSize: AppType.s16, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                  fontSize: AppType.s16,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               const SizedBox(height: 8),
               SellerShippingSetupsSelector(
@@ -563,15 +660,6 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
                     'Wajib diisi karena ikan tetap perlu dikirim ke pemenang.',
                 onSelectionChanged: (ids) =>
                     setState(() => _selectedShippingSetupIds = ids),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _preparationNoteController,
-                maxLines: 3,
-                decoration: const InputDecoration(
-                  labelText: 'Catatan Persiapan (opsional)',
-                  border: OutlineInputBorder(),
-                ),
               ),
               const SizedBox(height: 24),
               if (_errorMessage != null) ...[
@@ -595,7 +683,9 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
                 const SizedBox(height: 16),
               ],
               ElevatedButton(
-                onPressed: _isSubmitting ? null : _submitForm,
+                onPressed: _isSubmitting || !_isFormComplete
+                    ? null
+                    : _submitForm,
                 style: ElevatedButton.styleFrom(
                   minimumSize: const Size.fromHeight(50),
                   disabledBackgroundColor: scheme.surfaceContainerHighest,
@@ -621,6 +711,17 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
                         ),
                       ),
               ),
+              if (!_isFormComplete && !_isSubmitting) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'Lengkapi semua field wajib untuk mengaktifkan tombol terbit.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: AppType.s12,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
               const SizedBox(height: 24),
             ],
           ),
@@ -702,13 +803,13 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
   Widget _buildMediaSection() {
     return MediaGridUploader(
       mediaUrls: _mediaUrls,
-       onMediaAdded: (url) => setState(() => _mediaUrls.add(url)),
-       onMediaRemoved: (index) => setState(() => _mediaUrls.removeAt(index)),
-       onMediaReordered: (oldIndex, newIndex) => setState(() {
-         final item = _mediaUrls.removeAt(oldIndex);
-         _mediaUrls.insert(newIndex, item);
-       }),
-     );
+      onMediaAdded: (url) => setState(() => _mediaUrls.add(url)),
+      onMediaRemoved: (index) => setState(() => _mediaUrls.removeAt(index)),
+      onMediaReordered: (oldIndex, newIndex) => setState(() {
+        final item = _mediaUrls.removeAt(oldIndex);
+        _mediaUrls.insert(newIndex, item);
+      }),
+    );
   }
 
   Widget _buildKoiDetailsSection() {
@@ -747,7 +848,7 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
             }
             return null;
           },
-          onChanged: (value) => _sizeInCm = double.tryParse(value),
+          onChanged: (value) => setState(() => _sizeInCm = double.tryParse(value)),
         ),
         const SizedBox(height: 16),
         TextFormField(
@@ -759,7 +860,7 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
             suffixText: 'bulan',
             border: OutlineInputBorder(),
           ),
-          onChanged: (value) => _ageInMonths = int.tryParse(value),
+          onChanged: (value) => setState(() => _ageInMonths = int.tryParse(value)),
         ),
         const SizedBox(height: 16),
         DropdownButtonFormField<String>(
@@ -796,6 +897,14 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
             border: OutlineInputBorder(),
           ),
         ),
+        const SizedBox(height: 16),
+        CommerceCertificateSelector(
+          selectedCertificates: _certificates,
+          onChanged: (value) => setState(() => _certificates = value),
+          helperText:
+              'Pilih jenis sertifikat yang ikan ini miliki. Sertifikat adalah '
+              'keterangan dari seller, bukan unggahan dokumen.',
+        ),
       ],
     );
   }
@@ -824,7 +933,7 @@ class _DateTimeField extends StatelessWidget {
         ),
         child: Row(
           children: [
-            const Icon(Icons.calendar_month_outlined, size: 18),
+            const Icon(Icons.calendar_month_outlined, size: AppIconSize.action),
             const SizedBox(width: 10),
             Expanded(child: Text(value)),
           ],

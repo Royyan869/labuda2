@@ -1,51 +1,75 @@
 import 'package:equatable/equatable.dart';
 import 'package:labuda/shared/shared.dart';
 
-/// Purpose-based address categorization
-/// Clear separation between shipping (destination) and sender (origin) addresses
-enum AddressPurpose {
-  shipping, // Alamat tujuan pengiriman (buyer & seller punya ini)
-  sender, // Alamat pengirim/asal barang (seller only)
+/// Role tags describing how a saved address may be used.
+///
+/// CANONICAL TRUTH: an address belongs to the ACCOUNT, not to a role. Tags are
+/// a SET — one address may be both a shipping destination and a sender origin,
+/// and promotion scope will attach further tags later without a new entity.
+enum AddressTag {
+  /// Destination the account can be delivered to (any account may create one).
+  shipping,
+
+  /// Origin goods are shipped from (the account's farm/warehouse).
+  sender,
 }
 
-/// Helper extension for AddressPurpose
-extension AddressPurposeExtension on AddressPurpose {
+extension AddressTagExtension on AddressTag {
+  /// Wire value accepted by the backend (`tags: [...]`).
+  String get wireValue => name;
+
   String get label {
     switch (this) {
-      case AddressPurpose.shipping:
+      case AddressTag.shipping:
         return 'Shipping Address';
-      case AddressPurpose.sender:
+      case AddressTag.sender:
         return 'Sender Address';
     }
   }
 
   String get description {
     switch (this) {
-      case AddressPurpose.shipping:
+      case AddressTag.shipping:
         return 'Address for receiving packages/shipments';
-      case AddressPurpose.sender:
+      case AddressTag.sender:
         return 'Origin address for goods (for seller)';
     }
   }
+
+  String get shortLabel {
+    switch (this) {
+      case AddressTag.shipping:
+        return 'Shipping';
+      case AddressTag.sender:
+        return 'Sender';
+    }
+  }
+
+  /// Parses a wire value. Unknown values resolve to null — the caller decides
+  /// whether to fail or to drop the tag, never to silently invent a role.
+  static AddressTag? parse(String raw) {
+    for (final tag in AddressTag.values) {
+      if (tag.wireValue == raw) return tag;
+    }
+    return null;
+  }
 }
 
-/// Address Entity untuk multiple addresses support
-/// Purpose-based separation: shipping (tujuan) vs sender (pengirim)
+/// A saved address owned by the account.
 ///
-/// Business Rules:
-/// - Buyer: minimal 1 shipping address
-/// - Seller: minimal 1 shipping + 1 sender address
-/// - Max 10 addresses per purpose per user
-/// - isPrimary: untuk menandai alamat default (per purpose)
+/// Business rules:
+/// - Many addresses per account; at most one `isPrimary` across the whole
+///   account (the backend enforces this — there is no per-tag primary).
+/// - `tags` must be non-empty; an address may carry both tags.
+/// - Max 10 addresses per account.
 class AddressEntity extends Equatable {
   final String id;
   final String userId;
 
-  /// Purpose of this address (shipping destination vs sender origin)
-  final AddressPurpose purpose;
+  /// How this address may be used. A set, not a single role.
+  final List<AddressTag> tags;
 
   /// Optional user-defined nickname (e.g., "Rumah Utama", "Kantor", "Farm Sukabumi")
-  /// Replaces the old label system with more flexible user input
   final String? nickname;
 
   final String recipientName; // Nama penerima/pengirim (bisa beda dari user)
@@ -58,8 +82,7 @@ class AddressEntity extends Equatable {
   final String postalCode;
   final String? notes; // Optional notes/instructions
 
-  /// Default address for this purpose
-  /// When set as primary, other addresses with same purpose will be unset
+  /// The account's one default address. Setting it clears it everywhere else.
   final bool isPrimary;
 
   final double? latitude; // Optional GPS coordinate
@@ -70,7 +93,7 @@ class AddressEntity extends Equatable {
   const AddressEntity({
     required this.id,
     required this.userId,
-    required this.purpose,
+    required this.tags,
     this.nickname,
     required this.recipientName,
     required this.phone,
@@ -90,52 +113,55 @@ class AddressEntity extends Equatable {
 
   @override
   List<Object?> get props => [
-    id,
-    userId,
-    purpose,
-    nickname,
-    recipientName,
-    phone,
-    province,
-    city,
-    district,
-    village,
-    streetAddress,
-    postalCode,
-    notes,
-    isPrimary,
-    latitude,
-    longitude,
-    createdAt,
-    updatedAt,
-  ];
+        id,
+        userId,
+        tags,
+        nickname,
+        recipientName,
+        phone,
+        province,
+        city,
+        district,
+        village,
+        streetAddress,
+        postalCode,
+        notes,
+        isPrimary,
+        latitude,
+        longitude,
+        createdAt,
+        updatedAt,
+      ];
 
-  /// Get display label for this address
-  /// Priority: nickname > purpose label
+  /// Whether this address carries [tag].
+  bool hasTag(AddressTag tag) => tags.contains(tag);
+
+  /// Wire representation of the tag set.
+  List<String> get tagValues => tags.map((tag) => tag.wireValue).toList();
+
+  /// Display label priority: nickname, then the joined tag labels.
   String get displayLabel {
+    final tagText = tags.map((tag) => tag.label).join(', ');
     if (nickname != null && nickname!.isNotEmpty) {
-      return nickname!;
+      return tags.isEmpty ? nickname! : '$nickname ($tagText)';
     }
-    return purpose.label;
+    return tagText;
   }
 
   /// Get full formatted address string
-  String get fullAddress {
-    return '$streetAddress, ${village.name}, ${district.name}, ${city.name}, ${province.name} $postalCode';
-  }
+  String get fullAddress =>
+      '$streetAddress, ${village.name}, ${district.name}, ${city.name}, '
+      '${province.name} $postalCode';
 
   /// Check if address has GPS coordinates
   bool get hasCoordinates => latitude != null && longitude != null;
 
-  /// Check if this address can be used for shipping/checkout
-  /// Only shipping addresses are available for checkout
-  bool get isAvailableForCheckout => purpose == AddressPurpose.shipping;
+  /// Only addresses tagged for shipping are selectable at checkout.
 
-  /// Copy with method for immutability
   AddressEntity copyWith({
     String? id,
     String? userId,
-    AddressPurpose? purpose,
+    List<AddressTag>? tags,
     String? nickname,
     String? recipientName,
     String? phone,
@@ -155,7 +181,7 @@ class AddressEntity extends Equatable {
     return AddressEntity(
       id: id ?? this.id,
       userId: userId ?? this.userId,
-      purpose: purpose ?? this.purpose,
+      tags: tags ?? this.tags,
       nickname: nickname ?? this.nickname,
       recipientName: recipientName ?? this.recipientName,
       phone: phone ?? this.phone,
@@ -174,11 +200,11 @@ class AddressEntity extends Equatable {
     );
   }
 
-  /// Convert to JSON for Firestore (snake_case sesuai Kepmendagri standard)
+  /// Convert to JSON (snake_case sesuai Kepmendagri standard)
   Map<String, dynamic> toJson() {
     return {
       'user_id': userId,
-      'purpose': purpose.name, // Store as string: 'shipping' or 'sender'
+      'tags': tagValues,
       'nickname': nickname,
       'recipient_name': recipientName,
       'phone': phone,
@@ -197,25 +223,23 @@ class AddressEntity extends Equatable {
     };
   }
 
-  /// Create from JSON (backward compatible: supports both camelCase and snake_case)
-  /// Migrates old label-based data to purpose-based system
+  /// Create from the backend wire shape.
+  ///
+  /// An unknown tag value is dropped rather than defaulted to a role: an
+  /// address never silently claims a usage the backend did not declare.
   factory AddressEntity.fromJson(Map<String, dynamic> json, String id) {
-    // Backward compatibility: migrate old 'label' to 'purpose'
-    AddressPurpose purpose;
-    if (json.containsKey('purpose')) {
-      purpose = AddressPurpose.values.byName(json['purpose'] as String);
-    } else {
-      // Migration: old label to purpose
-      final oldLabel = json['label'] as String?;
-      purpose = _migrateLabelToPurpose(oldLabel);
-    }
+    final rawTags = (json['tags'] as List<dynamic>? ?? const [])
+        .whereType<String>()
+        .toList();
 
     return AddressEntity(
       id: id,
       userId: (json['userId'] ?? json['user_id']) as String,
-      purpose: purpose,
+      tags: rawTags
+          .map(AddressTagExtension.parse)
+          .whereType<AddressTag>()
+          .toList(),
       nickname: json['nickname'] as String?,
-      // Backward compatibility: fallback to empty strings for old data
       recipientName:
           (json['recipientName'] ?? json['recipient_name'] ?? '') as String,
       phone: (json['phone'] ?? '') as String,
@@ -243,22 +267,9 @@ class AddressEntity extends Equatable {
     );
   }
 
-  /// Migrate old label-based system to purpose-based
-  static AddressPurpose _migrateLabelToPurpose(String? oldLabel) {
-    if (oldLabel == null) return AddressPurpose.shipping;
-
-    // Farm addresses are typically sender addresses for sellers
-    if (oldLabel.toLowerCase() == 'farm' ||
-        oldLabel.toLowerCase() == 'warehouse') {
-      return AddressPurpose.sender;
-    }
-
-    // Home, Office, Other are shipping addresses (destinations)
-    return AddressPurpose.shipping;
-  }
-
   @override
   String toString() {
-    return 'AddressEntity(id: $id, purpose: ${purpose.name}, nickname: $nickname, isPrimary: $isPrimary, address: $fullAddress)';
+    return 'AddressEntity(id: $id, tags: ${tagValues.join('|')}, '
+        'nickname: $nickname, isPrimary: $isPrimary, address: $fullAddress)';
   }
 }

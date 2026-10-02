@@ -5,6 +5,7 @@ library;
 import 'dart:async';
 import 'dart:collection';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/core/common/types/preparation_time.dart';
 import 'package:labuda/core/utils/polling_monitor.dart';
 import 'package:labuda/domains/commerce/catalog/auction/data/dto/auction_dto.dart';
 import 'package:labuda/domains/commerce/catalog/auction/data/mappers/auction_mapper.dart';
@@ -60,8 +61,8 @@ class AuctionRepositoryImpl implements AuctionRepository {
     DateTime? scheduledStartAt,
     required int durationHours,
     String? farmAddressId,
+    required PreparationTime preparationTime,
     required List<String> shippingSetupIds,
-    String? preparationNote,
   }) async {
     try {
       final params = CreateAuctionParams(
@@ -81,11 +82,11 @@ class AuctionRepositoryImpl implements AuctionRepository {
         scheduledStartAt: scheduledStartAt,
         durationHours: durationHours,
         farmAddressId: farmAddressId,
+        preparationTime: preparationTime,
         shippingSetupIds: shippingSetupIds,
-        preparationNote: preparationNote,
       );
 
-      final dto = AuctionMapper.toCreateDto(params);
+      final dto = await AuctionMapper.toCreateDto(params);
       final result = await _datasource.createAuction(dto);
       final entity = AuctionMapper.toEntity(result);
 

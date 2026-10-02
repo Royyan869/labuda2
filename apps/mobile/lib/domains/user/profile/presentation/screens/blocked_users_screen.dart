@@ -75,7 +75,7 @@ class BlockedUsersScreen extends ConsumerWidget {
               children: [
                 Icon(
                   Icons.error_outline,
-                  size: 48,
+                  size: AppIconSize.display,
                   color: Theme.of(context).colorScheme.error,
                 ),
                 const SizedBox(height: 16),
@@ -113,14 +113,14 @@ class BlockedUsersScreen extends ConsumerWidget {
           children: [
             Icon(
               Icons.block_outlined,
-              size: 64,
+              size: AppIconSize.display,
               color: scheme.onSurfaceVariant,
             ),
             const SizedBox(height: 16),
             Text(
               'No Blocked Users',
               style: TextStyle(
-                fontSize: AppType.s18,
+                fontSize: AppType.s20,
                 fontWeight: FontWeight.bold,
                 color: scheme.onSurface,
               ),
@@ -243,7 +243,7 @@ class _BlockedUserTile extends StatelessWidget {
           'Unblock',
           style: TextStyle(
             color: scheme.primary,
-            fontSize: AppType.s13,
+            fontSize: AppType.s14,
             fontWeight: FontWeight.w600,
           ),
         ),

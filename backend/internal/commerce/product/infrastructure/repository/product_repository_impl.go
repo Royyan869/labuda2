@@ -36,7 +36,7 @@ func (r *ProductRepositoryImpl) Create(ctx context.Context, tx db.Tx, product *e
 
 	mediaURLs := product.MediaURLs
 	if mediaURLs == nil {
-		mediaURLs = []string{}
+		mediaURLs = []entity.ProductMedia{}
 	}
 	certificates := product.Certificates
 	if certificates == nil {
@@ -47,11 +47,11 @@ func (r *ProductRepositoryImpl) Create(ctx context.Context, tx db.Tx, product *e
 		INSERT INTO products (
 			id, seller_id, title, description, media_urls,
 			variety, size_cm, age_months, gender, breeder, bloodline, certificates,
-			farm_address_id, preparation_time, preparation_note,
+			farm_address_id, preparation_time,
 			selling_surface,
 			created_at, updated_at
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
 	`,
 		product.ID,
 		product.SellerID,
@@ -67,7 +67,6 @@ func (r *ProductRepositoryImpl) Create(ctx context.Context, tx db.Tx, product *e
 		certificates,
 		product.FarmAddressID,
 		product.PreparationTime,
-		product.PreparationNote,
 		nullString(string(product.SellingSurface)),
 		product.CreatedAt,
 		product.UpdatedAt,
@@ -84,7 +83,7 @@ func (r *ProductRepositoryImpl) GetByID(ctx context.Context, tx db.Tx, id uuid.U
 	row := tx.QueryRow(ctx, `
 		SELECT id, seller_id, title, description, media_urls,
 		       variety, size_cm, age_months, gender, breeder, bloodline, certificates,
-		       farm_address_id, preparation_time, preparation_note,
+		       farm_address_id, preparation_time,
 		       selling_surface,
 		       created_at, updated_at
 		FROM products
@@ -106,7 +105,7 @@ func (r *ProductRepositoryImpl) Update(ctx context.Context, tx db.Tx, product *e
 
 	mediaURLs := product.MediaURLs
 	if mediaURLs == nil {
-		mediaURLs = []string{}
+		mediaURLs = []entity.ProductMedia{}
 	}
 	certificates := product.Certificates
 	if certificates == nil {
@@ -131,8 +130,7 @@ func (r *ProductRepositoryImpl) Update(ctx context.Context, tx db.Tx, product *e
 		    certificates = $12,
 		    farm_address_id = $13,
 		    preparation_time = $14,
-		    preparation_note = $15,
-		    updated_at = $16
+		    updated_at = $15
 		WHERE id = $1
 	`,
 		product.ID,
@@ -149,7 +147,6 @@ func (r *ProductRepositoryImpl) Update(ctx context.Context, tx db.Tx, product *e
 		certificates,
 		product.FarmAddressID,
 		product.PreparationTime,
-		product.PreparationNote,
 		product.UpdatedAt,
 	)
 	if err != nil {
@@ -165,7 +162,7 @@ func scanProductRow(row pgx.Row) (*entity.Product, error) {
 	var mediaURLsRaw json.RawMessage
 	var certificates []string
 	var sizeCM, ageMonths *int
-	var gender, breeder, bloodline, preparationNote *string
+	var gender, breeder, bloodline *string
 	var farmAddressID *uuid.UUID
 	var sellingSurfaceRaw *string
 	var createdAt, updatedAt time.Time
@@ -184,7 +181,6 @@ func scanProductRow(row pgx.Row) (*entity.Product, error) {
 		&certificates,
 		&farmAddressID,
 		&product.PreparationTime,
-		&preparationNote,
 		&sellingSurfaceRaw,
 		&createdAt,
 		&updatedAt,
@@ -195,7 +191,7 @@ func scanProductRow(row pgx.Row) (*entity.Product, error) {
 		return nil, fmt.Errorf("get product failed: %w", err)
 	}
 
-	var mediaURLs []string
+	var mediaURLs []entity.ProductMedia
 	if len(mediaURLsRaw) > 0 && string(mediaURLsRaw) != "null" {
 		if err := json.Unmarshal(mediaURLsRaw, &mediaURLs); err != nil {
 			return nil, fmt.Errorf("unmarshal product media urls failed: %w", err)
@@ -210,7 +206,6 @@ func scanProductRow(row pgx.Row) (*entity.Product, error) {
 	product.Bloodline = bloodline
 	product.Certificates = certificates
 	product.FarmAddressID = farmAddressID
-	product.PreparationNote = preparationNote
 	if sellingSurfaceRaw != nil {
 		product.SellingSurface = entity.SellingSurface(*sellingSurfaceRaw)
 	}

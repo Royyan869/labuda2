@@ -24,10 +24,7 @@ final senderAddressIdProvider = FutureProvider<String?>((ref) async {
   if (userId.isEmpty) return null;
 
   final repository = ref.watch(addressRepositoryProvider);
-  final result = await repository.getAddressesByPurpose(
-    userId,
-    AddressPurpose.sender,
-  );
+  final result = await repository.getAddressesByTag(userId, AddressTag.sender);
   final addresses = result.data;
   if (addresses == null || addresses.isEmpty) return null;
   final primary = addresses.where((a) => a.isPrimary).firstOrNull;

@@ -389,7 +389,6 @@ func joinedSaleSelectColumns() string {
 		p.certificates,
 		p.farm_address_id,
 		p.preparation_time,
-		p.preparation_note,
 		p.selling_surface,
 		p.created_at,
 		p.updated_at,
@@ -433,7 +432,7 @@ func scanJoinedSaleFromRow(scanner interface {
 	var saleStatus string
 	var mediaURLsRaw json.RawMessage
 	var sizeCM, ageMonths *int
-	var gender, breeder, bloodline, preparationNote *string
+	var gender, breeder, bloodline *string
 	var certificates []string
 	var publishedAt, soldAt, withdrawnAt *time.Time
 	var quantityAvailable int
@@ -475,7 +474,6 @@ func scanJoinedSaleFromRow(scanner interface {
 		&certificates,
 		&productFarmAddressID,
 		&productPreparationTime,
-		&preparationNote,
 		&sellingSurfaceRaw,
 		&productCreatedAt,
 		&productUpdatedAt,
@@ -486,7 +484,7 @@ func scanJoinedSaleFromRow(scanner interface {
 		return nil, fmt.Errorf("scan fixed price sale failed: %w", err)
 	}
 
-	var mediaURLs []string
+	var mediaURLs []productEntity.ProductMedia
 	if len(mediaURLsRaw) > 0 && string(mediaURLsRaw) != "null" {
 		if err := json.Unmarshal(mediaURLsRaw, &mediaURLs); err != nil {
 			return nil, fmt.Errorf("unmarshal product media urls failed: %w", err)
@@ -513,7 +511,6 @@ func scanJoinedSaleFromRow(scanner interface {
 		Certificates:    certificates,
 		FarmAddressID:   productFarmAddressID,
 		PreparationTime: productPreparationTime,
-		PreparationNote: preparationNote,
 		SellingSurface:  sellingSurface,
 		CreatedAt:       productCreatedAt,
 		UpdatedAt:       productUpdatedAt,

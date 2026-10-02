@@ -312,9 +312,9 @@ class _SellerUpgradeWizardScreenState
 
     try {
       final repository = ref.read(addressRepositoryProvider);
-      final result = await repository.getAddressesByPurpose(
+      final result = await repository.getAddressesByTag(
         userId,
-        AddressPurpose.sender,
+        AddressTag.sender,
       );
 
       if (!mounted || !_isCurrentPrincipalRequest(requestEpoch, userId)) {
@@ -388,7 +388,7 @@ class _SellerUpgradeWizardScreenState
         children: [
           Icon(
             icon,
-            size: 20,
+            size: AppIconSize.action,
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
           const SizedBox(width: 12),
@@ -399,7 +399,7 @@ class _SellerUpgradeWizardScreenState
                 Text(
                   title,
                   style: TextStyle(
-                    fontSize: AppType.s13,
+                    fontSize: AppType.s14,
                     fontWeight: FontWeight.w600,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
@@ -454,7 +454,7 @@ class _SellerUpgradeWizardScreenState
                   : _showSenderAddressDialog,
               icon: Icon(
                 address == null ? Icons.add_location_alt_outlined : Icons.edit,
-                size: 18,
+                size: AppIconSize.action,
               ),
               label: Text(address == null ? 'Add sender address' : 'Edit'),
             ),
@@ -483,7 +483,7 @@ class _SellerUpgradeWizardScreenState
                   children: [
                     Icon(
                       Icons.warehouse_outlined,
-                      size: 20,
+                      size: AppIconSize.action,
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                     const SizedBox(width: 12),
@@ -503,7 +503,7 @@ class _SellerUpgradeWizardScreenState
                 Text(
                   'Recipient: ${address.recipientName}',
                   style: TextStyle(
-                    fontSize: AppType.s13,
+                    fontSize: AppType.s14,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
@@ -511,7 +511,7 @@ class _SellerUpgradeWizardScreenState
                 Text(
                   'Phone: ${address.phone}',
                   style: TextStyle(
-                    fontSize: AppType.s13,
+                    fontSize: AppType.s14,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
@@ -519,7 +519,7 @@ class _SellerUpgradeWizardScreenState
                 Text(
                   address.fullAddress,
                   style: TextStyle(
-                    fontSize: AppType.s13,
+                    fontSize: AppType.s14,
                     height: 1.5,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
@@ -554,7 +554,7 @@ class _SellerUpgradeWizardScreenState
                 Text(
                   'No sender address selected yet.',
                   style: TextStyle(
-                    fontSize: AppType.s13,
+                    fontSize: AppType.s14,
                     fontWeight: FontWeight.w600,
                     color: Theme.of(context).colorScheme.onSurface,
                   ),
@@ -593,10 +593,9 @@ class _SellerUpgradeWizardScreenState
 
     final saved = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AddEditAddressDialog(
-        userId: userId,
-        address: _selectedSenderAddress,
-        forcedPurpose: AddressPurpose.sender,
+      builder: (dialogContext) => AddressFormDialog(
+        addressToEdit: _selectedSenderAddress,
+        presetTags: const [AddressTag.sender],
       ),
     );
 
@@ -871,7 +870,7 @@ class _SellerUpgradeWizardScreenState
             children: [
               Icon(
                 icon,
-                size: 40,
+                size: AppIconSize.display,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               const SizedBox(height: 16),
@@ -947,7 +946,7 @@ class _SellerUpgradeWizardScreenState
           Text(
             message,
             style: TextStyle(
-              fontSize: AppType.s13,
+              fontSize: AppType.s14,
               height: 1.4,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
@@ -1046,7 +1045,7 @@ class _SellerUpgradeWizardScreenState
             child: Text(
               'Username is read only when already saved. Phone and sender address remain required for seller onboarding.',
               style: TextStyle(
-                fontSize: AppType.s13,
+                fontSize: AppType.s14,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
@@ -1097,7 +1096,7 @@ class _SellerUpgradeWizardScreenState
               child: Text(
                 'Seller registration is currently disabled by backend config.',
                 style: TextStyle(
-                  fontSize: AppType.s13,
+                  fontSize: AppType.s14,
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
@@ -1117,7 +1116,7 @@ class _SellerUpgradeWizardScreenState
             child: Text(
               'KYC dan review bank dipakai untuk payout/withdrawal, bukan untuk registrasi seller awal.',
               style: TextStyle(
-                fontSize: AppType.s13,
+                fontSize: AppType.s14,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
@@ -1165,7 +1164,7 @@ class _SellerUpgradeWizardScreenState
             child: Text(
               'KYC dan review bank dipakai nanti untuk payout/withdrawal, terpisah dari registrasi seller.',
               style: TextStyle(
-                fontSize: AppType.s13,
+                fontSize: AppType.s14,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
@@ -1190,7 +1189,7 @@ class _SellerUpgradeWizardScreenState
       leading: Icon(
         Icons.error_outline,
         color: context.statusColors.error,
-        size: 28,
+        size: AppIconSize.emphasis,
       ),
       actionLabel: 'Coba lagi',
       onAction: () => ref.invalidate(config.sellerUpgradeConfigProvider),
@@ -1204,7 +1203,7 @@ class _SellerUpgradeWizardScreenState
       leading: Icon(
         Icons.info_outline,
         color: Theme.of(context).colorScheme.secondary,
-        size: 28,
+        size: AppIconSize.emphasis,
       ),
     );
   }
@@ -1221,7 +1220,7 @@ class _SellerUpgradeWizardScreenState
       padding: const EdgeInsets.all(AppMetrics.p16),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(AppMetrics.p20),
+        padding: const EdgeInsets.all(AppMetrics.p24),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(AppShape.r16),
@@ -1235,7 +1234,7 @@ class _SellerUpgradeWizardScreenState
             Text(
               title,
               style: TextStyle(
-                fontSize: AppType.s22,
+                fontSize: AppType.s24,
                 fontWeight: FontWeight.bold,
                 color: Theme.of(context).colorScheme.onSurface,
               ),
@@ -1295,11 +1294,11 @@ class _SellerUpgradeWizardScreenState
           const SizedBox(height: 8),
           ...items.map(
             (item) => Padding(
-              padding: const EdgeInsets.only(bottom: AppMetrics.p6),
+              padding: const EdgeInsets.only(bottom: AppMetrics.p8),
               child: Text(
                 '• $item',
                 style: TextStyle(
-                  fontSize: AppType.s13,
+                  fontSize: AppType.s14,
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
@@ -1335,7 +1334,7 @@ class _SellerUpgradeWizardScreenState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p6),
+            padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p8),
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.secondary,
               borderRadius: BorderRadius.circular(AppShape.r20),
@@ -1353,7 +1352,7 @@ class _SellerUpgradeWizardScreenState
           Text(
             'Aktivasi Seller',
             style: TextStyle(
-              fontSize: AppType.s22,
+              fontSize: AppType.s24,
               fontWeight: FontWeight.bold,
               color: Theme.of(context).colorScheme.onSurface,
             ),
@@ -1365,14 +1364,14 @@ class _SellerUpgradeWizardScreenState
               Text(
                 AppFormatters.formatCurrency(upgradeConfig.yearlyFee),
                 style: TextStyle(
-                  fontSize: AppType.s32,
+                  fontSize: AppType.s24,
                   fontWeight: FontWeight.bold,
                   color: Theme.of(context).colorScheme.secondary,
                 ),
               ),
               const SizedBox(width: 8),
               Padding(
-                padding: const EdgeInsets.only(bottom: AppMetrics.p6),
+                padding: const EdgeInsets.only(bottom: AppMetrics.p8),
                 child: Text(
                   '/${upgradeConfig.durationDays} hari',
                   style: TextStyle(
@@ -1442,13 +1441,13 @@ class _SellerUpgradeWizardScreenState
                   child: Icon(
                     Icons.check,
                     color: context.statusColors.success,
-                    size: 16,
+                    size: AppIconSize.inlineGlyph,
                   ),
                 ),
                 const SizedBox(width: 12),
                 Icon(
                   feature.$2,
-                  size: 20,
+                  size: AppIconSize.action,
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
                 const SizedBox(width: 8),
@@ -1530,7 +1529,7 @@ class _SellerUpgradeWizardScreenState
               children: [
                 Icon(
                   Icons.info_outline,
-                  size: 16,
+                  size: AppIconSize.inlineGlyph,
                   color: Theme.of(context).colorScheme.secondary,
                 ),
                 const SizedBox(width: 8),
@@ -1572,7 +1571,7 @@ class _SellerUpgradeWizardScreenState
         Text(
           'Payment method',
           style: TextStyle(
-            fontSize: AppType.s13,
+            fontSize: AppType.s14,
             fontWeight: FontWeight.w600,
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
@@ -1609,7 +1608,7 @@ class _SellerUpgradeWizardScreenState
                 if (!isLoading)
                   Icon(
                     Icons.chevron_right,
-                    size: 20,
+                    size: AppIconSize.action,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
               ],

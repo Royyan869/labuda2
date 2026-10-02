@@ -41,6 +41,7 @@ class ForSaleDtoMapper {
               originalUrl: item.url,
               type: item.type == 'video' ? MediaType.video : MediaType.image,
               position: item.position,
+              blurhash: item.blurhash,
               duration: item.duration,
               createdAt: item.createdAt ?? DateTime.now(),
               variants: {
@@ -68,6 +69,7 @@ class ForSaleDtoMapper {
     //   sellerUsername  ← seller_username
     //   sellerFarmName  ← seller_farm_name
     //   sellerAvatar    ← seller_avatar_url
+    //   publicOriginLine ← public_origin_line (detail-only, buyer-facing)
     // No fullName fallback (KYC field).
     return ForSale(
       forSaleId: dto.id,
@@ -81,6 +83,7 @@ class ForSaleDtoMapper {
       sellerUsername: dto.sellerUsername,
       sellerFarmName: dto.sellerFarmName,
       sellerAvatar: dto.sellerAvatarUrl,
+      publicOriginLine: dto.publicOriginLine,
       // E8.2 — Canonical seller user-identity lifecycle parsed tolerantly.
       // Null / missing / unknown → active (legacy payloads stay backward
       // compatible).
@@ -100,6 +103,8 @@ class ForSaleDtoMapper {
       // Canonical per-viewer detail action authority. Null on list/search
       // payloads; present on the detail wire (viewer_capabilities).
       viewerCapabilities: dto.viewerCapabilities,
+      // Detail-only deal binding (settleable accepted negotiation).
+      viewerNegotiationId: dto.viewerNegotiationId,
       // Owner axis first (Scope 3, parity with auction mapper):
       // `seller_status` carries the exact internal state (owner-only wire
       // slot); public viewers (null seller_status) resolve through the
@@ -110,7 +115,6 @@ class ForSaleDtoMapper {
       isNegotiable: dto.negotiationEnabled,
       viewCount: 0,
       preparationTime: _mapPreparationTime(dto.preparationTime),
-      preparationNote: dto.preparationNote,
       createdAt: dto.createdAt,
       updatedAt: dto.updatedAt,
       variety: dto.variety,
@@ -119,6 +123,10 @@ class ForSaleDtoMapper {
       gender: dto.gender,
       breeder: dto.breeder,
       bloodline: dto.bloodline,
+      // Canonical Product content: seller-declared certificates ride the same
+      // wire slot the seller projection already emits (never dropped here, or
+      // the create/edit input would be write-only).
+      certificates: dto.certificates,
     );
   }
 
@@ -206,7 +214,7 @@ class ForSaleDtoMapper {
   }
 
   /// Map backend preparation_time string to PreparationTime enum
-  /// Defaults to 'immediate' for null/unknown values (safe default)
+  /// Defaults to the 1–3 day range for null/unknown values (owner default)
   static PreparationTime _mapPreparationTime(String? preparationTime) {
     return PreparationTime.fromJson(preparationTime);
   }

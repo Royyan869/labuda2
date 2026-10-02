@@ -306,12 +306,14 @@ class FeedMediaDto {
   final int position;
   @JsonKey(name: 'thumbnail_url')
   final String? thumbnailUrl;
+  final String? blurhash;
 
   const FeedMediaDto({
     required this.url,
     required this.type,
     required this.position,
     this.thumbnailUrl,
+    this.blurhash,
   });
 
   factory FeedMediaDto.fromJson(Map<String, dynamic> json) =>
@@ -324,6 +326,7 @@ class FeedMediaDto {
       id: position.toString(), // Use position as ID for feed media
       originalUrl: url,
       type: type == 'image' ? MediaType.image : MediaType.video,
+      blurhash: blurhash,
       createdAt: DateTime.now(),
       variants: {
         if (thumbnailUrl != null && thumbnailUrl!.isNotEmpty)

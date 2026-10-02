@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_blurhash/flutter_blurhash.dart';
-import 'package:shimmer/shimmer.dart';
 import 'package:labuda/core/services/blurhash_cache_service.dart';
 import 'package:labuda/core/src/theme/app_theme.dart';
 
@@ -12,8 +11,9 @@ enum MediaQuality { thumbnail, medium, high, webp }
 /// Canonical network-media render authority.
 ///
 /// Contract: [imageUrl] is the backend-resolved CloudFront URL, used as-is.
-/// Mobile never rebuilds, mutates, or strips media URLs. Loading (shimmer /
-/// blurhash) and error states are always distinct.
+/// Mobile never rebuilds, mutates, or strips media URLs. Loading (static mat
+/// or blurhash) and error states are always distinct. Shimmer animation is
+/// banned on media surfaces.
 class AppImage extends StatelessWidget {
   final String? imageUrl;
   final String? blurhash;
@@ -179,14 +179,14 @@ class AppImage extends StatelessWidget {
             return _buildBlurhashWidget(snapshot.data!, context);
           }
 
-          // Fallback to shimmer loading state
-          return _buildShimmerPlaceholder(context);
+          // Fallback to the static loading mat (no animation).
+          return _buildLoadingMat(context);
         },
       );
     }
 
-    // Default shimmer placeholder
-    return _buildShimmerPlaceholder(context);
+    // Default static loading mat.
+    return _buildLoadingMat(context);
   }
 
   Widget _buildBlurhashWidget(String hash, BuildContext context) {
@@ -204,20 +204,23 @@ class AppImage extends StatelessWidget {
     );
   }
 
-  Widget _buildShimmerPlaceholder(BuildContext context) {
+  /// Static loading mat. Deliberately animation-free: shimmer sweeps were
+  /// reported as visually disturbing on media tiles.
+  Widget _buildLoadingMat(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Shimmer.fromColors(
-      baseColor: scheme.surfaceContainerLow,
-      highlightColor: scheme.surfaceContainerHighest,
-      child: Container(
-        width: width,
-        height: height,
-        decoration: BoxDecoration(
-          color: scheme.surfaceContainerLow,
-          borderRadius: isCircle
-              ? BorderRadius.circular((width ?? height ?? 100) / 2)
-              : (borderRadius ?? BorderRadius.zero),
-        ),
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerLow,
+        borderRadius: isCircle
+            ? BorderRadius.circular((width ?? height ?? 100) / 2)
+            : (borderRadius ?? BorderRadius.zero),
+      ),
+      child: Icon(
+        Icons.image_outlined,
+        size: AppIconSize.emphasis,
+        color: scheme.onSurfaceVariant.withValues(alpha: 0.5),
       ),
     );
   }
@@ -245,7 +248,7 @@ class AppImage extends StatelessWidget {
             Text(
               'Image Error',
               style: TextStyle(
-                fontSize: AppType.s10,
+                fontSize: AppType.s12,
                 color: scheme.onSurfaceVariant,
               ),
               textAlign: TextAlign.center,

@@ -48,28 +48,28 @@ _StatusDisplay _getOrderStatusDisplay(BuildContext context, {
           icon: Icons.payments_outlined,
           label: useCompactLabels ? 'Menunggu Bayar' : 'Menunggu Pembayaran',
           subtitle: 'Segera selesaikan pembayaran',
-          backgroundColor: AppColors.coinPrimary,
+          tone: AppColors.coinPrimary,
         );
       case PaymentStatus.processing:
         return _StatusDisplay(
           icon: Icons.pending_outlined,
           label: useCompactLabels ? 'Memproses' : 'Memproses Pembayaran',
           subtitle: 'Pembayaran sedang diverifikasi',
-          backgroundColor: scheme.primary,
+          tone: scheme.primary,
         );
       case PaymentStatus.expired:
         return _StatusDisplay(
           icon: Icons.error_outline,
           label: 'Kadaluarsa',
           subtitle: 'Buat pesanan baru untuk melanjutkan',
-          backgroundColor: context.statusColors.error,
+          tone: context.statusColors.error,
         );
       case PaymentStatus.failed:
         return _StatusDisplay(
           icon: Icons.error_outline,
           label: 'Gagal',
           subtitle: 'Coba lagi atau gunakan metode lain',
-          backgroundColor: context.statusColors.error,
+          tone: context.statusColors.error,
         );
       case PaymentStatus.paid:
         // Fall through to order status
@@ -79,7 +79,7 @@ _StatusDisplay _getOrderStatusDisplay(BuildContext context, {
           icon: Icons.currency_exchange,
           label: 'Dikembalikan',
           subtitle: null,
-          backgroundColor: context.statusColors.error,
+          tone: context.statusColors.error,
         );
     }
   }
@@ -92,7 +92,7 @@ _StatusDisplay _getOrderStatusDisplay(BuildContext context, {
           icon: Icons.payments_outlined,
           label: useCompactLabels ? 'Menunggu Bayar' : 'Menunggu Pembayaran',
           subtitle: 'Segera selesaikan pembayaran',
-          backgroundColor: AppColors.coinPrimary,
+          tone: AppColors.coinPrimary,
         );
       case OrderStatus.paid:
         // ═══════════════════════════════════════════════════════════════════════
@@ -106,13 +106,12 @@ _StatusDisplay _getOrderStatusDisplay(BuildContext context, {
           // OVERDUE CASE: Show how many days overdue
           paidSubtitle =
               'Terlambat $overdueDays ${overdueDays == 1 ? 'hari' : 'hari'} dari estimasi';
-        } else if (preparationTimeSnapshot != null &&
-            !preparationTimeSnapshot.isImmediate) {
+        } else if (preparationTimeSnapshot != null) {
           // NORMAL CASE: Show preparation time estimate with maximum context
           paidSubtitle =
               'Estimasi siap kirim: ${preparationTimeSnapshot.displayName.toLowerCase()} (bisa lebih cepat)';
         } else {
-          // DEFAULT: Immediate preparation or no data available
+          // DEFAULT: no snapshot available
           paidSubtitle = 'Menunggu penjual mengirim barang';
         }
 
@@ -120,14 +119,14 @@ _StatusDisplay _getOrderStatusDisplay(BuildContext context, {
           icon: Icons.check_circle_outline,
           label: useCompactLabels ? 'Dibayar' : 'Pembayaran Diterima',
           subtitle: paidSubtitle,
-          backgroundColor: context.statusColors.success,
+          tone: context.statusColors.success,
         );
       case OrderStatus.shipped:
         return _StatusDisplay(
           icon: Icons.local_shipping_outlined,
           label: 'Dikirim',
           subtitle: 'Dalam perjalanan menuju lokasi Anda',
-          backgroundColor: scheme.primary,
+          tone: scheme.primary,
         );
       case OrderStatus.delivered:
         // B4A: Delivered is internal-only. If reached, show as completing.
@@ -135,56 +134,56 @@ _StatusDisplay _getOrderStatusDisplay(BuildContext context, {
           icon: Icons.done_all,
           label: 'Selesai',
           subtitle: 'Barang diterima, transaksi diselesaikan',
-          backgroundColor: context.statusColors.success,
+          tone: context.statusColors.success,
         );
       case OrderStatus.completed:
         return _StatusDisplay(
           icon: Icons.done_all,
           label: 'Selesai',
           subtitle: 'Transaksi berhasil diselesaikan',
-          backgroundColor: context.statusColors.success,
+          tone: context.statusColors.success,
         );
       case OrderStatus.cancelled:
         return _StatusDisplay(
           icon: Icons.cancel_outlined,
           label: 'Dibatalkan',
           subtitle: null,
-          backgroundColor: scheme.onSurfaceVariant,
+          tone: scheme.onSurfaceVariant,
         );
       case OrderStatus.cancelledTimeout:
         return _StatusDisplay(
           icon: Icons.timer_off_outlined,
           label: 'Dibatalkan (Timeout)',
           subtitle: 'Penjual tidak mengirim dalam batas waktu',
-          backgroundColor: scheme.onSurfaceVariant,
+          tone: scheme.onSurfaceVariant,
         );
       case OrderStatus.refunded:
         return _StatusDisplay(
           icon: Icons.currency_exchange,
           label: 'Dikembalikan',
           subtitle: null,
-          backgroundColor: context.statusColors.error,
+          tone: context.statusColors.error,
         );
       case OrderStatus.disputeOpen:
         return _StatusDisplay(
           icon: Icons.gavel_outlined,
           label: 'Dispute',
           subtitle: 'Menunggu resolusi dari admin',
-          backgroundColor: context.statusColors.error,
+          tone: context.statusColors.error,
         );
       case OrderStatus.partiallyRefunded:
         return _StatusDisplay(
           icon: Icons.currency_exchange,
           label: 'Refund Sebagian',
           subtitle: null,
-          backgroundColor: AppColors.coinPrimary,
+          tone: AppColors.coinPrimary,
         );
       case OrderStatus.expired:
         return _StatusDisplay(
           icon: Icons.error_outline,
           label: 'Kadaluarsa',
           subtitle: 'Buat pesanan baru untuk melanjutkan',
-          backgroundColor: context.statusColors.error,
+          tone: context.statusColors.error,
         );
     }
   }
@@ -194,7 +193,7 @@ _StatusDisplay _getOrderStatusDisplay(BuildContext context, {
     icon: Icons.shopping_bag_outlined,
     label: 'Aktif',
     subtitle: 'Tap untuk melihat detail',
-    backgroundColor: scheme.primary,
+    tone: scheme.primary,
   );
 }
 
@@ -252,12 +251,12 @@ class ChatOrderStatusBanner extends StatelessWidget {
 
     return Container(
       margin: const EdgeInsets.fromLTRB(AppMetrics.p12, AppMetrics.p4, AppMetrics.p12, AppMetrics.p8),
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p10),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p12),
       decoration: BoxDecoration(
-        color: statusDisplay.backgroundColor.withValues(alpha: 0.2),
+        color: statusDisplay.tone.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(
-          color: statusDisplay.backgroundColor.withValues(alpha: 0.4),
+          color: statusDisplay.tone.withValues(alpha: 0.4),
           width: 1,
         ),
       ),
@@ -271,13 +270,13 @@ class ChatOrderStatusBanner extends StatelessWidget {
               width: 32,
               height: 32,
               decoration: BoxDecoration(
-                color: statusDisplay.backgroundColor.withValues(alpha: 0.3),
+                color: statusDisplay.tone.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(AppShape.r8),
               ),
               child: Icon(
                 statusDisplay.icon,
-                size: 18,
-                color: statusDisplay.backgroundColor,
+                size: AppIconSize.action,
+                color: statusDisplay.tone,
               ),
             ),
             const SizedBox(width: 12),
@@ -290,14 +289,14 @@ class ChatOrderStatusBanner extends StatelessWidget {
                     children: [
                       Icon(
                         Icons.shopping_bag_outlined,
-                        size: 14,
-                        color: statusDisplay.backgroundColor,
+                        size: AppIconSize.inlineGlyph,
+                        color: statusDisplay.tone,
                       ),
                       const SizedBox(width: 4),
                       Text(
                         'Pesanan Terkait',
                         style: TextStyle(
-                          fontSize: AppType.s11,
+                          fontSize: AppType.s12,
                           color: scheme.onSurface,
                           fontWeight: FontWeight.w600,
                         ),
@@ -308,7 +307,7 @@ class ChatOrderStatusBanner extends StatelessWidget {
                   Text(
                     statusDisplay.label,
                     style: TextStyle(
-                      fontSize: AppType.s13,
+                      fontSize: AppType.s14,
                       fontWeight: FontWeight.w600,
                       color: scheme.onSurface,
                     ),
@@ -318,7 +317,7 @@ class ChatOrderStatusBanner extends StatelessWidget {
                     Text(
                       statusDisplay.subtitle!,
                       style: TextStyle(
-                        fontSize: AppType.s11,
+                        fontSize: AppType.s12,
                         color: scheme.onSurfaceVariant,
                       ),
                     ),
@@ -350,13 +349,17 @@ class _StatusDisplay {
   final IconData icon;
   final String label;
   final String? subtitle;
-  final Color backgroundColor;
+  /// Status TONE for this order state (painted at low alpha behind the row).
+  /// Named `tone`, not `backgroundColor`: a background is a surface role, and
+  /// this is the status vocabulary — see the ink-as-fill rule in
+  /// `test/support/theme_authority_gate.dart`.
+  final Color tone;
 
   const _StatusDisplay({
     required this.icon,
     required this.label,
     this.subtitle,
-    required this.backgroundColor,
+    required this.tone,
   });
 }
 
@@ -412,22 +415,22 @@ class OrderStatusMiniWidget extends StatelessWidget {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
         decoration: BoxDecoration(
-          color: display.backgroundColor.withValues(alpha: 0.12),
+          color: display.tone.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(AppShape.r6),
           border: Border.all(
-            color: display.backgroundColor.withValues(alpha: 0.3),
+            color: display.tone.withValues(alpha: 0.3),
             width: 1,
           ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(display.icon, size: 12, color: display.backgroundColor),
+            Icon(display.icon, size: AppIconSize.inlineGlyph, color: display.tone),
             const SizedBox(width: 4),
             Text(
               display.label,
               style: TextStyle(
-                fontSize: AppType.s11,
+                fontSize: AppType.s12,
                 fontWeight: FontWeight.w600,
                 color: scheme.onSurface,
               ),
@@ -440,12 +443,12 @@ class OrderStatusMiniWidget extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppMetrics.p8),
       decoration: BoxDecoration(
-        color: display.backgroundColor.withValues(alpha: 0.12),
+        color: display.tone.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(AppShape.r8),
       ),
       child: Row(
         children: [
-          Icon(display.icon, size: 16, color: display.backgroundColor),
+          Icon(display.icon, size: AppIconSize.inlineGlyph, color: display.tone),
           const SizedBox(width: 8),
           Text(
             display.label,

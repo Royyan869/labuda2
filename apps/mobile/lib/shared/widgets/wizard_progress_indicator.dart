@@ -11,6 +11,14 @@ import 'package:labuda/core/core.dart';
 /// - Dynamic connector width untuk maximize label visibility
 /// - Connector positioned di tengah (sejajar dengan circle)
 /// - Minimal vertical & horizontal space
+/// The wizard's label-slot bounds — COMPONENT policy, named ONCE. They used
+/// to be spelled twice (`minLabelWidth = 35.0` in the layout builder and a
+/// raw `clamp(35.0, 65.0)` under every label), so retuning one end left the
+/// other behind. Deliberately NOT on the app ladder: these bound one
+/// indicator's connectors, they are not an app-wide extent.
+const double _minLabelWidth = 35.0;
+const double _maxLabelWidth = 65.0;
+
 class WizardProgressIndicator extends StatelessWidget {
   final int currentStep;
   final int totalSteps;
@@ -45,7 +53,7 @@ class WizardProgressIndicator extends StatelessWidget {
           // Calculate adaptive connector width based on available space
           // Reserve space for: circles + labels, then distribute remaining space to connectors
           final totalStepWidth = stepSize * totalSteps;
-          final minLabelWidth = 35.0;
+          final minLabelWidth = _minLabelWidth;
           final totalMinLabelWidth = minLabelWidth * totalSteps;
           final remainingSpace =
               availableWidth - totalStepWidth - totalMinLabelWidth;
@@ -146,11 +154,11 @@ class WizardProgressIndicator extends StatelessWidget {
         const SizedBox(height: 3),
         // Step label - compact
         SizedBox(
-          width: labelWidth.clamp(35.0, 65.0),
+          width: labelWidth.clamp(_minLabelWidth, _maxLabelWidth),
           child: Text(
             stepLabels[index],
             style: TextStyle(
-              fontSize: isActive ? AppType.s10 : AppType.s8_5,
+              fontSize: isActive ? AppType.s12 : AppType.s12,
               color: isActive
                   ? scheme.onSurface
                   : scheme.onSurfaceVariant,
@@ -176,7 +184,7 @@ class WizardProgressIndicator extends StatelessWidget {
       width: width,
       height: 1.5,
       margin: EdgeInsets.only(
-        bottom: verticalOffset + AppMetrics.p3,
+        bottom: verticalOffset + AppMetrics.p4,
       ), // +3 for label spacing
       decoration: BoxDecoration(
         color: isCompleted

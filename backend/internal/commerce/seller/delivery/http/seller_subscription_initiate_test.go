@@ -260,7 +260,7 @@ func newTestSubscriptionInitiateHandler(t *testing.T, paymentRepo subscriptionPa
 				{
 					ID:            uuid.New(),
 					UserID:        userID,
-					Purpose:       addressEntity.AddressPurposeSender,
+					Tags:          []addressEntity.AddressTag{addressEntity.TagSender},
 					RecipientName: "Royyan",
 					Phone:         phone,
 				},

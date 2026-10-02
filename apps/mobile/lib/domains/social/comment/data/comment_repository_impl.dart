@@ -6,6 +6,7 @@ import 'package:labuda/domains/social/comment/data/remote/comment_api_datasource
 import 'package:labuda/domains/social/comment/domain/entities/comment.dart';
 import 'package:labuda/domains/social/comment/domain/repositories/comment_repository.dart';
 import 'package:labuda/core/media/media_upload_orchestrator.dart';
+import 'package:labuda/core/services/blurhash_cache_service.dart';
 import 'package:uuid/uuid.dart';
 
 /// API-based implementation of CommentRepository
@@ -63,7 +64,7 @@ class CommentRepositoryImpl implements CommentRepository {
     // transport retry of that attempt (never regenerated mid-call).
     final idempotencyKey = const Uuid().v4();
 
-    final mediaDtos = _mapMediaUrlsToDtos(mediaUrls);
+    final mediaDtos = await _mapMediaUrlsToDtos(mediaUrls);
 
     final request = CreateCommentDto(
       targetId: targetId,
@@ -91,6 +92,7 @@ class CommentRepositoryImpl implements CommentRepository {
     required String resourceType,
     required String resourceId,
     String? body,
+    List<String> mediaUrls = const [],
   }) async {
     _logger?.info(
       'Creating commerce reference comment on content: $contentId, resourceType: $resourceType, resourceId: $resourceId',
@@ -99,12 +101,15 @@ class CommentRepositoryImpl implements CommentRepository {
     // Generate idempotency key for safe retries
     final idempotencyKey = const Uuid().v4();
 
+    final mediaDtos = await _mapMediaUrlsToDtos(mediaUrls);
+
     final request = CreateCommerceReferenceCommentDto(
       resourceReference: ResourceReferenceRequest(
         resourceType: resourceType,
         resourceId: resourceId,
       ),
       body: body,
+      media: mediaDtos.isEmpty ? null : mediaDtos,
     );
 
     final result = await _datasource.createCommerceReferenceComment(
@@ -165,7 +170,9 @@ class CommentRepositoryImpl implements CommentRepository {
     }
   }
 
-  List<CommentCreateMediaDto> _mapMediaUrlsToDtos(List<String> urls) {
+  Future<List<CommentCreateMediaDto>> _mapMediaUrlsToDtos(
+    List<String> urls,
+  ) async {
     final dtos = <CommentCreateMediaDto>[];
     for (int i = 0; i < urls.length; i++) {
       final url = urls[i].trim();
@@ -176,12 +183,18 @@ class CommentRepositoryImpl implements CommentRepository {
       final storageKey = uri != null && uri.pathSegments.isNotEmpty
           ? uri.pathSegments.last
           : url;
+      // Blurhash rides from the upload-time client cache (readUrl-keyed);
+      // absent (video/legacy) stays null and renders the static mat.
+      final blurhash = isVideo
+          ? null
+          : await BlurhashCacheService.instance.getBlurhash(url);
       dtos.add(
         CommentCreateMediaDto(
           storageKey: storageKey,
           mediaUrl: url,
           mediaType: isVideo ? 'video' : 'image',
           position: i,
+          blurhash: blurhash,
         ),
       );
     }

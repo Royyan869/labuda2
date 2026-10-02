@@ -38,6 +38,7 @@ import (
 	paymentrepo "github.com/labuda/backend/internal/integration/payment/infrastructure/repository"
 	"github.com/labuda/backend/pkg/db"
 	"github.com/labuda/backend/pkg/midtrans"
+	"github.com/labuda/backend/pkg/migration"
 	"github.com/labuda/backend/pkg/testdb"
 )
 
@@ -357,7 +358,10 @@ func TestWebhookNotificationKey_MigrationBackfillMatchesGo(t *testing.T) {
 	tdb, cleanup := testdb.SetupDB(t)
 	defer cleanup()
 
-	raw, err := os.ReadFile(filepath.Join("..", "..", "migrations", "000098_webhook_notification_identity.up.sql"))
+	chainDir, err := migration.ResolveDir(".")
+	require.NoError(t, err, "the canonical migration chain must resolve")
+
+	raw, err := os.ReadFile(filepath.Join(chainDir, "000098_webhook_notification_identity.up.sql"))
 	require.NoError(t, err, "migration 000098 must exist for the identity backfill to be reproducible")
 
 	text := string(raw)

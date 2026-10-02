@@ -28,8 +28,11 @@ class ContentToolbarWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Height is CONTENT-DRIVEN on purpose. A hand-summed literal height
+    // (this used to be `height: 60`) has no slack budget in the foundation
+    // ladder, so any step move in AppType overflows the icon+label column.
+    // Let the row size itself from the roles instead.
     return Container(
-      height: 60,
       padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -97,12 +100,12 @@ class _ToolbarIcon extends StatelessWidget {
             Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(icon, size: 20, color: color),
+                Icon(icon, size: AppIconSize.action, color: color),
                 const SizedBox(height: 2),
                 Text(
                   label,
                   style: TextStyle(
-                    fontSize: AppType.s10,
+                    fontSize: AppType.s12,
                     color: scheme.onSurfaceVariant,
                     fontWeight: FontWeight.w500,
                   ),
@@ -114,7 +117,7 @@ class _ToolbarIcon extends StatelessWidget {
                 right: -4,
                 top: -2,
                 child: Container(
-                  padding: const EdgeInsets.all(AppMetrics.p3),
+                  padding: const EdgeInsets.all(AppMetrics.p4),
                   decoration: BoxDecoration(
                     color: scheme.primary,
                     shape: BoxShape.circle,
@@ -127,7 +130,7 @@ class _ToolbarIcon extends StatelessWidget {
                     badge!,
                     style: TextStyle(
                       color: scheme.onPrimary,
-                      fontSize: AppType.s8,
+                      fontSize: AppType.s12,
                       fontWeight: FontWeight.bold,
                     ),
                     textAlign: TextAlign.center,

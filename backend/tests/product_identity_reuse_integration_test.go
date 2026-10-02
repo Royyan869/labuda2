@@ -48,7 +48,7 @@ func seedStage1Product(t *testing.T, ctx context.Context, appDB *db.DB, sellerID
 	err := appDB.WithTx(ctx, func(tx db.Tx) error {
 		_, err := tx.Exec(ctx, `
 			INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, created_at, updated_at)
-			VALUES ($1, $2, 'Kohaku', 'desc', $3, 'kohaku', 'immediate', NOW(), NOW())
+			VALUES ($1, $2, 'Kohaku', 'desc', $3, 'kohaku', '1_3_days', NOW(), NOW())
 		`, productID, sellerID, `["https://example.com/koi.jpg"]`)
 		return err
 	})

@@ -17,6 +17,8 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/labuda/backend/pkg/migration"
 )
 
 func readContentRepoImpl(t *testing.T) string {
@@ -51,12 +53,11 @@ func readContentHandlerFile(t *testing.T) string {
 
 func readCanonicalSchema(t *testing.T) string {
 	t.Helper()
-	_, file, _, ok := runtime.Caller(0)
-	if !ok {
-		t.Fatal("runtime.Caller failed")
+	dir, err := migration.ResolveDir(".")
+	if err != nil {
+		t.Fatalf("resolve migration chain: %v", err)
 	}
-	dir := filepath.Dir(file)
-	p := filepath.Join(dir, "..", "..", "..", "..", "..", "migrations", "000001_canonical_schema.up.sql")
+	p := filepath.Join(dir, "000001_canonical_schema.up.sql")
 	data, err := os.ReadFile(p)
 	if err != nil {
 		t.Fatalf("read canonical schema: %v", err)

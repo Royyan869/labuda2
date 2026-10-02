@@ -12,17 +12,21 @@ import (
 // auctionToDetailResponseWithSeller renders the canonical detail wire:
 // the shared auction serializer (auctionToResponseWithSeller — which owns
 // the Product content block for BOTH list and detail) PLUS the viewer-scoped
-// capability block. The capability block is intentionally detail-only; the
-// content block is NOT detail-only — list payloads carry the identical
-// Product projection (for_sale parity).
+// capability block and the buyer-facing listing origin. The capability block
+// is intentionally detail-only; the content block is NOT detail-only — list
+// payloads carry the identical Product projection (for_sale parity).
+// `public_origin_line` (city, province of the sender address) is detail-only:
+// it belongs to the seller card on the detail surface, not to discovery cards.
 func auctionToDetailResponseWithSeller(
 	a *entity.Auction,
 	seller publiccard.SellerCard,
 	sellerInfo sellerdisplay.Info,
 	product *productEntity.Product,
+	publicOriginLine string,
 	viewerID *uuid.UUID,
 ) map[string]interface{} {
 	resp := auctionToResponseWithSeller(a, product, sellerInfo, viewerID)
+	resp["public_origin_line"] = publicOriginLine
 	sellerTrustActive := seller.Lifecycle != nil && *seller.Lifecycle == "active"
 	resp["viewer_capabilities"] = commerceshared.EvaluateAuctionViewerCapabilities(
 		commerceshared.AuctionViewerCapabilitiesInput{

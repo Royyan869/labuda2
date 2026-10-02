@@ -90,7 +90,7 @@ class _StateBody extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 64, color: color),
+            Icon(icon, size: AppIconSize.display, color: color),
             const SizedBox(height: 16),
             Text(
               headline,
@@ -104,16 +104,16 @@ class _StateBody extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 message!,
-                style: TextStyle(fontSize: AppType.s14, color: scheme.onSurfaceVariant),
+                style: TextStyle(
+                  fontSize: AppType.s14,
+                  color: scheme.onSurfaceVariant,
+                ),
                 textAlign: TextAlign.center,
               ),
             ],
             if (onAction != null) ...[
               const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: onAction,
-                child: Text(actionLabel),
-              ),
+              ElevatedButton(onPressed: onAction, child: Text(actionLabel)),
             ],
           ],
         ),

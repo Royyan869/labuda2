@@ -112,7 +112,7 @@ func insertForSaleFixture(t *testing.T, tdb *testdb.TestDB, sellerID uuid.UUID) 
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time)
 			VALUES ($1, $2, $3, $4, $5, $6, $7)
-		`, productID, sellerID, "Showa Koi", "A fine showa", `["https://cdn.example.com/koi.jpg"]`, "showa", "immediate"); err != nil {
+		`, productID, sellerID, "Showa Koi", "A fine showa", `["https://cdn.example.com/koi.jpg"]`, "showa", "1_3_days"); err != nil {
 			return err
 		}
 
@@ -138,7 +138,7 @@ func insertAuctionFixture(t *testing.T, tdb *testdb.TestDB, sellerID uuid.UUID) 
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time)
 			VALUES ($1, $2, $3, $4, $5, $6, $7)
-		`, productID, sellerID, "Auction Product", "A live auction product", `["https://cdn.example.com/auction.jpg"]`, "showa", "immediate"); err != nil {
+		`, productID, sellerID, "Auction Koi", "A live auction product", `["https://cdn.example.com/auction.jpg"]`, "showa", "1_3_days"); err != nil {
 			return err
 		}
 

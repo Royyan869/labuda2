@@ -172,7 +172,7 @@ func (f *aggregateQueryProofFixture) seedSale(
 			preparation_time, created_at, updated_at
 		)
 		VALUES ($1, $2, $3, $4, '[]'::jsonb, 'Kohaku', $5, $6, $6)
-	`, productID, sellerID, title+" product", title+" product", string(fpsEntity.PreparationTimeImmediate), now)
+	`, productID, sellerID, title+" product", title+" product", string(fpsEntity.PreparationTime1To3Days), now)
 	require.NoError(t, err)
 
 	saleID := uuid.New()
@@ -204,7 +204,7 @@ func (f *aggregateQueryProofFixture) seedAuction(
 			preparation_time, created_at, updated_at
 		)
 		VALUES ($1, $2, $3, $4, '[]'::jsonb, 'Kohaku', $5, $6, $6)
-	`, productID, sellerID, title+" product", title+" product", string(fpsEntity.PreparationTimeImmediate), now)
+	`, productID, sellerID, title+" product", title+" product", string(fpsEntity.PreparationTime1To3Days), now)
 	require.NoError(t, err)
 
 	buyNow := int64(1750000)

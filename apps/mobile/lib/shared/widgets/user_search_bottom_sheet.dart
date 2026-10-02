@@ -194,7 +194,7 @@ class _UserSearchBottomSheetState extends ConsumerState<UserSearchBottomSheet> {
             child: Text(
               'Tag People',
               style: TextStyle(
-                fontSize: AppType.s18,
+                fontSize: AppType.s20,
                 fontWeight: FontWeight.w600,
                 color: scheme.onSurface,
               ),
@@ -281,7 +281,7 @@ class _UserSearchBottomSheetState extends ConsumerState<UserSearchBottomSheet> {
           children: [
             Icon(
               Icons.person_search,
-              size: 64,
+              size: AppIconSize.display,
               color: scheme.outline,
             ),
             const SizedBox(height: 16),
@@ -310,7 +310,7 @@ class _UserSearchBottomSheetState extends ConsumerState<UserSearchBottomSheet> {
           children: [
             Icon(
               Icons.person_off_outlined,
-              size: 64,
+              size: AppIconSize.display,
               color: scheme.outline,
             ),
             const SizedBox(height: 16),

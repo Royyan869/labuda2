@@ -121,7 +121,7 @@ func (h *chainHarness) newTarget(t *testing.T, sellerID uuid.UUID) uuid.UUID {
 	productID := uuid.New()
 	_, err := h.tdb.Pool().Exec(context.Background(), `
 		INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, created_at, updated_at)
-		VALUES ($1, $2, 'Test', 'Test product', '[]', 'Kohaku', 'immediate', NOW(), NOW())
+		VALUES ($1, $2, 'Test', 'Test product', '[]', 'Kohaku', '1_3_days', NOW(), NOW())
 	`, productID, sellerID)
 	require.NoError(t, err)
 

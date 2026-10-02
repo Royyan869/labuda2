@@ -526,7 +526,7 @@ void main() {
     // PASS 2A / F2 regression guard: the guard must react to a fresh
     // hasMarketAuthority value, not a role field. This directly backs the
     // AuthController fix (auth_authority_refresh_test.dart) — once
-    // refreshUserData()/_validateSession() push the fresh AuthUser into
+    // forceRefreshAuthState()/_validateSession() push the fresh AuthUser into
     // AuthState.authenticated, authenticatedUserProvider (and therefore this
     // guard) sees the update immediately.
     group('guard reacts to a mid-session authority flip (F2)', () {

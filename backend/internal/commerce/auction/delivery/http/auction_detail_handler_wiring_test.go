@@ -44,7 +44,7 @@ func TestAuctionDetailResponse_IsTheGetAuctionSerializer(t *testing.T) {
 			SellerID:        uuid.New(),
 			Title:           "Showa Koi 30cm",
 			Description:     "Premium showa",
-			MediaURLs:       []string{"https://cdn.example.com/koi-1.jpg"},
+			MediaURLs:       []productEntity.ProductMedia{{URL: "https://cdn.example.com/koi-1.jpg"}},
 			Variety:         "Showa",
 			SizeCm:          ptrInt(30),
 			AgeMonths:       ptrInt(8),
@@ -52,8 +52,7 @@ func TestAuctionDetailResponse_IsTheGetAuctionSerializer(t *testing.T) {
 			Breeder:         ptrString("Acme Farm"),
 			Bloodline:       ptrString("Ogata"),
 			Certificates:    []string{"cert-a"},
-			PreparationTime: "short",
-			PreparationNote: ptrString("Pack carefully"),
+			PreparationTime: "1_3_days",
 		},
 	}
 	seller := sellerdisplay.Info{
@@ -65,7 +64,7 @@ func TestAuctionDetailResponse_IsTheGetAuctionSerializer(t *testing.T) {
 		Tier:               "pro",
 	}
 
-	resp := h.auctionDetailResponse(auction, seller, uuid.Nil)
+	resp := h.auctionDetailResponse(auction, seller, "", uuid.Nil)
 	raw, err := json.Marshal(resp)
 	if err != nil {
 		t.Fatalf("marshal failed: %v", err)
@@ -120,11 +119,8 @@ func TestAuctionDetailResponse_IsTheGetAuctionSerializer(t *testing.T) {
 	if !ok || len(certificates) != 1 || certificates[0] != "cert-a" {
 		t.Fatalf("certificates = %#v, want [cert-a]", decoded["certificates"])
 	}
-	if decoded["preparation_time"] != "short" {
+	if decoded["preparation_time"] != "1_3_days" {
 		t.Fatalf("preparation_time = %v, want short", decoded["preparation_time"])
-	}
-	if decoded["preparation_note"] != "Pack carefully" {
-		t.Fatalf("preparation_note = %v, want Pack carefully", decoded["preparation_note"])
 	}
 }
 

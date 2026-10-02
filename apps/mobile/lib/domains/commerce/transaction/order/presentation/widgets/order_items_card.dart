@@ -88,7 +88,7 @@ class _OrderItemTile extends StatelessWidget {
                 child: Icon(
                   Icons.image_not_supported,
                   color: colorScheme.onSurfaceVariant,
-                  size: 24,
+                  size: AppIconSize.header,
                 ),
               ),
             ),
@@ -160,7 +160,7 @@ class _VariantChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: core.AppMetrics.p8, vertical: core.AppMetrics.p2),
+      padding: const EdgeInsets.symmetric(horizontal: core.AppMetrics.p8, vertical: core.AppMetrics.p4),
       decoration: BoxDecoration(
         color: colorScheme.onSurfaceVariant.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(core.AppShape.r4),
@@ -171,7 +171,7 @@ class _VariantChip extends StatelessWidget {
       child: Text(
         label,
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-          fontSize: core.AppType.s10,
+          fontSize: core.AppType.s12,
           color: colorScheme.onSurfaceVariant,
         ),
       ),

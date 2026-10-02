@@ -14,13 +14,14 @@ import (
 	"go.uber.org/zap/zaptest"
 
 	"github.com/labuda/backend/internal/identity/auth"
-	contentApp "github.com/labuda/backend/internal/social/content/application"
-	contentEntity "github.com/labuda/backend/internal/social/content/entity"
-	contentRepo "github.com/labuda/backend/internal/social/content/infrastructure/repository"
+	notificationrepository "github.com/labuda/backend/internal/interaction/notification/infrastructure/repository"
 	"github.com/labuda/backend/internal/platform/event"
 	"github.com/labuda/backend/internal/platform/events"
 	idempotencyRepo "github.com/labuda/backend/internal/platform/idempotency/repository"
 	outboxRepo "github.com/labuda/backend/internal/platform/outbox/infrastructure/repository"
+	contentApp "github.com/labuda/backend/internal/social/content/application"
+	contentEntity "github.com/labuda/backend/internal/social/content/entity"
+	contentRepo "github.com/labuda/backend/internal/social/content/infrastructure/repository"
 	socialrepo "github.com/labuda/backend/internal/social/graph/infrastructure/repository"
 	"github.com/labuda/backend/pkg/db"
 	"github.com/labuda/backend/pkg/testdb"
@@ -52,8 +53,8 @@ func setupMentionRoundtripFixture(t *testing.T) *mentionRoundtripFixture {
 
 	contentService := contentApp.NewContentService(
 		contentRepository,
-		nil,          // likeRepo — not needed
-		nil,          // roleChecker — not needed for create
+		nil, // likeRepo — not needed
+		nil, // roleChecker — not needed for create
 		accountStatusChecker,
 		nil, // invariantLogger
 	)
@@ -63,7 +64,7 @@ func setupMentionRoundtripFixture(t *testing.T) *mentionRoundtripFixture {
 	workerHandler := NewNotificationEventHandler(
 		appDB,
 		blockChecker,
-		NewNotificationServiceInserter(),
+		notificationrepository.NewNotificationRepository(),
 		nil, // pushSender — not needed
 		accountStatusChecker,
 		zaptest.NewLogger(t),
@@ -273,7 +274,9 @@ func TestMentionLifecycle_DBRoundtrip(t *testing.T) {
 }
 
 // ======================================================================
-// TEST: Self-mention produces no notification
+// TEST: Self-mention persists the mention but emits no outbox event —
+// the producer drops the self event (the worker never sees it), so no
+// notification can exist either. One authority per concern.
 // ======================================================================
 
 func TestMentionLifecycle_SelfMention_NoNotification(t *testing.T) {
@@ -310,7 +313,9 @@ func TestMentionLifecycle_SelfMention_NoNotification(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 1, mentionCount)
 
-	// Outbox event exists
+	// Producer contract: a self-mention writes the mention row but emits no
+	// content.mentioned outbox event, so nothing downstream can notify the
+	// author about themselves.
 	var outboxCount int
 	err = fixture.appDB.Pool().QueryRow(ctx,
 		`SELECT COUNT(*) FROM outbox WHERE event_type = $1 AND idempotency_key LIKE $2`,
@@ -318,23 +323,9 @@ func TestMentionLifecycle_SelfMention_NoNotification(t *testing.T) {
 		fmt.Sprintf("content.mentioned.content.mentioned.%s.%%", contentID.String()),
 	).Scan(&outboxCount)
 	require.NoError(t, err)
-	require.Equal(t, 1, outboxCount)
+	require.Equal(t, 0, outboxCount, "self-mention must not emit an outbox event")
 
-	// Read payload and process through worker
-	var payload []byte
-	err = fixture.appDB.Pool().QueryRow(ctx,
-		`SELECT payload FROM outbox WHERE event_type = $1 AND idempotency_key LIKE $2 LIMIT 1`,
-		events.EventContentMentioned,
-		fmt.Sprintf("content.mentioned.content.mentioned.%s.%%", contentID.String()),
-	).Scan(&payload)
-	require.NoError(t, err)
-
-	err = fixture.workerHandler.Handle(ctx, event.OutboxEvent{
-		ID: uuid.New(), EventType: events.EventContentMentioned, Payload: payload,
-	})
-	require.NoError(t, err)
-
-	// No notification
+	// No notification (belt and braces: read the table directly).
 	var notifCount int
 	err = fixture.appDB.Pool().QueryRow(ctx,
 		`SELECT COUNT(*) FROM notifications WHERE type = $1 AND entity_id = $2`,
@@ -343,5 +334,5 @@ func TestMentionLifecycle_SelfMention_NoNotification(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 0, notifCount, "self-mention must NOT create notification")
 
-	t.Log("✅ self-mention: DB persisted, outbox exists, worker skips notification")
+	t.Log("✅ self-mention: mention persisted, no outbox event, no notification")
 }

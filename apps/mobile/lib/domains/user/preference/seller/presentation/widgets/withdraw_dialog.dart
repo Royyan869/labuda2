@@ -290,14 +290,14 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
                     children: [
                       Icon(
                         Icons.info_outline,
-                        size: 16,
+                        size: AppIconSize.inlineGlyph,
                         color: scheme.onSurfaceVariant,
                       ),
                       const SizedBox(width: 8),
                       Text(
                         'Pencairan Dana',
                         style: TextStyle(
-                          fontSize: AppType.s13,
+                          fontSize: AppType.s14,
                           fontWeight: FontWeight.w500,
                           color: scheme.onSurface,
                         ),
@@ -308,7 +308,7 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
                   Text(
                     'Permintaan pencairan akan diproses secara manual. Dana akan ditransfer ke rekening terdaftar dalam 1-3 hari kerja setelah disetujui.',
                     style: TextStyle(
-                      fontSize: AppType.s11,
+                      fontSize: AppType.s12,
                       color: scheme.onSurfaceVariant,
                       height: 1.4,
                     ),
@@ -330,7 +330,7 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
                 children: [
                   Icon(
                     Icons.info_outline,
-                    size: 16,
+                    size: AppIconSize.inlineGlyph,
                     color: scheme.primary,
                   ),
                   const SizedBox(width: 8),
@@ -377,14 +377,14 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
                     Icon(
                       Icons.check_circle,
                       color: context.statusColors.success,
-                      size: 20,
+                      size: AppIconSize.action,
                     ),
                     SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Permintaan pencairan berhasil dikirim. Menunggu proses verifikasi.',
                         style: TextStyle(
-                          fontSize: AppType.s13,
+                          fontSize: AppType.s14,
                           color: context.statusColors.success,
                         ),
                       ),
@@ -408,14 +408,14 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
                     Icon(
                       Icons.error_outline,
                       color: context.statusColors.error,
-                      size: 20,
+                      size: AppIconSize.action,
                     ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         message,
                         style: TextStyle(
-                          fontSize: AppType.s13,
+                          fontSize: AppType.s14,
                           color: context.statusColors.error,
                         ),
                       ),
@@ -463,12 +463,12 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
       children: [
         Text(
           label,
-          style: TextStyle(fontSize: AppType.s13, color: scheme.onSurfaceVariant),
+          style: TextStyle(fontSize: AppType.s14, color: scheme.onSurfaceVariant),
         ),
         Text(
           value,
           style: TextStyle(
-            fontSize: AppType.s13,
+            fontSize: AppType.s14,
             fontWeight: FontWeight.w600,
             color: scheme.onSurface,
           ),
@@ -570,13 +570,13 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
                   Icon(
                     Icons.info_outline,
                     color: context.statusColors.error,
-                    size: 20,
+                    size: AppIconSize.action,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Dokumen verifikasi Anda ditolak. Mohon periksa dan ajukan kembali.',
-                      style: TextStyle(fontSize: AppType.s13, color: context.statusColors.error),
+                      style: TextStyle(fontSize: AppType.s14, color: context.statusColors.error),
                     ),
                   ),
                 ],
@@ -594,7 +594,7 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.policy, color: context.statusColors.warning, size: 20),
+                  Icon(Icons.policy, color: context.statusColors.warning, size: AppIconSize.action),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -619,7 +619,7 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.pending, color: context.statusColors.warning, size: 20),
+                  Icon(Icons.pending, color: context.statusColors.warning, size: AppIconSize.action),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -647,7 +647,7 @@ class _WithdrawDialogState extends ConsumerState<WithdrawDialog> {
                   Icon(
                     Icons.description_outlined,
                     color: scheme.primary,
-                    size: 20,
+                    size: AppIconSize.action,
                   ),
                   const SizedBox(width: 8),
                   Expanded(

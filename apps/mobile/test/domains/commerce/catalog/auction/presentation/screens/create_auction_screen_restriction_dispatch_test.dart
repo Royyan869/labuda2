@@ -7,8 +7,10 @@
 //       access with the correct copy per state (no profile / expired /
 //       not-yet-active), and the operational form only renders for an active
 //       seller;
-//     - `_submitForm()` still short-circuits through its own guards before any
-//       notifier/backend call (guard order preserved).
+//     - the owner PUBLISH-CTA completeness gate holds the submit button
+//       disabled until every required field is filled — an empty or partial
+//       form can never reach the validators or the notifier (tap is a no-op);
+//       the positive enablement is locked by the source contract in PART C.
 //   PART B (call-site source contract — repo convention, cf.
 //   create_auction_screen_timing_contract_test.dart):
 //     - `_submitForm()`'s reactive error branch dispatches through the
@@ -33,6 +35,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import 'package:labuda/core/common/types/preparation_time.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/domain.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/auction_notifier.dart';
@@ -81,8 +85,8 @@ class _CountingAuctionNotifier extends AuctionNotifier {
     DateTime? scheduledStartAt,
     required int durationHours,
     String? farmAddressId,
+    required PreparationTime preparationTime,
     required List<String> shippingSetupIds,
-    String? preparationNote,
   }) async {
     createCalls++;
     return false;
@@ -199,14 +203,6 @@ Future<void> _selectVariety(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-Future<void> _tapSubmit(WidgetTester tester) async {
-  final button = find.widgetWithText(ElevatedButton, 'Buat Lelang');
-  await tester.dragUntilVisible(button, _formList(), const Offset(0, -300));
-  await tester.pumpAndSettle();
-  await tester.tap(button);
-  await tester.pumpAndSettle();
-}
-
 void main() {
   group('CreateAuctionScreen pre-submit market-authority gate (no regress)', () {
     testWidgets('active seller (profile + authority) sees the operational form', (
@@ -221,6 +217,13 @@ void main() {
       );
 
       expect(find.text('Informasi Dasar'), findsOneWidget);
+      // The preparation-time selector lengthens the form — the submit CTA now
+      // sits below the initial build window of the lazy ListView, so scroll it
+      // into view before asserting it exists.
+      await _scrollFormIntoView(
+        tester,
+        find.widgetWithText(ElevatedButton, 'Buat Lelang'),
+      );
       expect(find.widgetWithText(ElevatedButton, 'Buat Lelang'), findsOneWidget);
       expect(find.text('Langganan Seller Habis'), findsNothing);
       expect(find.text('Jadi Seller Dulu'), findsNothing);
@@ -285,8 +288,8 @@ void main() {
     });
   });
 
-  group('CreateAuctionScreen._submitForm guard order', () {
-    testWidgets('local guards short-circuit before any backend create call', (
+  group('CreateAuctionScreen publish-CTA completeness gate', () {
+    testWidgets('empty form keeps the CTA disabled — tap is a no-op', (
       tester,
     ) async {
       final notifier = await _pumpCreateAuction(
@@ -297,23 +300,96 @@ void main() {
         ),
       );
 
-      // Empty submit → local validation guard, never the notifier.
-      await _tapSubmit(tester);
-      expect(find.text('Judul wajib diisi'), findsOneWidget);
-      expect(notifier.createCalls, 0);
+      // Owner gate: with nothing filled the CTA carries NO onPressed.
+      final button = find.widgetWithText(ElevatedButton, 'Buat Lelang');
+      await _scrollFormIntoView(tester, button);
+      expect(tester.widget<ElevatedButton>(button).onPressed, isNull);
 
-      // Fully valid form except media → media guard, still never the notifier.
-      await _enterFieldByLabel(tester, 'Judul *', 'Kohaku 50cm');
-      await _enterFieldByLabel(tester, 'Deskripsi *', 'Ikan sehat');
-      await _enterFieldByLabel(tester, 'Harga Awal *', '1000000');
-      await _enterFieldByLabel(tester, 'Kenaikan Bid *', '50000');
-      await _selectVariety(tester);
-      await _enterFieldByLabel(tester, 'Ukuran (cm) *', '30');
-      await _tapSubmit(tester);
-
-      expect(find.text('Minimal 1 foto wajib diupload'), findsOneWidget);
+      await tester.tap(button);
+      await tester.pumpAndSettle();
+      // No validator ran (the gate held), no notifier call — in that order.
+      expect(find.text('Judul wajib diisi'), findsNothing);
       expect(notifier.createCalls, 0);
-      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets(
+      'partial fill (text + dropdowns, no media/address) stays disabled',
+      (tester) async {
+        final notifier = await _pumpCreateAuction(
+          tester,
+          authState: AuthState.authenticated(
+            _seller(),
+            emailVerified: true,
+          ),
+        );
+
+        await _enterFieldByLabel(tester, 'Judul *', 'Kohaku 50cm');
+        await _enterFieldByLabel(tester, 'Deskripsi *', 'Ikan sehat');
+        await _enterFieldByLabel(tester, 'Harga Awal *', '1000000');
+        await _enterFieldByLabel(tester, 'Kenaikan Bid *', '50000');
+        await _selectVariety(tester);
+        await _enterFieldByLabel(tester, 'Ukuran (cm) *', '30');
+
+        // Ukuran & Usia now write through setState, so the gate re-evaluated
+        // on every keystroke above — and still holds: media + sender address
+        // are the two required values no widget test can fabricate.
+        final button = find.widgetWithText(ElevatedButton, 'Buat Lelang');
+        await _scrollFormIntoView(tester, button);
+        expect(tester.widget<ElevatedButton>(button).onPressed, isNull);
+
+        await tester.tap(button);
+        await tester.pumpAndSettle();
+        expect(notifier.createCalls, 0);
+        expect(find.text('Minimal 1 foto wajib diupload'), findsNothing);
+        expect(tester.takeException(), isNull);
+      },
+    );
+
+    test('every owner-mandated required field feeds the gate (source)', () {
+      final source = File(_screenPath).readAsStringSync();
+
+      // The CTA is gated, never wired raw to _submitForm.
+      expect(
+        source,
+        contains('onPressed: _isSubmitting || !_isFormComplete'),
+      );
+      expect(
+        source,
+        isNot(contains('onPressed: _isSubmitting ? null : _submitForm')),
+      );
+
+      // Owner field list — one assertion per required gate condition.
+      expect(source, contains('_titleController.text.trim()'));
+      expect(source, contains('_descriptionController.text.trim()'));
+      expect(source, contains('_mediaUrls.isNotEmpty'));
+      expect(source, contains('_variety != null'));
+      expect(source, contains('_sizeInCm! > 0'));
+      expect(source, contains('openingBid > 0'));
+      expect(source, contains('bidIncrement > 0'));
+      expect(source, contains('buyNowPrice >= openingBid'));
+      expect(source, contains('_durationHours != null'));
+      expect(source, contains('_scheduledStartTime != null'));
+      expect(source, contains('_selectedShippingSetupIds.isNotEmpty'));
+      expect(source, contains('senderAddressIdProvider'));
+
+      // Prerequisite bug fixed: Ukuran & Usia write through setState, and the
+      // text controllers notify so the gate re-evaluates while typing.
+      expect(
+        source,
+        contains(
+          'onChanged: (value) => setState(() => _sizeInCm = double.tryParse(value))',
+        ),
+      );
+      expect(
+        source,
+        contains(
+          'onChanged: (value) => setState(() => _ageInMonths = int.tryParse(value))',
+        ),
+      );
+      expect(
+        source,
+        contains('controller.addListener(_onFormFieldsChanged)'),
+      );
     });
   });
 

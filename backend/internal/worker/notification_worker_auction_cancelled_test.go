@@ -78,9 +78,9 @@ func TestAuctionCancelled_OtherReasons_SilentNoOp(t *testing.T) {
 		h := buildSocialGovernanceHandler(t, mockDB, &mockAccountStatusControlled{}, &mockBlockCheckerControlled{}, nil)
 
 		err := h.Handle(context.Background(), platformevent.OutboxEvent{
-			ID:  uuid.New(),
+			ID:        uuid.New(),
 			EventType: "auction.cancelled",
-			Payload: cancelledPayload(uuid.New(), uuid.New(), reason),
+			Payload:   cancelledPayload(uuid.New(), uuid.New(), reason),
 		})
 		if err != nil {
 			t.Fatalf("reason %q: Handle() error = %v, want nil (silent no-op)", reason, err)

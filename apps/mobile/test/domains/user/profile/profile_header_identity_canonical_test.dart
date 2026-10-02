@@ -3,9 +3,12 @@
 // ProfileScreen header. Owner directive: one truth, purge duplicates.
 //
 // Locked here, on the production screen:
-//   1. Non-seller header renders @username only (no farm line).
-//   2. Seller header renders @username then farmName + SellerTierBadge.
-//   3. Missing farm renders @username only.
+//   1. Non-seller header renders @username as the primary line (no store line).
+//   2. Seller header renders the STORE NAME as the primary line (above and
+//      larger) and @username as the secondary line (below, smaller), plus
+//      SellerTierBadge. Store identity comes from the identity payload; the
+//      profile stream carries a decoy store name and must never win.
+//   3. Seller without a store renders @username only.
 //   4. Degraded lifecycle renders the public redaction label only.
 //   5. Deleted lifecycle preserves the tombstone redaction.
 import 'package:dio/dio.dart';
@@ -303,6 +306,7 @@ class _FakeRatingRepository implements IRatingRepository {
 AuthUser _authUser({
   required String id,
   required String username,
+  String? storeName,
   bool hasSellerProfile = false,
   SellerTier? sellerTier,
   ContentLifecycle lifecycle = ContentLifecycle.active,
@@ -313,6 +317,7 @@ AuthUser _authUser({
     updatedAt: DateTime.utc(2026, 7, 1),
     email: '$username@example.com',
     username: username,
+    storeName: storeName,
     avatarUrl: null,
     bio: null,
     isEmailVerified: true,
@@ -357,40 +362,61 @@ void main() {
       hasSellerProfile: false,
       sellerTier: null,
       lifecycle: ContentLifecycle.active,
-      farmName: false,
     );
 
     expect(find.text('@yayan'), findsOneWidget);
     expect(find.text('Farm Koi Nusantara'), findsNothing);
+    expect(find.text('Toko Palsu'), findsNothing);
   });
 
-  testWidgets('Seller header renders @username then farmName', (tester) async {
+  testWidgets('Seller header renders store name above @username', (
+    tester,
+  ) async {
     await _pumpCanonicalHeader(
       tester,
       username: 'yayan',
+      storeName: 'Farm Koi Nusantara',
       hasSellerProfile: true,
       sellerTier: SellerTier.sellerPro,
       lifecycle: ContentLifecycle.active,
-      farmName: true,
     );
 
-    expect(find.text('@yayan'), findsOneWidget);
     expect(find.text('Farm Koi Nusantara'), findsOneWidget);
+    expect(find.text('@yayan'), findsOneWidget);
     expect(find.byType(SellerTierBadge), findsOneWidget);
+
+    // OWNER TRUTH: store name is the primary line — above and larger than the
+    // handle.
+    expect(
+      tester.getTopLeft(find.text('Farm Koi Nusantara')).dy,
+      lessThan(tester.getTopLeft(find.text('@yayan')).dy),
+    );
+    final storeSize = tester
+        .widget<Text>(find.text('Farm Koi Nusantara'))
+        .style!
+        .fontSize!;
+    final handleSize = tester
+        .widget<Text>(find.text('@yayan'))
+        .style!
+        .fontSize!;
+    expect(storeSize, greaterThan(handleSize));
+
+    // The profile stream is not an identity authority.
+    expect(find.text('Toko Palsu'), findsNothing);
   });
 
-  testWidgets('Missing farm renders @username only', (tester) async {
+  testWidgets('Seller without a store renders @username only', (tester) async {
     await _pumpCanonicalHeader(
       tester,
       username: 'yayan',
       hasSellerProfile: true,
       sellerTier: null,
       lifecycle: ContentLifecycle.active,
-      farmName: false,
     );
 
     expect(find.text('@yayan'), findsOneWidget);
     expect(find.text('Farm Koi Nusantara'), findsNothing);
+    expect(find.text('Toko Palsu'), findsNothing);
   });
 
   testWidgets('Lifecycle degraded renders redaction label only', (tester) async {
@@ -400,7 +426,6 @@ void main() {
       hasSellerProfile: false,
       sellerTier: null,
       lifecycle: ContentLifecycle.unavailable,
-      farmName: false,
     );
 
     expect(find.text('Pengguna tidak tersedia'), findsOneWidget);
@@ -417,7 +442,6 @@ void main() {
       hasSellerProfile: false,
       sellerTier: null,
       lifecycle: ContentLifecycle.removed,
-      farmName: false,
     );
 
     expect(find.text('Pengguna dihapus'), findsOneWidget);
@@ -434,19 +458,23 @@ Future<void> _pumpCanonicalHeader(
   required bool hasSellerProfile,
   required SellerTier? sellerTier,
   required ContentLifecycle lifecycle,
-  required bool farmName,
+  String? storeName,
 }) async {
   const targetId = 'target-1';
   final targetUser = _authUser(
     id: targetId,
     username: username,
+    storeName: storeName,
     hasSellerProfile: hasSellerProfile,
     sellerTier: sellerTier,
     lifecycle: lifecycle,
   );
+  // Cover + location now come from the profile-view payload (one GET). The
+  // stream override stays only so no stray provider can fetch; it is NOT an
+  // identity authority: it carries a decoy store name here on purpose.
   final targetProfile = _profileEntity(
     userId: targetId,
-    farmName: farmName ? 'Farm Koi Nusantara' : null,
+    farmName: 'Toko Palsu',
   );
 
   await tester.binding.setSurfaceSize(const Size(1080, 2400));
@@ -468,9 +496,6 @@ Future<void> _pumpCanonicalHeader(
         userDataProvider(targetId).overrideWith((ref) => Future.value(targetUser)),
         profileViewDataProvider(targetId).overrideWithValue(
           AsyncData(ProfileViewData(user: targetUser, profile: targetProfile)),
-        ),
-        profileStreamProvider(targetId).overrideWith(
-          (ref) => Stream.value(targetProfile),
         ),
         followRepositoryProvider.overrideWithValue(_FakeFollowRepository()),
         contentRepositoryProvider.overrideWithValue(_FakeContentRepository()),

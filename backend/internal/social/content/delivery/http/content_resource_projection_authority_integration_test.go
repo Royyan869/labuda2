@@ -567,7 +567,7 @@ func seedVisibilityHTTPAuction(
 	_, err := pool.Pool().Exec(ctx, `
 		INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
-	`, productID, sellerID, "Lelang", "Lelang untuk update", `[]`, "kohaku", "immediate")
+	`, productID, sellerID, "Lelang", "Lelang untuk update", `[]`, "kohaku", "1_3_days")
 	require.NoError(t, err)
 
 	_, err = pool.Pool().Exec(ctx, `

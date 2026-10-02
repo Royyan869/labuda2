@@ -130,7 +130,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
 
   Widget _buildSection(String title, String content) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppMetrics.p20),
+      padding: const EdgeInsets.only(bottom: AppMetrics.p24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -162,7 +162,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
           SizedBox(height: 8),
           Text(
             'We are committed to maintaining the trust and confidence of our users. If you have any concerns about your privacy, please don\'t hesitate to contact us.',
-            style: TextStyle(fontSize: AppType.s13, height: 1.5),
+            style: TextStyle(fontSize: AppType.s14, height: 1.5),
           ),
         ],
       ),

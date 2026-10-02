@@ -122,6 +122,97 @@ const _purgedFiles = <String>[
   'lib/shared/widgets/list_item/list_item_types.dart',
   'lib/shared/widgets/list_item/list_item_trailing.dart',
   'lib/shared/widgets/list_item/list_item_decorations.dart',
+  // Slice 2 of the zero-consumer sweep: the two files that survived slice 1
+  // with ZERO consumers outside themselves.
+  //
+  // `MainTabEntity` duplicated the live tab model
+  // (`features/home/presentation/models/main_tab.dart`) as a "pure domain" copy
+  // that no widget ever read — the abstraction existed only to be exhibited.
+  // `feature_skeleton_template.dart` was 8 KB of pure COMMENT (zero
+  // declarations) claiming to teach the feature structure; the real authority
+  // is the repo-root guides, so the in-`lib` copy was a second, ageing truth.
+  'lib/features/home/domain/entities/main_tab.dart',
+  'lib/docs/feature_skeleton_template.dart',
+];
+
+/// Slice 3 of the zero-consumer sweep (2026-09-30): 48 files that NO
+/// `import`/`export`/`part` in `lib`+`test` named and whose declared types
+/// were referenced nowhere outside themselves — dead data barrels,
+/// unreachable widgets/services, and ghost section widgets. The tests that
+/// existed only to READ these files' source were converged in the same batch
+/// (edit-profile store section, mention service, base_component). Four further
+/// candidates were PROVEN dead too but are DIRTY in another session's working
+/// tree — share_to_chat_dialog, date_of_birth_picker, phone_verification_field,
+/// image_with_badge — PARKED, not purged: do not delete them here.
+const _slice3PurgedFiles = <String>[
+  'lib/domains/chat/chat/presentation/widgets/'
+      'shipping_quote_creation_modal.dart',
+  'lib/domains/commerce/catalog/auction/data/data.dart',
+  'lib/domains/commerce/catalog/auction/presentation/utils/'
+      'auction_form_validator.dart',
+  'lib/domains/commerce/catalog/auction/usecases/auction_usecases.dart',
+  'lib/domains/commerce/catalog/domain/entities/attachment.dart',
+  'lib/domains/commerce/catalog/shared/commerce_validation_service.dart',
+  'lib/domains/commerce/catalog/shared/domain/entities/'
+      'commerce_shipping_option_summary.dart',
+  'lib/domains/commerce/catalog/shared/shared.dart',
+  'lib/domains/commerce/catalog/usecases/'
+      'get_for_sale_share_reference_usecase.dart',
+  'lib/domains/commerce/negotiation/negotiation/negotiation.dart',
+  'lib/domains/commerce/pricing/discount/data/dto/dto.dart',
+  'lib/domains/commerce/pricing/pricing_preview/presentation/widgets/'
+      'pricing_breakdown.dart',
+  'lib/domains/commerce/pricing/pricing_preview/presentation/widgets/'
+      'pricing_error_states.dart',
+  'lib/domains/commerce/pricing/promotion/domain/entities/target_type.dart',
+  'lib/domains/commerce/transaction/order/data/data.dart',
+  'lib/domains/commerce/transaction/order/domain/usecases/'
+      'order_usecase_providers.dart',
+  'lib/domains/commerce/transaction/shipping/shipping.dart',
+  'lib/domains/finance/transaction/payment/data/data.dart',
+  'lib/domains/social/comment/domain/comment_domain.dart',
+  'lib/domains/social/follow/data/services/follow_error_handler.dart',
+  'lib/domains/social/like/like.dart',
+  'lib/domains/social/share/presentation/providers/share_composer_state.dart',
+  'lib/domains/system/analytics/analytics.dart',
+  'lib/domains/system/notification/data/models/notification_model.dart',
+  'lib/domains/system/notification/data/models/'
+      'notification_preference_model.dart',
+  'lib/domains/system/notification/presentation/widgets/preference_groups/'
+      'communication_preferences_group.dart',
+  'lib/domains/system/notification/presentation/widgets/preference_groups/'
+      'general_preferences_group.dart',
+  'lib/domains/system/notification/presentation/widgets/preference_groups/'
+      'marketing_preferences_group.dart',
+  'lib/domains/system/notification/presentation/widgets/preference_groups/'
+      'security_preferences_group.dart',
+  'lib/domains/system/notification/presentation/widgets/preference_groups/'
+      'transaction_preferences_group.dart',
+  'lib/domains/system/support/data/data.dart',
+  'lib/domains/user/profile/data/data.dart',
+  'lib/domains/user/profile/models/models.dart',
+  'lib/domains/user/profile/presentation/helpers/'
+      'profile_rating_summary_state.dart',
+  'lib/domains/user/profile/presentation/screens/edit_profile/'
+      'edit_profile_store_section.dart',
+  'lib/domains/user/profile/presentation/screens/profile_screen/'
+      'about_sections/about_section_about.dart',
+  'lib/domains/user/profile/presentation/screens/profile_screen/'
+      'about_sections/about_section_contact.dart',
+  'lib/domains/user/profile/presentation/screens/profile_screen/'
+      'about_sections/about_section_farm.dart',
+  'lib/domains/user/profile/presentation/widgets/profile_reviews_tab/'
+      'review_card_widget.dart',
+  'lib/domains/user/profile/presentation/widgets/profile_reviews_tab/'
+      'review_filter_section.dart',
+  'lib/domains/user/profile/presentation/widgets/profile_section_card.dart',
+  'lib/domains/user/profile/presentation/widgets/profile_stat_card.dart',
+  'lib/features/search/search/presentation/utils/promotion_filter_helper.dart',
+  'lib/shared/domain/entities/attachment.dart',
+  'lib/shared/services/mention_notification_service.dart',
+  'lib/shared/ui/base/base_component.dart',
+  'lib/shared/widgets/media_viewer_indicators.dart',
+  'lib/shared/widgets/tagged_users_chips.dart',
 ];
 
 /// The public vocabulary each purged file owned. Naming it again in code means
@@ -160,6 +251,8 @@ const _purgedIdentifiers = <String>[
   'PaymentsLoaded',
   'PaymentSuccess',
   'PaymentError',
+  // Slice 2. The live model is `MainTab` — only the dead domain twin is banned.
+  'MainTabEntity',
 ];
 
 /// Vocabulary families whose suffixed variants must stay dead too —
@@ -171,7 +264,7 @@ RegExp _family(String prefix) => RegExp('\\b$prefix\\w*');
 
 /// Path fragments, because identifier matching alone misses the real
 /// resurrection route: `import 'package:labuda/core/utils/retry_helper.dart';`.
-const _purgedPathFragments = <String>[
+const _basePathFragments = <String>[
   'utils/retry_helper.dart',
   'finance/finance_gateway.dart',
   'dependencies/provider_scope_reader.dart',
@@ -203,6 +296,16 @@ const _purgedPathFragments = <String>[
   'widgets/list_item/list_item_types.dart',
   'widgets/list_item/list_item_trailing.dart',
   'widgets/list_item/list_item_decorations.dart',
+  'entities/main_tab.dart',
+  'docs/feature_skeleton_template.dart',
+];
+
+/// Slice-3 fragments derive from the paths themselves: the real resurrection
+/// route is `import 'package:labuda/<suffix>'`, and the suffix IS the path
+/// minus `lib/` — one source of truth, no second hand-maintained copy.
+final _purgedPathFragments = <String>[
+  ..._basePathFragments,
+  for (final path in _slice3PurgedFiles) path.substring(4),
 ];
 
 /// Sibling gates that detect these very names — they must state what they
@@ -212,6 +315,10 @@ const _purgedPathFragments = <String>[
 const _gatePeers = <String>[
   'test/core/result_authority_contract_test.dart',
   'test/core/domain_boundary_contract_test.dart',
+  // States its own detect-and-ban: the auction screen must NOT import the
+  // (now purged) analytics barrel — the same fact this lock enforces.
+  'test/domains/commerce/catalog/auction/'
+      'create_auction_screen_analytics_contract_test.dart',
 ];
 
 /// Live files that must survive the purge — proof that two files died, not two
@@ -229,11 +336,11 @@ const _mustSurvive = <String>[
       'payment_providers.dart',
   'lib/domains/finance/transaction/payment/presentation/providers/'
       'payment_initiation_notifier.dart',
-  'lib/shared/ui/base/base_component.dart',
+  'lib/shared/ui/src/screens/custom_camera_screen.dart',
   'lib/shared/widgets/hybrid_avatar.dart',
   'lib/shared/widgets/base_card.dart',
   'lib/shared/widgets/media_carousel_widget.dart',
-  'lib/shared/widgets/media_viewer_indicators.dart',
+  'lib/shared/widgets/media_viewer_widget.dart',
   'lib/shared/widgets/map_picker/map_picker_widgets.dart',
 ];
 
@@ -258,7 +365,7 @@ RegExp _identifier(String name) => RegExp('\\b$name\\b');
 
 void main() {
   test('the purged dead files stay deleted', () {
-    for (final path in _purgedFiles) {
+    for (final path in [..._purgedFiles, ..._slice3PurgedFiles]) {
       expect(
         File(path).existsSync(),
         isFalse,
@@ -435,6 +542,34 @@ void main() {
       _purgedPathFragments.any("export 'list_item_types.dart';".contains),
       isFalse,
       reason: 'the lock keys on the real import path, not on a bare basename',
+    );
+
+    // Slice 3: the derived fragments detect a planted resurrection…
+    const slice3Import =
+        "import 'package:labuda/shared/services/mention_notification_service.dart';";
+    expect(
+      _purgedPathFragments.any(slice3Import.contains),
+      isTrue,
+      reason: 'an import of a slice-3 purged path must be detectable',
+    );
+    // …while the LIVE neighbours that replaced them in _mustSurvive stay legal
+    // (media_viewer_widget vs media_viewer_indicators; farm vs store section).
+    expect(
+      _purgedPathFragments.any(
+        "import 'package:labuda/shared/widgets/media_viewer_widget.dart';"
+            .contains,
+      ),
+      isFalse,
+      reason: 'the live media_viewer_widget must not match its dead sibling',
+    );
+    expect(
+      _purgedPathFragments.any(
+        "import 'package:labuda/domains/user/profile/presentation/screens/"
+                "edit_profile/edit_profile_farm_section.dart';"
+            .contains,
+      ),
+      isFalse,
+      reason: 'the live farm section must not match the purged store section',
     );
   });
 }

@@ -178,6 +178,7 @@ class ContentMapper {
     return CreateContentMediaRequestDto(
       url: entity.originalUrl,
       type: entity.type == MediaType.video ? 'video' : 'image',
+      blurhash: entity.blurhash,
     );
   }
 

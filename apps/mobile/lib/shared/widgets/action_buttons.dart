@@ -153,7 +153,7 @@ class ActionButtons extends StatelessWidget {
   Widget _buildCancelButton(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return SizedBox(
-      height: 48,
+      height: AppContentSize.control,
       child: OutlinedButton(
         onPressed: isLoading ? null : onCancel,
         style: OutlinedButton.styleFrom(
@@ -179,7 +179,7 @@ class ActionButtons extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final disabled = isLoading || onSave == null;
     return SizedBox(
-      height: 48,
+      height: AppContentSize.control,
       child: OutlinedButton(
         onPressed: disabled ? null : onSave,
         style: OutlinedButton.styleFrom(

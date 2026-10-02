@@ -4,10 +4,11 @@
 ///   backend-resolved CloudFront URL
 ///     → `MediaEntity.originalUrl`
 ///     → `FeedCard`
-///     → `AppImage` (URL as-is)
+///     → `FeedMediaMosaic` (1 full, 2 side-by-side, 3 big+stacked, 4+ grid+N)
+///     → `AppImage` (thumbnail variant as-is, contain — never cropped)
 ///
-/// A video media item must never be handed to the image widget; it renders
-/// through `CarouselVideoPlayer` (the shared video primitive).
+/// A video tile must never hand its reference to the image widget; it shows
+/// a play badge instead. Taps bubble to the card (detail owns routing).
 ///
 /// Proof is at the widget boundary: the backend URL must reach the canonical
 /// widget unchanged. HTTP fetching is owned by the cache package.
@@ -20,8 +21,8 @@ import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/social/content/domain/entities/content.dart';
 import 'package:labuda/features/home/domain/entities/feed_item.dart';
 import 'package:labuda/features/home/presentation/providers/feed_renderers.dart';
+import 'package:labuda/features/home/presentation/widgets/feed_media_mosaic.dart';
 import 'package:labuda/shared/widgets/app_image.dart';
-import 'package:labuda/shared/widgets/carousel_video_player.dart';
 
 /// Only the session state is faked — every downstream widget stays production
 /// code. The card footer watches the auth state; unauthenticated keeps the
@@ -61,6 +62,7 @@ MediaEntity _media({
   required String url,
   required MediaType type,
   required int position,
+  String? thumbnailUrl,
 }) {
   return MediaEntity(
     id: 'media-$position',
@@ -68,15 +70,18 @@ MediaEntity _media({
     type: type,
     position: position,
     createdAt: DateTime.utc(2026, 9, 16),
+    variants: {
+      if (thumbnailUrl != null) 'thumbnail': thumbnailUrl,
+    },
   );
 }
 
 void main() {
   testWidgets(
-    'content card renders the backend URL through the canonical widget',
+    'single image renders the thumbnail variant through the mosaic',
     (tester) async {
-      const backendUrl =
-          'https://d358tu61i1wrtt.cloudfront.net/images/1749600000000_author.jpg';
+      const thumbnailUrl =
+          'https://d358tu61i1wrtt.cloudfront.net/images/medium/1749600000000_author.jpg';
 
       await tester.pumpWidget(
         _wrap(
@@ -84,9 +89,11 @@ void main() {
             item: _itemWithMedia(
               media: [
                 _media(
-                  url: backendUrl,
+                  url:
+                      'https://d358tu61i1wrtt.cloudfront.net/images/1749600000000_author.jpg',
                   type: MediaType.image,
                   position: 0,
+                  thumbnailUrl: thumbnailUrl,
                 ),
               ],
             ),
@@ -95,23 +102,77 @@ void main() {
       );
       await tester.pump();
 
+      expect(find.byType(FeedMediaMosaic), findsOneWidget);
       expect(find.byType(AppImage), findsOneWidget);
       final appImage = tester.widget<AppImage>(find.byType(AppImage));
       expect(
         appImage.imageUrl,
-        backendUrl,
-        reason: 'the backend URL must reach the canonical widget unchanged',
+        thumbnailUrl,
+        reason: 'list surfaces render the Lambda variant, never the original',
       );
+      expect(appImage.fit, BoxFit.contain);
     },
   );
 
-  testWidgets('content card renders the thumbnail variant when present', (
+  testWidgets('two images render side by side, both visible', (tester) async {
+    await tester.pumpWidget(
+      _wrap(
+        FeedCard(
+          item: _itemWithMedia(
+            media: [
+              _media(
+                url: 'https://d358tu61i1wrtt.cloudfront.net/images/a.jpg',
+                type: MediaType.image,
+                position: 0,
+              ),
+              _media(
+                url: 'https://d358tu61i1wrtt.cloudfront.net/images/b.jpg',
+                type: MediaType.image,
+                position: 1,
+              ),
+            ],
+          ),
+        ),
+      ));
+      await tester.pump();
+
+      expect(find.byType(FeedMediaMosaic), findsOneWidget);
+      expect(find.byType(AppImage), findsNWidgets(2));
+    },
+  );
+
+  testWidgets('five media render a 2x2 grid with a +N overlay', (tester) async {
+    await tester.pumpWidget(
+      _wrap(
+        FeedCard(
+          item: _itemWithMedia(
+            media: List.generate(
+              5,
+              (i) => _media(
+                url: 'https://d358tu61i1wrtt.cloudfront.net/images/$i.jpg',
+                type: MediaType.image,
+                position: i,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.byType(FeedMediaMosaic), findsOneWidget);
+    expect(find.byType(AppImage), findsNWidgets(4));
+    expect(find.text('+1'), findsOneWidget);
+    expect(find.text('5 media'), findsOneWidget);
+  });
+
+  testWidgets('video tile renders the poster frame, never the mp4 bytes', (
     tester,
   ) async {
-    const originalUrl =
-        'https://d358tu61i1wrtt.cloudfront.net/images/1749600000000_author.jpg';
-    const thumbnailUrl =
-        'https://d358tu61i1wrtt.cloudfront.net/images/thumbnail/1749600000000_author.jpg';
+    const videoUrl =
+        'https://d358tu61i1wrtt.cloudfront.net/videos/clip.mp4';
+    const posterUrl =
+        'https://d358tu61i1wrtt.cloudfront.net/videos/clip_poster.jpg';
 
     await tester.pumpWidget(
       _wrap(
@@ -119,11 +180,10 @@ void main() {
           item: _itemWithMedia(
             media: [
               _media(
-                url: originalUrl,
-                type: MediaType.image,
+                url: videoUrl,
+                type: MediaType.video,
                 position: 0,
-              ).copyWith(
-                variants: const {'thumbnail': thumbnailUrl},
+                thumbnailUrl: posterUrl,
               ),
             ],
           ),
@@ -132,37 +192,10 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.byType(AppImage), findsOneWidget);
+    expect(find.byType(FeedMediaMosaic), findsOneWidget);
+    // Poster through the image widget, play badge on top, mp4 never decoded.
     final appImage = tester.widget<AppImage>(find.byType(AppImage));
-    expect(
-      appImage.imageUrl,
-      thumbnailUrl,
-      reason: 'list surfaces render the Lambda thumbnail, never the original',
-    );
-  });
-
-  testWidgets('content card video media is never handed to the image widget', (
-    tester,
-  ) async {
-    const videoUrl =
-        'https://d358tu61i1wrtt.cloudfront.net/videos/clip.mp4';
-
-    await tester.pumpWidget(
-      _wrap(
-        FeedCard(
-          item: _itemWithMedia(
-            media: [_media(url: videoUrl, type: MediaType.video, position: 0)],
-          ),
-        ),
-      ),
-    );
-    await tester.pump();
-
-    expect(find.byType(CarouselVideoPlayer), findsOneWidget);
-    expect(
-      find.byType(AppImage),
-      findsNothing,
-      reason: 'a video reference must not reach the image widget',
-    );
+    expect(appImage.imageUrl, posterUrl);
+    expect(find.byIcon(Icons.play_circle_fill), findsOneWidget);
   });
 }

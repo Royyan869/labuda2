@@ -121,9 +121,15 @@ type NegotiationStartedPayload struct {
 }
 
 // NegotiationMessageSentPayload represents the payload of negotiation.message_sent event.
+//
+// resource_type/resource_id are emitted by the counter producer since the
+// proposal card needs full product identity on COUNTER rounds too (they are
+// absent on legacy queued events — see buildNegotiationProposalFromMessageSent).
 type NegotiationMessageSentPayload struct {
 	SessionID        uuid.UUID `json:"session_id"`
 	ChatRoomID       string    `json:"chat_room_id"`
+	ResourceType     string    `json:"resource_type"`
+	ResourceID       uuid.UUID `json:"resource_id"`
 	BuyerID          uuid.UUID `json:"buyer_id"`
 	SellerID         uuid.UUID `json:"seller_id"`
 	SenderID         uuid.UUID `json:"sender_id"`
@@ -317,13 +323,22 @@ func buildNegotiationProposalFromStarted(p *NegotiationStartedPayload) map[strin
 }
 
 func buildNegotiationProposalFromMessageSent(p *NegotiationMessageSentPayload) map[string]interface{} {
+	data := map[string]interface{}{
+		"session_id":        p.SessionID.String(),
+		"price":             p.Price,
+		"proposal_sequence": p.ProposalSequence,
+	}
+	// Legacy queued events may predate the resource fields; omit them rather
+	// than emit a nil/empty uuid the mobile card would treat as a real id.
+	if p.ResourceType != "" {
+		data["resource_type"] = p.ResourceType
+	}
+	if p.ResourceID != uuid.Nil {
+		data["resource_id"] = p.ResourceID.String()
+	}
 	return map[string]interface{}{
 		"type": "negotiation_proposal",
-		"data": map[string]interface{}{
-			"session_id":        p.SessionID.String(),
-			"price":             p.Price,
-			"proposal_sequence": p.ProposalSequence,
-		},
+		"data": data,
 	}
 }
 
@@ -350,5 +365,3 @@ func getPriceFromPayload(payload interface{}) int64 {
 		return 0
 	}
 }
-
-

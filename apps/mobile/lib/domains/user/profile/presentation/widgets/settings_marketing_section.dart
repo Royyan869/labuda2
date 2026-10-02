@@ -2,19 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/domains/user/preference/seller/presentation/providers/current_seller_provider.dart';
 import 'package:labuda/domains/user/preference/seller/domain/entities/seller_state.dart';
-import 'package:labuda/domains/commerce/pricing/discount/discount.dart';
 import 'package:labuda/core/src/theme/app_theme.dart';
 
-/// Marketing & Promotion Section
-/// Handles: Promotions & Discounts
+/// Marketing & Promotion Section — two honest doors: Diskon (product price
+/// reductions) and Promosi (canonical campaign budget). Each label names
+/// exactly what its destination holds; the old single tile promising
+/// "Promotions & Discounts" opened only discounts.
 class SettingsMarketingSection extends ConsumerWidget {
   final Function(String) onNavigate;
-  final String userId;
 
   const SettingsMarketingSection({
     super.key,
     required this.onNavigate,
-    required this.userId,
   });
 
   @override
@@ -37,19 +36,20 @@ class SettingsMarketingSection extends ConsumerWidget {
         ),
         _buildSettingsTile(
           icon: Icons.discount_outlined,
-          title: 'Promotions & Discounts',
-          subtitle: 'Create and manage special offers',
-          onTap: () => _navigateToDiscountManagement(context),
+          title: 'Diskon',
+          subtitle: 'Buat dan kelola diskon produk',
+          onTap: () => onNavigate('discount'),
+          scheme: scheme,
+        ),
+        _buildSettingsTile(
+          icon: Icons.local_offer_outlined,
+          title: 'Promosi',
+          subtitle: 'Buat dan kelola promosi & iklan toko',
+          onTap: () => onNavigate('promotion'),
           scheme: scheme,
         ),
       ],
     );
-  }
-
-  void _navigateToDiscountManagement(BuildContext context) {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const SellerDiscountListScreen()));
   }
 
   Widget _buildSectionHeaderWithIcon(
@@ -64,7 +64,7 @@ class SettingsMarketingSection extends ConsumerWidget {
         children: [
           Icon(
             icon,
-            size: 20,
+            size: AppIconSize.action,
             color: scheme.onSurfaceVariant,
           ),
           const SizedBox(width: 8),
@@ -103,12 +103,12 @@ class SettingsMarketingSection extends ConsumerWidget {
         subtitle,
         style: TextStyle(
           color: scheme.onSurfaceVariant,
-          fontSize: AppType.s13,
+          fontSize: AppType.s14,
         ),
       ),
       trailing: Icon(
         Icons.arrow_forward_ios,
-        size: 16,
+        size: AppIconSize.inlineGlyph,
         color: scheme.onSurfaceVariant,
       ),
       onTap: onTap,

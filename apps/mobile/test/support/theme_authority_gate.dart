@@ -7,6 +7,22 @@
 // copy is deleted; the rule, the authority island and the scan live here only.
 import 'dart:io';
 
+import 'package:flutter/material.dart';
+
+/// A ThemeData's text theme resolved the way WIDGETS see it.
+///
+/// `ThemeData.textTheme` as constructed carries only colour and family: the
+/// geometry (size, weight, height, letter spacing) lives in `englishLike` 2021
+/// and is merged onto the theme at read time — `Theme.of()` calls
+/// `ThemeData.localize(theme, theme.typography.geometryThemeFor(category))`.
+/// Reading the raw `ThemeData.textTheme` in a test therefore yields a style
+/// with NO metrics, and any comparison built on it passes as `null == null`.
+/// Every gate that pins type must resolve through this helper instead.
+TextTheme resolvedTextTheme(ThemeData theme) => ThemeData.localize(
+  theme,
+  theme.typography.geometryThemeFor(ScriptCategory.englishLike),
+).textTheme;
+
 /// The ONLY files in `lib/` allowed to hold colour/geometry authority.
 /// Everything else reads `Theme.of(context)`. Growing this set is the only way
 /// to legitimise a competing palette, so it is pinned by a test.
@@ -95,6 +111,157 @@ List<String> themeAuthorityDartFiles({String dir = 'lib'}) => Directory(dir)
     .where((f) => f.path.endsWith('.dart'))
     .map((f) => f.path.replaceAll(r'\', '/'))
     .toList();
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INK IS NOT A SURFACE.
+//
+// `onSurface` / `onSurfaceVariant` are the roles TEXT and ICONS are painted
+// with. Using one as a FILL or a BORDER is how grey-on-grey ships: a screen
+// title in exactly the colour of the app bar behind it, a dialog whose ink
+// equals its own background, a text field `fillColor`ed with ink, a sheet
+// header slab that ate its own heading. That is the defect found on the
+// address and verification surfaces (scaffold, app bar, alert dialog, form
+// sheet body + header + footer, notes box, purpose block, map picker, phone
+// block, dropdown menu, date-of-birth field border, sheet drag handles) and in
+// the seller wizard's address dialog, so the rule is locked here.
+//
+// The canonical answers: `inverseSurface`/`onInverseSurface` for inverted
+// fills, `surfaceContainer*` for subtle fills, `outlineVariant` for borders,
+// `Colors.transparent` for overlays. On-media controls painted over a camera
+// preview or scrim use `onPrimary` (the always-light ink) and stay legal.
+//
+// Scope, stated honestly: a fill binding inside a `BoxDecoration`/
+// `InputDecoration` block, and any `backgroundColor:` binding anywhere. Ink
+// reads (`statusDisplay.tone`, a `TextStyle.color`) are out of scope by
+// construction — a role used as INK is correct.
+const inkFillRoles = <String>['onSurface', 'onSurfaceVariant'];
+
+/// Blocks that hold a surface/border decision and NEVER a `TextStyle`, so every
+/// fill-ish property inside them is a fill.
+const inkFillHosts = <String>['BoxDecoration(', 'InputDecoration('];
+
+final RegExp _inkFillProperty = RegExp(
+  r'(?<![A-Za-z])(color|fillColor|backgroundColor):\s*[^,\n]*'
+  r'\.(onSurface|onSurfaceVariant)\b',
+);
+
+final RegExp _inkBackgroundProperty = RegExp(
+  r'(?<![A-Za-z])backgroundColor:\s*[^,\n]*'
+  r'\.(onSurface|onSurfaceVariant)\b',
+);
+
+/// The WHOLE line holding the bind at [index], so the alpha check sees the
+/// value and not just the indentation before the property name.
+String _lineAround(String text, int index, int matchEnd) {
+  final start = text.lastIndexOf('\n', index) + 1;
+  var end = text.indexOf('\n', matchEnd);
+  if (end < 0) end = text.length;
+  return text.substring(start, end);
+}
+
+/// A solid ink bind is a bug; an ink bind WITH alpha is a legitimate tint
+/// (M3 state layers paint `onSurface` at 8–12%).
+bool _isSolidInkBind(String line) =>
+    !line.contains('withValues(') && !line.contains('withOpacity(');
+
+/// Balanced-paren blocks opened by [opener], e.g. every `BoxDecoration(...)`,
+/// yielded with their offset in [source] so violations keep real line numbers.
+Iterable<({int start, String block})> _hostBlocks(
+  String source,
+  String opener,
+) sync* {
+  var from = 0;
+  while (true) {
+    final idx = source.indexOf(opener, from);
+    if (idx < 0) return;
+    var depth = 0;
+    var end = idx + opener.length - 1;
+    for (; end < source.length; end++) {
+      final ch = source[end];
+      if (ch == '(') depth++;
+      if (ch == ')') {
+        depth--;
+        if (depth == 0) break;
+      }
+    }
+    yield (start: idx, block: source.substring(idx, end + 1));
+    from = idx + opener.length;
+  }
+}
+
+/// Scan ONE source string; [path] only labels the violations. Split out so the
+/// contract test can prove the detector fires on a planted resurrection without
+/// writing a file.
+({List<String> violations, int hosts}) inkAsFillViolationsIn(
+  String source, {
+  required String path,
+}) {
+  final violations = <String>[];
+  var hosts = 0;
+
+  int lineOf(int index) => source.substring(0, index).split('\n').length;
+
+  // 1. Anything that names a background: widgets and data objects alike. A
+  //    status-tone field must not be called `backgroundColor` — name it what it
+  //    is (`tone`) instead of widening this rule.
+  for (final m in _inkBackgroundProperty.allMatches(source)) {
+    final line = _lineAround(source, m.start, m.end);
+    if (_isSolidInkBind(line)) {
+      violations.add('$path:${lineOf(m.start)}: ${line.trim()}');
+    }
+  }
+
+  // 2. Fills inside surface/border blocks.
+  for (final host in inkFillHosts) {
+    for (final found in _hostBlocks(source, host)) {
+      hosts++;
+      // An `InputDecoration` carries its own ink: `hintStyle: TextStyle(...)`
+      // or `theme.textTheme.bodyMedium?.copyWith(...)`, `prefixIcon: Icon(...)`.
+      // Those are legitimate ink READS, so any fill match landing inside one of
+      // those sub-blocks is skipped.
+      final inkSpans = <({int start, int end})>[];
+      for (final opener in const [
+        'TextStyle(',
+        'copyWith(',
+        'Icon(',
+        'TextButton(',
+      ]) {
+        for (final ink in _hostBlocks(found.block, opener)) {
+          inkSpans.add((start: ink.start, end: ink.start + ink.block.length));
+        }
+      }
+      bool readsInk(int at) =>
+          inkSpans.any((s) => at >= s.start && at < s.end);
+
+      for (final m in _inkFillProperty.allMatches(found.block)) {
+        if (readsInk(m.start)) continue;
+        final line = _lineAround(found.block, m.start, m.end);
+        if (_isSolidInkBind(line)) {
+          final at = found.start + m.start;
+          violations.add('$path:${lineOf(at)}: ${line.trim()}');
+        }
+      }
+    }
+  }
+  return (violations: violations, hosts: hosts);
+}
+
+/// Sweep [paths] (default: `lib/`) for ink used as a surface. [hosts] is the
+/// anti-vacuum floor: it counts the fill blocks actually inspected.
+({List<String> violations, int hosts}) inkAsFillScan({List<String>? paths}) {
+  final violations = <String>[];
+  var hosts = 0;
+  for (final raw in paths ?? themeAuthorityDartFiles()) {
+    final path = raw.replaceAll(r'\', '/');
+    if (themeAuthorityFiles.contains(path)) continue;
+    final file = File(path);
+    if (!file.existsSync()) continue;
+    final res = inkAsFillViolationsIn(file.readAsStringSync(), path: path);
+    violations.addAll(res.violations);
+    hosts += res.hosts;
+  }
+  return (violations: violations, hosts: hosts);
+}
 
 /// Scan [paths] (default: every Dart file under `lib/`) and return the
 /// competing-authority lines as `path:line: text`.

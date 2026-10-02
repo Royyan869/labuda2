@@ -221,7 +221,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                   ),
                   child: Icon(
                     isUnavailable ? Icons.cloud_off : Icons.error_outline,
-                    size: 32,
+                    size: AppIconSize.emphasis,
                     color: scheme.primary,
                   ),
                 ),

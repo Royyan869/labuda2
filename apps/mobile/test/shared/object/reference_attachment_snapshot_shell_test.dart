@@ -15,8 +15,8 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/attachment/entities/share_reference.dart';
-import 'package:labuda/shared/object/object_preview.dart';
 import 'package:labuda/shared/object/presentation/widgets/object_preview_card.dart';
 
 Widget _wrap(ShareReference reference, {VoidCallback? onTap}) {
@@ -116,5 +116,57 @@ void main() {
         reason: 'availability claims belong to the projection envelope',
       );
     }
+  });
+
+  testWidgets('resolver proof: the type caption is the theme role', (
+    tester,
+  ) async {
+    // THE proof an analyzer cannot give. A `fontSize:` literal and a role can
+    // render the same pixel TODAY and diverge on the next ladder retune; what
+    // must hold is that the rendered style IS the theme's `labelSmall` —
+    // caption/badge on the canonical mapping documented on AppTheme — with only
+    // the call site's own decisions layered on top (semibold, brand colour).
+    // Migration proves this per slice; a restated size would never show here.
+    final theme = AppTheme.lightTheme;
+    late TextTheme resolvedTheme;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: theme,
+        home: Builder(
+          builder: (context) {
+            // Read the role the way the widget does: `Theme.of()` merges the
+            // englishLike-2021 geometry on top of the raw ThemeData, so
+            // comparing against `theme.textTheme` would compare against a
+            // colour/family-only style and pass on `null == null`.
+            resolvedTheme = Theme.of(context).textTheme;
+            return Scaffold(
+              body: ObjectPreviewCard(reference: _forSaleReference()),
+            );
+          },
+        ),
+      ),
+    );
+
+    final role = resolvedTheme.labelSmall!;
+    final resolved = tester.widget<Text>(find.text('Produk Dijual')).style!;
+
+    expect(
+      role.fontSize,
+      isNotNull,
+      reason: 'geometry must be resolved from the widget tree, not the raw theme',
+    );
+    expect(resolved.fontSize, role.fontSize, reason: 'size comes from the role');
+    expect(
+      resolved.height,
+      role.height,
+      reason: 'line height comes from the role',
+    );
+    expect(resolved.letterSpacing, role.letterSpacing);
+    expect(resolved.fontWeight, FontWeight.w600, reason: "call site's weight");
+    expect(
+      resolved.color,
+      theme.colorScheme.primary,
+      reason: "call site's colour",
+    );
   });
 }

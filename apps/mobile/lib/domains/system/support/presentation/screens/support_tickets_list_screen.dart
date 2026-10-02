@@ -58,7 +58,7 @@ class _SupportTicketsListScreenState
             children: [
               Icon(
                 Icons.lock_outline,
-                size: 48,
+                size: AppIconSize.display,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               SizedBox(height: 16),
@@ -103,7 +103,7 @@ class _SupportTicketsListScreenState
               children: [
                 Icon(
                   Icons.error_outline,
-                  size: 48,
+                  size: AppIconSize.display,
                   color: context.statusColors.error,
                 ),
                 const SizedBox(height: 16),
@@ -130,14 +130,14 @@ class _SupportTicketsListScreenState
               mainAxisAlignment: MainAxisAlignment.center,
               children: [                Icon(
                 Icons.mail_outline,
-                size: 64,
+                size: AppIconSize.display,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
                 const SizedBox(height: 16),
                 Text(
                   'No support tickets yet',
                   style: TextStyle(
-                    fontSize: AppType.s18,
+                    fontSize: AppType.s20,
                     fontWeight: FontWeight.bold,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
@@ -250,7 +250,7 @@ class _SupportTicketListItem extends StatelessWidget {
                   Text(
                     SupportUtils.formatTimeAgo(lastActivity),
                     style: TextStyle(
-                      fontSize: AppType.s11,
+                      fontSize: AppType.s12,
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
@@ -275,7 +275,7 @@ class _SupportTicketListItem extends StatelessWidget {
               // View ticket button
               OutlinedButton.icon(
                 onPressed: onTap,
-                icon: const Icon(Icons.mail_outline, size: 16),
+                icon: const Icon(Icons.mail_outline, size: AppIconSize.inlineGlyph),
                 label: const Text('View Ticket'),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: AppMetrics.p8),
@@ -303,12 +303,12 @@ class _SupportTicketListItem extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(icon, style: const TextStyle(fontSize: AppType.s11)),
+          Text(icon, style: const TextStyle(fontSize: AppType.s12)),
           const SizedBox(width: 4),
           Text(
             label,
             style: TextStyle(
-              fontSize: AppType.s10,
+              fontSize: AppType.s12,
               fontWeight: FontWeight.bold,
               color: Color(colorValue),
             ),

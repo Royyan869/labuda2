@@ -37,9 +37,6 @@ class NotificationListAppBar extends ConsumerWidget
     final scheme = Theme.of(context).colorScheme;
 
     return AppBar(
-      elevation: AppElevation.none,
-      surfaceTintColor: Colors.transparent,
-      scrolledUnderElevation: 0,
       leading: IconButton(
         icon: const Icon(Icons.arrow_back),
         onPressed: () => Navigator.of(context).pop(),
@@ -63,7 +60,7 @@ class NotificationListAppBar extends ConsumerWidget
                   value: 'mark_all_read',
                   child: Row(
                     children: [
-                      Icon(Icons.done_all, size: 20),
+                      Icon(Icons.done_all, size: AppIconSize.action),
                       SizedBox(width: 12),
                       Text('Mark All as Read'),
                     ],
@@ -74,7 +71,7 @@ class NotificationListAppBar extends ConsumerWidget
                   value: 'delete_read',
                   child: Row(
                     children: [
-                      Icon(Icons.delete_sweep, size: 20),
+                      Icon(Icons.delete_sweep, size: AppIconSize.action),
                       SizedBox(width: 12),
                       Text('Delete Read'),
                     ],
@@ -84,7 +81,7 @@ class NotificationListAppBar extends ConsumerWidget
                 value: 'delete_all',
                 child: Row(
                   children: [
-                      Icon(Icons.delete_forever, size: 20, color: scheme.error),
+                      Icon(Icons.delete_forever, size: AppIconSize.action, color: scheme.error),
                     SizedBox(width: 12),
                       Text('Delete All', style: TextStyle(color: scheme.error)),
                   ],

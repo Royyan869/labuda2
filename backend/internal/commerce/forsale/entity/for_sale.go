@@ -18,7 +18,7 @@ import (
 //
 // DEPRECATED ALIAS FIELDS PURGED (closure scope): the former Title/Description/
 // MediaURLs/Variety/SizeCM/AgeMonths/Gender/Breeder/Bloodline/Certificates/
-// FarmAddressID/PreparationTime/PreparationNote mirrors were competing truth —
+// FarmAddressID/PreparationTime mirrors were competing truth —
 // every consumer now reads the canonical Product. ForSaleType (single-valued
 // "fixed_price") was also removed: the concept carried no information. The
 // for_sale_type column itself is DROPPED (migration 000112) — do not

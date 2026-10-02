@@ -7,6 +7,18 @@ cd backend
 go run ./cmd/migrate
 ```
 
+## Executor authority
+
+`pkg/migration` is the single executor for this chain: it resolves the chain
+directory (`ResolveDir`), splits statements (`Split`), loads versions
+(`LoadMigrations`), applies pending migrations in order (`Run`), and reports the
+applied version (`CurrentVersion`). `cmd/migrate` is a thin CLI over it, and
+`cmd/core_server` refuses to boot when the database is behind the chain head.
+
+No other package may split, load, or apply migration SQL. A second executor
+would give the database a second, incompatible `schema_migrations` ledger — the
+defect this structure exists to prevent.
+
 ## Current state
 
 `backend/migrations/` contains the canonical baseline plus additive hardening migrations:
@@ -38,6 +50,12 @@ go run ./cmd/migrate
                                                                      auctions.preparation_time, auctions.preparation_note. Drops dead media
                                                                      tables fixed_price_sale_media and auction_media (canonical media is
                                                                      products.media_urls).
+000120_drop_preparation_note.up.sql                               — Preparation-note residue purge: drops products.preparation_note and
+                                                                     orders.preparation_note_snapshot. The preparation-note concept is removed
+                                                                     end-to-end; preparation_time is the sole preparation vocabulary.
+000121_preparation_time_three_ranges.up.sql                       — Preparation time narrows to exactly three ranges (owner decision):
+                                                                     1_3_days | 4_7_days | 8_15_days (default 1_3_days). Data mapping never
+                                                                     shortens an existing promise; guard refuses historical values.
 ```
 
 This baseline was generated from the live DB state (v100–v229) on 2026-07-03 and represents
@@ -45,7 +63,7 @@ the authoritative schema for a clean Labuda installation.
 
 ## Adding new migrations
 
-New migrations start at `000113`. Use `NNNNNN_description.{up,down}.sql` naming.
+New migrations continue the sequence (`000121` is the current head). Use `NNNNNN_description.{up,down}.sql` naming.
 Both `.up.sql` and `.down.sql` files are required.
 
 ## Legacy history

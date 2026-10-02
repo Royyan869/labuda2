@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 	addressEntity "github.com/labuda/backend/internal/identity/address/entity"
 	addressRepo "github.com/labuda/backend/internal/identity/address/infrastructure/repository"
 	addressRepoInterface "github.com/labuda/backend/internal/identity/address/repository"
@@ -45,7 +46,7 @@ func (s *AddressService) SetLogger(log *zap.Logger) {
 // CreateAddressInput contains parameters for creating an address.
 type CreateAddressInput struct {
 	UserID   uuid.UUID
-	Purpose  string // "shipping" or "sender"
+	Tags     []string // non-empty subset of entity.AllAddressTags
 	Nickname string
 
 	RecipientName string
@@ -76,7 +77,7 @@ type UpdateAddressInput struct {
 	AddressID uuid.UUID
 	UserID    uuid.UUID
 
-	Purpose  string
+	Tags     []string
 	Nickname string
 
 	RecipientName string
@@ -107,7 +108,7 @@ type UpdateAddressInput struct {
 // CreateAddress creates a new address for a user.
 //
 // Validation:
-// - Purpose must be valid ("shipping" or "sender")
+// - Tags must be a non-empty subset of "shipping"/"sender"
 // - Required fields are present
 // - If is_primary is true, unsets existing primary address
 func (s *AddressService) CreateAddress(
@@ -115,13 +116,24 @@ func (s *AddressService) CreateAddress(
 	tx db.Tx,
 	input CreateAddressInput,
 ) (*addressEntity.Address, error) {
-	// Parse purpose
-	purpose := addressEntity.AddressPurpose(input.Purpose)
+	// Validate + canonically order tags
+	tags, err := addressEntity.NormalizeTags(input.Tags)
+	if err != nil {
+		return nil, err
+	}
+
+	// Reconciler, count==1 half (contract A2), applied BEFORE persisting so
+	// the response matches the stored row: an account's first address is its
+	// everything — both roles and the primary flag.
+	tags, isPrimary, err := s.enforceSingleAddressRule(ctx, tx, input.UserID, uuid.Nil, tags, input.IsPrimary)
+	if err != nil {
+		return nil, err
+	}
 
 	// Create the address entity
 	address, err := addressEntity.NewAddress(
 		input.UserID,
-		purpose,
+		tags,
 		input.Nickname,
 		input.RecipientName,
 		input.Phone,
@@ -138,30 +150,43 @@ func (s *AddressService) CreateAddress(
 		input.Latitude,
 		input.Longitude,
 		input.Notes,
-		input.IsPrimary,
+		isPrimary,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create address entity: %w", err)
 	}
 
 	// If setting as primary, unset existing primary addresses
-	if input.IsPrimary {
+	if isPrimary {
 		if err := s.repo.UnsetAllPrimary(ctx, tx, input.UserID); err != nil {
 			return nil, fmt.Errorf("failed to unset existing primary: %w", err)
 		}
 	}
 
-	// Persist the address
+	// Persist the address. Losing the first-address race means another
+	// create committed the primary between our check and our insert —
+	// recreate as non-primary; the reconcile below keeps the count at one.
 	if err := s.repo.Create(ctx, tx, address); err != nil {
-		return nil, fmt.Errorf("failed to persist address: %w", err)
+		if isPrimary && isPrimaryUniqueViolation(err) {
+			address.IsPrimary = false
+			if retryErr := s.repo.Create(ctx, tx, address); retryErr != nil {
+				return nil, fmt.Errorf("failed to persist address: %w", retryErr)
+			}
+		} else {
+			return nil, fmt.Errorf("failed to persist address: %w", err)
+		}
 	}
 
 	s.log.Info("Address created",
 		zap.String("address_id", address.ID.String()),
 		zap.String("user_id", input.UserID.String()),
-		zap.String("purpose", input.Purpose),
-		zap.Bool("is_primary", input.IsPrimary),
+		zap.Strings("tags", address.TagStrings()),
+		zap.Bool("is_primary", isPrimary),
 	)
+
+	if err := s.reconcile(ctx, tx, input.UserID); err != nil {
+		return nil, err
+	}
 
 	return address, nil
 }
@@ -212,14 +237,14 @@ func (s *AddressService) ListUserAddresses(
 	return addresses, nil
 }
 
-// ListUserAddressesFiltered retrieves addresses for a user filtered by purpose.
+// ListUserAddressesFiltered retrieves addresses for a user carrying the tag.
 func (s *AddressService) ListUserAddressesFiltered(
 	ctx context.Context,
 	tx db.Tx,
 	userID uuid.UUID,
-	purpose string,
+	tag string,
 ) ([]*addressEntity.Address, error) {
-	addresses, err := s.repo.GetByUserIDFiltered(ctx, tx, userID, purpose)
+	addresses, err := s.repo.GetByUserIDFiltered(ctx, tx, userID, tag)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list user addresses filtered: %w", err)
 	}
@@ -256,7 +281,11 @@ func (s *AddressService) UpdateAddress(
 	}
 
 	// Update fields
-	address.Purpose = addressEntity.AddressPurpose(input.Purpose)
+	tags, err := addressEntity.NormalizeTags(input.Tags)
+	if err != nil {
+		return nil, err
+	}
+	address.Tags = tags
 	address.Nickname = input.Nickname
 	address.RecipientName = input.RecipientName
 	address.Phone = input.Phone
@@ -275,6 +304,15 @@ func (s *AddressService) UpdateAddress(
 	address.Notes = input.Notes
 	address.UpdatedAt = time.Now()
 
+	// Reconciler, count==1 half (contract A2): the sole address of an
+	// account is its everything — both roles and the primary flag.
+	address.Tags, address.IsPrimary, err = s.enforceSingleAddressRule(
+		ctx, tx, input.UserID, input.AddressID, address.Tags, address.IsPrimary,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	// If setting as primary, unset other primary addresses
 	if address.IsPrimary {
 		if err := s.repo.UnsetAllPrimary(ctx, tx, input.UserID); err != nil {
@@ -291,6 +329,10 @@ func (s *AddressService) UpdateAddress(
 		zap.String("address_id", address.ID.String()),
 		zap.String("user_id", input.UserID.String()),
 	)
+
+	if err := s.reconcile(ctx, tx, input.UserID); err != nil {
+		return nil, err
+	}
 
 	return address, nil
 }
@@ -332,7 +374,7 @@ func (s *AddressService) DeleteAddress(
 		zap.String("user_id", userID.String()),
 	)
 
-	return nil
+	return s.reconcile(ctx, tx, userID)
 }
 
 // ============================================================================
@@ -373,14 +415,117 @@ func (s *AddressService) SetPrimary(
 		zap.String("user_id", userID.String()),
 	)
 
-	return nil
+	return s.reconcile(ctx, tx, userID)
+}
+
+// ============================================================================
+// RECONCILER (contract A2 — the ONE write-side invariant)
+// ============================================================================
+
+// reconcile runs after every write to the address book:
+//
+//	0 active addresses -> nothing is forced (an address book is optional)
+//	1 active address    -> both tags + primary (the account's everything)
+//	2+ active addresses -> tags are the user's choice, but EXACTLY ONE
+//	                      primary exists (the oldest is promoted when none
+//	                      is flagged)
+//
+// It lives here — never in a UI — so mobile, web and direct API writes
+// cannot disagree about what an address book means. The read side has its
+// own law (tag fallback in the repository): reads degrade gracefully, this
+// write side keeps the data coherent.
+func (s *AddressService) reconcile(ctx context.Context, tx db.Tx, userID uuid.UUID) error {
+	addresses, err := s.repo.GetByUserID(ctx, tx, userID)
+	if err != nil {
+		return fmt.Errorf("failed to reconcile addresses: %w", err)
+	}
+
+	switch len(addresses) {
+	case 0:
+		// Optional address book: nothing to force.
+		return nil
+
+	case 1:
+		only := addresses[0]
+		needsTags := !only.HasTag(addressEntity.TagShipping) ||
+			!only.HasTag(addressEntity.TagSender)
+		if needsTags {
+			only.Tags = []addressEntity.AddressTag{
+				addressEntity.TagShipping,
+				addressEntity.TagSender,
+			}
+		}
+		if !only.IsPrimary {
+			if err := s.repo.SetPrimary(ctx, tx, only.ID); err != nil {
+				return fmt.Errorf("failed to reconcile primary address: %w", err)
+			}
+			only.IsPrimary = true
+		}
+		if needsTags {
+			if err := s.repo.Update(ctx, tx, only); err != nil {
+				return fmt.Errorf("failed to reconcile address tags: %w", err)
+			}
+		}
+		return nil
+
+	default:
+		// ≥2 addresses: tags stay the user's choice.
+		for _, address := range addresses {
+			if address.IsPrimary {
+				return nil // exactly one primary (the unique index caps it)
+			}
+		}
+		// No primary flagged: promote the oldest active address.
+		oldest := addresses[0]
+		for _, address := range addresses[1:] {
+			if address.CreatedAt.Before(oldest.CreatedAt) {
+				oldest = address
+			}
+		}
+		if err := s.repo.SetPrimary(ctx, tx, oldest.ID); err != nil {
+			return fmt.Errorf("failed to promote primary address: %w", err)
+		}
+		return nil
+	}
+}
+
+// enforceSingleAddressRule applies the count==1 half of the reconciler to a
+// row that is ABOUT to be written: when userID owns no other active address,
+// the row becomes the account's everything — both tags and the primary flag.
+// existingID is the row being edited (uuid.Nil on create).
+//
+// Applied before persisting (not only after) so the response the caller
+// receives already matches the stored row.
+func (s *AddressService) enforceSingleAddressRule(
+	ctx context.Context,
+	tx db.Tx,
+	userID uuid.UUID,
+	existingID uuid.UUID,
+	tags []addressEntity.AddressTag,
+	isPrimary bool,
+) ([]addressEntity.AddressTag, bool, error) {
+	active, err := s.repo.GetByUserID(ctx, tx, userID)
+	if err != nil {
+		return nil, false, fmt.Errorf("failed to list active addresses: %w", err)
+	}
+
+	for _, address := range active {
+		if address.ID != existingID {
+			return tags, isPrimary, nil // ≥2: the user's tags, the user's choice
+		}
+	}
+
+	return []addressEntity.AddressTag{
+		addressEntity.TagShipping,
+		addressEntity.TagSender,
+	}, true, nil
 }
 
 // ============================================================================
 // COUNT
 // ============================================================================
 
-// CountByUserID returns address counts grouped by purpose.
+// CountByUserID returns address counts grouped by tag.
 func (s *AddressService) CountByUserID(
 	ctx context.Context,
 	tx db.Tx,
@@ -390,17 +535,19 @@ func (s *AddressService) CountByUserID(
 }
 
 // ============================================================================
-// GET PRIMARY FILTERED
+// GET PRIMARY BY TAG
 // ============================================================================
 
-// GetPrimaryFiltered retrieves the user's primary address filtered by purpose.
+// GetPrimaryFiltered retrieves the account's primary address, narrowed to
+// rows carrying the given tag. The primary flag is account-wide — there is
+// exactly one per account, never one per tag.
 func (s *AddressService) GetPrimaryFiltered(
 	ctx context.Context,
 	tx db.Tx,
 	userID uuid.UUID,
-	purpose string,
+	tag string,
 ) (*addressEntity.Address, error) {
-	return s.repo.GetPrimaryByUserIDFiltered(ctx, tx, userID, purpose)
+	return s.repo.GetPrimaryByTag(ctx, tx, userID, tag)
 }
 
 // ============================================================================
@@ -462,6 +609,13 @@ func (s *AddressService) GetPrimaryAddressForCheckout(
 	}
 
 	return address, nil
+}
+
+// isPrimaryUniqueViolation reports whether err is the unique-index rejection
+// of a second active primary (idx_addresses_user_active_primary_unique).
+func isPrimaryUniqueViolation(err error) bool {
+	var pgErr *pgconn.PgError
+	return errors.As(err, &pgErr) && pgErr.Code == "23505"
 }
 
 // ============================================================================

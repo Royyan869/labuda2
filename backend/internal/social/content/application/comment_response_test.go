@@ -165,6 +165,14 @@ func TestNewCommentResponseWithMedia_ResolvesCDN(t *testing.T) {
 			t.Fatalf("media[%d].position = %d; want %d", i, resp.Media[i].Position, i)
 		}
 	}
+	for i, want := range []string{
+		"https://cdn.example.test/images/medium/1749600000005_chat.jpg",
+		"https://cdn.example.test/images/medium/1749600000006_chat.jpg",
+	} {
+		if resp.Media[i].ThumbnailURL != want {
+			t.Fatalf("media[%d].thumbnail = %q; want %q", i, resp.Media[i].ThumbnailURL, want)
+		}
+	}
 }
 
 

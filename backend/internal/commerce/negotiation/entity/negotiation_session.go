@@ -23,14 +23,14 @@ import (
 // - accepted_price: set when negotiation is accepted (final agreed price)
 // - These fields are the authoritative source for pricing, NOT chat message attachmentJSON
 type NegotiationSession struct {
-	ID               uuid.UUID
-	ResourceType     NegotiationResourceType
-	ForSaleID uuid.UUID
-	BuyerID          uuid.UUID
-	SellerID         uuid.UUID
-	ChatRoomID       *uuid.UUID // References the chat room for this negotiation
-	Status           NegotiationStatus
-	OrderID          *uuid.UUID // Set when order is created from this negotiation (prevents duplicate settlement)
+	ID           uuid.UUID
+	ResourceType NegotiationResourceType
+	ForSaleID    uuid.UUID
+	BuyerID      uuid.UUID
+	SellerID     uuid.UUID
+	ChatRoomID   *uuid.UUID // References the chat room for this negotiation
+	Status       NegotiationStatus
+	OrderID      *uuid.UUID // Set when order is created from this negotiation (prevents duplicate settlement)
 
 	// ExpiresAt is the timestamp when this negotiation expires
 	// - NULL means not set (legacy negotiations)
@@ -85,16 +85,16 @@ func NewNegotiationSession(
 	expiresAt := now.Add(DefaultNegotiationExpiration)
 
 	return &NegotiationSession{
-		ID:               uuid.New(),
-		ResourceType:     resourceType,
-		ForSaleID: forSaleID,
-		BuyerID:          buyerID,
-		SellerID:         sellerID,
-		Status:           NegotiationStatusActive,
-		OrderID:          nil,
-		ExpiresAt:        &expiresAt,
-		CreatedAt:        now,
-		UpdatedAt:        now,
+		ID:           uuid.New(),
+		ResourceType: resourceType,
+		ForSaleID:    forSaleID,
+		BuyerID:      buyerID,
+		SellerID:     sellerID,
+		Status:       NegotiationStatusActive,
+		OrderID:      nil,
+		ExpiresAt:    &expiresAt,
+		CreatedAt:    now,
+		UpdatedAt:    now,
 	}
 }
 
@@ -297,7 +297,13 @@ func (s *NegotiationSession) AcceptWithPrice() error {
 	now := time.Now()
 	s.AcceptedAt = &now
 
-	// STEP 6: Now transition to accepted status
+	// STEP 6: DEAL VALIDITY (owner truth) — the agreed price is valid for 24h
+	// FROM THE DEAL, not from session creation. Refresh ExpiresAt so a long
+	// counter cycle does not shrink the buyer's checkout window.
+	dealExpiresAt := now.Add(DefaultNegotiationExpiration)
+	s.ExpiresAt = &dealExpiresAt
+
+	// STEP 7: Now transition to accepted status
 	return s.transitionTo(NegotiationStatusAccepted)
 }
 
@@ -357,28 +363,6 @@ type UnauthorizedParticipantError struct {
 
 func (e *UnauthorizedParticipantError) Error() string {
 	return fmt.Sprintf("user is not a participant in this negotiation: session_id=%s, user_id=%s",
-		e.SessionID, e.UserID)
-}
-
-// NotBuyerError is returned when a non-buyer attempts a buyer-only operation.
-type NotBuyerError struct {
-	SessionID uuid.UUID
-	UserID    uuid.UUID
-}
-
-func (e *NotBuyerError) Error() string {
-	return fmt.Sprintf("only buyer can perform this operation: session_id=%s, user_id=%s",
-		e.SessionID, e.UserID)
-}
-
-// NotSellerError is returned when a non-seller attempts a seller-only operation.
-type NotSellerError struct {
-	SessionID uuid.UUID
-	UserID    uuid.UUID
-}
-
-func (e *NotSellerError) Error() string {
-	return fmt.Sprintf("only seller can perform this operation: session_id=%s, user_id=%s",
 		e.SessionID, e.UserID)
 }
 
@@ -449,10 +433,10 @@ func (e *StaleProposalError) Error() string {
 // ErrMultipleAcceptedNegotiations is returned when attempting to accept a second negotiation
 // for the same fixed-price sale and buyer when one already exists.
 type ErrMultipleAcceptedNegotiations struct {
-	BuyerID          uuid.UUID
-	ForSaleID uuid.UUID
-	ExistingID       uuid.UUID
-	NewID            uuid.UUID
+	BuyerID    uuid.UUID
+	ForSaleID  uuid.UUID
+	ExistingID uuid.UUID
+	NewID      uuid.UUID
 }
 
 func (e *ErrMultipleAcceptedNegotiations) Error() string {

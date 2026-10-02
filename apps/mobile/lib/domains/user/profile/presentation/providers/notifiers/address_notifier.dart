@@ -53,16 +53,16 @@ class AddressNotifier extends _$AddressNotifier {
     );
   }
 
-  /// Load addresses by purpose (shipping/sender)
-  Future<void> loadAddressesByPurpose(
+  /// Load addresses carrying [tag] (shipping/sender)
+  Future<void> loadAddressesByTag(
     String userId,
-    AddressPurpose purpose,
+    AddressTag tag,
   ) async {
     final repository = ref.read(addressRepositoryProvider);
 
     state = const AddressState(addresses: AsyncValue.loading());
 
-    final result = await repository.getAddressesByPurpose(userId, purpose);
+    final result = await repository.getAddressesByTag(userId, tag);
 
     result.fold(
       (error) {
@@ -76,14 +76,14 @@ class AddressNotifier extends _$AddressNotifier {
     );
   }
 
-  /// Load primary address
+  /// Load primary address (optionally narrowed to [tag])
   Future<void> loadPrimaryAddress(
     String userId, {
-    AddressPurpose? purpose,
+    AddressTag? tag,
   }) async {
     final repository = ref.read(addressRepositoryProvider);
 
-    final result = await repository.getPrimaryAddress(userId, purpose: purpose);
+    final result = await repository.getPrimaryAddress(userId, tag: tag);
 
     result.fold(
       (error) {
@@ -174,10 +174,10 @@ class AddressNotifier extends _$AddressNotifier {
   }
 
   /// Get address count
-  Future<int> getAddressCount(String userId, {AddressPurpose? purpose}) async {
+  Future<int> getAddressCount(String userId, {AddressTag? tag}) async {
     final repository = ref.read(addressRepositoryProvider);
 
-    final result = await repository.countAddresses(userId, purpose: purpose);
+    final result = await repository.countAddresses(userId, tag: tag);
 
     return result.fold((error) => 0, (count) => count);
   }

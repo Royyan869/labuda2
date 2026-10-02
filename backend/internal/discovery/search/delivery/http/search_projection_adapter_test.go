@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/labuda/backend/internal/discovery/search/entity"
+	productentity "github.com/labuda/backend/internal/commerce/product/entity"
 	"github.com/labuda/backend/internal/pkg/publiccard"
 )
 
@@ -114,7 +115,7 @@ func TestSearchProjectionAdapter_ForSaleWireParity(t *testing.T) {
 		Description:              "Beautiful showa",
 		Variety:                  "Showa",
 		Price:                    1500000,
-		MediaURLs:                []string{"https://example.com/fixed-price-sale.jpg"},
+		MediaURLs:                []productentity.ProductMedia{{URL: "https://example.com/fixed-price-sale.jpg"}},
 		SellerID:                 sellerID,
 		CreatedAt:                time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC),
 		SellerUsername:           "seller_user",
@@ -327,7 +328,7 @@ func TestSearchProjectionAdapter_PreservesInputOrder(t *testing.T) {
 		Price:     1,
 		SellerID:  uuid.New(),
 		CreatedAt: time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC),
-		MediaURLs: []string{},
+		MediaURLs: []productentity.ProductMedia{},
 	}
 	second := &entity.ForSalePreview{
 		ID:        uuid.New(),
@@ -336,7 +337,7 @@ func TestSearchProjectionAdapter_PreservesInputOrder(t *testing.T) {
 		Price:     2,
 		SellerID:  uuid.New(),
 		CreatedAt: time.Date(2026, time.January, 2, 0, 0, 0, 0, time.UTC),
-		MediaURLs: []string{},
+		MediaURLs: []productentity.ProductMedia{},
 	}
 
 	rows := forSalePreviewsToResponse([]*entity.ForSalePreview{first, second}, nil)

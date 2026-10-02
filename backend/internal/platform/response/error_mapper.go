@@ -118,16 +118,6 @@ func isNegotiationUnauthorizedParticipant(err error) bool {
 	return errors.As(err, &e)
 }
 
-func isNegotiationNotBuyer(err error) bool {
-	var e *negotiationEntity.NotBuyerError
-	return errors.As(err, &e)
-}
-
-func isNegotiationNotSeller(err error) bool {
-	var e *negotiationEntity.NotSellerError
-	return errors.As(err, &e)
-}
-
 func isNegotiationSessionNotActive(err error) bool {
 	var e *negotiationEntity.SessionNotActiveError
 	return errors.As(err, &e)
@@ -322,22 +312,6 @@ func MapErrorToResponse(err error) ErrorMapping {
 			StatusCode: http.StatusForbidden,
 			Code:       "NEGOTIATION_UNAUTHORIZED_PARTICIPANT",
 			Message:    "You are not a participant in this negotiation.",
-		}
-	}
-
-	if isNegotiationNotBuyer(err) {
-		return ErrorMapping{
-			StatusCode: http.StatusForbidden,
-			Code:       "NEGOTIATION_BUYER_ONLY",
-			Message:    "Only the buyer can perform this action.",
-		}
-	}
-
-	if isNegotiationNotSeller(err) {
-		return ErrorMapping{
-			StatusCode: http.StatusForbidden,
-			Code:       "NEGOTIATION_SELLER_ONLY",
-			Message:    "Only the seller can perform this action.",
 		}
 	}
 

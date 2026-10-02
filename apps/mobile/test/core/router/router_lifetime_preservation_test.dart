@@ -42,6 +42,8 @@ import 'package:labuda/domains/system/notification/services/local_notification_s
 import 'package:labuda/features/marketplace/marketplace.dart';
 import 'package:labuda/features/home/home.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
+import 'package:labuda/shared/providers/authenticated_account_provider.dart'
+    show authenticatedUserProvider;
 
 const _profileUserId = '00000000-0000-0000-0000-00000000a001';
 const _sellerUserId = '00000000-0000-0000-0000-00000000a002';
@@ -115,7 +117,7 @@ ForSale _buildForSale() {
     visibility: ForSaleVisibility.public,
     isNegotiable: true,
     viewCount: 0,
-    preparationTime: PreparationTime.immediate,
+    preparationTime: PreparationTime.days1_3,
     createdAt: now,
     updatedAt: now,
     variety: 'Showa',
@@ -831,7 +833,9 @@ Future<void> _refreshSamePrincipal(
   WidgetTester tester,
   ProviderContainer container,
 ) async {
-  await container.read(authControllerProvider.notifier).refreshUserData();
+  await container
+      .read(authControllerProvider.notifier)
+      .forceRefreshAuthState();
   await tester.pumpAndSettle();
 }
 
@@ -1017,6 +1021,70 @@ void main() {
       expect(container.read(goRouterProvider), same(routerBefore));
       expect(tester.state(find.byType(MainScreen)), same(mainState));
       expect(find.byType(MarketplaceScreen), findsOneWidget);
+    },
+  );
+
+  // Regression lock for the "screenshot → loading → splash → home" bug.
+  // The router used to be rebuilt (brand-new GoRouter at initialLocation
+  // /splash) on EVERY auth state change, so a single mid-session refresh was
+  // enough to throw the user off whatever screen they were on. A refresh that
+  // actually CHANGES the user must keep both the router instance and the open
+  // route.
+  testWidgets(
+    'mid-session authority refresh keeps router identity and the open route',
+    (tester) async {
+      final user = _buildUser(
+        id: _profileUserId,
+        hasSellerProfile: false,
+        hasMarketAuthority: true,
+      );
+      final refreshedUser = _buildUser(
+        id: _profileUserId,
+        hasSellerProfile: false,
+        hasMarketAuthority: false,
+      );
+      expect(
+        refreshedUser,
+        isNot(user),
+        reason: 'sanity: the refresh must actually change authority',
+      );
+
+      final container = await _buildContainer(
+        authState: _buildAuthenticatedState(user),
+        syncUser: refreshedUser,
+        forSale: _buildForSale(),
+        auction: _buildAuction(),
+      );
+      addTearDown(container.dispose);
+
+      await _pumpHarness(tester, container);
+      container.read(goRouterProvider).go(RoutePaths.settings);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SettingsScreen), findsOneWidget);
+      final settingsState = tester.state(find.byType(SettingsScreen));
+      final routerBefore = container.read(goRouterProvider);
+
+      // Real resume path: forceRefreshAuthState() publishes a NEW
+      // authenticated state because the fresh user's authority differs from
+      // the cached one.
+      await container
+      .read(authControllerProvider.notifier)
+      .forceRefreshAuthState();
+      await tester.pumpAndSettle();
+
+      expect(
+        container.read(authenticatedUserProvider)?.hasMarketAuthority,
+        isFalse,
+        reason: 'sanity: the fresh authority must have landed',
+      );
+      expect(container.read(goRouterProvider), same(routerBefore));
+      expect(
+        find.byType(SettingsScreen),
+        findsOneWidget,
+        reason: 'a session refresh must not eject the user to /splash → /home',
+      );
+      expect(tester.state(find.byType(SettingsScreen)), same(settingsState));
     },
   );
 }

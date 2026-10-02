@@ -181,7 +181,7 @@ class _SelfieCameraScreenState extends State<SelfieCameraScreen>
                     child: Container(
                       margin: const EdgeInsets.symmetric(
                         horizontal: AppMetrics.p32,
-                        vertical: AppMetrics.p60,
+                        vertical: AppMetrics.p48,
                       ),
                       child: Stack(
                         children: [
@@ -190,7 +190,7 @@ class _SelfieCameraScreenState extends State<SelfieCameraScreen>
                             child: AspectRatio(
                               aspectRatio: 1,
                               child: Container(
-                                margin: const EdgeInsets.all(AppMetrics.p40),
+                                margin: const EdgeInsets.all(AppMetrics.p48),
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                   border: Border.all(
@@ -273,7 +273,7 @@ class _SelfieCameraScreenState extends State<SelfieCameraScreen>
                                   Icon(
                                     Icons.credit_card,
                                     color: scheme.primary,
-                                    size: 20,
+                                    size: AppIconSize.action,
                                   ),
                                   const SizedBox(width: 6),
                                   Text(

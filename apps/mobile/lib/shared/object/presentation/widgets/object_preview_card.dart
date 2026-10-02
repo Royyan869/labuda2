@@ -66,11 +66,15 @@ class ObjectPreviewCard extends StatelessWidget {
                     if (showTypeBadge)
                       Text(
                         reference.targetType.displayName,
-                        style: TextStyle(
-                          fontSize: AppType.s12,
-                          color: scheme.primary,
-                          fontWeight: FontWeight.w600,
-                        ),
+                        // Role, not size: a caption/badge is `labelSmall` on the
+                        // documented mapping (AppTheme). The w600 and the brand
+                        // colour are the call site's own decisions, so they
+                        // stay here instead of being baked into the role.
+                        style:
+                            Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: scheme.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
                       ),
                     const SizedBox(height: AppMetrics.p4),
                     Text(

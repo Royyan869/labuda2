@@ -1,6 +1,49 @@
 import 'package:flutter/material.dart';
 import 'package:labuda/core/core.dart';
 
+/// The drag handle, as ONE authority.
+///
+/// Every sheet that showed a grab affordance used to spell `width: 40`,
+/// `height: 4`, `outlineVariant` ink and `AppShape.r2` for itself — ten
+/// spellings across ten files, several of them carrying a comment swearing they
+/// matched the link picker sheet. A comment claiming two hand-copies agree is
+/// exactly how they stop agreeing; the size, ink and radius live here now, and
+/// [AppBottomSheetBase]'s `showDragHandle` flag remains the one switch that
+/// decides whether a base sheet shows it at all.
+///
+/// The SPACE around the handle stays a per-sheet decision, because what sits
+/// below the handle decides it: the copies used four different margins
+/// (`top p12`, `top p12 + bottom p8`, `bottom p8`, `bottom p24`). The default
+/// below is the base sheet's canonical spacing, so the sites that had it pass
+/// nothing and the sites that differ say so.
+class AppDragHandle extends StatelessWidget {
+  const AppDragHandle({super.key, this.padding = _defaultPadding});
+
+  /// How much room the handle wants around itself.
+  final EdgeInsetsGeometry padding;
+
+  static const EdgeInsetsGeometry _defaultPadding = EdgeInsets.only(
+    top: AppMetrics.p12,
+    bottom: AppMetrics.p8,
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: padding,
+      child: Container(
+        width: 40,
+        height: 4,
+        decoration: BoxDecoration(
+          color: scheme.outlineVariant,
+          borderRadius: BorderRadius.circular(AppShape.r2),
+        ),
+      ),
+    );
+  }
+}
+
 /// Base AppBottomSheet with standard content support
 class AppBottomSheetBase {
   /// Show a standard bottom sheet with custom content
@@ -55,27 +98,19 @@ class AppBottomSheetBase {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Drag Handle
-              if (showDragHandle)
-                Container(
-                  margin: const EdgeInsets.only(top: AppMetrics.p12, bottom: AppMetrics.p8),
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-color: scheme.outlineVariant,
-                    borderRadius: BorderRadius.circular(AppShape.r2),
-                  ),
-                ),
+              // Drag Handle — one implementation ([AppDragHandle]); this flag is
+              // the switch.
+              if (showDragHandle) const AppDragHandle(),
 
               // Title Section
               if (title != null) ...[
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.fromLTRB(AppMetrics.p20, AppMetrics.p8, AppMetrics.p20, AppMetrics.p16),
+                  padding: const EdgeInsets.fromLTRB(AppMetrics.p24, AppMetrics.p8, AppMetrics.p24, AppMetrics.p16),
                   child: Text(
                     title,
                     style: TextStyle(
-                      fontSize: AppType.s18,
+                      fontSize: AppType.s20,
                       fontWeight: FontWeight.w600,
 color: scheme.onSurface,
                     ),
@@ -84,7 +119,7 @@ color: scheme.onSurface,
                 ),
                 Container(
                   height: 1,
-                  margin: const EdgeInsets.symmetric(horizontal: AppMetrics.p20),
+                  margin: const EdgeInsets.symmetric(horizontal: AppMetrics.p24),
                   decoration: BoxDecoration(
 color: scheme.outlineVariant,
                   ),
@@ -96,7 +131,7 @@ color: scheme.outlineVariant,
                 child: SingleChildScrollView(
                   child: Container(
                     width: double.infinity,
-                    padding: padding ?? const EdgeInsets.all(AppMetrics.p20),
+                    padding: padding ?? const EdgeInsets.all(AppMetrics.p24),
                     child: content,
                   ),
                 ),
@@ -106,7 +141,7 @@ color: scheme.outlineVariant,
               if (showSaveButton && onSave != null) ...[
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.fromLTRB(AppMetrics.p20, AppMetrics.p8, AppMetrics.p20, AppMetrics.p16),
+                  padding: const EdgeInsets.fromLTRB(AppMetrics.p24, AppMetrics.p8, AppMetrics.p24, AppMetrics.p16),
                   child: ElevatedButton(
                     onPressed: onSave,
                     style: ElevatedButton.styleFrom(

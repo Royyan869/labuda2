@@ -30,8 +30,8 @@ type auctionUpdateSpyRow struct {
 }
 
 func (r auctionUpdateSpyRow) Scan(dest ...any) error {
-	if len(dest) != 35 {
-		return fmt.Errorf("expected 35 scan destinations, got %d", len(dest))
+	if len(dest) != 34 {
+		return fmt.Errorf("expected 34 scan destinations, got %d", len(dest))
 	}
 
 	auction := r.auction
@@ -80,9 +80,8 @@ func (r auctionUpdateSpyRow) Scan(dest ...any) error {
 	*dest[29].(*[]string) = certs
 	*dest[30].(**uuid.UUID) = product.FarmAddressID
 	*dest[31].(*string) = product.PreparationTime
-	*dest[32].(**string) = product.PreparationNote
-	*dest[33].(*time.Time) = product.CreatedAt
-	*dest[34].(*time.Time) = product.UpdatedAt
+	*dest[32].(*time.Time) = product.CreatedAt
+	*dest[33].(*time.Time) = product.UpdatedAt
 	return nil
 }
 
@@ -153,7 +152,7 @@ func newAuctionForUpdateAuthority(status entity.Status, sellerID uuid.UUID) *ent
 			SellerID:        sellerID,
 			Title:           "Kohaku 50cm",
 			Description:     "Draft awal",
-			PreparationTime: string(forsaleEntity.PreparationTimeImmediate),
+			PreparationTime: string(forsaleEntity.PreparationTime1To3Days),
 		},
 	}
 }

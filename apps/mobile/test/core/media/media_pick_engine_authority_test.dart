@@ -162,6 +162,30 @@ void main() {
       }
     });
 
+    test('shimmer is banned on every media surface', () {
+      final offenders = <String>[];
+      for (final file in dartFiles()) {
+        final relative = file.path.replaceAll(r'\', '/');
+        if (!relative.endsWith('.dart')) continue;
+        final source = file.readAsStringSync();
+        for (final line in source.split('\n')) {
+          final trimmed = line.trim();
+          if (trimmed.startsWith('//')) continue;
+          if (trimmed.contains('Shimmer.fromColors') ||
+              trimmed.contains('package:shimmer/shimmer.dart')) {
+            offenders.add('$relative: $trimmed');
+          }
+        }
+      }
+      expect(
+        offenders,
+        isEmpty,
+        reason:
+            'shimmer sweeps were reported as visually disturbing on media '
+            'tiles; loading states are static mats. Offenders: $offenders',
+      );
+    });
+
     test('no local video-extension sniffing outside the engine', () {
       final offenders = <String>[];
       for (final file in dartFiles()) {

@@ -12,6 +12,7 @@ import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction.
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction_bid.dart';
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction_status.dart';
+import 'package:labuda/domains/commerce/catalog/auction/presentation/checkout_intent.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/auction_providers.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/providers/auction_recommendation_providers.dart'
     show ownerOtherAuctionsProvider, similarAuctionsProvider;
@@ -191,18 +192,6 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
         title: 'Auction Detail',
         showBackButton: true,
         actions: [
-          if (_isCurrentUserTheCreator(auction) &&
-              (auction.status == AuctionStatus.active ||
-                  auction.status == AuctionStatus.scheduled))
-            IconButton(
-              onPressed: () {
-                // Canonical era: promotion is contract-based; seller manages
-                // contracts from the canonical promotion list screen.
-                context.push(RoutePaths.sellerCanonicalPromotions);
-              },
-              icon: const Icon(Icons.campaign_outlined),
-              tooltip: 'Promote',
-            ),
           // Save button — non-owners only.
           if (!_isCurrentUserTheCreator(auction) && currentUserId.isNotEmpty)
             CommerceSavedItemActionButton(
@@ -300,7 +289,7 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
               SliverToBoxAdapter(child: AuctionBidHistory(bids: liveBids)),
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p0, AppMetrics.p16, AppMetrics.p80),
+                  padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p0, AppMetrics.p16, AppMetrics.p48),
                   child: AuctionRecommendationsSection(
                     currentAuction: auction,
                     ownerOtherAuctions: ownerOtherAuctionsAsync,
@@ -404,6 +393,16 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
   }
 
   void _showUnifiedActionModal(BuildContext context, Auction auction) {
+    // GUEST (Model B parity with the fixed-price detail bar): the bid
+    // affordance is presentation-only — route to the canonical sign-in flow
+    // BEFORE any email/capability gate so a guest never sees an
+    // authenticated-only error.
+    final authState = ref.read(authControllerProvider);
+    if (authState is! AuthStateAuthenticated) {
+      context.push(RoutePaths.signIn);
+      return;
+    }
+
     final isEmailVerified = ref.read(isEmailVerifiedProvider);
 
     if (!isEmailVerified) {
@@ -582,26 +581,17 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
       return;
     }
 
-    // CHECKOUT INTEGRATION: Navigate to checkout with auction context
-    // Auction must have a productId for checkout integration
-    if (auction.productId == null || auction.productId!.isEmpty) {
-      if (!mounted) return;
-      AppSnackBar.showError(
-        this.context,
-        'Unable to proceed with checkout. This auction is not linked to a product.',
-      );
-      return;
-    }
-
     if (!mounted) return;
 
-    // Navigate to checkout with auction context for buy-now flow.
-    // Path param slot (:fixedPriceSaleId) carries auction.id since this is
-    // an auction surface — source_type='auction' and source_id=auction.id
-    // are conveyed via query params so the checkout screen derives correct
-    // preview and order context.
-    this.context.push(
-      '/checkout/${auction.id}?product_id=${auction.productId ?? ''}&auction_id=${auction.id}',
+    // ONE FUNNEL: product id resolution, seller trust gate and the checkout
+    // route shape are the commerce intent's job (openAuctionCheckout). The
+    // detail screen builds no route and plumbs no product id of its own; the
+    // path param slot (:fixedPriceSaleId) carries auction.id while
+    // source_type='auction' + source_id=auction.id travel as query params.
+    await openAuctionCheckout(
+      context,
+      ref,
+      AuctionCheckoutIntent(auctionId: auction.id),
     );
   }
 
@@ -802,7 +792,7 @@ class _SettlementWarningBanner extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.all(AppMetrics.p6),
+            padding: const EdgeInsets.all(AppMetrics.p8),
             decoration: BoxDecoration(
               color: context.statusColors.warning.withValues(alpha: 0.15),
               shape: BoxShape.circle,
@@ -810,7 +800,7 @@ class _SettlementWarningBanner extends StatelessWidget {
             child: Icon(
               Icons.warning_amber_rounded,
               color: context.statusColors.warning,
-              size: 18,
+              size: AppIconSize.action,
             ),
           ),
           const SizedBox(width: 12),
@@ -821,7 +811,7 @@ class _SettlementWarningBanner extends StatelessWidget {
                 Text(
                   '⚠️ Selesaikan dalam 24 jam',
                   style: TextStyle(
-                    fontSize: AppType.s13,
+                    fontSize: AppType.s14,
                     fontWeight: FontWeight.w600,
                     color: scheme.onSurface,
                   ),

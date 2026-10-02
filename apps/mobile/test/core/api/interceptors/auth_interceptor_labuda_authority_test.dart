@@ -203,7 +203,7 @@ void main() {
       expect((adapter.lastOptions!.data as Map)['title'], equals('hello'));
     });
 
-    test('Public route remains without Authorization even when Labuda exists', () async {
+    test('Browse GET carries the Labuda token (viewer identity)', () async {
       final adapter = _CaptureAdapter();
       final dio = Dio()..httpClientAdapter = adapter;
       dio.interceptors.add(
@@ -211,12 +211,12 @@ void main() {
       );
 
       await dio.get<dynamic>('/api/v1/for-sale');
-      expect(adapter.lastAuth, isNull);
+      expect(adapter.lastAuth, equals('Bearer labuda-jwt'));
 
       await dio.get<dynamic>('/api/v1/users/some-uuid');
-      expect(adapter.lastAuth, isNull);
+      expect(adapter.lastAuth, equals('Bearer labuda-jwt'));
 
-      // POST to public prefix is NOT public — must attach
+      // POST to the same prefix behaves identically — one attach rule
       await dio.post<dynamic>('/api/v1/for-sale');
       expect(adapter.lastAuth, equals('Bearer labuda-jwt'));
     });

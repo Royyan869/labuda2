@@ -81,7 +81,7 @@ class CanonicalPromotionAnalyticsScreen extends ConsumerWidget {
           children: [
             Icon(
               Icons.error_outline,
-              size: 64,
+              size: AppIconSize.display,
               color: Theme.of(context).colorScheme.primary,
             ),
             const SizedBox(height: 16),
@@ -192,7 +192,7 @@ class CanonicalPromotionAnalyticsScreen extends ConsumerWidget {
                   'These metrics are projected directly from canonical delivery events. '
                   'They represent truthful measurements of your promotion\'s delivery performance.',
                   style: TextStyle(
-                    fontSize: AppType.s13,
+                    fontSize: AppType.s14,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
@@ -247,7 +247,7 @@ class _MetricsCard extends StatelessWidget {
               color: color.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, color: color, size: 24),
+            child: Icon(icon, color: color, size: AppIconSize.header),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -266,7 +266,7 @@ class _MetricsCard extends StatelessWidget {
                 Text(
                   value.toString(),
                   style: TextStyle(
-                    fontSize: AppType.s28,
+                    fontSize: AppType.s24,
                     fontWeight: FontWeight.bold,
                     color: Theme.of(context).colorScheme.onSurface,
                   ),

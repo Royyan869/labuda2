@@ -23,9 +23,9 @@ func (r *CommentMediaRepositoryImpl) CreateBatch(ctx context.Context, tx db.Tx, 
 			return fmt.Errorf("comment media is required")
 		}
 		if _, err := tx.Exec(ctx, `
-			INSERT INTO comment_media (id, comment_id, storage_key, media_url, media_type, position, byte_size, created_at)
-			VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-			m.ID, m.CommentID, m.StorageKey, m.MediaURL, string(m.MediaType), m.Position, m.ByteSize, m.CreatedAt,
+			INSERT INTO comment_media (id, comment_id, storage_key, media_url, media_type, position, byte_size, blurhash, duration_ms, width, height, status, created_at)
+			VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
+			m.ID, m.CommentID, m.StorageKey, m.MediaURL, string(m.MediaType), m.Position, m.ByteSize, m.Blurhash, m.DurationMs, m.Width, m.Height, m.Status, m.CreatedAt,
 		); err != nil {
 			return fmt.Errorf("failed to insert comment_media: %w", err)
 		}
@@ -38,7 +38,7 @@ func (r *CommentMediaRepositoryImpl) GetByCommentIDs(ctx context.Context, tx db.
 		return map[uuid.UUID][]*entity.CommentMedia{}, nil
 	}
 	rows, err := tx.Query(ctx, `
-		SELECT id, comment_id, storage_key, media_url, media_type, position, byte_size, created_at
+		SELECT id, comment_id, storage_key, media_url, media_type, position, byte_size, blurhash, duration_ms, width, height, status, created_at
 		FROM comment_media WHERE comment_id = ANY($1) ORDER BY comment_id, position`, commentIDs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query comment_media: %w", err)
@@ -48,7 +48,7 @@ func (r *CommentMediaRepositoryImpl) GetByCommentIDs(ctx context.Context, tx db.
 	for rows.Next() {
 		var m entity.CommentMedia
 		var mediaType string
-		if err := rows.Scan(&m.ID, &m.CommentID, &m.StorageKey, &m.MediaURL, &mediaType, &m.Position, &m.ByteSize, &m.CreatedAt); err != nil {
+		if err := rows.Scan(&m.ID, &m.CommentID, &m.StorageKey, &m.MediaURL, &mediaType, &m.Position, &m.ByteSize, &m.Blurhash, &m.DurationMs, &m.Width, &m.Height, &m.Status, &m.CreatedAt); err != nil {
 			return nil, err
 		}
 		m.MediaType = entity.MediaType(mediaType)

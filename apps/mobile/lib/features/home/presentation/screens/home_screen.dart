@@ -180,15 +180,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           children: [
             // Icon with friendly emoji
             Container(
-              width: 100,
-              height: 100,
+              padding: const EdgeInsets.all(AppMetrics.p24),
               decoration: BoxDecoration(
                 color: scheme.primary.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 Icons.emoji_emotions_outlined,
-                size: 48,
+                size: AppIconSize.display,
                 color: scheme.primary,
               ),
             ),
@@ -233,9 +232,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     required VoidCallback onTap,
   }) {
     return SizedBox(
-      width: 280,
+      width: AppContentSize.actionWidth,
       child: FilledButton.icon(
-        icon: Icon(icon, size: 22),
+        icon: Icon(icon, size: AppIconSize.header),
         label: Text(
           label,
           style: const TextStyle(fontSize: AppType.s16, fontWeight: FontWeight.w600),
@@ -257,20 +256,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final scheme = Theme.of(context).colorScheme;
 
     return SizedBox(
-      width: 280,
+      width: AppContentSize.actionWidth,
       child: OutlinedButton.icon(
-        icon: Icon(icon, size: 20),
+        icon: Icon(icon, size: AppIconSize.action),
         label: Text(
           label,
           style: TextStyle(
-            fontSize: AppType.s15,
+            fontSize: AppType.s16,
             fontWeight: FontWeight.w500,
             color: scheme.onSurface,
           ),
         ),
         onPressed: onTap,
         style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14, horizontal: AppMetrics.p24),
+          padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16, horizontal: AppMetrics.p24),
         ),
       ),
     );
@@ -293,13 +292,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         children: [
           Icon(
             Icons.error_outline,
-            size: 64,
+            size: AppIconSize.display,
             color: scheme.error,
           ),
           const SizedBox(height: 16),
           const Text(
             'Feed belum bisa dimuat',
-            style: TextStyle(fontSize: AppType.s18, fontWeight: FontWeight.w500),
+            style: TextStyle(fontSize: AppType.s20, fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 8),
           Text(

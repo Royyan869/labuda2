@@ -6,6 +6,7 @@ import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart';
 import 'package:labuda/domains/chat/chat/presentation/providers/chat_providers.dart';
 import 'package:labuda/domains/chat/chat/presentation/providers/chat_state.dart';
 import 'package:labuda/domains/chat/chat/presentation/widgets/chat_input_area.dart';
+import 'package:labuda/domains/commerce/negotiation/negotiation/domain/entities/negotiation.dart';
 import 'package:labuda/domains/commerce/negotiation/negotiation/presentation/providers/negotiation_notifier.dart';
 import 'package:labuda/domains/commerce/negotiation/negotiation/presentation/providers/negotiation_providers.dart';
 import 'package:labuda/domains/commerce/negotiation/negotiation/presentation/providers/negotiation_state.dart';
@@ -46,6 +47,18 @@ class _FakeNegotiationNotifier extends NegotiationNotifier {
   NegotiationState build() => const NegotiationState();
 }
 
+/// Carries a specific per-room session into the composer scope so the test
+/// can prove the composer renders NO negotiation UI regardless of state
+/// (authority lives on the commerce-owned NegotiationProposalCard).
+class _SessionNegotiationNotifier extends NegotiationNotifier {
+  _SessionNegotiationNotifier(this.session);
+
+  final Negotiation session;
+
+  @override
+  NegotiationState build() => NegotiationState(currentNegotiation: session);
+}
+
 class _FakeChatDetailNotifier extends ChatDetail {
   @override
   ChatDetailState build(String chatId) {
@@ -63,13 +76,17 @@ class _FakeChatDetailNotifier extends ChatDetail {
   }
 }
 
-ProviderScope _wrap(Widget child) {
+ProviderScope _wrap(Widget child, {Negotiation? negotiation}) {
   return ProviderScope(
     overrides: [
       authControllerProvider.overrideWith(_FakeAuthController.new),
       currentUserIdProvider.overrideWith((ref) => _currentUserId),
       chatDetailProvider(_chatId).overrideWith(_FakeChatDetailNotifier.new),
-      negotiationNotifierProvider.overrideWith(_FakeNegotiationNotifier.new),
+      negotiationNotifierProvider.overrideWith(
+        negotiation == null
+            ? _FakeNegotiationNotifier.new
+            : () => _SessionNegotiationNotifier(negotiation),
+      ),
     ],
     child: MaterialApp(
       home: Scaffold(
@@ -147,5 +164,99 @@ void main() {
     // exists in the widget.
     expect(capturedContent, isNull);
     expect(capturedType, isNull);
+  });
+
+  Negotiation _session({
+    required String sellerId,
+    required String buyerId,
+    required NegotiationStatus status,
+    String lastOfferBy = 'buyer',
+    double? agreedPrice,
+    DateTime? expiresAt,
+  }) {
+    final now = DateTime.utc(2026, 8, 1);
+    return Negotiation(
+      id: 'nego-session-1',
+      chatId: _chatId,
+      fixedPriceSaleId: 'for-sale-1',
+      forSaleName: 'Showa Koi 30cm',
+      originalPrice: 1000000,
+      buyerId: buyerId,
+      buyerName: 'buyer',
+      sellerId: sellerId,
+      status: status,
+      currentOfferPrice: 25000,
+      lastOfferBy: lastOfferBy,
+      agreedPrice: agreedPrice,
+      expiresAt: expiresAt,
+      createdAt: now,
+      updatedAt: now,
+    );
+  }
+
+  Widget _input({Negotiation? negotiation}) {
+    return _wrap(
+      ChatInputArea(
+        chatId: _chatId,
+        messageController: TextEditingController(),
+        onSendMessage: (_, {MessageType type = MessageType.text}) async {},
+        onAttachmentTap: () {},
+      ),
+      negotiation: negotiation,
+    );
+  }
+
+  testWidgets(
+    'composer never renders negotiation actions even on the viewer turn',
+    (tester) async {
+      // Seller (current user) is the responder, but the composer carries no
+      // negotiation UI anymore: Terima/Counter/Tolak live on the
+      // commerce-owned NegotiationProposalCard mounted in the stream
+      // (owner rule: chat never handles commerce).
+      await tester.pumpWidget(
+        _input(
+          negotiation: _session(
+            sellerId: _currentUserId,
+            buyerId: _otherUserId,
+            status: NegotiationStatus.active,
+            lastOfferBy: 'buyer',
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text('Giliran Anda Merespons'), findsNothing);
+      expect(find.text('Menunggu Penjual Menjawab'), findsNothing);
+      expect(find.text('Terima'), findsNothing);
+      expect(find.text('Counter'), findsNothing);
+      expect(find.text('Tolak'), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('composer never renders the accepted-deal block or Beli CTA', (
+    tester,
+  ) async {
+    // The sticky deal banner is gone; the Harga Disetujui + Beli + 24h
+    // validity block renders only inside the commerce proposal card.
+    await tester.pumpWidget(
+      _input(
+        negotiation: _session(
+          sellerId: _otherUserId,
+          buyerId: _currentUserId,
+          status: NegotiationStatus.accepted,
+          lastOfferBy: 'buyer',
+          agreedPrice: 25000,
+          expiresAt: DateTime.now().add(const Duration(hours: 25)),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('Harga Disetujui!'), findsNothing);
+    expect(find.textContaining('Rp 25.000'), findsNothing);
+    expect(find.textContaining('Harga deal berlaku sisa'), findsNothing);
+    expect(find.text('Beli dengan Harga Deal'), findsNothing);
+    expect(tester.takeException(), isNull);
   });
 }

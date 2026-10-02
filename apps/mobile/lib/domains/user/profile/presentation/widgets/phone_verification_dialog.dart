@@ -122,7 +122,7 @@ class _PhoneVerificationDialogState
             borderRadius: BorderRadius.circular(AppShape.r16),
           ),
           insetPadding: const EdgeInsets.symmetric(
-            horizontal: AppMetrics.p20,
+            horizontal: AppMetrics.p24,
             vertical: AppMetrics.p24,
           ),
           child: SingleChildScrollView(

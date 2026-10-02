@@ -114,7 +114,9 @@ class _MediaViewerWidgetState extends State<MediaViewerWidget> {
         });
       },
       itemBuilder: (context, index) {
-        return Center(child: _buildMediaItem(widget.media[index]));
+        return Center(
+          child: _buildMediaItem(widget.media[index], index == _currentIndex),
+        );
       },
     );
   }
@@ -123,16 +125,25 @@ class _MediaViewerWidgetState extends State<MediaViewerWidget> {
   ///
   /// [MediaEntity.type] is the render authority — no extension sniffing, no
   /// fallback decoder for video references.
-  Widget _buildMediaItem(MediaEntity media) {
+  Widget _buildMediaItem(MediaEntity media, bool isActive) {
     if (media.type == MediaType.video) {
-      return MediaViewerVideoPlayer(videoUrl: media.originalUrl);
+      return MediaViewerVideoPlayer(
+        videoUrl: media.originalUrl,
+        posterUrl: media.thumbnailUrl != media.originalUrl
+            ? media.thumbnailUrl
+            : null,
+        // Visibility-aware: swiping to a sibling pauses this player and
+        // only the current page holds an initialized controller.
+        isActive: isActive,
+      );
     }
-    return _buildImage(media.originalUrl);
+    return _buildImage(media);
   }
 
-  /// Image frame: blurred backdrop + zoomable canonical image. Both layers
-  /// render through [AppImage]; the shared HTTP cache serves the second layer.
-  Widget _buildImage(String imageUrl) {
+  /// Image frame: blurhash first (instant), blurred backdrop + zoomable
+  /// canonical image after. All layers render through [AppImage]; the shared
+  /// HTTP cache serves the repeated layers.
+  Widget _buildImage(MediaEntity media) {
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -145,7 +156,8 @@ class _MediaViewerWidgetState extends State<MediaViewerWidget> {
               tileMode: TileMode.decal,
             ),
             child: AppImage(
-              imageUrl: imageUrl,
+              imageUrl: media.originalUrl,
+              blurhash: media.blurhash,
               fit: BoxFit.cover,
               errorWidget: const SizedBox.shrink(),
             ),
@@ -160,7 +172,8 @@ class _MediaViewerWidgetState extends State<MediaViewerWidget> {
           minScale: 0.5,
           maxScale: 3.0,
           child: AppImage(
-            imageUrl: imageUrl,
+            imageUrl: media.originalUrl,
+            blurhash: media.blurhash,
             fit: BoxFit.contain,
             errorWidget: const SizedBox.shrink(),
           ),

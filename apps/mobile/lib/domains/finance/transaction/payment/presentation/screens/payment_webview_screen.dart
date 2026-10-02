@@ -209,7 +209,7 @@ class _ExternalAppGuidanceBannerState
           children: [
             Icon(
               Icons.open_in_new,
-              size: 16,
+              size: AppIconSize.inlineGlyph,
               color: Theme.of(context).colorScheme.onSecondaryContainer,
             ),
             const SizedBox(width: 8),
@@ -227,7 +227,7 @@ class _ExternalAppGuidanceBannerState
               onTap: () => setState(() => _dismissed = true),
               child: Icon(
                 Icons.close,
-                size: 16,
+                size: AppIconSize.inlineGlyph,
                 color: Theme.of(context).colorScheme.onSecondaryContainer,
               ),
             ),

@@ -13,8 +13,14 @@ import (
 )
 
 const (
-	// DefaultPollInterval is how often the worker checks for pending events
-	DefaultPollInterval = 5 * time.Second
+	// DefaultPollInterval is how often the worker checks for pending events.
+	//
+	// REALTIME CONTRACT: this worker is the bridge from outbox to live
+	// WebSocket clients. At 5s a "chat.room.updated" push landed 5s after the
+	// message row existed — an open chat reads that as "not realtime". 250ms
+	// of one indexed SELECT is negligible; keep it in step with the outbox
+	// worker's poll so the two delays do not stack.
+	DefaultPollInterval = 250 * time.Millisecond
 
 	// DefaultBatchSize is max events to process per batch
 	DefaultBatchSize = 50

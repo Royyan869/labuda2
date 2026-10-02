@@ -262,7 +262,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
                     icon: Icon(
                       Icons.close,
                       color: colorScheme.onPrimary,
-                      size: 28,
+                      size: AppIconSize.emphasis,
                     ),
                   ),
 
@@ -288,7 +288,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
                     icon: Icon(
                       Icons.flip_camera_ios,
                       color: colorScheme.onPrimary,
-                      size: 28,
+                      size: AppIconSize.emphasis,
                     ),
                   ),
                 ],
@@ -336,7 +336,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
                           Icon(
                             Icons.fiber_manual_record,
                             color: colorScheme.onPrimary,
-                            size: 16,
+                            size: AppIconSize.inlineGlyph,
                           ),
                           const SizedBox(width: 8),
                           Text(
@@ -383,7 +383,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
                             ? Icon(
                                 Icons.stop,
                                 color: colorScheme.onPrimary,
-                                size: 36,
+                                size: AppIconSize.emphasis,
                               )
                             : null,
                       ),
@@ -414,7 +414,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
           style: TextStyle(
             color: colorScheme.onPrimary,
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-            fontSize: AppType.s13,
+            fontSize: AppType.s14,
           ),
         ),
       ),
@@ -438,7 +438,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
                       child: Icon(
                         Icons.play_circle_outline,
                         color: colorScheme.onPrimary,
-                        size: 80,
+                        size: AppIconSize.display,
                       ),
                     ),
                   ),
@@ -473,7 +473,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
                     icon: Icon(
                       Icons.close,
                       color: colorScheme.onPrimary,
-                      size: 28,
+                      size: AppIconSize.emphasis,
                     ),
                   ),
                 ],

@@ -22,8 +22,6 @@ class AppColors {
   static const Color neutralGray400 = Color(0xFF9CA3AF);
   static const Color neutralGray500 = Color(0xFF6B7280);
   static const Color neutralGray600 = Color(0xFF4B5563);
-  static const Color neutralGray700 = Color(0xFF374151);
-  static const Color neutralGray800 = Color(0xFF1F2937);
   static const Color neutralGray900 = Color(0xFF111827);
   static const Color neutralBlack = Color(0xFF000000);
 
@@ -56,7 +54,6 @@ class AppColors {
 
   // Social media specific colors
   static const Color koiOrange = Color(0xFFFF6B35);
-  static const Color koiBlue = Color(0xFF1DA1F2);
   static const Color koiGold = Color(0xFFFFD700);
 
   // LABUDA Coins colors
@@ -66,18 +63,6 @@ class AppColors {
   // Gradients
   static const LinearGradient primaryGradient = LinearGradient(
     colors: [primaryRed, primaryPink],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
-
-  static const LinearGradient successGradient = LinearGradient(
-    colors: [primaryGreen, Color(0xFF34D399)],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
-
-  static const LinearGradient warningGradient = LinearGradient(
-    colors: [primaryYellow, Color(0xFFFBBF24)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );

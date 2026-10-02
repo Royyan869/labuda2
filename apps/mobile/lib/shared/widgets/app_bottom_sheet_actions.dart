@@ -51,7 +51,7 @@ class AppBottomSheetActions {
           // Subtitle
           if (subtitle != null) ...[
             Padding(
-              padding: const EdgeInsets.only(bottom: AppMetrics.p20),
+              padding: const EdgeInsets.only(bottom: AppMetrics.p24),
               child: Text(
                 subtitle,
                 style: TextStyle(
@@ -126,7 +126,7 @@ color: scheme.onSurfaceVariant,
                   child: Icon(
                     action.icon,
                     color: action.iconColor ?? scheme.primary,
-                    size: 20,
+                    size: AppIconSize.action,
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -186,7 +186,7 @@ style: TextStyle(
               Icon(
                 Icons.chevron_right,
                 color: scheme.onSurfaceVariant,
-                size: 20,
+                size: AppIconSize.action,
               ),
             ],
           ),

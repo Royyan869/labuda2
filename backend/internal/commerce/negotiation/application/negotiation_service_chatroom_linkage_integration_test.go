@@ -22,13 +22,13 @@ import (
 	"github.com/google/uuid"
 
 	forsaleEntity "github.com/labuda/backend/internal/commerce/forsale/entity"
-	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
-	productInfraRepo "github.com/labuda/backend/internal/commerce/product/infrastructure/repository"
 	forsaleImpl "github.com/labuda/backend/internal/commerce/forsale/infrastructure/repository"
 	forsaleRepo "github.com/labuda/backend/internal/commerce/forsale/repository"
 	negotiationApp "github.com/labuda/backend/internal/commerce/negotiation/application"
 	negotiationEntity "github.com/labuda/backend/internal/commerce/negotiation/entity"
 	negotiationImpl "github.com/labuda/backend/internal/commerce/negotiation/infrastructure/repository"
+	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
+	productInfraRepo "github.com/labuda/backend/internal/commerce/product/infrastructure/repository"
 	"github.com/labuda/backend/internal/config"
 	chatEntity "github.com/labuda/backend/internal/interaction/chat/entity"
 	chatImpl "github.com/labuda/backend/internal/interaction/chat/infrastructure/repository"
@@ -99,22 +99,21 @@ func insertLinkageTestForSale(
 ) uuid.UUID {
 	t.Helper()
 	sale_product := &productEntity.Product{
-	SellerID: sellerID,
-	Title: "Test Kohaku Koi",
-	Description: "Linkage fixture",
-	MediaURLs: []string{"https://picsum.photos/seed/koi-linkage/800/600"},
-	Variety: "Kohaku",
-	SizeCm: intPtr(30),
-	AgeMonths: intPtr(12),
-	Gender: strPtr("female"),
-	Breeder: nil,
-	Bloodline: nil,
-	Certificates: []string{"global"},
-	FarmAddressID: nil,
-	PreparationTime: string(forsaleEntity.PreparationTimeImmediate),
-	PreparationNote: nil,
-	SellingSurface: productEntity.SellingSurfaceForSale,
-}
+		SellerID:        sellerID,
+		Title:           "Test Kohaku Koi",
+		Description:     "Linkage fixture",
+		MediaURLs:       []string{"https://picsum.photos/seed/koi-linkage/800/600"},
+		Variety:         "Kohaku",
+		SizeCm:          intPtr(30),
+		AgeMonths:       intPtr(12),
+		Gender:          strPtr("female"),
+		Breeder:         nil,
+		Bloodline:       nil,
+		Certificates:    []string{"global"},
+		FarmAddressID:   nil,
+		PreparationTime: string(forsaleEntity.PreparationTime1To3Days),
+		SellingSurface:  productEntity.SellingSurfaceForSale,
+	}
 	productRepo := productInfraRepo.NewProductRepository()
 	if err := productRepo.Create(ctx, tx, sale_product); err != nil {
 		t.Fatalf("productRepo.Create: %v", err)
@@ -348,7 +347,7 @@ func TestNegotiationMutation_RejectsUnrelatedBystanderEvenKnowingSessionID(t *te
 		t.Fatalf("StartNegotiation failed: %v", err)
 	}
 
-	if err := h.svc.SendCounterOffer(ctx, negotiationApp.SendCounterOfferRequest{
+	if _, err := h.svc.SendCounterOffer(ctx, negotiationApp.SendCounterOfferRequest{
 		SessionID: session.ID,
 		SenderID:  bystanderID,
 		Price:     350000,
@@ -358,14 +357,14 @@ func TestNegotiationMutation_RejectsUnrelatedBystanderEvenKnowingSessionID(t *te
 
 	if _, err := h.svc.AcceptNegotiation(ctx, negotiationApp.AcceptNegotiationRequest{
 		SessionID: session.ID,
-		SellerID:  bystanderID,
+		ActorID:   bystanderID,
 	}); err == nil {
 		t.Fatal("bystander AcceptNegotiation succeeded — must be rejected")
 	}
 
 	if err := h.svc.CancelNegotiation(ctx, negotiationApp.CancelNegotiationRequest{
 		SessionID: session.ID,
-		BuyerID:   bystanderID,
+		ActorID:   bystanderID,
 	}); err == nil {
 		t.Fatal("bystander CancelNegotiation succeeded — must be rejected")
 	}

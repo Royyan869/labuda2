@@ -1,9 +1,21 @@
 import 'package:flutter/material.dart';
 
+/// Canonical certificate vocabulary for commerce products (ForSale & Auction).
+///
+/// This list is the ONE mobile authority. It mirrors the backend vocabulary
+/// (`product/entity.CanonicalCertificateOrder`, ordered breeder → contest →
+/// import → health); the product detail section renders its labels through
+/// this same list, so a value can never exist in one place and be missing in
+/// the other.
+///
+/// Business truth (owner): a certificate is a plain statement the seller makes
+/// about the fish — contest, breeder, import, or health — so buyers know the
+/// fish is certified. It is product text like breeder/bloodline, never a
+/// document upload.
 const List<CommerceCertificateOption> commerceCertificateOptions = [
   CommerceCertificateOption('breeder', 'Breeder'),
   CommerceCertificateOption('contest', 'Kontes'),
-  CommerceCertificateOption('ownership', 'Kepemilikan'),
+  CommerceCertificateOption('import', 'Import'),
   CommerceCertificateOption('health', 'Kesehatan'),
 ];
 

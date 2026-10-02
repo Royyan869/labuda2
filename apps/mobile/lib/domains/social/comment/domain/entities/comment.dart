@@ -8,12 +8,16 @@ class CommentMedia extends Equatable {
   final String mediaUrl;
   final String mediaType;
   final int position;
+  final String? thumbnailUrl;
+  final String? blurhash;
 
   const CommentMedia({
     required this.id,
     required this.mediaUrl,
     required this.mediaType,
     required this.position,
+    this.thumbnailUrl,
+    this.blurhash,
   });
 
   bool get isVideo => mediaType == 'video';

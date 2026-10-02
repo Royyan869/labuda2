@@ -125,7 +125,7 @@ func TestFpsCatalog_SurvivesProductLifecycleRemoval(t *testing.T) {
 		require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
 			if _, err := tx.Exec(ctx, `
 				INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, created_at, updated_at)
-				VALUES ($1, $2, 'Kohaku', 'desc', '[]'::jsonb, 'kohaku', 'immediate', NOW(), NOW())
+				VALUES ($1, $2, 'Kohaku', 'desc', '[]'::jsonb, 'kohaku', '1_3_days', NOW(), NOW())
 			`, productID, sellerID); err != nil {
 				return err
 			}
@@ -185,7 +185,7 @@ func TestFpsCatalog_SurvivesProductLifecycleRemoval(t *testing.T) {
 	require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, created_at, updated_at)
-			VALUES ($1, $2, 'Auction Koi', 'desc', '[]'::jsonb, 'kohaku', 'immediate', NOW(), NOW())
+			VALUES ($1, $2, 'Auction Koi', 'desc', '[]'::jsonb, 'kohaku', '1_3_days', NOW(), NOW())
 		`, auctionProductID, sellerID); err != nil {
 			return err
 		}

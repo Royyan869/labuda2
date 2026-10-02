@@ -69,7 +69,7 @@ class AuctionRecommendationsSection extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         SizedBox(
-          height: 180,
+          height: AppContentSize.preview,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: auctions.length,
@@ -78,7 +78,7 @@ class AuctionRecommendationsSection extends StatelessWidget {
               final auction = auctions[index];
               final colorScheme = Theme.of(context).colorScheme;
               return SizedBox(
-                width: 140,
+                width: AppContentSize.mediaCard,
                 child: Card(
                   clipBehavior: Clip.antiAlias,
                   child: InkWell(

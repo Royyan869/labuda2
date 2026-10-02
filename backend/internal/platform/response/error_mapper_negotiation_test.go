@@ -81,18 +81,6 @@ func TestMapErrorToResponse_NegotiationErrors(t *testing.T) {
 			wantCode:   "NEGOTIATION_UNAUTHORIZED_PARTICIPANT",
 		},
 		{
-			name:       "not buyer",
-			err:        &negotiationEntity.NotBuyerError{SessionID: sessionID, UserID: sellerID},
-			wantStatus: http.StatusForbidden,
-			wantCode:   "NEGOTIATION_BUYER_ONLY",
-		},
-		{
-			name:       "not seller",
-			err:        &negotiationEntity.NotSellerError{SessionID: sessionID, UserID: buyerID},
-			wantStatus: http.StatusForbidden,
-			wantCode:   "NEGOTIATION_SELLER_ONLY",
-		},
-		{
 			name:       "session not active",
 			err:        &negotiationEntity.SessionNotActiveError{SessionID: sessionID, CurrentStatus: negotiationEntity.NegotiationStatusCancelled},
 			wantStatus: http.StatusConflict,

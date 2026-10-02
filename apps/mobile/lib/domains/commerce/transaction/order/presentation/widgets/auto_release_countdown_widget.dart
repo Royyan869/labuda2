@@ -12,6 +12,7 @@ library;
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:labuda/core/core.dart' as core;
+import 'package:labuda/core/src/theme/app_theme.dart';
 import 'package:labuda/shared/utils/app_formatters.dart';
 import 'package:labuda/domains/commerce/transaction/order/domain/entities/order_status.dart';
 
@@ -141,7 +142,7 @@ class _AutoReleaseCountdownWidgetState
                   color: hasExpired
                       ? context.statusColors.success
                       : colorScheme.secondary,
-                  size: 18,
+                  size: AppIconSize.action,
                 ),
               ),
               const SizedBox(width: 10),
@@ -153,7 +154,7 @@ class _AutoReleaseCountdownWidgetState
                       hasExpired
                           ? 'Waktu Pemeriksaan Barang Berakhir'
                           : 'Waktu Pemeriksaan Barang',                        style: TextStyle(
-                          fontSize: core.AppType.s13,
+                          fontSize: core.AppType.s14,
                           fontWeight: FontWeight.w600,
                           color: colorScheme.onSurface,
                         ),
@@ -164,7 +165,7 @@ class _AutoReleaseCountdownWidgetState
                             ? 'Selama masa ini Anda masih bisa menghubungi penjual atau mengajukan bantuan'
                             : 'Proses penjualan akan selesai setelah masa ini berakhir',
                         style: TextStyle(
-                          fontSize: core.AppType.s11,
+                          fontSize: core.AppType.s12,
                           color: colorScheme.onSurfaceVariant,
                         ),
                       ),
@@ -186,7 +187,7 @@ class _AutoReleaseCountdownWidgetState
             children: [
               Icon(
                 Icons.event_outlined,
-                size: 12,
+                size: AppIconSize.inlineGlyph,
                 color: colorScheme.onSurfaceVariant,
               ),
               const SizedBox(width: 4),
@@ -195,7 +196,7 @@ class _AutoReleaseCountdownWidgetState
                     ? 'Masa pemeriksaan telah berakhir'
                     : 'Berakhir: ${AppFormatters.formatDate(widget.autoReleaseAt!)}',
                 style: TextStyle(
-                  fontSize: core.AppType.s10,
+                  fontSize: core.AppType.s12,
                   color: colorScheme.onSurfaceVariant,
                 ),
               ),
@@ -244,7 +245,7 @@ class _CountdownDisplay extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.schedule, color: color, size: 20),
+          Icon(Icons.schedule, color: color, size: AppIconSize.action),
           const SizedBox(width: 8),
           Text(
             daysText,

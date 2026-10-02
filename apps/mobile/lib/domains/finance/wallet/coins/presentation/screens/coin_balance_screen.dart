@@ -45,7 +45,7 @@ class _CoinBalanceScreenState extends ConsumerState<CoinBalanceScreen> {
     );
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Coins'), elevation: AppElevation.none),
+      appBar: AppBar(title: const Text('Coins'),),
       body: balanceAsync.when(
         data: (balance) {
           if (balance == null) {
@@ -172,7 +172,7 @@ class _CoinBalanceScreenState extends ConsumerState<CoinBalanceScreen> {
         trailing: Text(
           '${transaction.amount > 0 ? '+' : ''}${transaction.amount}',
           style: TextStyle(
-            fontSize: AppType.s15,
+            fontSize: AppType.s16,
             fontWeight: FontWeight.bold,
             color: transaction.amount > 0
                 ? context.statusColors.success
@@ -190,7 +190,7 @@ class _CoinBalanceScreenState extends ConsumerState<CoinBalanceScreen> {
 
     return CircleAvatar(
       backgroundColor: color.withValues(alpha: 0.15),
-      child: const Icon(iconData, color: color, size: 20),
+      child: const Icon(iconData, color: color, size: AppIconSize.action),
     );
   }
 
@@ -221,11 +221,11 @@ class _CoinBalanceScreenState extends ConsumerState<CoinBalanceScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.stars_outlined, size: 64, color: AppColors.coinPrimary),
+          Icon(Icons.stars_outlined, size: AppIconSize.display, color: AppColors.coinPrimary),
           SizedBox(height: 16),
           Text(
             'Belum ada Coins',
-            style: TextStyle(fontSize: AppType.s18, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: AppType.s20, fontWeight: FontWeight.bold),
           ),
           SizedBox(height: 8),
           Text(
@@ -251,13 +251,13 @@ class _CoinBalanceScreenState extends ConsumerState<CoinBalanceScreen> {
           children: [
             Icon(
               Icons.error_outline,
-              size: 64,
+              size: AppIconSize.display,
               color: context.statusColors.error,
             ),
             const SizedBox(height: 16),
             const Text(
               'Terjadi Kesalahan',
-              style: TextStyle(fontSize: AppType.s18, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: AppType.s20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(

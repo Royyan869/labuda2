@@ -88,12 +88,18 @@ class _UserInfoTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    // ONE identity authority: the canonical pairing (store name primary,
+    // handle secondary) comes from the identity model.
     final sellerIdentity = showSellerIdentity
-        ? buildCommerceSellerIdentity(
+        ? SellerIdentityData(
+            userId: userId,
             username: sellerUsername,
             storeName: sellerFarmName,
+            avatarUrl: sellerAvatarUrl,
           )
         : null;
+    final sellerPrimaryLabel = sellerIdentity?.primaryLabel;
+    final sellerSecondaryLabel = sellerIdentity?.secondaryLabel;
 
     return Row(
       children: [
@@ -116,14 +122,14 @@ class _UserInfoTile extends ConsumerWidget {
                     errorWidget: Icon(
                       Icons.person_outline,
                       color: colorScheme.primary,
-                      size: 20,
+                      size: AppIconSize.action,
                     ),
                   ),
                 )
               : Icon(
                   Icons.person_outline,
                   color: colorScheme.primary,
-                  size: 20,
+                  size: AppIconSize.action,
                 ),
         ),
         const SizedBox(width: 12),
@@ -142,18 +148,18 @@ class _UserInfoTile extends ConsumerWidget {
                   const SizedBox(width: 8),
                 ],
               ),
-              if (sellerIdentity != null) ...[
+              if (sellerPrimaryLabel != null) ...[
                 Text(
-                  sellerIdentity.line1,
+                  sellerPrimaryLabel,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                     fontSize: core.AppType.s12,
                   ),
                 ),
-                if (sellerIdentity.line2 != null) ...[
+                if (sellerSecondaryLabel != null) ...[
                   const SizedBox(height: 2),
                   Text(
-                    sellerIdentity.line2!,
+                    sellerSecondaryLabel,
                     style: theme.textTheme.bodyMedium?.copyWith(fontSize: core.AppType.s12),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -170,7 +176,7 @@ class _UserInfoTile extends ConsumerWidget {
             ],
           ),
         ),
-        Icon(Icons.chevron_right, color: colorScheme.onSurfaceVariant, size: 20),
+        Icon(Icons.chevron_right, color: colorScheme.onSurfaceVariant, size: AppIconSize.action),
       ],
     );
   }
@@ -218,7 +224,7 @@ class _ChatButton extends ConsumerWidget {
       onTap: () => _handleChatTap(context, ref),
       borderRadius: BorderRadius.circular(core.AppShape.r8),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: core.AppMetrics.p12, vertical: core.AppMetrics.p6),
+        padding: const EdgeInsets.symmetric(horizontal: core.AppMetrics.p12, vertical: core.AppMetrics.p8),
         decoration: BoxDecoration(
           color: colorScheme.primary.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(core.AppShape.r8),
@@ -231,14 +237,14 @@ class _ChatButton extends ConsumerWidget {
           children: [
             Icon(
               Icons.chat_bubble_outline,
-              size: 16,
+              size: AppIconSize.inlineGlyph,
               color: colorScheme.primary,
             ),
             const SizedBox(width: 4),
             Text(
               'Chat',
               style: TextStyle(
-                fontSize: core.AppType.s13,
+                fontSize: core.AppType.s14,
                 fontWeight: FontWeight.w500,
                 color: colorScheme.primary,
               ),

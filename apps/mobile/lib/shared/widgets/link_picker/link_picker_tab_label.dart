@@ -9,9 +9,9 @@ Widget buildLinkPickerTabLabel(BuildContext context, String label, int count) {
     children: [
       Text(label),
       if (count > 0) ...[
-        const SizedBox(width: 6),
+        const SizedBox(width: AppMetrics.p8),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p6, vertical: AppMetrics.p2),
+          padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
           decoration: BoxDecoration(
             color: scheme.primary,
             borderRadius: BorderRadius.circular(AppShape.r10),
@@ -19,7 +19,7 @@ Widget buildLinkPickerTabLabel(BuildContext context, String label, int count) {
           child: Text(
             count.toString(),
             style: TextStyle(
-              fontSize: AppType.s10,
+              fontSize: AppType.s12,
               fontWeight: FontWeight.bold,
               color: scheme.onPrimary,
             ),

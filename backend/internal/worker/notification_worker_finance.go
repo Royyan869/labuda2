@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	notificationentity "github.com/labuda/backend/internal/interaction/notification/entity"
 	"go.uber.org/zap"
 )
 
@@ -30,8 +31,9 @@ func (h *NotificationEventHandler) handleWithdrawalRequested(ctx context.Context
 		"withdrawalId": p.WithdrawalID,
 	}
 
-	// Notify SELLER (system-initiated withdrawal lifecycle event) — primary recipient.
-	info, err := h.insertNotificationWithPolicy(ctx, sellerID, uuid.Nil, "withdrawal.requested", withdrawalID, data)
+	// Notify SELLER — they caused this request themselves; the actor is the
+	// seller, never a sentinel.
+	info, err := h.insertNotificationWithPolicy(ctx, sellerID, notificationentity.UserActor(sellerID), "withdrawal.requested", withdrawalID, data)
 	if err != nil {
 		return notificationInfo{}, fmt.Errorf("insert seller notification failed: %w", err)
 	}
@@ -72,7 +74,7 @@ func (h *NotificationEventHandler) handleWithdrawalRequested(ctx context.Context
 	for _, adminID := range adminIDs {
 		_, insertErr := h.insertNotificationWithPolicy(
 			ctx,
-			adminID, sellerID,
+			adminID, notificationentity.UserActor(sellerID),
 			"withdrawal.requested",
 			withdrawalID,
 			adminData,
@@ -124,8 +126,9 @@ func (h *NotificationEventHandler) handleWithdrawalApproved(ctx context.Context,
 		"withdrawalId": p.WithdrawalID,
 	}
 
-	// Notify SELLER (system-initiated withdrawal lifecycle event)
-	info, err := h.insertNotificationWithPolicy(ctx, sellerID, uuid.Nil, "withdrawal.approved", withdrawalID, data)
+	// Notify SELLER — the payload carries the approving admin; legacy events
+	// without one degrade to the system actor (never dropped, never nil).
+	info, err := h.insertNotificationWithPolicy(ctx, sellerID, notificationentity.ParseUserActor(p.ApprovedBy), "withdrawal.approved", withdrawalID, data)
 	if err != nil {
 		return notificationInfo{}, fmt.Errorf("insert notification failed: %w", err)
 	}
@@ -155,8 +158,8 @@ func (h *NotificationEventHandler) handleWithdrawalRejected(ctx context.Context,
 		"withdrawalId": p.WithdrawalID,
 	}
 
-	// Notify SELLER (system-initiated withdrawal lifecycle event)
-	info, err := h.insertNotificationWithPolicy(ctx, sellerID, uuid.Nil, "withdrawal.rejected", withdrawalID, data)
+	// Notify SELLER — the payload carries the rejecting admin.
+	info, err := h.insertNotificationWithPolicy(ctx, sellerID, notificationentity.ParseUserActor(p.RejectedBy), "withdrawal.rejected", withdrawalID, data)
 	if err != nil {
 		return notificationInfo{}, fmt.Errorf("insert notification failed: %w", err)
 	}
@@ -186,8 +189,8 @@ func (h *NotificationEventHandler) handleWithdrawalCompleted(ctx context.Context
 		"withdrawalId": p.WithdrawalID,
 	}
 
-	// Notify SELLER (system-initiated withdrawal lifecycle event)
-	info, err := h.insertNotificationWithPolicy(ctx, sellerID, uuid.Nil, "withdrawal.completed", withdrawalID, data)
+	// Notify SELLER — payout completion is a system (gateway/worker) fact.
+	info, err := h.insertNotificationWithPolicy(ctx, sellerID, notificationentity.SystemActor(), "withdrawal.completed", withdrawalID, data)
 	if err != nil {
 		return notificationInfo{}, fmt.Errorf("insert notification failed: %w", err)
 	}
@@ -217,8 +220,8 @@ func (h *NotificationEventHandler) handleWithdrawalFailed(ctx context.Context, p
 		"withdrawalId": p.WithdrawalID,
 	}
 
-	// Notify SELLER (system-initiated withdrawal lifecycle event)
-	info, err := h.insertNotificationWithPolicy(ctx, sellerID, uuid.Nil, "withdrawal.failed", withdrawalID, data)
+	// Notify SELLER — payout failure is a system (gateway/worker) fact.
+	info, err := h.insertNotificationWithPolicy(ctx, sellerID, notificationentity.SystemActor(), "withdrawal.failed", withdrawalID, data)
 	if err != nil {
 		return notificationInfo{}, fmt.Errorf("insert notification failed: %w", err)
 	}
@@ -253,8 +256,8 @@ func (h *NotificationEventHandler) handleVerificationDocumentApproved(ctx contex
 		"documentType": p.DocumentType,
 	}
 
-	// Notify USER (admin-initiated verification lifecycle event)
-	info, err := h.insertNotificationWithPolicy(ctx, userID, uuid.Nil, "verification.document.approved", documentID, data)
+	// Notify USER — the payload carries the approving admin.
+	info, err := h.insertNotificationWithPolicy(ctx, userID, notificationentity.ParseUserActor(p.ApprovedBy), "verification.document.approved", documentID, data)
 	if err != nil {
 		return notificationInfo{}, fmt.Errorf("insert notification failed: %w", err)
 	}
@@ -286,8 +289,8 @@ func (h *NotificationEventHandler) handleVerificationDocumentRejected(ctx contex
 		"reason":       p.Reason,
 	}
 
-	// Notify USER (admin-initiated verification lifecycle event)
-	info, err := h.insertNotificationWithPolicy(ctx, userID, uuid.Nil, "verification.document.rejected", documentID, data)
+	// Notify USER — the payload carries the rejecting admin.
+	info, err := h.insertNotificationWithPolicy(ctx, userID, notificationentity.ParseUserActor(p.RejectedBy), "verification.document.rejected", documentID, data)
 	if err != nil {
 		return notificationInfo{}, fmt.Errorf("insert notification failed: %w", err)
 	}
@@ -322,11 +325,16 @@ func (h *NotificationEventHandler) handleSellerVerificationLifecycle(
 		data["reason"] = p.Reason
 	}
 
-	// Notify SELLER (admin-initiated seller verification lifecycle event).
+	// Notify SELLER (seller lifecycle event). Every lifecycle transition is an
+	// admin decision, so the actor is the reviewing admin that the payload
+	// names; an event naming none has no known human cause and degrades to the
+	// system actor. The seller is the SUBJECT of the decision, never its cause.
+	actor := notificationentity.ParseUserActor(p.reviewerID())
+
 	// insertNotificationWithPolicy populates title/body from getTitleAndBody; we override
 	// below with the caller-supplied copy which carries context-specific text from the
 	// Handle() switch (approved / rejected / needs_resubmission / submitted).
-	info, err := h.insertNotificationWithPolicy(ctx, sellerID, uuid.Nil, notifyType, sellerID, data)
+	info, err := h.insertNotificationWithPolicy(ctx, sellerID, actor, notifyType, sellerID, data)
 	if err != nil {
 		return notificationInfo{}, fmt.Errorf("insert notification failed: %w", err)
 	}
@@ -358,8 +366,8 @@ func (h *NotificationEventHandler) handleSellerVerificationSubmitted(ctx context
 		data["reason"] = p.Reason
 	}
 
-	// 1. Notify SELLER — preserved from handleSellerVerificationLifecycle.
-	info, err := h.insertNotificationWithPolicy(ctx, sellerID, uuid.Nil, "seller.verification.submitted", sellerID, data)
+	// 1. Notify SELLER — the seller caused their own submission.
+	info, err := h.insertNotificationWithPolicy(ctx, sellerID, notificationentity.UserActor(sellerID), "seller.verification.submitted", sellerID, data)
 	if err != nil {
 		return notificationInfo{}, fmt.Errorf("insert seller notification failed: %w", err)
 	}
@@ -400,7 +408,7 @@ func (h *NotificationEventHandler) handleSellerVerificationSubmitted(ctx context
 	for _, adminID := range adminIDs {
 		_, insertErr := h.insertNotificationWithPolicy(
 			ctx,
-			adminID, sellerID,
+			adminID, notificationentity.UserActor(sellerID),
 			"seller.verification.submitted",
 			sellerID,
 			adminData,
@@ -459,7 +467,7 @@ func (h *NotificationEventHandler) handleSellerSubscriptionExpiringLegacy(ctx co
 
 	return h.insertNotificationWithPolicy(
 		ctx,
-		userID, uuid.Nil, // system-initiated
+		userID, notificationentity.SystemActor(), // subscription reminder is platform-caused
 		"seller.subscription.expiring",
 		subscriptionID,
 		data,
@@ -492,7 +500,7 @@ func (h *NotificationEventHandler) handleSellerSubscriptionExpiring(ctx context.
 
 	return h.insertNotificationWithPolicy(
 		ctx,
-		userID, uuid.Nil, // system-initiated
+		userID, notificationentity.SystemActor(), // subscription reminder is platform-caused
 		"seller.subscription.expiring",
 		subscriptionID,
 		data,
@@ -523,7 +531,7 @@ func (h *NotificationEventHandler) handleSellerSubscriptionExpired(ctx context.C
 
 	return h.insertNotificationWithPolicy(
 		ctx,
-		userID, uuid.Nil, // system-initiated
+		userID, notificationentity.SystemActor(), // subscription expiry is platform-caused
 		"seller.subscription.expired",
 		subscriptionID,
 		data,

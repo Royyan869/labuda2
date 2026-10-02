@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	notificationentity "github.com/labuda/backend/internal/interaction/notification/entity"
 	"go.uber.org/zap"
 )
 
@@ -31,8 +32,9 @@ func (h *NotificationEventHandler) handleSupportTicketResolved(ctx context.Conte
 		"chatRoomId": p.ChatRoomID,
 	}
 
-	// Notify USER (admin-resolved support ticket)
-	info, err := h.insertNotificationWithPolicy(ctx, userID, uuid.Nil, "support.ticket.resolved", ticketID, data)
+	// Notify USER (admin-resolved support ticket). The resolving agent is not
+	// carried by the event payload yet, so the actor is the system.
+	info, err := h.insertNotificationWithPolicy(ctx, userID, notificationentity.SystemActor(), "support.ticket.resolved", ticketID, data)
 	if err != nil {
 		return notificationInfo{}, fmt.Errorf("insert notification failed: %w", err)
 	}
@@ -63,8 +65,9 @@ func (h *NotificationEventHandler) handleSupportTicketClosed(ctx context.Context
 		"chatRoomId": p.ChatRoomID,
 	}
 
-	// Notify USER (support ticket closed)
-	info, err := h.insertNotificationWithPolicy(ctx, userID, uuid.Nil, "support.ticket.closed", ticketID, data)
+	// Notify USER (support ticket closed). The closing agent is not carried by
+	// the event payload yet, so the actor is the system.
+	info, err := h.insertNotificationWithPolicy(ctx, userID, notificationentity.SystemActor(), "support.ticket.closed", ticketID, data)
 	if err != nil {
 		return notificationInfo{}, fmt.Errorf("insert notification failed: %w", err)
 	}
@@ -75,11 +78,9 @@ func (h *NotificationEventHandler) handleSupportTicketClosed(ctx context.Context
 // Notifies the user that the assigned admin replied and is waiting for the
 // user's response.
 //
-// ACTOR IDENTITY: the actor is the human agent who replied (payload admin_id),
-// not a uuid.Nil sentinel. notifications.actor_id is NOT NULL with a FK to
-// users(id), so a uuid.Nil sentinel can never be persisted — the notification
-// would be silently undeliverable. The same real-actor rule already applies to
-// support.ticket.user_responded (actor = the user).
+// ACTOR IDENTITY: the actor is the human agent who replied (payload admin_id).
+// Legacy events without one are system-caused and still delivered; the same
+// rule applies to support.ticket.user_responded (actor = the user).
 func (h *NotificationEventHandler) handleSupportTicketWaitingUser(ctx context.Context, payload []byte) (notificationInfo, error) {
 	var p SupportTicketPayload
 	if err := json.Unmarshal(payload, &p); err != nil {
@@ -96,16 +97,9 @@ func (h *NotificationEventHandler) handleSupportTicketWaitingUser(ctx context.Co
 		return notificationInfo{}, fmt.Errorf("invalid user_id: %w", err)
 	}
 
-	adminID, err := uuid.Parse(p.AdminID)
-	if err != nil || adminID == uuid.Nil {
-		// No real actor: never insert an unpersistable uuid.Nil actor. Legacy
-		// events emitted before admin_id was carried are skipped, not failed,
-		// so they cannot poison the outbox with endless retries.
-		h.log.Warn("support.ticket_waiting_user without a real actor — skipped",
-			zap.String("ticket_id", p.TicketID),
-		)
-		return notificationInfo{}, nil
-	}
+	// Actor = the agent who replied. Legacy events emitted before admin_id
+	// was carried are system-caused and still delivered.
+	actor := notificationentity.ParseUserActor(p.AdminID)
 
 	// Navigation data for mobile
 	data := map[string]interface{}{
@@ -114,7 +108,7 @@ func (h *NotificationEventHandler) handleSupportTicketWaitingUser(ctx context.Co
 	}
 
 	// Notify USER (the agent is waiting for the user's reply).
-	info, err := h.insertNotificationWithPolicy(ctx, userID, adminID, "support.ticket_waiting_user", ticketID, data)
+	info, err := h.insertNotificationWithPolicy(ctx, userID, actor, "support.ticket_waiting_user", ticketID, data)
 	if err != nil {
 		return notificationInfo{}, fmt.Errorf("insert notification failed: %w", err)
 	}
@@ -151,8 +145,8 @@ func (h *NotificationEventHandler) handleSupportTicketUserResponded(ctx context.
 		"chatRoomId": p.ChatRoomID,
 	}
 
-	// Notify admin (user replied to their ticket)
-	info, err := h.insertNotificationWithPolicy(ctx, adminID, userID, "support.ticket.user_responded", ticketID, data)
+	// Notify admin (user replied to their ticket); the user is the actor.
+	info, err := h.insertNotificationWithPolicy(ctx, adminID, notificationentity.UserActor(userID), "support.ticket.user_responded", ticketID, data)
 	if err != nil {
 		return notificationInfo{}, fmt.Errorf("insert notification failed: %w", err)
 	}
@@ -190,7 +184,7 @@ func (h *NotificationEventHandler) handleSupportTicketCreated(ctx context.Contex
 		if aErr == nil {
 			return h.insertNotificationWithPolicy(
 				ctx,
-				adminID, userID,
+				adminID, notificationentity.UserActor(userID),
 				"support.ticket.created",
 				ticketID,
 				data,
@@ -232,7 +226,7 @@ func (h *NotificationEventHandler) handleSupportTicketCreated(ctx context.Contex
 	for _, adminID := range adminIDs {
 		info, insertErr := h.insertNotificationWithPolicy(
 			ctx,
-			adminID, userID,
+			adminID, notificationentity.UserActor(userID),
 			"support.ticket.created",
 			ticketID,
 			data,

@@ -523,30 +523,13 @@ func releaseLifecycleLock() {
 // migrations. It does NOT manage advisory locks — the caller is
 // responsible for serialization.
 func runMigrationsRaw(cfg *config.Config, logf func(string, ...any)) error {
-	// Try progressively deeper parent directories to locate the migrations dir.
-	candidates := []string{
-		"migrations",
-		"../migrations",
-		"../../migrations",
-		"../../../migrations",
-		"../../../../migrations",
-		"../../../../../migrations",
-		"../../../../../../migrations",
-	}
-
-	var migrationsDir string
-	for _, candidate := range candidates {
-		if info, err := os.Stat(candidate); err == nil && info.IsDir() {
-			migrationsDir = candidate
-			break
-		}
-	}
-
-	if migrationsDir == "" {
-		if logf != nil {
-			logf("WARN: migration source not found, skipping auto-migrate")
-		}
-		return nil
+	// Resolve the chain through pkg/migration — the single authority for where
+	// the migration chain lives. A missing chain is a hard error: silently
+	// skipping migrations leaves every testdb-backed test running against an
+	// empty schema, which surfaces as unrelated failures instead of a setup bug.
+	migrationsDir, err := migration.ResolveDir(".")
+	if err != nil {
+		return fmt.Errorf("locate migration chain: %w", err)
 	}
 
 	// Discard any stale public-schema objects and the extensions that the
@@ -610,7 +593,12 @@ const connectionTimeout = 10 * time.Second
 // migrationTimeout bounds the schema reset + migration run. Without it a
 // stale session holding a DDL lock blocks the suite forever — which reads as
 // a hang, not as a failure.
-const migrationTimeout = 60 * time.Second
+//
+// The bound must cover the FULL canonical chain on cold hardware: the chain
+// has grown past 100 migrations and a full run measured ~106s (Windows dev
+// box, 2026-09). The old 60s budget aborted mid-chain on every bootstrap,
+// which skipped every testdb-backed integration test.
+const migrationTimeout = 180 * time.Second
 
 // redactPassword removes password from DSN for safe logging
 func redactPassword(dsn string) string {

@@ -106,7 +106,6 @@ void main() {
         for (final path in <String>[
           'lib/domains/user/preference/seller/presentation/widgets/wizard/seller_wizard_step2_widget.dart',
           'lib/domains/user/profile/presentation/screens/edit_profile/edit_profile_farm_section.dart',
-          'lib/domains/user/profile/presentation/screens/edit_profile/edit_profile_store_section.dart',
         ]) {
           final source = _readSource(path);
           expect(
@@ -127,16 +126,12 @@ void main() {
       final farmSection = _readSource(
         'lib/domains/user/profile/presentation/screens/edit_profile/edit_profile_farm_section.dart',
       );
-      final storeSection = _readSource(
-        'lib/domains/user/profile/presentation/screens/edit_profile/edit_profile_store_section.dart',
-      );
 
       // The canonical label lives ONLY in StoreNameFormField.
       const canonicalLabel = 'Nama Toko/Farm *';
       for (final (name, source) in [
         ('step2', step2),
         ('farm_section', farmSection),
-        ('store_section', storeSection),
       ]) {
         expect(
           source.contains(canonicalLabel),
@@ -151,11 +146,6 @@ void main() {
         farmSection.contains("'Farm Name'"),
         isFalse,
         reason: 'farm section legacy label must be gone',
-      );
-      expect(
-        storeSection.contains("'Store Name'"),
-        isFalse,
-        reason: 'store section legacy label must be gone',
       );
     });
 

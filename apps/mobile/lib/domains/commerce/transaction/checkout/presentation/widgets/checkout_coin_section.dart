@@ -53,7 +53,7 @@ class _CoinToggleSection extends ConsumerWidget {
                 child: Icon(
                   Icons.monetization_on,
                   color: colorScheme.onPrimary,
-                  size: 22,
+                  size: AppIconSize.header,
                 ),
               ),
               const SizedBox(width: 12),
@@ -72,7 +72,7 @@ class _CoinToggleSection extends ConsumerWidget {
                     Text(
                       'Koin tersedia: $currentBalance',
                       style: TextStyle(
-                        fontSize: AppType.s13,
+                        fontSize: AppType.s14,
                         color: AppColors.coinSecondary,
                         fontWeight: FontWeight.w500,
                       ),
@@ -92,7 +92,7 @@ class _CoinToggleSection extends ConsumerWidget {
           if (useCoins && currentBalance > 0) ...[
             const SizedBox(height: 12),
             Container(
-              padding: const EdgeInsets.all(AppMetrics.p10),
+              padding: const EdgeInsets.all(AppMetrics.p12),
               decoration: BoxDecoration(
                 color: AppColors.coinPrimary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(AppShape.r8),
@@ -101,7 +101,7 @@ class _CoinToggleSection extends ConsumerWidget {
                 children: [
                   Icon(
                     Icons.info_outline,
-                    size: 16,
+                    size: AppIconSize.inlineGlyph,
                     color: AppColors.coinSecondary,
                   ),
                   const SizedBox(width: 8),

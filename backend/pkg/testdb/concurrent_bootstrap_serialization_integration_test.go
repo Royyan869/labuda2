@@ -5,7 +5,6 @@ package testdb
 import (
 	"context"
 	"fmt"
-	"os"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -83,7 +82,7 @@ func TestConcurrentBootstrapSerialization(t *testing.T) {
 	require.NoError(t, firstErr)
 	require.NoError(t, secondErr)
 
-	migrationsDir, err := testMigrationDir()
+	migrationsDir, err := migration.ResolveDir(".")
 	require.NoError(t, err)
 	migrations, err := migration.LoadMigrations(migrationsDir)
 	require.NoError(t, err)
@@ -94,23 +93,3 @@ func TestConcurrentBootstrapSerialization(t *testing.T) {
 	require.Equal(t, migrations[len(migrations)-1].Version, current)
 }
 
-func testMigrationDir() (string, error) {
-	candidates := []string{
-		"migrations",
-		"../migrations",
-		"../../migrations",
-		"../../../migrations",
-		"../../../../migrations",
-		"../../../../../migrations",
-		"../../../../../../migrations",
-	}
-
-	for _, candidate := range candidates {
-		info, err := os.Stat(candidate)
-		if err == nil && info.IsDir() {
-			return candidate, nil
-		}
-	}
-
-	return "", fmt.Errorf("migration directory not found")
-}

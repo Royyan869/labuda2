@@ -19,6 +19,7 @@ import (
 	orderEntity "github.com/labuda/backend/internal/commerce/order/entity"
 	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
 	productRepo "github.com/labuda/backend/internal/commerce/product/repository"
+	mediarequest "github.com/labuda/backend/internal/commerce/media/request"
 	commerceshared "github.com/labuda/backend/internal/commerce/shared"
 	shippingApp "github.com/labuda/backend/internal/commerce/shipping/application"
 	"github.com/labuda/backend/internal/governance/viewercontext"
@@ -113,6 +114,7 @@ type CreateAuctionRequest struct {
 	Title            string   `json:"title" binding:"required,min=1,max=200"`
 	Description      string   `json:"description" binding:"required,max=5000"`
 	MediaURLs        []string `json:"media_urls"`
+	Media            []mediarequest.MediaRequest `json:"media,omitempty"`
 	Variety          string   `json:"variety"`
 	SizeCM           *int     `json:"size_cm"`
 	AgeMonths        *int     `json:"age_months"`
@@ -134,8 +136,7 @@ type CreateAuctionRequest struct {
 	ScheduledStartAt *string `json:"scheduled_start_at" binding:"omitempty"` // RFC3339; required when start_mode=scheduled
 	DurationHours    int     `json:"duration_hours" binding:"required,min=1"`
 	// Shipping readiness
-	PreparationTime *string `json:"preparation_time" binding:"omitempty,oneof=immediate short medium long"`
-	PreparationNote *string `json:"preparation_note"`
+	PreparationTime *string `json:"preparation_time" binding:"omitempty,oneof=1_3_days 4_7_days 8_15_days"`
 }
 
 // CreateAuction handles POST /api/v1/auctions
@@ -249,17 +250,24 @@ func (h *AuctionHandler) CreateAuction(c *gin.Context) {
 		productID = &id
 	}
 
+	// Resolve write-side media before the transaction: typed XOR legacy.
+	media, verr := mediarequest.ResolveProductMedia(req.Media, req.MediaURLs)
+	if verr != nil {
+		response.Error(c, 400, verr.Code, verr.Message)
+		return
+	}
+
 	// Execute within transaction
 	var auction *entity.Auction
 	err = h.db.WithTx(ctx, func(tx db.Tx) error {
 		var err error
 
-		// Parse preparation time, default to immediate if not provided
-		preparationTime := forSaleEntity.PreparationTimeImmediate
+		// Parse preparation time, default to the 1-3 day range if not provided
+		preparationTime := forSaleEntity.PreparationTime1To3Days
 		if req.PreparationTime != nil {
 			preparationTime = forSaleEntity.PreparationTime(*req.PreparationTime)
 			if !preparationTime.IsValid() {
-				preparationTime = forSaleEntity.PreparationTimeImmediate
+				preparationTime = forSaleEntity.PreparationTime1To3Days
 			}
 		}
 
@@ -270,7 +278,7 @@ func (h *AuctionHandler) CreateAuction(c *gin.Context) {
 			// Product fields
 			Title:            req.Title,
 			Description:      req.Description,
-			MediaURLs:        req.MediaURLs,
+			Media:            media,
 			Variety:          req.Variety,
 			SizeCM:           req.SizeCM,
 			AgeMonths:        req.AgeMonths,
@@ -290,7 +298,6 @@ func (h *AuctionHandler) CreateAuction(c *gin.Context) {
 			Duration:         duration,
 			// Shipping readiness
 			PreparationTime: preparationTime,
-			PreparationNote: req.PreparationNote,
 		})
 		return err
 	})
@@ -362,6 +369,7 @@ type UpdateAuctionRequest struct {
 	Title           *string   `json:"title" binding:"omitempty,min=1,max=200"`
 	Description     *string   `json:"description" binding:"omitempty,max=5000"`
 	MediaURLs       *[]string `json:"media_urls"`
+	Media           *[]mediarequest.MediaRequest `json:"media,omitempty"`
 	Variety         *string   `json:"variety"`
 	SizeCM          *int      `json:"size_cm"`
 	AgeMonths       *int      `json:"age_months"`
@@ -369,8 +377,7 @@ type UpdateAuctionRequest struct {
 	Breeder         *string   `json:"breeder"`
 	Bloodline       *string   `json:"bloodline"`
 	Certificates    *[]string `json:"certificates"`
-	PreparationTime *string   `json:"preparation_time" binding:"omitempty,oneof=immediate short medium long"`
-	PreparationNote *string   `json:"preparation_note"`
+	PreparationTime *string   `json:"preparation_time" binding:"omitempty,oneof=1_3_days 4_7_days 8_15_days"`
 	StartPrice      *int64    `json:"start_price" binding:"omitempty,min=0"`
 	BidIncrement    *int64    `json:"bid_increment" binding:"omitempty,min=1"`
 	BuyNowPrice     *int64    `json:"buy_now_price" binding:"omitempty,min=0"`
@@ -470,12 +477,29 @@ func (h *AuctionHandler) UpdateAuction(c *gin.Context) {
 				}
 			}
 
+			var typed []mediarequest.MediaRequest
+			if req.Media != nil {
+				typed = *req.Media
+			}
+			var legacy []string
+			if req.MediaURLs != nil {
+				legacy = *req.MediaURLs
+			}
+			media, verr := mediarequest.ResolveProductMedia(typed, legacy)
+			if verr != nil {
+				return &entity.InvalidOperationError{Status: auction.Status, Reason: verr.Code + ": " + verr.Message}
+			}
+			var mediaPtr *[]productEntity.ProductMedia
+			if req.MediaURLs != nil || req.Media != nil {
+				mediaPtr = &media
+			}
+
 			return h.auctionService.UpdateDraft(ctx, tx, auctionApp.UpdateDraftInput{
 				AuctionID:       auctionID,
 				CallerID:        callerID,
 				Title:           req.Title,
 				Description:     req.Description,
-				MediaURLs:       req.MediaURLs,
+				Media:           mediaPtr,
 				Variety:         req.Variety,
 				SizeCM:          req.SizeCM,
 				AgeMonths:       req.AgeMonths,
@@ -484,7 +508,6 @@ func (h *AuctionHandler) UpdateAuction(c *gin.Context) {
 				Bloodline:       req.Bloodline,
 				Certificates:    req.Certificates,
 				PreparationTime: req.PreparationTime,
-				PreparationNote: req.PreparationNote,
 				StartPrice:      startPrice,
 				BidIncrement:    bidIncrement,
 				BuyNowPrice:     buyNowPrice,
@@ -494,7 +517,7 @@ func (h *AuctionHandler) UpdateAuction(c *gin.Context) {
 
 		} else if auction.Status == entity.StatusScheduled {
 			// Scheduled: only title/description/start_at/end_at allowed — reject draft-only fields explicitly
-			if req.MediaURLs != nil || req.Variety != nil || req.SizeCM != nil || req.AgeMonths != nil || req.Gender != nil || req.Breeder != nil || req.Bloodline != nil || req.Certificates != nil || req.PreparationTime != nil || req.PreparationNote != nil {
+			if req.MediaURLs != nil || req.Media != nil || req.Variety != nil || req.SizeCM != nil || req.AgeMonths != nil || req.Gender != nil || req.Breeder != nil || req.Bloodline != nil || req.Certificates != nil || req.PreparationTime != nil {
 				return &entity.InvalidOperationError{Status: auction.Status, Reason: "media/variety/size/age/gender/breeder/bloodline/certificates/preparation not editable in scheduled status"}
 			}
 			if req.StartPrice != nil || req.BidIncrement != nil || req.BuyNowPrice != nil {
@@ -1141,6 +1164,7 @@ func (h *AuctionHandler) GetAuction(c *gin.Context) {
 
 	var auction *entity.Auction
 	var sellerInfo sellerdisplay.Info
+	var publicOriginLine string
 	err = h.db.WithTx(ctx, func(tx db.Tx) error {
 		var err error
 		auction, err = h.auctionService.GetAuction(ctx, tx, auctionID)
@@ -1162,6 +1186,11 @@ func (h *AuctionHandler) GetAuction(c *gin.Context) {
 		// Phase 5 Stage 1 — hydrate additive seller convergence fields
 		// inside the same transaction.
 		sellerInfo, _ = sellerdisplay.FetchOne(ctx, tx, auction.SellerID)
+
+		// Buyer-facing listing origin (city, province of the sender address),
+		// resolved in the same transaction as the seller block so the detail
+		// card renders identity + origin from one read.
+		publicOriginLine = h.auctionService.PublicOriginLine(ctx, tx, auction)
 		return nil
 	})
 
@@ -1187,7 +1216,7 @@ func (h *AuctionHandler) GetAuction(c *gin.Context) {
 	}
 
 	// Canonical detail projection — full Product content from auction.Product.
-	response.Success(c, h.auctionDetailResponse(auction, sellerInfo, viewerID))
+	response.Success(c, h.auctionDetailResponse(auction, sellerInfo, publicOriginLine, viewerID))
 }
 
 // ListBidsRequest holds query parameters for forSale bids.
@@ -1299,6 +1328,7 @@ func (h *AuctionHandler) ListBids(c *gin.Context) {
 func (h *AuctionHandler) auctionDetailResponse(
 	a *entity.Auction,
 	seller sellerdisplay.Info,
+	publicOriginLine string,
 	viewerID uuid.UUID,
 ) map[string]interface{} {
 	var viewerIDPtr *uuid.UUID
@@ -1310,6 +1340,7 @@ func (h *AuctionHandler) auctionDetailResponse(
 		*buildAuctionSellerCard(a, seller),
 		seller,
 		a.Product,
+		publicOriginLine,
 		viewerIDPtr,
 	)
 }
@@ -1395,16 +1426,15 @@ func auctionToResponseWithSeller(
 	// resolved CloudFront URLs. Kept non-nil so the wire never emits a null
 	// media slot (cards treat null and [] differently).
 	mediaURLs := []string{}
-	var rawMediaRefs []string
+	var productMedia []productEntity.ProductMedia
 	if product != nil {
 		title = product.Title
 		description = product.Description
+		productMedia = product.MediaURLs
 		if product.MediaURLs != nil {
-			rawMediaRefs = product.MediaURLs
-			mediaURLs = commerceshared.ResolveReadableMediaReferences(product.MediaURLs)
+			mediaURLs = commerceshared.ResolveReadableMediaReferences(productEntity.URLs(product.MediaURLs))
 		}
-		if len(rawMediaRefs) > 0 {
-			t := commerceshared.ResolveReadableThumbnailURL(rawMediaRefs[0])
+		if t := commerceshared.ResolveReadableCardThumbnailURL(product.MediaURLs); t != "" {
 			thumbnail = &t
 		}
 	}
@@ -1449,7 +1479,7 @@ func auctionToResponseWithSeller(
 		"seller_avatar_url": seller.AvatarURL,
 		// Product content block (see doc comment). Identical key set to
 		// for_saleToResponseWithSeller — proven by the parity contract test.
-		"media":      commerceshared.MediaWireItems(rawMediaRefs, a.CreatedAt),
+		"media":      commerceshared.MediaWireItems(productMedia, a.CreatedAt),
 		"media_urls": mediaURLs,
 		"auction":    auctionCard,
 	}
@@ -1463,7 +1493,6 @@ func auctionToResponseWithSeller(
 		resp["certificates"] = product.Certificates
 		resp["farm_address_id"] = product.FarmAddressID
 		resp["preparation_time"] = product.PreparationTime
-		resp["preparation_note"] = product.PreparationNote
 	}
 	return resp
 }

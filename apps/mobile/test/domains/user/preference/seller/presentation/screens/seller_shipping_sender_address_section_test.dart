@@ -96,9 +96,9 @@ class _AddressRepo implements IAddressRepository {
   @override
   Future<Result<AddressEntity?>> getPrimaryAddress(
     String userId, {
-    AddressPurpose? purpose,
+    AddressTag? tag,
   }) async {
-    if (purpose == AddressPurpose.sender) {
+    if (tag == AddressTag.sender) {
       return _primarySenderResult;
     }
     return Result.success(null);
@@ -112,9 +112,9 @@ class _AddressRepo implements IAddressRepository {
   }
 
   @override
-  Future<Result<List<AddressEntity>>> getAddressesByPurpose(
+  Future<Result<List<AddressEntity>>> getAddressesByTag(
     String userId,
-    AddressPurpose purpose,
+    AddressTag tag,
   ) async {
     return Result.success(const []);
   }
@@ -153,9 +153,9 @@ class _AddressRepo implements IAddressRepository {
   }
 
   @override
-  Stream<Result<List<AddressEntity>>> watchAddressesByPurpose(
+  Stream<Result<List<AddressEntity>>> watchAddressesByTag(
     String userId,
-    AddressPurpose purpose,
+    AddressTag tag,
   ) {
     return Stream.value(Result.success(const []));
   }
@@ -163,7 +163,7 @@ class _AddressRepo implements IAddressRepository {
   @override
   Future<Result<int>> countAddresses(
     String userId, {
-    AddressPurpose? purpose,
+    AddressTag? tag,
   }) async {
     return Result.success(0);
   }
@@ -211,7 +211,7 @@ AddressEntity _completeSenderAddress() {
   return AddressEntity(
     id: 'addr-1',
     userId: 'seller-1',
-    purpose: AddressPurpose.sender,
+    tags: const [AddressTag.sender],
     recipientName: 'Farm Sentosa',
     phone: '08123456789',
     province: Province(id: '33', name: 'Jawa Tengah'),

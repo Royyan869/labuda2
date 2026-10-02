@@ -54,8 +54,6 @@ class _RatingListScreenState extends ConsumerState<RatingListScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: Text(widget.isReceived ? 'Reviews Received' : 'Reviews Given'),
-          surfaceTintColor: Colors.transparent,
-          scrolledUnderElevation: 0,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
             onPressed: () {
@@ -113,7 +111,7 @@ class _RatingListScreenState extends ConsumerState<RatingListScreen> {
         return Icon(
           index < rating ? Icons.star : Icons.star_border,
           color: AppColors.koiGold,
-          size: 20,
+          size: AppIconSize.action,
         );
       }),
     );
@@ -126,7 +124,7 @@ class _RatingListScreenState extends ConsumerState<RatingListScreen> {
         children: [
           Icon(
             Icons.star_border,
-            size: 64,
+            size: AppIconSize.display,
             color: Theme.of(context).colorScheme.outline,
           ),
           const SizedBox(height: 16),

@@ -20,7 +20,7 @@ import (
 
 func TestCreateForSale_RejectsLegacyListingID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	handler := NewForSaleHandler(nil, nil, nil, nil)
+	handler := NewForSaleHandler(nil, nil, nil, nil, nil)
 
 	body := map[string]interface{}{
 		"listing_id":  uuid.New().String(),
@@ -46,7 +46,7 @@ func TestCreateForSale_RejectsLegacyListingID(t *testing.T) {
 
 func TestCreateForSale_RejectsLegacyListingIdCamelCase(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	handler := NewForSaleHandler(nil, nil, nil, nil)
+	handler := NewForSaleHandler(nil, nil, nil, nil, nil)
 
 	body := map[string]interface{}{
 		"listingId":   uuid.New().String(),

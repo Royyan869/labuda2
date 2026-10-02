@@ -337,8 +337,8 @@ void main() {
         emailVerified: true,
       );
 
-      final request1 = controller.refreshUserData();
-      final request2 = controller.refreshUserData();
+      final request1 = controller.forceRefreshAuthState();
+      final request2 = controller.forceRefreshAuthState();
 
       expect(userSyncService.pendingRequests, hasLength(2));
 
@@ -400,8 +400,8 @@ void main() {
           emailVerified: true,
         );
 
-        final request1 = controller.refreshUserData();
-        final request2 = controller.refreshUserData();
+        final request1 = controller.forceRefreshAuthState();
+        final request2 = controller.forceRefreshAuthState();
 
         expect(userSyncService.pendingRequests, hasLength(2));
 

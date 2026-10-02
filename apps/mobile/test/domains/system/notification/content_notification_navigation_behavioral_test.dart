@@ -28,7 +28,6 @@ void main() {
       'lib/domains/system/notification/services/fcm_action_mapper.dart',
       'lib/domains/system/notification/services/local_notification_service.dart',
       'lib/core/utils/notification_navigation_handler.dart',
-      'lib/shared/services/mention_notification_service.dart',
       'lib/core/interfaces/i_notification_trigger.dart',
     ];
 
@@ -176,33 +175,6 @@ void main() {
         reason:
             'Notification list must use canonical NotificationNavigationService',
       );
-    });
-  });
-
-  // =========================================================================
-  // GROUP 3 — Mention notification payload contract
-  // =========================================================================
-  group('Mention notification contracts', () {
-    test('mention service uses content.mentioned as canonical type', () {
-      final mention = _read(
-        'lib/shared/services/mention_notification_service.dart',
-      );
-      expect(mention.contains('NotificationType.contentMentioned'), isTrue,
-          reason: 'MentionNotificationService must use canonical content.mentioned type');
-      expect(mention.contains('NotificationType.mention'), isFalse,
-          reason: 'Old mention type must not be used');
-    });
-
-    test('mention service sends targetId/targetType data keys', () {
-      final mention = _read(
-        'lib/shared/services/mention_notification_service.dart',
-      );
-      expect(mention.contains("'targetId'"), isTrue,
-          reason: 'Mention service must send targetId (backend canonical key)');
-      expect(mention.contains("'targetType'"), isTrue,
-          reason: 'Mention service must send targetType (backend canonical key)');
-      expect(mention.contains("'contentId'"), isFalse,
-          reason: 'Old contentId key must not be used');
     });
   });
 

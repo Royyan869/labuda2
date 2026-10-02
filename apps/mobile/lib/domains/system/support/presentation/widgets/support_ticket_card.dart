@@ -120,7 +120,7 @@ class SupportTicketCardRefactored extends ConsumerWidget {
                             children: [
                               Icon(
                                 Icons.link,
-                                size: 12,
+                                size: AppIconSize.inlineGlyph,
                                 color: Theme.of(context).colorScheme.secondary,
                               ),
                               const SizedBox(width: 4),
@@ -128,7 +128,7 @@ class SupportTicketCardRefactored extends ConsumerWidget {
                                 child: Text(
                                   'Order #${ticket.linkedOrderId!.substring(0, 8)}...',
                                   style: TextStyle(
-                                    fontSize: AppType.s11,
+                                    fontSize: AppType.s12,
                                     color: Theme.of(context).colorScheme.secondary,
                                   ),
                                   overflow: TextOverflow.ellipsis,
@@ -196,7 +196,7 @@ class SupportTicketCardRefactored extends ConsumerWidget {
             child: Text(
               label,
               style: TextStyle(
-                fontSize: AppType.s11,
+                fontSize: AppType.s12,
                 fontWeight: FontWeight.bold,
                 color: Color(colorValue),
               ),
@@ -213,7 +213,7 @@ class SupportTicketCardRefactored extends ConsumerWidget {
       width: double.infinity,
       child: OutlinedButton.icon(
         onPressed: onTap,
-        icon: const Icon(Icons.mail_outline, size: 18),
+        icon: const Icon(Icons.mail_outline, size: AppIconSize.action),
         label: Text(label),
         style: OutlinedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: AppMetrics.p12),

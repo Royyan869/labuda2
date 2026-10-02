@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	notificationentity "github.com/labuda/backend/internal/interaction/notification/entity"
 	"go.uber.org/zap"
 )
 
@@ -46,7 +47,7 @@ func (h *NotificationEventHandler) handleDisputeOpened(ctx context.Context, payl
 	}
 
 	// 1. Notify SELLER — compatibility-only path for legacy post-release payloads.
-	info, err := h.insertNotificationWithPolicy(ctx, sellerID, buyerID, "dispute.opened", orderID, data)
+	info, err := h.insertNotificationWithPolicy(ctx, sellerID, notificationentity.UserActor(buyerID), "dispute.opened", orderID, data)
 	if err != nil {
 		return notificationInfo{}, fmt.Errorf("dispute.opened: insert seller notification failed: %w", err)
 	}
@@ -88,7 +89,7 @@ func (h *NotificationEventHandler) handleDisputeOpened(ctx context.Context, payl
 	for _, adminID := range adminIDs {
 		_, insertErr := h.insertNotificationWithPolicy(
 			ctx,
-			adminID, buyerID,
+			adminID, notificationentity.UserActor(buyerID),
 			"dispute.opened",
 			orderID,
 			adminData,
@@ -152,7 +153,7 @@ func (h *NotificationEventHandler) handleRefundOpened(ctx context.Context, paylo
 	// Notify SELLER (buyer requested refund)
 	info, err := h.insertNotificationWithPolicy(
 		ctx,
-		sellerID, buyerID,
+		sellerID, notificationentity.UserActor(buyerID),
 		"refund.opened",
 		orderID,
 		data,
@@ -203,7 +204,7 @@ func (h *NotificationEventHandler) handleRefundApproved(ctx context.Context, pay
 	// Notify BUYER (seller approved their refund)
 	info, err := h.insertNotificationWithPolicy(
 		ctx,
-		buyerID, sellerID,
+		buyerID, notificationentity.UserActor(sellerID),
 		"refund.approved",
 		orderID,
 		data,
@@ -254,7 +255,7 @@ func (h *NotificationEventHandler) handleRefundRejected(ctx context.Context, pay
 	// Notify BUYER (seller rejected their refund)
 	info, err := h.insertNotificationWithPolicy(
 		ctx,
-		buyerID, sellerID,
+		buyerID, notificationentity.UserActor(sellerID),
 		"refund.rejected",
 		orderID,
 		data,
@@ -305,7 +306,7 @@ func (h *NotificationEventHandler) handleRefundEscalated(ctx context.Context, pa
 	// Notify SELLER
 	sellerInfo, sErr := h.insertNotificationWithPolicy(
 		ctx,
-		sellerID, buyerID,
+		sellerID, notificationentity.UserActor(buyerID),
 		"refund.escalated",
 		orderID,
 		data,
@@ -323,7 +324,7 @@ func (h *NotificationEventHandler) handleRefundEscalated(ctx context.Context, pa
 	// Notify BUYER (system-initiated escalation confirmation)
 	buyerInfo, bErr := h.insertNotificationWithPolicy(
 		ctx,
-		buyerID, uuid.Nil, // system actor
+		buyerID, notificationentity.SystemActor(),
 		"refund.escalated",
 		orderID,
 		data,
@@ -367,6 +368,9 @@ func (h *NotificationEventHandler) handleDisputeResolved(ctx context.Context, pa
 		SellerID   string `json:"seller_id"`
 		Resolution string `json:"resolution"`
 		Status     string `json:"status"`
+		// ResolvedBy is the deciding admin emitted by the dispute service;
+		// legacy events without it degrade to the system actor.
+		ResolvedBy string `json:"resolved_by"`
 	}
 	if err := json.Unmarshal(payload, &p); err != nil {
 		return notificationInfo{}, fmt.Errorf("unmarshal payload failed: %w", err)
@@ -393,10 +397,13 @@ func (h *NotificationEventHandler) handleDisputeResolved(ctx context.Context, pa
 	// Resolution-specific copy
 	title, body := getTitleAndBodyForDisputeResolution(p.Resolution)
 
+	// The deciding admin caused both notifications.
+	actor := notificationentity.ParseUserActor(p.ResolvedBy)
+
 	// Notify SELLER
 	sellerInfo, sErr := h.insertNotificationWithPolicy(
 		ctx,
-		sellerID, uuid.Nil, // admin/system actor
+		sellerID, actor,
 		"dispute.resolved",
 		orderID,
 		data,
@@ -416,7 +423,7 @@ func (h *NotificationEventHandler) handleDisputeResolved(ctx context.Context, pa
 	// Notify BUYER
 	buyerInfo, bErr := h.insertNotificationWithPolicy(
 		ctx,
-		buyerID, uuid.Nil, // admin/system actor
+		buyerID, actor,
 		"dispute.resolved",
 		orderID,
 		data,
@@ -532,7 +539,7 @@ func (h *NotificationEventHandler) handleDisputeOverdue(ctx context.Context, pay
 	for _, adminID := range adminIDs {
 		info, insertErr := h.insertNotificationWithPolicy(
 			ctx,
-			adminID, uuid.Nil, // system event
+			adminID, notificationentity.SystemActor(), // aging timer
 			"dispute.overdue",
 			orderID,
 			data,
@@ -621,7 +628,7 @@ func (h *NotificationEventHandler) handleDisputeTimeoutEscalation(ctx context.Co
 	for _, adminID := range adminIDs {
 		info, insertErr := h.insertNotificationWithPolicy(
 			ctx,
-			adminID, uuid.Nil, // system event
+			adminID, notificationentity.SystemActor(), // timeout escalation timer
 			"dispute.timeout_escalation",
 			orderID,
 			data,
@@ -675,7 +682,7 @@ func (h *NotificationEventHandler) handleOrderConfirmationExtended(ctx context.C
 	}
 
 	// Notify SELLER (buyer extended confirmation)
-	info, err := h.insertNotificationWithPolicy(ctx, sellerID, buyerID, "order.confirmation_extended", orderID, data)
+	info, err := h.insertNotificationWithPolicy(ctx, sellerID, notificationentity.UserActor(buyerID), "order.confirmation_extended", orderID, data)
 	if err != nil {
 		return notificationInfo{}, fmt.Errorf("insert notification failed: %w", err)
 	}
@@ -768,7 +775,7 @@ func (h *NotificationEventHandler) handleMoneyRefundFailed(ctx context.Context, 
 	for _, adminID := range adminIDs {
 		info, insertErr := h.insertNotificationWithPolicy(
 			ctx,
-			adminID, uuid.Nil, // system actor
+			adminID, notificationentity.SystemActor(), // gateway failure
 			"money.refund_failed",
 			entityID,
 			data,
@@ -825,7 +832,7 @@ func (h *NotificationEventHandler) handleOrderOverdueReminderSeller(ctx context.
 	}
 
 	// Notify SELLER (system-initiated overdue alert)
-	info, err := h.insertNotificationWithPolicy(ctx, sellerID, uuid.Nil, "order.overdue_reminder.seller", orderID, data)
+	info, err := h.insertNotificationWithPolicy(ctx, sellerID, notificationentity.SystemActor(), "order.overdue_reminder.seller", orderID, data)
 	if err != nil {
 		return notificationInfo{}, fmt.Errorf("insert notification failed: %w", err)
 	}
@@ -867,7 +874,7 @@ func (h *NotificationEventHandler) handleOrderOverdueReminderBuyer(ctx context.C
 	}
 
 	// Notify BUYER (system-initiated overdue alert)
-	info, err := h.insertNotificationWithPolicy(ctx, buyerID, uuid.Nil, "order.overdue_reminder.buyer", orderID, data)
+	info, err := h.insertNotificationWithPolicy(ctx, buyerID, notificationentity.SystemActor(), "order.overdue_reminder.buyer", orderID, data)
 	if err != nil {
 		return notificationInfo{}, fmt.Errorf("insert notification failed: %w", err)
 	}

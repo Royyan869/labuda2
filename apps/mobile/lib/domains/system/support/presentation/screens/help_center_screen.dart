@@ -383,7 +383,7 @@ class HelpCenterScreen extends StatelessWidget {
         Text(
           _Strings.howCanWeHelp,
           style: TextStyle(
-            fontSize: AppType.s28,
+            fontSize: AppType.s24,
             fontWeight: FontWeight.bold,
             color: Theme.of(context).colorScheme.onSurface,
           ),
@@ -543,7 +543,7 @@ class HelpCenterScreen extends StatelessWidget {
 
   Widget _buildStillNeedHelpSection(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(AppMetrics.p20),
+      padding: const EdgeInsets.all(AppMetrics.p24),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
@@ -565,7 +565,7 @@ class HelpCenterScreen extends StatelessWidget {
                 child: Text(
                   _Strings.stillNeedHelp,
                   style: TextStyle(
-                    fontSize: AppType.s18,
+                    fontSize: AppType.s20,
                     fontWeight: FontWeight.bold,
                     color: Theme.of(context).colorScheme.onSurface,
                   ),
@@ -587,7 +587,7 @@ class HelpCenterScreen extends StatelessWidget {
             child: ElevatedButton(
               onPressed: () => _navigateToSupportForm(context),
               style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
+                padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
               ),
               child: Text(_Strings.contactSupport),
             ),
@@ -868,13 +868,13 @@ class HelpArticleScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBarCustom(title: _Strings.helpArticle),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppMetrics.p20),
+        padding: const EdgeInsets.all(AppMetrics.p24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Category Badge
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p6),
+              padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p8),
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(AppShape.r16),
@@ -947,7 +947,7 @@ class HelpArticleScreen extends StatelessWidget {
                       _Strings.feedbackThanks,
                     );
                   },
-                  icon: const Icon(Icons.thumb_up_outlined, size: 18),
+                  icon: const Icon(Icons.thumb_up_outlined, size: AppIconSize.action),
                   label: Text(_Strings.yes),
                 ),
               ),
@@ -969,7 +969,7 @@ class HelpArticleScreen extends StatelessWidget {
                       );
                     }
                   },
-                  icon: const Icon(Icons.thumb_down_outlined, size: 18),
+                  icon: const Icon(Icons.thumb_down_outlined, size: AppIconSize.action),
                   label: Text(_Strings.no),
                 ),
               ),
@@ -1021,7 +1021,7 @@ class _QuickHelpCard extends StatelessWidget {
                 color: color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(AppShape.r10),
               ),
-              child: Icon(icon, color: color, size: 24),
+              child: Icon(icon, color: color, size: AppIconSize.header),
             ),
             const SizedBox(height: 8),
             Text(
@@ -1072,7 +1072,7 @@ class _CategoryCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: color, size: 24),
+            Icon(icon, color: color, size: AppIconSize.header),
             const SizedBox(height: 12),
             Text(
               title,
@@ -1087,7 +1087,7 @@ class _CategoryCard extends StatelessWidget {
               child: Text(
                 subtitle,
                 style: TextStyle(
-                  fontSize: AppType.s11,
+                  fontSize: AppType.s12,
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
                 maxLines: 2,

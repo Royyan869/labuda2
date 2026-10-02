@@ -314,9 +314,6 @@ class _UnifiedEditProfileScreenState
       backgroundColor: scheme.surfaceContainerLowest,
       appBar: AppBar(
         title: const Text('Edit Profile'),
-        backgroundColor: scheme.surface,
-        surfaceTintColor: Colors.transparent,
-        scrolledUnderElevation: 0,
       ),
       body: Stack(
         children: [
@@ -459,7 +456,7 @@ color: scheme.scrim.withValues(alpha: 0.7),
   Widget _buildSectionHeader(String title, IconData icon, ColorScheme scheme) {
     return Row(
       children: [
-        Icon(icon, size: 20, color: scheme.primary),
+        Icon(icon, size: AppIconSize.action, color: scheme.primary),
         const SizedBox(width: 8),
         Text(
           title,

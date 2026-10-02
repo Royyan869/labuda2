@@ -95,7 +95,7 @@ class AppSnackBar {
       SnackBar(
         content: Row(
           children: [
-            Icon(config.icon, color: scheme.onPrimary, size: 20),
+            Icon(config.icon, color: scheme.onPrimary, size: AppIconSize.action),
             const SizedBox(width: 12),
             Expanded(
               child: Text(

@@ -108,23 +108,17 @@ class _ShareToChatDialogState extends ConsumerState<ShareToChatDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                margin: const EdgeInsets.only(top: AppMetrics.p12),
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: scheme.outlineVariant,
-                  borderRadius: BorderRadius.circular(AppShape.r2),
-                ),
+              const AppDragHandle(
+                padding: EdgeInsets.only(top: AppMetrics.p12),
               ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(AppMetrics.p20, AppMetrics.p16, AppMetrics.p20, AppMetrics.p12),
+                padding: const EdgeInsets.fromLTRB(AppMetrics.p24, AppMetrics.p16, AppMetrics.p24, AppMetrics.p12),
                 child: Row(
                   children: [
                     Expanded(
                       child: Text(
                         'Send to Chat',
-                        style: AppTypography.h5.copyWith(
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.w700,
                           color: textColor,
                         ),
@@ -144,7 +138,7 @@ class _ShareToChatDialogState extends ConsumerState<ShareToChatDialog> {
               Divider(height: 1, color: dividerColor),
               Flexible(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(AppMetrics.p20, AppMetrics.p16, AppMetrics.p20, AppMetrics.p16),
+                  padding: const EdgeInsets.fromLTRB(AppMetrics.p24, AppMetrics.p16, AppMetrics.p24, AppMetrics.p16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -152,7 +146,7 @@ class _ShareToChatDialogState extends ConsumerState<ShareToChatDialog> {
                       const SizedBox(height: 16),
                       Text(
                         'Recipient',
-                        style: AppTypography.bodyMedium.copyWith(
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           fontWeight: FontWeight.w600,
                           color: textColor,
                         ),
@@ -166,7 +160,7 @@ class _ShareToChatDialogState extends ConsumerState<ShareToChatDialog> {
                       const SizedBox(height: 16),
                       Text(
                         'Pick one recipient. The message is sent only when you press Send.',
-                        style: AppTypography.bodySmall.copyWith(
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: scheme.onSurfaceVariant,
                         ),
                       ),
@@ -249,7 +243,7 @@ class _ShareToChatDialogState extends ConsumerState<ShareToChatDialog> {
             controller: _messageController,
             maxLines: 4,
             minLines: 1,
-            style: AppTypography.bodyMedium.copyWith(color: textColor),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: textColor),
             decoration: AppTheme.composerDecoration(
               scheme,
               hintText: 'Write a message (optional)',

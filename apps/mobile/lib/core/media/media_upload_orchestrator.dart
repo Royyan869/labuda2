@@ -7,6 +7,7 @@ import 'package:wechat_assets_picker/wechat_assets_picker.dart';
 import 'package:labuda/shared/ui/src/helpers/media_picker_helper.dart';
 import 'package:labuda/shared/ui/src/screens/custom_camera_screen.dart';
 import 'package:labuda/shared/widgets/app_snackbar.dart';
+import 'package:labuda/core/services/blurhash_cache_service.dart';
 import 'media_upload_config.dart';
 
 /// Single canonical orchestrator for foto+video pick → validate → upload → URLs.
@@ -308,7 +309,7 @@ class MediaUploadOrchestrator {
           color: Theme.of(sheetCtx).scaffoldBackgroundColor,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(AppShape.r20)),
         ),
-        padding: const EdgeInsets.all(AppMetrics.p20),
+        padding: const EdgeInsets.all(AppMetrics.p24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -419,6 +420,29 @@ class MediaUploadOrchestrator {
         'Tidak ada media yang berhasil diupload. Coba lagi.',
       );
     }
+  }
+
+  /// Build typed write items (`media[]`) from uploaded read URLs, attaching
+  /// the upload-time blurhash from cache. Single authority for commerce
+  /// create/update payloads — backend rejects mixed `media` + `media_urls`.
+  static Future<List<Map<String, Object?>>> typedWriteItems(
+    List<String> urls,
+  ) async {
+    final out = <Map<String, Object?>>[];
+    for (final raw in urls) {
+      final url = raw.trim();
+      if (url.isEmpty) continue;
+      final isVideo = isVideoUrl(url);
+      final hash = isVideo
+          ? null
+          : await BlurhashCacheService.instance.getBlurhash(url);
+      out.add({
+        'type': isVideo ? 'video' : 'image',
+        'url': url,
+        if (hash != null && hash.isNotEmpty) 'blurhash': hash,
+      });
+    }
+    return out;
   }
 
   // ── headless single-type picks (evidence/external): same engine, no sheet ──

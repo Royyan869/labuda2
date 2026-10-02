@@ -7,6 +7,7 @@ import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction_
 import 'package:labuda/domains/commerce/catalog/auction/domain/entities/auction_status.dart';
 
 import 'package:labuda/core/common/result.dart';
+import 'package:labuda/core/common/types/preparation_time.dart';
 
 /// Auction Repository Interface
 ///
@@ -35,10 +36,12 @@ abstract class AuctionRepository {
     required int durationHours,
     String? farmAddressId,
 
+    /// Preparation-time range the seller needs after checkout (default 1–3 days).
+    required PreparationTime preparationTime,
+
     /// Required — backend rejects creation without at least one option
     /// (auction is still a physical fish that must ship).
     required List<String> shippingSetupIds,
-    String? preparationNote,
   });
 
   /// Get auction by ID
@@ -156,9 +159,12 @@ class CreateAuctionParams {
   final int durationHours;
   final String? farmAddressId;
 
+  /// Preparation-time range the seller needs after checkout (1–3 / 4–7 / 8–15
+  /// days, default 1–3).
+  final PreparationTime preparationTime;
+
   /// Required — backend rejects creation without at least one option.
   final List<String> shippingSetupIds;
-  final String? preparationNote;
 
   const CreateAuctionParams({
     required this.sellerId,
@@ -177,8 +183,8 @@ class CreateAuctionParams {
     this.scheduledStartAt,
     required this.durationHours,
     this.farmAddressId,
+    required this.preparationTime,
     required this.shippingSetupIds,
-    this.preparationNote,
   });
 
   Map<String, dynamic> toMap() => {
@@ -205,7 +211,7 @@ class CreateAuctionParams {
       'scheduledStartAt': scheduledStartAt!.toIso8601String(),
     'durationHours': durationHours,
     if (farmAddressId != null) 'farmAddressId': farmAddressId,
+    'preparationTime': preparationTime.toJson(),
     'shippingSetupIds': shippingSetupIds,
-    if (preparationNote != null) 'preparationNote': preparationNote,
   };
 }

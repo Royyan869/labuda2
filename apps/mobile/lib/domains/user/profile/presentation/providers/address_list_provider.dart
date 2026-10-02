@@ -25,7 +25,7 @@ final addressesStreamProvider =
       return repository.watchAddresses(userId);
     });
 
-/// Provider for primary address (any purpose - legacy)
+/// Provider for primary address (no tag narrowing)
 final primaryAddressProvider =
     FutureProvider.family<Result<AddressEntity?>, String>((ref, userId) async {
       final repository = ref.watch(addressRepositoryProvider);
@@ -38,10 +38,10 @@ final primaryShippingAddressProvider =
     FutureProvider.family<Result<AddressEntity?>, String>((ref, userId) async {
       final repository = ref.watch(addressRepositoryProvider);
 
-      // Get shipping addresses only
-      final result = await repository.getAddressesByPurpose(
+      // Addresses tagged for shipping only
+      final result = await repository.getAddressesByTag(
         userId,
-        AddressPurpose.shipping,
+        AddressTag.shipping,
       );
 
       if (result.isError || result.data == null) {

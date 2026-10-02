@@ -483,7 +483,7 @@ func insertReportFixtureForSale(t *testing.T, ctx context.Context, pool *pgxpool
 	productID := uuid.New()
 	_, err := pool.Exec(ctx, `
 		INSERT INTO products (id, seller_id, title, description, variety, preparation_time, selling_surface)
-		VALUES ($1, $2, $3, $4, 'standard', 'immediate', 'for_sale')`,
+		VALUES ($1, $2, $3, $4, 'standard', '1_3_days', 'for_sale')`,
 		productID, seller, "reported product", "product description")
 	require.NoError(t, err)
 
@@ -502,7 +502,7 @@ func insertReportFixtureAuction(t *testing.T, ctx context.Context, pool *pgxpool
 	productID := uuid.New()
 	_, err := pool.Exec(ctx, `
 		INSERT INTO products (id, seller_id, title, description, variety, preparation_time, selling_surface)
-		VALUES ($1, $2, $3, $4, 'standard', 'immediate', 'auction')`,
+		VALUES ($1, $2, $3, $4, 'standard', '1_3_days', 'auction')`,
 		productID, seller, "reported auction product", "auction description")
 	require.NoError(t, err)
 

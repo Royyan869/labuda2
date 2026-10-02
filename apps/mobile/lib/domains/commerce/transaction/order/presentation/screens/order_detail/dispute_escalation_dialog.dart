@@ -4,6 +4,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart' as core;
+import 'package:labuda/core/src/theme/app_theme.dart';
 import 'package:labuda/domains/commerce/transaction/order/data/order_providers.dart';
 import 'package:labuda/domains/commerce/transaction/order/domain/entities/refund_request.dart';
 import 'package:labuda/shared/widgets/app_snackbar.dart';
@@ -92,13 +93,13 @@ class _DisputeEscalationDialogState
           Icon(
             Icons.gavel_rounded,
             color: colorScheme.secondary,
-            size: 24,
+            size: AppIconSize.header,
           ),
           const SizedBox(width: 12),
           const Expanded(
             child: Text(
               'Ajukan Sengketa ke Admin',
-              style: TextStyle(fontSize: core.AppType.s18, fontWeight: FontWeight.w600),
+              style: TextStyle(fontSize: core.AppType.s20, fontWeight: FontWeight.w600),
             ),
           ),
         ],
@@ -126,7 +127,7 @@ class _DisputeEscalationDialogState
                     Icon(
                       Icons.info_outline_rounded,
                       color: colorScheme.secondary,
-                      size: 18,
+                      size: AppIconSize.action,
                     ),
                     const SizedBox(width: 8),
                     Expanded(
@@ -175,14 +176,14 @@ class _DisputeEscalationDialogState
                     Icon(
                       Icons.lock_clock,
                       color: context.statusColors.warning,
-                      size: 16,
+                      size: AppIconSize.inlineGlyph,
                     ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Dana akan dibekukan (escrow freeze) selama proses peninjauan admin.',
                         style: TextStyle(
-                          fontSize: core.AppType.s11,
+                          fontSize: core.AppType.s12,
                           color: context.statusColors.warning,
                         ),
                       ),
@@ -237,7 +238,7 @@ class _InfoRow extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          width: 100,
+          width: core.AppContentSize.termLabel,
           child: Text(
             label,
             style: theme.textTheme.bodySmall?.copyWith(

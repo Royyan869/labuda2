@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	notificationentity "github.com/labuda/backend/internal/interaction/notification/entity"
 	platformevent "github.com/labuda/backend/internal/platform/event"
 	dbpkg "github.com/labuda/backend/pkg/db"
 )
@@ -121,7 +122,7 @@ func TestSupportTicketCreated_NoAdmin_FanoutToCapabilityAdmins(t *testing.T) {
 			tx := &mockTxForNotification{
 				QueryRowFunc: func(_ context.Context, _ string, args ...any) pgx.Row {
 					if len(args) >= 6 {
-						recipients = append(recipients, args[1].(uuid.UUID))
+						recipients = append(recipients, insertArg(args).Recipient)
 					}
 					return &mockRowForNotification{scanValue: uuid.New()}
 				},
@@ -176,7 +177,7 @@ func TestSupportTicketCreated_WithAdmin_PreservesDirectPath(t *testing.T) {
 			tx := &mockTxForNotification{
 				QueryRowFunc: func(_ context.Context, _ string, args ...any) pgx.Row {
 					if len(args) >= 6 {
-						recipients = append(recipients, args[1].(uuid.UUID))
+						recipients = append(recipients, insertArg(args).Recipient)
 					}
 					return &mockRowForNotification{scanValue: uuid.New()}
 				},
@@ -361,10 +362,11 @@ func TestSupportTicketWaitingUser_RealAgentActor(t *testing.T) {
 	}
 }
 
-// TestSupportTicketWaitingUser_NoActor_NoInsert proves a legacy event without a
-// real actor is skipped (no insert, no error) rather than persisted with a
-// uuid.Nil actor or poisoning the outbox with endless retries.
-func TestSupportTicketWaitingUser_NoActor_NoInsert(t *testing.T) {
+// TestSupportTicketWaitingUser_LegacyNoAdmin_SystemActorDelivered proves a
+// legacy event without admin_id still notifies the ticket owner: an unknown
+// human cause degrades to the system actor instead of dropping the event or
+// poisoning the outbox with endless retries.
+func TestSupportTicketWaitingUser_LegacyNoAdmin_SystemActorDelivered(t *testing.T) {
 	userID := uuid.New()
 	ticketID := uuid.New()
 
@@ -375,15 +377,8 @@ func TestSupportTicketWaitingUser_NoActor_NoInsert(t *testing.T) {
 		Status: "waiting_user",
 	})
 
-	dbCalls := 0
-	mockDB := &mockDBForNotification{
-		WithTxFunc: func(_ context.Context, fn func(dbpkg.Tx) error) error {
-			dbCalls++
-			return fn(&mockTxForNotification{})
-		},
-	}
-
-	h := buildSocialGovernanceHandler(t, mockDB, &mockAccountStatusControlled{}, &mockBlockCheckerControlled{}, nil)
+	db := &multiInsertDB{}
+	h := buildN4Handler(t, db, &mockBlockCheckerForNotification{}, nil, nil)
 
 	err := h.Handle(context.Background(), platformevent.OutboxEvent{
 		ID: uuid.New(), EventType: "support.ticket_waiting_user", Payload: payload,
@@ -391,8 +386,15 @@ func TestSupportTicketWaitingUser_NoActor_NoInsert(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Handle() error = %v", err)
 	}
-	if dbCalls != 0 {
-		t.Errorf("WithTx called %d times, want 0 (no real actor → no insert)", dbCalls)
+	if db.count() != 1 {
+		t.Fatalf("DB inserts = %d, want 1 with system actor", db.count())
+	}
+	rec := db.at(0)
+	if rec.recipient != userID {
+		t.Errorf("recipient = %v, want the ticket owner %v", rec.recipient, userID)
+	}
+	if rec.actor != uuid.Nil || rec.actorKind != notificationentity.ActorKindSystem {
+		t.Errorf("actor = %v/%q, want system actor", rec.actor, rec.actorKind)
 	}
 }
 

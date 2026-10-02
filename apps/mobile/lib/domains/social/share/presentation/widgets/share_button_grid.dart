@@ -57,14 +57,14 @@ class ShareButtonGrid extends StatelessWidget {
                 color:
                     destinationColor ??
                     scheme.onSurfaceVariant,
-                size: 28,
+                size: AppIconSize.emphasis,
               ),
             ),
             const SizedBox(height: 8),
             // Label
             Text(
               destination.label,
-              style: AppTypography.caption.copyWith(
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: textColor,
                 fontWeight: FontWeight.w500,
               ),

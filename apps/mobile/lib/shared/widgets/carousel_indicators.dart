@@ -42,7 +42,7 @@ class CarouselIndicators extends StatelessWidget {
       children: List.generate(
         totalItems,
         (index) => Container(
-          margin: const EdgeInsets.symmetric(horizontal: AppMetrics.p3),
+          margin: const EdgeInsets.symmetric(horizontal: AppMetrics.p4),
           width: 6,
           height: 6,
           decoration: BoxDecoration(
@@ -76,7 +76,7 @@ class MediaPageIndicators extends StatelessWidget {
       children: List.generate(
         totalItems,
         (index) => Container(
-          margin: const EdgeInsets.symmetric(horizontal: AppMetrics.p3),
+          margin: const EdgeInsets.symmetric(horizontal: AppMetrics.p4),
           width: 6,
           height: 6,
           decoration: BoxDecoration(

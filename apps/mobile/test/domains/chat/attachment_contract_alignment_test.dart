@@ -271,7 +271,7 @@ void main() {
     });
 
     test(
-      'shipping quote checkout target resolves forSale and auction routes',
+      'shipping quote checkout target resolves forSale and auction surfaces',
       () async {
         final listingQuote = ShippingQuoteAttachment(
           offerId: 'offer-1',
@@ -290,11 +290,9 @@ void main() {
 
         final listingTarget = await resolveShippingQuoteCheckoutTarget(
           shippingQuote: listingQuote,
-          resolveAuctionProductId: (_) async => null,
         );
         expect(listingTarget?.forSaleId, 'forSale-1');
         expect(listingTarget?.auctionId, isNull);
-        expect(listingTarget?.productId, isNull);
 
         final auctionQuote = ShippingQuoteAttachment(
           offerId: 'offer-2',
@@ -313,15 +311,11 @@ void main() {
 
         final auctionTarget = await resolveShippingQuoteCheckoutTarget(
           shippingQuote: auctionQuote,
-          resolveAuctionProductId: (auctionId) async {
-            expect(auctionId, 'auction-1');
-            return 'product-9'; // product ID distinct from auctionId
-          },
         );
 
-        // Auction path: productId in productId slot, auctionId in auctionId slot,
-        // fixedPriceSaleId must be null.
-        expect(auctionTarget?.productId, 'product-9');
+        // Auction path: chat forwards the auctionId surface only; the physical
+        // product id is resolved by the commerce intent (openAuctionCheckout),
+        // and fixedPriceSaleId must be null.
         expect(auctionTarget?.auctionId, 'auction-1');
         expect(auctionTarget?.forSaleId, isNull);
       },

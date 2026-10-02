@@ -133,7 +133,7 @@ class TermsOfServiceScreen extends StatelessWidget {
 
   Widget _buildSection(String title, String content) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppMetrics.p20),
+      padding: const EdgeInsets.only(bottom: AppMetrics.p24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -165,7 +165,7 @@ class TermsOfServiceScreen extends StatelessWidget {
           SizedBox(height: 8),
           Text(
             'By creating an account or using LABUDA, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service.',
-            style: TextStyle(fontSize: AppType.s13, height: 1.5),
+            style: TextStyle(fontSize: AppType.s14, height: 1.5),
           ),
         ],
       ),

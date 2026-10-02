@@ -65,7 +65,7 @@ class SearchHistoryList extends StatelessWidget {
               leading: Icon(
                 Icons.history,
                 color: scheme.onSurfaceVariant,
-                size: 20,
+                size: AppIconSize.action,
               ),
               title: Text(
                 item.query,
@@ -76,7 +76,7 @@ class SearchHistoryList extends StatelessWidget {
               trailing: IconButton(
                 icon: Icon(
                   Icons.close,
-                  size: 18,
+                  size: AppIconSize.action,
                   color: scheme.onSurfaceVariant,
                 ),
                 onPressed: () => onDeleteTap(item.id),

@@ -106,7 +106,7 @@ class BaseCard extends StatelessWidget {
       key: key,
       onTap: onTap,
       margin: margin,
-      padding: const EdgeInsets.all(AppMetrics.p20),
+      padding: const EdgeInsets.all(AppMetrics.p24),
       child: child,
     );
   }

@@ -23,8 +23,6 @@ class ContentAppBar extends StatelessWidget implements PreferredSizeWidget {
     final scheme = Theme.of(context).colorScheme;
     return AppBar(
       title: const Text('Create Content'),
-      surfaceTintColor: Colors.transparent,
-      scrolledUnderElevation: 0,
       leading: IconButton(onPressed: onClose, icon: const Icon(Icons.close)),
       actions: [
         TextButton(

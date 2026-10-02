@@ -25,7 +25,7 @@ class _SavedAddressPickerSectionState
       if (authState is AuthStateAuthenticated) {
         ref
             .read(addressProvider.notifier)
-            .loadAddressesByPurpose(authState.user.id, AddressPurpose.shipping);
+            .loadAddressesByTag(authState.user.id, AddressTag.shipping);
       }
     });
   }
@@ -48,13 +48,16 @@ class _SavedAddressPickerSectionState
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Alamat Pengiriman',
-                style: TextStyle(fontSize: AppType.s18, fontWeight: FontWeight.bold),
+                // Section-header role (canonical map: section → titleMedium).
+                // This was s18 here while the auction claim sheet said the
+                // same line at s16.
+                style: Theme.of(context).textTheme.titleMedium,
               ),
               TextButton.icon(
                 onPressed: () => context.push(RoutePaths.addresses),
-                icon: const Icon(Icons.add, size: 16),
+                icon: const Icon(Icons.add, size: AppIconSize.inlineGlyph),
                 label: const Text('Kelola'),
                 style: TextButton.styleFrom(
                   padding: const EdgeInsets.symmetric(
@@ -68,17 +71,21 @@ class _SavedAddressPickerSectionState
           const SizedBox(height: 12),
           addressesAsync.when(
             data: (addresses) {
-              final shippingAddresses = addresses
-                  .where((a) => a.purpose == AddressPurpose.shipping)
-                  .toList();
+              // Server already narrows by tag (tag miss → falls back to every
+              // active address). Never re-filter here — it would undo the
+              // fallback and empty the checkout for no reason.
+              final shippingAddresses = addresses;
               if (shippingAddresses.isEmpty) {
-                return _EmptyAddressPrompt();
+                return ShippingAddressEmptyState(
+                  onAdd: _openAddressForm,
+                );
               }
               // Auto-select primary if nothing selected yet
               if (widget.selectedAddressId == null) {
                 final primary = shippingAddresses
-                    .where((a) => a.isPrimary)
-                    .firstOrNull;
+                        .where((a) => a.isPrimary)
+                        .firstOrNull ??
+                    shippingAddresses.firstOrNull;
                 if (primary != null) {
                   WidgetsBinding.instance.addPostFrameCallback((_) {
                     widget.onAddressSelected(primary);
@@ -88,7 +95,7 @@ class _SavedAddressPickerSectionState
               return Column(
                 children: shippingAddresses.map((addr) {
                   final isSelected = addr.id == widget.selectedAddressId;
-                  return _AddressCard(
+                  return ShippingAddressCard(
                     address: addr,
                     isSelected: isSelected,
                     onTap: () => widget.onAddressSelected(addr),
@@ -114,150 +121,27 @@ class _SavedAddressPickerSectionState
       ),
     );
   }
-}
 
-/// Empty address prompt when no shipping addresses exist
-class _EmptyAddressPrompt extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(AppMetrics.p16),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(AppShape.r8),
-      ),
-      child: Column(
-        children: [
-          Icon(
-            Icons.location_off,
-            size: 32,
-            color: colorScheme.onSurfaceVariant,
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Belum ada alamat pengiriman',
-            style: TextStyle(fontWeight: FontWeight.w500),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Tambahkan alamat pengiriman terlebih dahulu',
-            style: TextStyle(fontSize: AppType.s12, color: colorScheme.onSurfaceVariant),
-          ),
-          const SizedBox(height: 12),
-          ElevatedButton.icon(
-            onPressed: () => context.push(RoutePaths.addresses),
-            icon: const Icon(Icons.add, size: 16),
-            label: const Text('Tambah Alamat'),
-          ),
-        ],
+  /// Empty-state CTA: open the one address form directly, pre-locked to the
+  /// shipping role this flow needs. Jumping to the address list instead made
+  /// the buyer do the routing the app should have done.
+  Future<void> _openAddressForm() async {
+    final saved = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const AddressFormDialog(
+        presetTags: [AddressTag.shipping],
       ),
     );
-  }
-}
 
-/// Single address card with selection indicator
-class _AddressCard extends StatelessWidget {
-  final AddressEntity address;
-  final bool isSelected;
-  final VoidCallback onTap;
+    if (saved != true || !mounted) return;
 
-  const _AddressCard({
-    required this.address,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: AppMetrics.p8),
-        padding: const EdgeInsets.all(AppMetrics.p12),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(AppShape.r8),
-          border: Border.all(
-            color: isSelected
-                ? colorScheme.primary
-                : colorScheme.outlineVariant,
-            width: isSelected ? 2 : 1,
-          ),
-          color: isSelected
-              ? colorScheme.primary.withValues(alpha: 0.05)
-              : colorScheme.surface,
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(
-              isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
-              color: isSelected
-                  ? colorScheme.primary
-                  : colorScheme.onSurfaceVariant,
-              size: 20,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        address.recipientName,
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      if (address.isPrimary) ...[
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppMetrics.p6,
-                            vertical: AppMetrics.p2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: colorScheme.primary.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(AppShape.r4),
-                          ),
-                          child: Text(
-                            'Utama',
-                            style: TextStyle(
-                              fontSize: AppType.s10,
-                              color: colorScheme.primary,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    address.phone,
-                    style: TextStyle(
-                      fontSize: AppType.s12,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${address.streetAddress}, ${address.village.name}, '
-                    '${address.district.name}, ${address.city.name}, '
-                    '${address.province.name} ${address.postalCode}',
-                    style: TextStyle(
-                      fontSize: AppType.s12,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    final authState = ref.read(authControllerProvider);
+    if (authState is AuthStateAuthenticated) {
+      await ref
+          .read(addressProvider.notifier)
+          .loadAddressesByTag(authState.user.id, AddressTag.shipping);
+    }
   }
 }

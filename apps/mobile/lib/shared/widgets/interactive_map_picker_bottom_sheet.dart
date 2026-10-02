@@ -314,7 +314,7 @@ class _InteractiveMapPickerBottomSheetState
       mini: true,
       backgroundColor: scheme.surfaceContainerHigh,
       onPressed: recenterToCurrentLocation,
-      child: Icon(Icons.my_location, color: scheme.primary, size: 20),
+      child: Icon(Icons.my_location, color: scheme.primary, size: AppIconSize.action),
     );
   }
 
@@ -391,7 +391,7 @@ class _InitialLoadingIndicator extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(AppMetrics.p20),
+      padding: const EdgeInsets.all(AppMetrics.p24),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(AppShape.r12),
@@ -446,7 +446,7 @@ class _DefaultLocationBanner extends StatelessWidget {
           Icon(
             Icons.warning_amber_rounded,
             color: scheme.error,
-            size: 18,
+            size: AppIconSize.action,
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -465,7 +465,7 @@ class _DefaultLocationBanner extends StatelessWidget {
                 Text(
                   'Menggunakan lokasi default (Jakarta)',
                   style: TextStyle(
-                    fontSize: AppType.s11,
+                    fontSize: AppType.s12,
                     color: scheme.onSurfaceVariant,
                   ),
                 ),
@@ -475,7 +475,7 @@ class _DefaultLocationBanner extends StatelessWidget {
           TextButton(
             onPressed: onRetry,
             style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p6),
+              padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p8),
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
             child: const Text('Coba Lagi', style: TextStyle(fontSize: AppType.s12)),

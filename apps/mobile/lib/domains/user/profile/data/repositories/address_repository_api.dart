@@ -25,14 +25,11 @@ class AddressRepositoryApi implements IAddressRepository {
   }
 
   @override
-  Future<Result<List<AddressEntity>>> getAddressesByPurpose(
+  Future<Result<List<AddressEntity>>> getAddressesByTag(
     String userId,
-    AddressPurpose purpose,
+    AddressTag tag,
   ) async {
-    final purposeStr = purpose == AddressPurpose.shipping
-        ? 'shipping'
-        : 'sender';
-    final result = await _datasource.getAddresses(purpose: purposeStr);
+    final result = await _datasource.getAddresses(tag: tag.wireValue);
 
     return result.fold((error) => Result.error(error), (response) {
       final addresses = response.data.map(AddressApiMapper.toDomain).toList();
@@ -53,12 +50,9 @@ class AddressRepositoryApi implements IAddressRepository {
   @override
   Future<Result<AddressEntity?>> getPrimaryAddress(
     String userId, {
-    AddressPurpose? purpose,
+    AddressTag? tag,
   }) async {
-    final purposeStr = purpose != null
-        ? (purpose == AddressPurpose.shipping ? 'shipping' : 'sender')
-        : null;
-    final result = await _datasource.getPrimaryAddress(purpose: purposeStr);
+    final result = await _datasource.getPrimaryAddress(tag: tag?.wireValue);
 
     return result.fold(
       (error) {
@@ -90,6 +84,7 @@ class AddressRepositoryApi implements IAddressRepository {
   Future<Result<void>> updateAddress(AddressEntity address) async {
     // Build update request from entity
     final updates = <String, dynamic>{
+      'tags': address.tagValues,
       'nickname': address.nickname,
       'recipientName': address.recipientName,
       'phone': address.phone,
@@ -154,16 +149,13 @@ class AddressRepositoryApi implements IAddressRepository {
   }
 
   @override
-  Stream<Result<List<AddressEntity>>> watchAddressesByPurpose(
+  Stream<Result<List<AddressEntity>>> watchAddressesByTag(
     String userId,
-    AddressPurpose purpose,
+    AddressTag tag,
   ) {
     // For API implementation, we use polling
     return Stream.periodic(const Duration(seconds: 30)).asyncMap((_) async {
-      final purposeStr = purpose == AddressPurpose.shipping
-          ? 'shipping'
-          : 'sender';
-      final result = await _datasource.getAddresses(purpose: purposeStr);
+      final result = await _datasource.getAddresses(tag: tag.wireValue);
 
       return result.fold((error) => Result.error(error), (response) {
         final addresses = response.data.map(AddressApiMapper.toDomain).toList();
@@ -175,19 +167,17 @@ class AddressRepositoryApi implements IAddressRepository {
   @override
   Future<Result<int>> countAddresses(
     String userId, {
-    AddressPurpose? purpose,
+    AddressTag? tag,
   }) async {
     final result = await _datasource.getAddressCount();
 
     return result.fold((error) => Result.error(error), (response) {
-      // Return count based on purpose
-      if (purpose == null) {
+      if (tag == null) {
         return Result.success(response.total);
-      } else if (purpose == AddressPurpose.shipping) {
-        return Result.success(response.shippingCount);
-      } else {
-        return Result.success(response.senderCount);
       }
+      return Result.success(tag == AddressTag.shipping
+          ? response.shippingCount
+          : response.senderCount);
     });
   }
 }

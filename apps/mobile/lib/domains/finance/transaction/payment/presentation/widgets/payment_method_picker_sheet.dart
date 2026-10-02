@@ -48,21 +48,13 @@ class PaymentMethodPickerSheet extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              margin: const EdgeInsets.only(top: AppMetrics.p12),
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: colorScheme.outlineVariant,
-                borderRadius: BorderRadius.circular(AppShape.r2),
-              ),
-            ),
+            const AppDragHandle(padding: EdgeInsets.only(top: AppMetrics.p12)),
             Padding(
               padding: const EdgeInsets.all(AppMetrics.p16),
               child: Text(
                 'Pilih Metode Pembayaran',
                 style: TextStyle(
-                  fontSize: AppType.s18,
+                  fontSize: AppType.s20,
                   fontWeight: FontWeight.bold,
                   color: colorScheme.onSurface,
                 ),

@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	notificationentity "github.com/labuda/backend/internal/interaction/notification/entity"
 	platformevent "github.com/labuda/backend/internal/platform/event"
 	dbpkg "github.com/labuda/backend/pkg/db"
 )
@@ -62,7 +63,7 @@ func TestWithdrawalRequested_SellerAndAdminFanout(t *testing.T) {
 			tx := &mockTxForNotification{
 				QueryRowFunc: func(_ context.Context, _ string, args ...any) pgx.Row {
 					if len(args) >= 6 {
-						recipients = append(recipients, args[1].(uuid.UUID))
+						recipients = append(recipients, insertArg(args).Recipient)
 					}
 					return &mockRowForNotification{scanValue: uuid.New()}
 				},
@@ -370,7 +371,7 @@ func TestSellerVerificationSubmitted_SellerAndAdminFanout(t *testing.T) {
 			tx := &mockTxForNotification{
 				QueryRowFunc: func(_ context.Context, _ string, args ...any) pgx.Row {
 					if len(args) >= 6 {
-						recipients = append(recipients, args[1].(uuid.UUID))
+						recipients = append(recipients, insertArg(args).Recipient)
 					}
 					return &mockRowForNotification{scanValue: uuid.New()}
 				},
@@ -726,11 +727,13 @@ func TestSellerSubscriptionExpiringLegacy_InvalidUserID(t *testing.T) {
 
 func TestSellerVerificationSuspended_UserNotified(t *testing.T) {
 	sellerID := uuid.New()
+	adminID := uuid.New()
 
 	payload, _ := json.Marshal(SellerVerificationPayload{
-		SellerID: sellerID.String(),
-		Status:   "suspended",
-		Reason:   "Suspicious activity detected",
+		SellerID:    sellerID.String(),
+		Status:      "suspended",
+		Reason:      "Suspicious activity detected",
+		SuspendedBy: adminID.String(),
 	})
 
 	var capturedRecipient, capturedActor, capturedEntity uuid.UUID
@@ -753,8 +756,29 @@ func TestSellerVerificationSuspended_UserNotified(t *testing.T) {
 	if capturedRecipient != sellerID {
 		t.Errorf("recipient = %s, want %s", capturedRecipient, sellerID)
 	}
-	if capturedActor != uuid.Nil {
-		t.Errorf("actor = %s, want uuid.Nil (system-initiated)", capturedActor)
+	if capturedActor != adminID {
+		t.Errorf("actor = %s, want the suspending admin %s", capturedActor, adminID)
+	}
+
+	// Legacy payload without any reviewer key: no known human cause, so the
+	// actor is the SYSTEM actor — never the seller, who is only the subject.
+	var legacyActor uuid.UUID
+	legacyMockDB := &mockDBForNotification{
+		WithTxFunc: insertCaptureTx(nil, &legacyActor, nil, nil, nil),
+	}
+	legacyHandler := buildSocialGovernanceHandler(t, legacyMockDB, &mockAccountStatusControlled{}, &mockBlockCheckerControlled{}, nil)
+	legacyPayload, _ := json.Marshal(SellerVerificationPayload{
+		SellerID: sellerID.String(),
+		Status:   "suspended",
+		Reason:   "Suspicious activity detected",
+	})
+	if err := legacyHandler.Handle(context.Background(), platformevent.OutboxEvent{
+		ID: uuid.New(), EventType: "seller.verification.suspended", Payload: legacyPayload,
+	}); err != nil {
+		t.Fatalf("Handle(legacy) error = %v", err)
+	}
+	if legacyActor != uuid.Nil {
+		t.Errorf("legacy actor = %s, want uuid.Nil (system actor)", legacyActor)
 	}
 	if capturedType != "seller.verification.suspended" {
 		t.Errorf("type = %s, want seller.verification.suspended", capturedType)
@@ -1023,8 +1047,8 @@ func TestSellerSubscriptionExpired_UserNotified(t *testing.T) {
 	subscriptionID := uuid.New()
 
 	payload, _ := json.Marshal(SellerSubscriptionExpiredPayload{
-		SubscriptionID:  subscriptionID.String(),
-		UserID:          userID.String(),
+		SubscriptionID: subscriptionID.String(),
+		UserID:         userID.String(),
 	})
 
 	var capturedRecipient, capturedActor, capturedEntity uuid.UUID
@@ -1112,8 +1136,8 @@ func TestN4A2_WithdrawalRequested_WrapperAllowPushLog(t *testing.T) {
 	if rec.recipient != sellerID {
 		t.Errorf("recipient = %v, want sellerID %v", rec.recipient, sellerID)
 	}
-	if rec.actor != uuid.Nil {
-		t.Errorf("actor = %v, want uuid.Nil (system-initiated)", rec.actor)
+	if rec.actor != sellerID || rec.actorKind != notificationentity.ActorKindUser {
+		t.Errorf("actor = %v/%q, want the requesting seller %v", rec.actor, rec.actorKind, sellerID)
 	}
 	if rec.notifType != "withdrawal.requested" {
 		t.Errorf("notifType = %q, want %q", rec.notifType, "withdrawal.requested")

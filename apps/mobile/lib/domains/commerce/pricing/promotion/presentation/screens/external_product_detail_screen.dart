@@ -179,7 +179,7 @@ class _ExternalProductDetailScreenState
         : Theme.of(context).colorScheme.primary;
 
     return Container(
-      padding: const EdgeInsets.all(AppMetrics.p14),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(color: borderColor.withValues(alpha: 0.3)),
@@ -340,7 +340,7 @@ class _ExternalProductDetailScreenState
           title: const Text('Add Media to Approved Product'),
           content: Text(
             'Adding media to an approved product will return it to pending review.',
-            style: TextStyle(fontSize: AppType.s13, color: context.statusColors.warning),
+            style: TextStyle(fontSize: AppType.s14, color: context.statusColors.warning),
           ),
           actions: [
             TextButton(
@@ -489,7 +489,7 @@ class _SectionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(AppMetrics.p14),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
@@ -519,7 +519,7 @@ class _MediaRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: AppMetrics.p8),
-      padding: const EdgeInsets.all(AppMetrics.p10),
+      padding: const EdgeInsets.all(AppMetrics.p12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppShape.r8),
         color: Theme.of(context).colorScheme.surfaceContainer,
@@ -554,7 +554,7 @@ class _MediaRow extends StatelessWidget {
                 Text(
                   media.url,
                   style: TextStyle(
-                    fontSize: AppType.s11,
+                    fontSize: AppType.s12,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                   maxLines: 1,
@@ -566,7 +566,7 @@ class _MediaRow extends StatelessWidget {
           if (onDelete != null)
             IconButton(
               onPressed: onDelete,
-              icon: const Icon(Icons.delete_outline, size: 20),
+              icon: const Icon(Icons.delete_outline, size: AppIconSize.action),
               color: Theme.of(context).colorScheme.primary,
             ),
         ],

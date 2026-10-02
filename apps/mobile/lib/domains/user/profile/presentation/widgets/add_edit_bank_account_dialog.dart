@@ -111,7 +111,7 @@ class _AddEditBankAccountDialogState
                     child: Icon(
                       Icons.account_balance,
                       color: scheme.primary,
-                      size: 24,
+                      size: AppIconSize.header,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -119,7 +119,7 @@ class _AddEditBankAccountDialogState
                     child: Text(
                       isEdit ? 'Edit Bank Account' : 'Add Bank Account',
                       style: TextStyle(
-                        fontSize: AppType.s18,
+                        fontSize: AppType.s20,
                         fontWeight: FontWeight.bold,
                         color: scheme.onSurface,
                       ),

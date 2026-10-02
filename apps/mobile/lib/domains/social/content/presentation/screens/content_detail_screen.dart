@@ -222,9 +222,8 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
     return Stack(
       children: [
         // Main image
-        SizedBox(
-          width: double.infinity,
-          height: 300,
+        AspectRatio(
+          aspectRatio: 4 / 5,
           child: PageView.builder(
             itemCount: content.media.length,
             onPageChanged: (index) {
@@ -247,7 +246,7 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
             top: 16,
             right: 16,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p6),
+              padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p8),
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.scrim.withValues(alpha: 0.6),
                 borderRadius: BorderRadius.circular(AppShape.r16),
@@ -266,11 +265,13 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
     );
   }
 
-  /// Canonical content media frame for the detail hero.
+  /// Canonical content media frame for the detail hero: 4:5 contain like every
+  /// other surface (koi never cropped).
   ///
   /// [MediaEntity.type] is the render authority: images go through [AppImage]
-  /// (CloudFront URL as-is, cached), videos through [CarouselVideoPlayer].
-  /// A video reference is never handed to the image decoder.
+  /// (original URL — detail is for scrutiny), videos through
+  /// [CarouselVideoPlayer]. A video reference is never handed to the image
+  /// decoder.
   Widget _buildMediaFrame(BuildContext context, Content content, int index) {
     final media = content.media[index];
 
@@ -280,7 +281,10 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
           videoUrl: media.originalUrl,
           width: constraints.maxWidth,
           height: constraints.maxHeight,
-          fit: BoxFit.cover,
+          fit: BoxFit.contain,
+          posterUrl: media.thumbnailUrl != media.originalUrl
+              ? media.thumbnailUrl
+              : null,
           onFullscreenTap: () => _openMediaViewer(context, content, index),
         ),
       );
@@ -288,23 +292,24 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
 
     return AppImage(
       imageUrl: media.originalUrl,
-      fit: BoxFit.cover,
+      blurhash: media.blurhash,
+      fit: BoxFit.contain,
       backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
       errorWidget: _buildMediaPlaceholder(),
     );
   }
 
-  /// Error icon shown when the media cannot load. Loading shows the AppImage
-  /// shimmer — the two states are never the same widget.
+  /// Error icon shown when the media cannot load. Loading shows the static
+  /// mat — the two states are never the same widget.
   Widget _buildMediaPlaceholder() {
     return Builder(
       builder: (context) {
         final scheme = Theme.of(context).colorScheme;
         return Container(
           width: double.infinity,
-          height: 300,
+          height: double.infinity,
           color: scheme.surfaceContainerHighest,
-          child: Icon(Icons.image, size: 64, color: scheme.onSurfaceVariant),
+          child: Icon(Icons.image, size: AppIconSize.display, color: scheme.onSurfaceVariant),
         );
       },
     );
@@ -414,7 +419,7 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
                         const SizedBox(width: 6),
                         Icon(
                           visibilityIcon,
-                          size: 14,
+                          size: AppIconSize.inlineGlyph,
                           color: scheme.onSurfaceVariant,
                         ),
                       ],
@@ -465,7 +470,7 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
           children: [
             Icon(
               Icons.location_on,
-              size: 16,
+              size: AppIconSize.inlineGlyph,
               color: scheme.onSurfaceVariant,
             ),
             const SizedBox(width: 4),
@@ -512,13 +517,13 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
           onTap: () => _navigateToComments(context),
           borderRadius: BorderRadius.circular(AppShape.r8),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p4, vertical: AppMetrics.p6),
+            padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p4, vertical: AppMetrics.p8),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
                   Icons.chat_bubble_outline,
-                  size: 16,
+                  size: AppIconSize.inlineGlyph,
                   color: Theme.of(context).colorScheme.primary,
                 ),
                 if (content.engagement.commentCount > 0) ...[
@@ -541,10 +546,10 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
           onTap: () => _handleShareContent(context, content),
           borderRadius: BorderRadius.circular(AppShape.r8),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p4, vertical: AppMetrics.p6),
+            padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p4, vertical: AppMetrics.p8),
             child: Icon(
               Icons.share_outlined,
-              size: 16,
+              size: AppIconSize.inlineGlyph,
               color: scheme.onSurfaceVariant,
             ),
           ),
@@ -574,11 +579,11 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppShape.r8),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p4, vertical: AppMetrics.p6),
+          padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p4, vertical: AppMetrics.p8),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 16, color: color),
+              Icon(icon, size: AppIconSize.inlineGlyph, color: color),
               if (count > 0) ...[
                 const SizedBox(width: 4),
                 Text(
@@ -722,14 +727,14 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(AppMetrics.p6),
+            padding: const EdgeInsets.all(AppMetrics.p8),
             decoration: BoxDecoration(
               color: scheme.onSurfaceVariant.withValues(alpha: 0.2),
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.visibility_off_outlined,
-              size: 16,
+              size: AppIconSize.inlineGlyph,
               color: scheme.onSurfaceVariant,
             ),
           ),
@@ -737,7 +742,7 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
           Text(
             'Tidak tersedia',
             style: TextStyle(
-              fontSize: AppType.s13,
+              fontSize: AppType.s14,
               fontWeight: FontWeight.w600,
               color: scheme.onSurface,
             ),
@@ -762,13 +767,13 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
           children: [
             Icon(
               Icons.remove_circle_outline,
-              size: 64,
+              size: AppIconSize.display,
               color: scheme.outline,
             ),
             const SizedBox(height: 16),
             const Text(
               'Konten dihapus',
-              style: TextStyle(fontSize: AppType.s18, fontWeight: FontWeight.w500),
+              style: TextStyle(fontSize: AppType.s20, fontWeight: FontWeight.w500),
             ),
             const SizedBox(height: 8),
             Text(
@@ -795,13 +800,13 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen> {
         children: [
           Icon(
             Icons.error_outline,
-            size: 64,
+            size: AppIconSize.display,
             color: scheme.error,
           ),
           const SizedBox(height: 16),
           const Text(
             'Failed to load content',
-            style: TextStyle(fontSize: AppType.s18, fontWeight: FontWeight.w500),
+            style: TextStyle(fontSize: AppType.s20, fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 8),
           Text(
@@ -867,8 +872,8 @@ class _ContentAuthorVerificationBadge extends ConsumerWidget {
             (user.isFarmVerified ?? false);
         if (!isVerified) return const SizedBox.shrink();
         return Padding(
-          padding: EdgeInsets.only(left: AppMetrics.p6),
-          child: Icon(Icons.verified, size: 16, color: context.statusColors.info),
+          padding: EdgeInsets.only(left: AppMetrics.p8),
+          child: Icon(Icons.verified, size: AppIconSize.inlineGlyph, color: context.statusColors.info),
         );
       },
       loading: () => const SizedBox.shrink(),

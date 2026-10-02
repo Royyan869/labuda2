@@ -107,21 +107,22 @@ class ProfileAvatar extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final iconSize = (size * 0.3).clamp(16.0, 28.0);
 
-    // Inverted pair (ink circle, surface ring/icon) so the badge contrasts
-    // with any avatar photo in both modes. No brightness branch.
+    // Inverted pair so the badge contrasts with any avatar photo in both
+    // modes: M3's designated `inverseSurface`/`onInverseSurface` roles (the
+    // ink role used to stand in as a fill here). No brightness branch.
     return GestureDetector(
       onTap: onEditTap,
       child: Container(
         width: iconSize,
         height: iconSize,
         decoration: BoxDecoration(
-          color: scheme.onSurface,
+          color: scheme.inverseSurface,
           shape: BoxShape.circle,
           border: Border.all(color: scheme.surface, width: 1.5),
         ),
         child: Icon(
           Icons.camera_alt,
-          color: scheme.surface,
+          color: scheme.onInverseSurface,
           size: iconSize * 0.6,
         ),
       ),

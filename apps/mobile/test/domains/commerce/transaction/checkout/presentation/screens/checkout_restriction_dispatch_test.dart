@@ -128,9 +128,9 @@ class _FakeAddressNotifier extends AddressNotifier {
   }
 
   @override
-  Future<void> loadAddressesByPurpose(
+  Future<void> loadAddressesByTag(
     String userId,
-    AddressPurpose purpose,
+    AddressTag tag,
   ) async {}
 }
 
@@ -187,7 +187,7 @@ AddressEntity _shippingAddress() {
   return AddressEntity(
     id: 'address-1',
     userId: 'buyer-1',
-    purpose: AddressPurpose.shipping,
+    tags: const [AddressTag.shipping],
     recipientName: 'Buyer',
     phone: '08123456789',
     province: const Province(id: 'province-1', name: 'Jawa Barat'),

@@ -1,6 +1,7 @@
 package http
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -50,6 +51,39 @@ func contentWithMedia(t *testing.T, mediaURLs ...string) (*entity.Content, []*en
 	}
 	return content, media
 }
+
+func intPtrForMedia(v int) *int { return &v }
+
+// Video items emit the poster frame as thumbnail_url plus the persisted
+// provisional metadata; images emit the list variant. This is the same
+// card rule comments and feed already use — content detail was the only
+// surface without it.
+func TestToContentResponse_VideoEmitsPosterAndPersistedMetadata(t *testing.T) {
+	configureContentMediaResolver(t, testCDNBase)
+	content, media := contentWithMedia(t, "videos/clip.mp4")
+	media[0].MediaType = entity.MediaTypeVideo
+	media[0].DurationMs = intPtrForMedia(12500)
+	media[0].Width = intPtrForMedia(1920)
+	media[0].Height = intPtrForMedia(1080)
+	media[0].Blurhash = strPtrForMedia("LKO2?U%2Tw=w]~RBVZRi};RPxuwH")
+
+	resp := ToContentResponse(content, media)
+	if len(resp.Media) != 1 {
+		t.Fatalf("len(media) = %d, want 1", len(resp.Media))
+	}
+	item := resp.Media[0]
+	if item.ThumbnailURL == nil || !strings.HasSuffix(*item.ThumbnailURL, "videos/clip_poster.jpg") {
+		t.Fatalf("thumbnail_url = %#v, want derived poster frame", item.ThumbnailURL)
+	}
+	if item.DurationMs == nil || *item.DurationMs != 12500 {
+		t.Fatalf("duration_ms = %#v, want 12500 persisted", item.DurationMs)
+	}
+	if item.Width == nil || *item.Width != 1920 || item.Height == nil || *item.Height != 1080 {
+		t.Fatalf("dims = %#v/%#v, want 1920/1080 persisted", item.Width, item.Height)
+	}
+}
+
+func strPtrForMedia(s string) *string { return &s }
 
 // content_media.media_url may hold a storage reference or a URL. The mobile
 // content card renders media[].url directly, so this surface must project the

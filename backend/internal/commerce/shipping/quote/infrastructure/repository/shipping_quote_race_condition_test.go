@@ -220,8 +220,7 @@ func seedPublishedForSale(t *testing.T, ctx context.Context, tdb *testdb.TestDB,
 	Bloodline: nil,
 	Certificates: nil,
 	FarmAddressID: nil,
-	PreparationTime: string(forsaleEntity.PreparationTimeImmediate),
-	PreparationNote: nil,
+	PreparationTime: string(forsaleEntity.PreparationTime1To3Days),
 	SellingSurface: productEntity.SellingSurfaceForSale,
 }
 	productRepo := productInfraRepo.NewProductRepository()
@@ -260,8 +259,11 @@ func seedPublishedForSale(t *testing.T, ctx context.Context, tdb *testdb.TestDB,
 
 func createQuoteInput(chatID uuid.UUID, forSale *forsaleEntity.ForSale, sellerID, buyerID uuid.UUID, note string, cost int64) quoteApp.CreateShippingQuoteInput {
 	return quoteApp.CreateShippingQuoteInput{
-		ChatID:         chatID,
-		ProductID:      forSale.ID,
+		ChatID: chatID,
+		// Canonical quote identity: the PHYSICAL product id (matches order
+		// creation's `quote.ProductID == order product_id` and the service's
+		// GetByProductID sale-surface resolution).
+		ProductID:      forSale.ProductID,
 		SourceType:     "for_sale",
 		SourceID:       forSale.ID,
 		SellerID:       sellerID,

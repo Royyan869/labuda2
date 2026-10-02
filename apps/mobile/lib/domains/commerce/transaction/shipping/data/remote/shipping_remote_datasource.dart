@@ -1,4 +1,5 @@
 import 'package:labuda/core/core.dart';
+import 'package:labuda/domains/commerce/catalog/for_sale/data/dto/shipping_quote_dto.dart';
 import 'package:labuda/domains/commerce/transaction/shipping/data/dto/shipping_dto.dart';
 
 /// Shipping Remote Datasource
@@ -118,6 +119,22 @@ class ShippingRemoteDatasource {
   // =====================================
   // Shipping Proof Methods
   // =====================================
+
+  /// Create a manual shipping quote bound to a chat room.
+  /// Backend: POST /chat/:chat_id/shipping-quote — seller-authored ongkir
+  /// that supersedes the previous active quote for the same room context.
+  /// Transport authority lives in Shipping; chat never posts this endpoint.
+  Future<ShippingQuoteResponseDto> createShippingQuote(
+    String chatRoomId,
+    CreateShippingQuoteRequestDto request,
+  ) async {
+    final response = await _apiClient.post(
+      '/chat/$chatRoomId/shipping-quote',
+      data: request.toJson(),
+    );
+    final envelope = _decodeEnvelope(response, 'create shipping quote');
+    return ShippingQuoteResponseDto.fromJson(envelope);
+  }
 
   /// Upload shipping proof for an order
   Future<ShippingProofDto> uploadShippingProof(

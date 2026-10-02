@@ -303,7 +303,6 @@ type OrderDetailResponse struct {
 
 	// Shipping Readiness Snapshot (for overdue calculation)
 	PreparationTimeSnapshot *string `json:"preparation_time_snapshot,omitempty"`
-	PreparationNoteSnapshot *string `json:"preparation_note_snapshot,omitempty"`
 	ReadyToShipBy           *int64  `json:"ready_to_ship_by,omitempty"`
 
 	// Overdue Display Layer (computed, not persisted)
@@ -693,9 +692,12 @@ func OrderToDetailResponseWithIdentity(
 		}
 	}
 
-	// Convert preparation time snapshot (string field, nullable if empty)
+	// Convert preparation time snapshot (string field, nullable if empty).
+	// The 1-3 day range IS meaningful information for the buyer — emit whenever
+	// the order carries a snapshot (the old "immediate means nothing to say"
+	// concept died with the 4-value vocabulary).
 	var preparationTimeSnapshot *string
-	if order.PreparationTimeSnapshot != "" && order.PreparationTimeSnapshot != "immediate" {
+	if order.PreparationTimeSnapshot != "" {
 		preparationTimeSnapshot = &order.PreparationTimeSnapshot
 	}
 
@@ -748,7 +750,6 @@ func OrderToDetailResponseWithIdentity(
 		ShippingSetupName:       order.ShippingSetupName,
 		ShippingTransportType:   order.ShippingTransportType,
 		PreparationTimeSnapshot: preparationTimeSnapshot,
-		PreparationNoteSnapshot: order.PreparationNoteSnapshot,
 		ReadyToShipBy:           readyToShipBy,
 		OverdueTier:             overdueTier,
 		OverdueDays:             overdueDays,

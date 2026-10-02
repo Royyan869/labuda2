@@ -6,19 +6,38 @@ import (
 )
 
 // Canonical allowed certificate values.
+//
+// This entity is the ONE authority for the certificate vocabulary.
+// [CanonicalCertificateOrder] is what `shared.NormalizeCertificates` reads for
+// validation and ordering, so product validation and the commerce wire layer
+// can never drift apart again.
+//
+// Business truth (owner): a certificate is a plain statement the seller makes
+// about the fish — contest, breeder, import, or health. It is product content
+// like variety/breeder/bloodline, never a document upload.
 const (
-	CertificateBreeder   = "breeder"
-	CertificateContest   = "contest"
-	CertificateOwnership = "ownership"
-	CertificateHealth    = "health"
+	CertificateBreeder = "breeder"
+	CertificateContest = "contest"
+	CertificateImport  = "import"
+	CertificateHealth  = "health"
 )
 
-var allowedCertificates = map[string]struct{}{
-	CertificateBreeder:   {},
-	CertificateContest:   {},
-	CertificateOwnership: {},
-	CertificateHealth:    {},
+// CanonicalCertificateOrder lists the accepted certificate values in the order
+// they are persisted and rendered to buyers.
+var CanonicalCertificateOrder = []string{
+	CertificateBreeder,
+	CertificateContest,
+	CertificateImport,
+	CertificateHealth,
 }
+
+var allowedCertificates = func() map[string]struct{} {
+	set := make(map[string]struct{}, len(CanonicalCertificateOrder))
+	for _, value := range CanonicalCertificateOrder {
+		set[value] = struct{}{}
+	}
+	return set
+}()
 
 // ValidateTitle validates a product title pointer for update flows.
 // Nil means absent (no change). Non-nil is trimmed and must be 1..200.
@@ -55,7 +74,11 @@ func ValidateCertificates(certs *[]string) error {
 	}
 	for _, c := range *certs {
 		if _, ok := allowedCertificates[c]; !ok {
-			return fmt.Errorf("invalid certificate value %q: allowed breeder, contest, ownership, health", c)
+			return fmt.Errorf(
+				"invalid certificate value %q: allowed %s",
+				c,
+				strings.Join(CanonicalCertificateOrder, ", "),
+			)
 		}
 	}
 	return nil
@@ -68,10 +91,10 @@ func ValidatePreparationTime(pt *string) error {
 	}
 	// Use string check against canonical values to avoid import cycle with forsale entity.
 	switch *pt {
-	case "immediate", "short", "medium", "long":
+	case "1_3_days", "4_7_days", "8_15_days":
 		return nil
 	default:
-		return fmt.Errorf("invalid preparation_time %q: allowed immediate, short, medium, long", *pt)
+		return fmt.Errorf("invalid preparation_time %q: allowed 1_3_days, 4_7_days, 8_15_days", *pt)
 	}
 }
 
@@ -81,7 +104,7 @@ func ValidatePreparationTime(pt *string) error {
 type ProductContentPatch struct {
 	Title           *string
 	Description     *string
-	MediaURLs       *[]string
+	MediaURLs       *[]ProductMedia
 	Variety         *string
 	SizeCM          *int
 	AgeMonths       *int
@@ -90,7 +113,6 @@ type ProductContentPatch struct {
 	Bloodline       *string
 	Certificates    *[]string
 	PreparationTime *string
-	PreparationNote *string
 }
 
 // Validate validates the patch using canonical rules.
@@ -144,8 +166,5 @@ func (p *ProductContentPatch) ApplyTo(product *Product) {
 	}
 	if p.PreparationTime != nil {
 		product.PreparationTime = *p.PreparationTime
-	}
-	if p.PreparationNote != nil {
-		product.PreparationNote = p.PreparationNote
 	}
 }

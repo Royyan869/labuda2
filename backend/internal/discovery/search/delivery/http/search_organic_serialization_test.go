@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/labuda/backend/internal/discovery/search/entity"
+	productentity "github.com/labuda/backend/internal/commerce/product/entity"
 )
 
 func TestForSalePreviewsToResponse_OmitsSellerName(t *testing.T) {
@@ -16,7 +17,7 @@ func TestForSalePreviewsToResponse_OmitsSellerName(t *testing.T) {
 			Description:     "Beautiful showa",
 			Variety:         "Showa",
 			Price:           1500000,
-			MediaURLs:       []string{"https://example.com/forSale.jpg"},
+			MediaURLs:       []productentity.ProductMedia{{URL: "https://example.com/forSale.jpg"}},
 			SellerID:        uuid.New(),
 			SellerUsername:  "seller_user",
 			SellerFarmName:  "Farm Name",

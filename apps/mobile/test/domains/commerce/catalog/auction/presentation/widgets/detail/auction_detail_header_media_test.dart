@@ -5,6 +5,7 @@ import 'package:labuda/domains/commerce/catalog/auction/domain/domain.dart';
 import 'package:labuda/domains/commerce/catalog/auction/presentation/widgets/detail/auction_detail_header.dart';
 import 'package:labuda/domains/social/content/domain/entities/content.dart';
 import 'package:labuda/shared/widgets/media_carousel_widget.dart';
+import 'package:labuda/shared/widgets/media_viewer_widget.dart';
 
 Widget _wrap(Auction auction) {
   return MaterialApp(
@@ -188,5 +189,40 @@ void main() {
       expect(url, anyOf(firstUrlUpdated, secondUrlUpdated));
     }
     expect(urls, contains(secondUrlUpdated));
+  });
+
+  testWidgets('Detail gallery matches the card contract and opens fullscreen',
+      (tester) async {
+    const firstUrl = 'https://cdn.example.com/auctions/cover.jpg';
+
+    await tester.pumpWidget(
+      _wrap(
+        _auction(
+          media: [
+            MediaEntity(
+              id: 'first',
+              originalUrl: firstUrl,
+              type: MediaType.image,
+              createdAt: DateTime.parse('2026-01-01T00:00:00.000Z'),
+            ),
+          ],
+        ),
+      ),
+    );
+    await tester.pump();
+
+    // Card ≡ detail: 4:5 contain, koi never cropped.
+    final carousel = tester.widget<MediaCarouselWidget>(
+      find.byType(MediaCarouselWidget),
+    );
+    expect(carousel.aspectRatio, 4 / 5);
+    expect(carousel.fit, BoxFit.contain);
+
+    // Tap opens the canonical fullscreen viewer.
+    await tester.tap(find.byType(MediaCarouselWidget));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.byType(MediaViewerWidget), findsOneWidget);
   });
 }

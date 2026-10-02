@@ -35,10 +35,10 @@ class PhoneVerificationField extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
-        color: scheme.onSurfaceVariant,
-        border: Border.all(
-          color: scheme.onSurfaceVariant,
-        ),
+        // Container roles, not ink: this block was a solid `onSurfaceVariant`
+        // slab holding `onSurfaceVariant` labels and an `onSurface` field.
+        color: scheme.surfaceContainerHighest,
+        border: Border.all(color: scheme.outlineVariant),
         borderRadius: BorderRadius.circular(AppShape.r8),
       ),
       child: Column(
@@ -49,7 +49,7 @@ class PhoneVerificationField extends StatelessWidget {
               Icon(
                 Icons.phone_outlined,
                 color: scheme.onSurfaceVariant,
-                size: 20,
+                size: AppIconSize.action,
               ),
               const SizedBox(width: 8),
               Text(
@@ -72,42 +72,17 @@ class PhoneVerificationField extends StatelessWidget {
               fontWeight: FontWeight.w500,
               color: scheme.onSurface,
             ),
-            decoration: InputDecoration(
-              hintText: '081234567890',
-              hintStyle: TextStyle(
-                color: scheme.onSurfaceVariant,
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: AppMetrics.p12,
-                vertical: AppMetrics.p10,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppShape.r8),
-                borderSide: BorderSide(
-                  color: scheme.onSurfaceVariant,
-                ),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppShape.r8),
-                borderSide: BorderSide(
-                  color: scheme.onSurfaceVariant,
-                ),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppShape.r8),
-borderSide: BorderSide(
-                   color: scheme.primary,
-                   width: 1.5,
-                 ),
-              ),
-            ),
+            // Input chrome (radius, borders, padding, hint ink) is theme data
+            // (`inputDecorationTheme`) — restating it here duplicated the
+            // authority and put an ink role on a border.
+            decoration: const InputDecoration(hintText: '081234567890'),
           ),
           if (phoneVerified && phoneVerifiedAt != null) ...[
             const SizedBox(height: 8),
             Text(
               'Verified on ${phoneVerifiedAt!.day}/${phoneVerifiedAt!.month}/${phoneVerifiedAt!.year}',
               style: TextStyle(
-                fontSize: AppType.s11,
+                fontSize: AppType.s12,
                 color: scheme.onSurfaceVariant,
               ),
             ),
@@ -137,14 +112,14 @@ borderSide: BorderSide(
           Icon(
             phoneVerified ? Icons.verified : Icons.warning,
             color: phoneVerified ? context.statusColors.success : context.statusColors.warning,
-            size: 12,
+            size: AppIconSize.inlineGlyph,
           ),
           const SizedBox(width: 4),
           Text(
             phoneVerified ? 'Verified' : 'Unverified',
             style: TextStyle(
               color: phoneVerified ? context.statusColors.success : context.statusColors.warning,
-              fontSize: AppType.s10,
+              fontSize: AppType.s12,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -163,13 +138,13 @@ borderSide: BorderSide(
       ),
       child: Row(
         children: [
-          Icon(Icons.info_outline, color: context.statusColors.warning, size: 16),
+          Icon(Icons.info_outline, color: context.statusColors.warning, size: AppIconSize.inlineGlyph),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               'Please verify your phone number',
               style: TextStyle(
-                fontSize: AppType.s11,
+                fontSize: AppType.s12,
                 color: scheme.onSurfaceVariant,
               ),
             ),

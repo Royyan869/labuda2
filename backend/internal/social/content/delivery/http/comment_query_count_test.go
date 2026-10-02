@@ -169,7 +169,7 @@ func (e *qcEnv) seedProduct(sellerID uuid.UUID) uuid.UUID {
 		INSERT INTO products (id, seller_id, title, description, variety,
 			preparation_time, media_urls, created_at, updated_at)
 		VALUES ($1, $2, 'Test Product', 'Desc', 'Test Variety',
-			'immediate', '[]'::jsonb, $3, $3)
+			'1_3_days', '[]'::jsonb, $3, $3)
 	`, productID, sellerID, now)
 	require.NoError(e.t, err)
 	return productID

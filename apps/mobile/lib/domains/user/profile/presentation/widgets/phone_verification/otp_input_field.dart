@@ -163,7 +163,7 @@ class _OTPInputFieldState extends ConsumerState<OTPInputField> {
             Text(
               'Tidak terima?',
               style: TextStyle(
-                fontSize: AppType.s11,
+                fontSize: AppType.s12,
                  color: scheme.onSurfaceVariant,
               ),
             ),
@@ -171,7 +171,7 @@ class _OTPInputFieldState extends ConsumerState<OTPInputField> {
               Text(
                 'Tunggu ${state.resendCountdown}d',
                 style: TextStyle(
-                  fontSize: AppType.s11,
+                  fontSize: AppType.s12,
                    color: scheme.onSurfaceVariant,
                 ),
               )
@@ -189,7 +189,7 @@ class _OTPInputFieldState extends ConsumerState<OTPInputField> {
                 child: Text(
                   state.isResending ? 'Sending...' : 'Resend',
                   style: TextStyle(
-                    fontSize: AppType.s11,
+                    fontSize: AppType.s12,
                     color: scheme.primary,
                     fontWeight: FontWeight.w600,
                   ),

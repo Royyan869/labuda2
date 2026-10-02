@@ -21,7 +21,7 @@ class BankAccountCardWidget extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Container(
       margin: const EdgeInsets.only(bottom: AppMetrics.p16),
-      padding: const EdgeInsets.all(AppMetrics.p20),
+      padding: const EdgeInsets.all(AppMetrics.p24),
       decoration: BoxDecoration(
          color: scheme.surface,
         borderRadius: BorderRadius.circular(AppShape.r16),
@@ -55,7 +55,7 @@ class BankAccountCardWidget extends StatelessWidget {
                 child: Icon(
                   Icons.account_balance,
                   color: scheme.primary,
-                  size: 20,
+                  size: AppIconSize.action,
                 ),
               ),
               const SizedBox(width: 12),
@@ -129,13 +129,13 @@ class BankAccountCardWidget extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 12, color: textColor),
+          Icon(icon, size: AppIconSize.inlineGlyph, color: textColor),
           const SizedBox(width: 4),
           Text(
             statusText,
             style: TextStyle(
               color: textColor,
-              fontSize: AppType.s10,
+              fontSize: AppType.s12,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -160,7 +160,7 @@ class BankAccountCardWidget extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          width: 120,
+          width: AppContentSize.termLabel,
           child: Text(
             label,
             style: TextStyle(

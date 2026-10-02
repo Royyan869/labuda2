@@ -23,6 +23,33 @@ import 'package:labuda/core/core.dart';
 
 import '../../support/theme_authority_gate.dart';
 
+/// The 15 M3 2021 style names the ladder must pin.
+const _m3StyleNames = <String>[
+  'displayLarge', 'displayMedium', 'displaySmall',
+  'headlineLarge', 'headlineMedium', 'headlineSmall',
+  'titleLarge', 'titleMedium', 'titleSmall',
+  'bodyLarge', 'bodyMedium', 'bodySmall',
+  'labelLarge', 'labelMedium', 'labelSmall',
+];
+
+TextStyle? _pick(TextTheme t, String name) => switch (name) {
+  'displayLarge' => t.displayLarge,
+  'displayMedium' => t.displayMedium,
+  'displaySmall' => t.displaySmall,
+  'headlineLarge' => t.headlineLarge,
+  'headlineMedium' => t.headlineMedium,
+  'headlineSmall' => t.headlineSmall,
+  'titleLarge' => t.titleLarge,
+  'titleMedium' => t.titleMedium,
+  'titleSmall' => t.titleSmall,
+  'bodyLarge' => t.bodyLarge,
+  'bodyMedium' => t.bodyMedium,
+  'bodySmall' => t.bodySmall,
+  'labelLarge' => t.labelLarge,
+  'labelMedium' => t.labelMedium,
+  _ => t.labelSmall,
+};
+
 /// WCAG relative-luminance contrast ratio between two colours.
 double _contrastRatio(Color a, Color b) {
   final la = a.computeLuminance();
@@ -339,7 +366,24 @@ void main() {
       // ONE builder: light and dark are the same code path with different
       // inputs, so a component theme added later cannot be applied to only
       // one mode (the drift this file previously had).
-      expect(RegExp(r'return ThemeData\(').allMatches(source).length, 1);
+      //
+      // The detector counts CONSTRUCTIONS (`\bThemeData(`, which excludes
+      // `DialogThemeData(`/`CardThemeData(` substrings and prose such as
+      // "plain-`ThemeData()` default") rather than the literal `return
+      // ThemeData(`: the builder now registers its extensions after the theme
+      // exists, so the type-role extension can derive from the theme's OWN
+      // body style instead of restating the M3 metrics in this file. One
+      // construction is still the whole rule.
+      final code = source
+          .split('\n')
+          .where((line) => !line.trimLeft().startsWith('//'))
+          .join('\n');
+      expect(RegExp(r'\bThemeData\(').allMatches(code).length, 1);
+      expect(
+        code.contains('_build(AppColors.lightColorScheme'),
+        isTrue,
+        reason: 'the single construction must live in the shared _build',
+      );
       expect(source.contains('_build(AppColors.lightColorScheme'), isTrue);
       expect(source.contains('_build(AppColors.darkColorScheme'), isTrue);
     });
@@ -475,52 +519,199 @@ void main() {
     });
 
     test('typography stays on the M3 ladder — the migration target', () {
-      // The 1236 per-widget `fontSize` literals migrate onto `textTheme.*`
-      // names. The ladder is therefore NOT forked: it must equal the M3 2021
-      // scale Flutter ships (Inter only changes the family), otherwise every
-      // migrated site would shift pixels.
-      final reference = ThemeData(useMaterial3: true).textTheme;
-      const styleNames = <String>[
-        'displayLarge', 'displayMedium', 'displaySmall',
-        'headlineLarge', 'headlineMedium', 'headlineSmall',
-        'titleLarge', 'titleMedium', 'titleSmall',
-        'bodyLarge', 'bodyMedium', 'bodySmall',
-        'labelLarge', 'labelMedium', 'labelSmall',
-      ];
-
-      TextStyle? pick(TextTheme t, String name) => switch (name) {
-        'displayLarge' => t.displayLarge,
-        'displayMedium' => t.displayMedium,
-        'displaySmall' => t.displaySmall,
-        'headlineLarge' => t.headlineLarge,
-        'headlineMedium' => t.headlineMedium,
-        'headlineSmall' => t.headlineSmall,
-        'titleLarge' => t.titleLarge,
-        'titleMedium' => t.titleMedium,
-        'titleSmall' => t.titleSmall,
-        'bodyLarge' => t.bodyLarge,
-        'bodyMedium' => t.bodyMedium,
-        'bodySmall' => t.bodySmall,
-        'labelLarge' => t.labelLarge,
-        'labelMedium' => t.labelMedium,
-        _ => t.labelSmall,
-      };
+      // The per-widget `fontSize` literals migrate onto `textTheme.*` names.
+      // The ladder is therefore NOT forked: it must equal the M3 2021 scale
+      // Flutter ships (Inter only changes the family), otherwise every migrated
+      // site would shift pixels.
+      //
+      // RESOLVE, DO NOT READ THE RAW THEME. `ThemeData.textTheme` as
+      // constructed carries only colour and family — the geometry (size,
+      // weight, height, letter spacing) arrives from `englishLike` 2021 when
+      // `Theme.of()` runs `ThemeData.localize(...)`. The pre-fix version of
+      // this test compared `AppTheme.lightTheme.textTheme` against
+      // `ThemeData(useMaterial3: true).textTheme`, BOTH raw, so all four metric
+      // assertions passed as `null == null`: the gate could not fail on
+      // anything but the family, i.e. it certified nothing about the ladder it
+      // claims to pin. Both sides now resolve through the shared
+      // [resolvedTextTheme] helper, and every metric is floored non-null
+      // BEFORE it is compared — a comparison that measures nothing must fail
+      // first, not pass.
+      final reference = resolvedTextTheme(ThemeData(useMaterial3: true));
 
       for (final theme in [AppTheme.lightTheme, AppTheme.darkTheme]) {
-        for (final name in styleNames) {
-          final ours = pick(theme.textTheme, name);
-          final theirs = pick(reference, name);
-          expect(ours?.fontSize, theirs?.fontSize, reason: '$name fontSize');
-          expect(ours?.fontWeight, theirs?.fontWeight, reason: '$name weight');
-          expect(ours?.height, theirs?.height, reason: '$name height');
+        final ours = resolvedTextTheme(theme);
+        for (final name in _m3StyleNames) {
+          final ourStyle = _pick(ours, name);
+          final theirStyle = _pick(reference, name);
+          expect(ourStyle, isNotNull, reason: '$name must exist on the ladder');
           expect(
-            ours?.letterSpacing,
-            theirs?.letterSpacing,
+            theirStyle?.fontSize,
+            isNotNull,
+            reason: 'the M3 reference must carry a size to compare against',
+          );
+          expect(
+            ourStyle!.fontSize,
+            isNotNull,
+            reason:
+                '$name size must be measured — a null here means this gate is '
+                'back to comparing nothing',
+          );
+          expect(ourStyle.fontWeight, isNotNull, reason: '$name weight');
+          expect(ourStyle.height, isNotNull, reason: '$name height');
+          expect(
+            ourStyle.letterSpacing,
+            isNotNull,
+            reason: '$name letterSpacing',
+          );
+          expect(ourStyle.fontSize, theirStyle?.fontSize, reason: '$name fontSize');
+          expect(
+            ourStyle.fontWeight,
+            theirStyle?.fontWeight,
+            reason: '$name weight',
+          );
+          expect(ourStyle.height, theirStyle?.height, reason: '$name height');
+          expect(
+            ourStyle.letterSpacing,
+            theirStyle?.letterSpacing,
             reason: '$name letterSpacing',
           );
         }
         expect(theme.textTheme.bodyMedium?.fontFamily, 'Inter');
+        expect(
+          _pick(ours, 'bodyMedium')!.fontFamily,
+          'Inter',
+          reason: 'the family must survive the geometry merge',
+        );
       }
+    });
+
+    test('the ladder comparison can actually fail (negative proof)', () {
+      // A gate that cannot fail certifies nothing. Two proofs that this one can:
+      //
+      // (1) A FORKED ladder — one role moved off its M3 size — is caught by the
+      //     exact comparison the gate runs.
+      final reference = resolvedTextTheme(ThemeData(useMaterial3: true));
+      final real = resolvedTextTheme(AppTheme.lightTheme);
+      final forked = real.copyWith(
+        labelSmall: real.labelSmall!.copyWith(fontSize: 13),
+      );
+
+      final mismatches = <String>[];
+      for (final name in _m3StyleNames) {
+        final ours = _pick(forked, name);
+        final theirs = _pick(reference, name);
+        if (ours?.fontSize != theirs?.fontSize) mismatches.add('$name fontSize');
+        if (ours?.fontWeight != theirs?.fontWeight) {
+          mismatches.add('$name weight');
+        }
+        if (ours?.height != theirs?.height) mismatches.add('$name height');
+        if (ours?.letterSpacing != theirs?.letterSpacing) {
+          mismatches.add('$name letterSpacing');
+        }
+      }
+      expect(
+        mismatches,
+        contains('labelSmall fontSize'),
+        reason: 'a forked size must be reported — the gate must be able to fail',
+      );
+      expect(mismatches.length, 1, reason: 'the probe touches exactly one role');
+
+      // (2) WHY the gate resolves: the raw ThemeData text theme carries no
+      //     geometry at all, which is precisely what made the old comparison
+      //     vacuous. If a future Flutter bakes geometry into ThemeData, this
+      //     canary fails on purpose — resolution then becomes redundant and can
+      //     be simplified, but the floors above must keep the ladder pinned.
+      expect(
+        AppTheme.lightTheme.textTheme.labelSmall?.fontSize,
+        isNull,
+        reason:
+            'raw ThemeData text themes carry colour/family only — resolving '
+            'them is what the ladder proof depends on',
+      );
+      expect(real.labelSmall?.fontSize, isNotNull);
+      expect(real.labelSmall?.fontSize, 11);
+
+      // (3) END-TO-END, through the route a fork would really take: a custom
+      //     `typography` whose englishLike geometry moves a size. It flows
+      //     through the same path the gate uses (ThemeData ->
+      //     resolvedTextTheme -> compare) and must be rejected. The geometry
+      //     merge wins for metrics, so a metric fork enters through
+      //     `typography` (a `textTheme:` fork only reaches colour/family) —
+      //     which is exactly the route this proof takes.
+      final forkedTypography = Typography.material2021(
+        englishLike: Typography.material2021().englishLike.copyWith(
+          bodyMedium: Typography.material2021()
+              .englishLike
+              .bodyMedium!
+              .copyWith(fontSize: 15),
+        ),
+      );
+      final forkedLadder = resolvedTextTheme(
+        ThemeData(
+          useMaterial3: true,
+          fontFamily: 'Inter',
+          typography: forkedTypography,
+        ),
+      );
+      final forkedBody = _pick(forkedLadder, 'bodyMedium')!;
+      expect(
+        forkedBody.fontSize,
+        15,
+        reason: 'the fork must reach the gate unchanged',
+      );
+      expect(
+        forkedBody.fontSize,
+        isNot(_pick(reference, 'bodyMedium')!.fontSize),
+        reason:
+            'a ladder that moved off M3 must fail this comparison — the gate '
+            'certifies only because nothing has moved',
+      );
+    });
+
+    test('the second typography ladder stays deleted', () {
+      // The purged second ladder was a PARALLEL scale (h1–h6,
+      // body/label/caption, labelSmall 10, h4 20, h5 18, height 1.5) exported
+      // from `core.dart` and read by 11 widgets: a second type authority that
+      // could drift from `textTheme` in size, weight AND line height. Its
+      // consumers now read `Theme.of(context).textTheme`, so the file is gone
+      // and the revival route — an import/export of the path, or the class
+      // name — is locked.
+      //
+      // The forbidden class name is spelled from fragments so THIS gate does
+      // not name it in a way its own sweep would catch; it is never written in
+      // prose here for the same reason.
+      final ladderClass = 'AppTypog' 'raphy';
+      final ladderPath = 'app_' 'typography.dart';
+      expect(
+        File('lib/core/src/theme/$ladderPath').existsSync(),
+        isFalse,
+        reason: 'the parallel typography ladder must stay deleted',
+      );
+      final namedAgain = <String>[];
+      for (final path in themeAuthorityDartFiles()) {
+        if (File(path).readAsStringSync().contains(ladderClass)) {
+          namedAgain.add(path);
+        }
+      }
+      for (final f in Directory('test')
+          .listSync(recursive: true)
+          .whereType<File>()
+          .where((f) => f.path.endsWith('.dart'))) {
+        if (f.readAsStringSync().contains(ladderClass)) {
+          namedAgain.add(f.path.replaceAll(r'\', '/'));
+        }
+      }
+      expect(
+        namedAgain,
+        isEmpty,
+        reason: 'type role must come from textTheme, found at:\n'
+            '${namedAgain.join('\n')}',
+      );
+      expect(
+        File('lib/core/core.dart').readAsStringSync().contains(ladderPath),
+        isFalse,
+        reason: 'the barrel must not re-export a deleted ladder',
+      );
     });
 
     test('motion ladder pins the durations widgets used to spell inline', () {
@@ -571,49 +762,51 @@ void main() {
     });
 
     test('type and spacing ladders pin the values widgets used to spell inline', () {
-      // Stages 4 & 5: every inline size/padding became a step with the SAME
-      // value, so these pins are what make those migrations pixel-identical.
-      expect(AppType.s8, 8);
-      expect(AppType.s8_5, 8.5);
-      expect(AppType.s9, 9);
-      expect(AppType.s10, 10);
-      expect(AppType.s11, 11);
+      // FOUNDATION (owner decision 2026-10-02): no more one step per pixel a
+      // screen once wanted. Five type steps (the Tailwind/Material core),
+      // five icon steps, seven spacing steps on a 4pt grid. These pins ARE the
+      // ladder — retuning a step is a deliberate edit HERE, never a local
+      // literal.
       expect(AppType.s12, 12);
-      expect(AppType.s13, 13);
       expect(AppType.s14, 14);
-      expect(AppType.s15, 15);
       expect(AppType.s16, 16);
-      expect(AppType.s18, 18);
       expect(AppType.s20, 20);
-      expect(AppType.s22, 22);
       expect(AppType.s24, 24);
-      expect(AppType.s28, 28);
-      expect(AppType.s32, 32);
-      expect(AppType.s36, 36);
+
+      expect(AppIconSize.inlineGlyph, 16);
+      expect(AppIconSize.action, 20);
+      expect(AppIconSize.header, 24);
+      expect(AppIconSize.emphasis, 32);
+      expect(AppIconSize.display, 48);
+
+      // Content/media ladder — role-named like the icon ladder, one literal
+      // per value. These pins ARE the policy: a call site reads a name, never
+      // a number, and the folds documented on [AppContentSize] land exactly
+      // here.
+      expect(AppContentSize.badge, 24);
+      expect(AppContentSize.controlCompact, 36);
+      expect(AppContentSize.control, 48);
+      expect(AppContentSize.termLabel, 100);
+      expect(AppContentSize.thumbnail, 112);
+      expect(AppContentSize.panel, 120);
+      expect(AppContentSize.mediaCard, 140);
+      expect(AppContentSize.preview, 180);
+      expect(AppContentSize.capture, 200);
+      expect(AppContentSize.overlay, 250);
+      expect(AppContentSize.actionWidth, 280);
+      expect(AppContentSize.dialogWidth, 340);
+      expect(AppContentSize.cropperCanvas, const Size(500, 600));
 
       expect(AppMetrics.p0, 0);
-      expect(AppMetrics.p1, 1);
-      expect(AppMetrics.p1_5, 1.5);
-      expect(AppMetrics.p2, 2);
-      expect(AppMetrics.p3, 3);
       expect(AppMetrics.p4, 4);
-      expect(AppMetrics.p5, 5);
-      expect(AppMetrics.p6, 6);
       expect(AppMetrics.p8, 8);
-      expect(AppMetrics.p9, 9);
-      expect(AppMetrics.p10, 10);
       expect(AppMetrics.p12, 12);
-      expect(AppMetrics.p14, 14);
       expect(AppMetrics.p16, 16);
-      expect(AppMetrics.p20, 20);
       expect(AppMetrics.p24, 24);
       expect(AppMetrics.p32, 32);
-      expect(AppMetrics.p40, 40);
       expect(AppMetrics.p48, 48);
-      expect(AppMetrics.p60, 60);
-      expect(AppMetrics.p80, 80);
-      expect(AppMetrics.p96, 96);
-      expect(AppMetrics.p99, 99);
+      // A layout role derived from the step, not a step of its own.
+      expect(AppMetrics.bottomBarClearance, 96);
       // Derived paddings hold no value of their own.
       expect(
         AppMetrics.buttonPadding,
@@ -628,6 +821,33 @@ void main() {
           horizontal: AppMetrics.p16,
           vertical: AppMetrics.p12,
         ),
+      );
+    });
+
+    test('content size ladder holds one name per value', () {
+      // The AppElevation doctrine, applied to the content ladder: two members
+      // may never spell the same number — that is how a ladder becomes the
+      // drift it was cut out to kill. (Cross-LADDER duplicates are fine:
+      // AppType.s24, AppMetrics.p24, AppIconSize.header and
+      // AppContentSize.badge are four different concepts.)
+      final contentValues = <double>[
+        AppContentSize.badge,
+        AppContentSize.controlCompact,
+        AppContentSize.control,
+        AppContentSize.termLabel,
+        AppContentSize.thumbnail,
+        AppContentSize.panel,
+        AppContentSize.mediaCard,
+        AppContentSize.preview,
+        AppContentSize.capture,
+        AppContentSize.overlay,
+        AppContentSize.actionWidth,
+        AppContentSize.dialogWidth,
+      ];
+      expect(
+        contentValues.toSet().length,
+        contentValues.length,
+        reason: 'two content-size names share one value — merge them',
       );
     });
 
@@ -830,6 +1050,75 @@ void main() {
       );
     });
 
+    test('ink roles never become a surface (fill or background)', () {
+      // The address and verification surfaces shipped a whole family of these:
+      // scaffold + app bar + dialog + sheet painted with `onSurfaceVariant`
+      // (title and back arrow the same grey as their own background), a form
+      // sheet whose header ink equalled its slab, an input `fillColor`, a
+      // dropdown menu surface, a notes box, a badge row, ink borders and ink
+      // sheet handles. `inverseSurface`, `surfaceContainer*` and
+      // `outlineVariant` are the canonical answers.
+      final scan = inkAsFillScan();
+      expect(
+        scan.hosts,
+        greaterThan(300),
+        reason: 'anti-vacuum: the sweep must inspect real fill blocks',
+      );
+      expect(
+        scan.violations,
+        isEmpty,
+        reason: 'ink used as a surface at:\n${scan.violations.join('\n')}',
+      );
+    });
+
+    test('ink-as-fill detector fires on a resurrection and spares real roles', () {
+      ({List<String> violations, int hosts}) scan(String src) =>
+          inkAsFillViolationsIn(src, path: 'probe.dart');
+
+      // Fires: a fill inside a decoration block…
+      expect(
+        scan(
+          'Container(decoration: BoxDecoration(color: scheme.onSurfaceVariant))',
+        ).violations,
+        hasLength(1),
+      );
+      // …an input fill…
+      expect(
+        scan('InputDecoration(fillColor: scheme.onSurfaceVariant, filled: true)').violations,
+        hasLength(1),
+      );
+      // …and any widget/data object naming a background with an ink role.
+      expect(
+        scan('Scaffold(backgroundColor: scheme.onSurface, body: x)').violations,
+        hasLength(1),
+      );
+
+      // Spares: the legitimate uses. An ink used as INK…
+      expect(
+        scan('Text(style: TextStyle(color: scheme.onSurfaceVariant))').violations,
+        isEmpty,
+      );
+      // …an ink tint with alpha (M3 state layers paint onSurface at 8–12%)…
+      expect(
+        scan(
+          'BoxDecoration(color: scheme.onSurfaceVariant.withValues(alpha: 0.05))',
+        ).violations,
+        isEmpty,
+      );
+      // …a real surface role…
+      expect(
+        scan('BoxDecoration(color: scheme.surfaceContainerHigh)').violations,
+        isEmpty,
+      );
+      // …and an on-media control over a camera preview (`onPrimary` is the
+      // always-light ink).
+      expect(
+        scan('BoxDecoration(color: scheme.onPrimary, shape: BoxShape.circle)')
+            .violations,
+        isEmpty,
+      );
+    });
+
     test('no file outside the authority owns a colour decision', () {
       // ONE implementation of the rule (test/support/theme_authority_gate.dart):
       // a second copy of the pattern would be a second, lying truth.
@@ -904,16 +1193,6 @@ void main() {
         Directory('lib/shared/ui/factory').existsSync(),
         isFalse,
       );
-    });
-
-    test('base_component owns no colour/size authority', () {
-      final source = File(
-        'lib/shared/ui/base/base_component.dart',
-      ).readAsStringSync();
-      // Killed: ComponentSize/ComponentSpacing(value) duplicated the theme's
-      // layout scale and had zero consumers.
-      expect(source.contains('ComponentSize'), isFalse);
-      expect(source.contains('ComponentSpacing'), isFalse);
     });
   });
 

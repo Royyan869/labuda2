@@ -454,7 +454,7 @@ func (c *DatabaseConfig) GetDSN() string {
 	)
 }
 
-// GetDatabaseURL returns the PostgreSQL connection URL (URL format for golang-migrate)
+// GetDatabaseURL returns the PostgreSQL connection URL (DSN URL form).
 func (c *DatabaseConfig) GetDatabaseURL() string {
 	return fmt.Sprintf(
 		"postgres://%s:%s@%s:%s/%s?sslmode=%s",
@@ -491,7 +491,7 @@ func (c *DatabaseConfig) GetTestDSN() string {
 	)
 }
 
-// GetTestDatabaseURL returns the PostgreSQL connection URL for TEST database (for golang-migrate)
+// GetTestDatabaseURL returns the PostgreSQL connection URL for the TEST database (DSN URL form).
 // Falls back to main DB config if test-specific values are not set
 func (c *DatabaseConfig) GetTestDatabaseURL() string {
 	host := c.TestHost

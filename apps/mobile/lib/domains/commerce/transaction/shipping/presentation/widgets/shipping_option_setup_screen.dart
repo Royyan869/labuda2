@@ -503,19 +503,19 @@ class _ShippingSetupScreenState
           padding: const EdgeInsets.all(AppMetrics.p24),
           children: [
             const SizedBox(height: 80),
-            Icon(Icons.error_outline, size: 64, color: colorScheme.error),
+            Icon(Icons.error_outline, size: AppIconSize.display, color: colorScheme.error),
             const SizedBox(height: 16),
             const Text(
               'Gagal memuat detail opsi pengiriman',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: AppType.s18, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: AppType.s20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
               _detailError!,
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: AppType.s13,
+                fontSize: AppType.s14,
                 color: colorScheme.onSurfaceVariant,
               ),
             ),
@@ -565,19 +565,19 @@ class _ShippingSetupScreenState
             padding: const EdgeInsets.all(AppMetrics.p24),
             children: [
               const SizedBox(height: 80),
-              Icon(Icons.error_outline, size: 64, color: colorScheme.error),
+              Icon(Icons.error_outline, size: AppIconSize.display, color: colorScheme.error),
               const SizedBox(height: 16),
               const Text(
                 'Gagal memuat provinsi',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: AppType.s18, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: AppType.s20, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               Text(
                 '$error',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                fontSize: AppType.s13,
+                fontSize: AppType.s14,
                 color: colorScheme.onSurfaceVariant,
               ),
               ),
@@ -590,7 +590,7 @@ class _ShippingSetupScreenState
           ),
           data: (provinces) => SingleChildScrollView(
             keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-            padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p16, AppMetrics.p16, AppMetrics.p96),
+            padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p16, AppMetrics.p16, AppMetrics.bottomBarClearance),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -598,12 +598,12 @@ class _ShippingSetupScreenState
                   _isEditMode
                       ? 'Edit lengkap opsi pengiriman termasuk cakupan, tarif, dan aturan kota.'
                       : 'Lengkapi satu opsi pengiriman, lalu simpan seluruh coverage sekaligus.',
-                  style: const TextStyle(fontSize: AppType.s13),
+                  style: const TextStyle(fontSize: AppType.s14),
                 ),
                 const SizedBox(height: 16),
                 const Text(
                   'Jenis transportasi',
-                  style: TextStyle(fontSize: AppType.s13, fontWeight: FontWeight.w600),
+                  style: TextStyle(fontSize: AppType.s14, fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 8),
                 Wrap(
@@ -664,7 +664,7 @@ class _ShippingSetupScreenState
                 // There is no separate packing field by design — this hint is
                 // the only packing-related surface.
                 Container(
-                  padding: const EdgeInsets.all(AppMetrics.p10),
+                  padding: const EdgeInsets.all(AppMetrics.p12),
                   decoration: BoxDecoration(
                     color: colorScheme.secondaryContainer,
                     borderRadius: BorderRadius.circular(AppShape.r8),
@@ -677,7 +677,7 @@ class _ShippingSetupScreenState
                     children: [
                       Icon(
                         Icons.inventory_2_outlined,
-                        size: 16,
+                        size: AppIconSize.inlineGlyph,
                         color: colorScheme.secondary,
                       ),
                       const SizedBox(width: 8),
@@ -853,7 +853,7 @@ class _ShippingCityRulesScreenState
         padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p16, AppMetrics.p16, AppMetrics.p24),
         children: [
           Container(
-            padding: const EdgeInsets.all(AppMetrics.p14),
+            padding: const EdgeInsets.all(AppMetrics.p16),
             decoration: BoxDecoration(
               color: colorScheme.primaryContainer,
               borderRadius: BorderRadius.circular(AppShape.r12),
@@ -867,7 +867,7 @@ class _ShippingCityRulesScreenState
                 Text(
                   province.name,
                   style: const TextStyle(
-                    fontSize: AppType.s18,
+                    fontSize: AppType.s20,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -950,7 +950,7 @@ class _ShippingCityRulesScreenState
           const SizedBox(height: 12),
           Text(
             _summaryText(),
-            style: TextStyle(fontSize: AppType.s13, color: colorScheme.onSurfaceVariant),
+            style: TextStyle(fontSize: AppType.s14, color: colorScheme.onSurfaceVariant),
           ),
         ],
       ),
@@ -1046,7 +1046,7 @@ class _CoverageCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.all(AppMetrics.p14),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         border: Border.all(color: colorScheme.outlineVariant),
         borderRadius: BorderRadius.circular(AppShape.r16),
@@ -1101,7 +1101,7 @@ class _CoverageCard extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             _summaryText(),
-            style: TextStyle(fontSize: AppType.s13, color: colorScheme.onSurfaceVariant),
+            style: TextStyle(fontSize: AppType.s14, color: colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 8),
           Align(

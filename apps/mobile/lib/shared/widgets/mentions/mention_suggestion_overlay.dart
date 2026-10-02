@@ -129,7 +129,7 @@ class MentionSuggestionOverlay extends ConsumerWidget {
       dense: true,
       leading: CircleAvatar(
         backgroundColor: scheme.primary.withValues(alpha: 0.1),
-        child: Icon(icon, color: scheme.primary, size: 20),
+        child: Icon(icon, color: scheme.primary, size: AppIconSize.action),
       ),
       title: Text(
         username,

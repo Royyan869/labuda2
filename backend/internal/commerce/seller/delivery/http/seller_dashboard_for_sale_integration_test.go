@@ -46,7 +46,7 @@ func TestGetDashboard_CountsRealForSales(t *testing.T) {
 			if _, err := tx.Exec(ctx, `
 				INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time)
 				VALUES ($1, $2, $3, $4, $5, $6, $7)
-			`, p.id, sellerID, "Koi", "desc", `[]`, "kohaku", "immediate"); err != nil {
+			`, p.id, sellerID, "Koi", "desc", `[]`, "kohaku", "1_3_days"); err != nil {
 				return err
 			}
 		}

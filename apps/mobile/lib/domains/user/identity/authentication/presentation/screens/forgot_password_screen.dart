@@ -204,7 +204,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen>
   Widget _buildSuccessView() {
     return Column(
       children: [
-        Icon(Icons.mark_email_read, size: 80, color: context.statusColors.success),
+        Icon(Icons.mark_email_read, size: AppIconSize.display, color: context.statusColors.success),
         const SizedBox(height: 32),
         AuthButton.secondary(text: 'Resend Email', onPressed: _handleResend),
       ],

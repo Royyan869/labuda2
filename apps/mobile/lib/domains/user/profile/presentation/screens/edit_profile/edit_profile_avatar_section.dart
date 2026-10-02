@@ -109,7 +109,7 @@ class _AvatarItem extends StatelessWidget {
                 child: !_hasImage && selectedPath == null
                     ? Icon(
                         Icons.person,
-                        size: 60,
+                        size: AppIconSize.display,
                         color: scheme.onSurfaceVariant,
                       )
                     : null,
@@ -122,7 +122,7 @@ class _AvatarItem extends StatelessWidget {
                   backgroundColor: scheme.primary,
                   child: Icon(
                     Icons.camera_alt,
-                    size: 18,
+                    size: AppIconSize.action,
                     color: scheme.onPrimary,
                   ),
                 ),

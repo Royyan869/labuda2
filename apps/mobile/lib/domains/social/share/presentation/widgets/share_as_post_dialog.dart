@@ -64,13 +64,13 @@ class _ShareAsPostDialogState extends ConsumerState<ShareAsPostDialog> {
           children: [
             // Header
             Padding(
-              padding: const EdgeInsets.all(AppMetrics.p20),
+              padding: const EdgeInsets.all(AppMetrics.p24),
               child: Row(
                 children: [
                   Expanded(
                     child: Text(
                       widget.isRepost ? 'Share This Post' : 'Share to Feed',
-                      style: AppTypography.h5.copyWith(
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w600,
                         color: textColor,
                       ),
@@ -101,7 +101,7 @@ class _ShareAsPostDialogState extends ConsumerState<ShareAsPostDialog> {
 
                     // Caption input
                     Padding(
-                      padding: const EdgeInsets.all(AppMetrics.p20),
+                      padding: const EdgeInsets.all(AppMetrics.p24),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -109,7 +109,7 @@ class _ShareAsPostDialogState extends ConsumerState<ShareAsPostDialog> {
                             widget.isRepost
                                 ? 'Add a comment (optional)'
                                 : 'Write a caption (optional)',
-                            style: AppTypography.bodyMedium.copyWith(
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                               fontWeight: FontWeight.w500,
                               color: textColor,
                             ),
@@ -119,14 +119,14 @@ class _ShareAsPostDialogState extends ConsumerState<ShareAsPostDialog> {
                             controller: _captionController,
                             maxLines: 4,
                             maxLength: 500,
-                            style: AppTypography.bodyMedium.copyWith(
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                               color: textColor,
                             ),
                             decoration: InputDecoration(
                               hintText: widget.isRepost
                                   ? 'Add your thoughts...'
                                   : 'Write something about this...',
-                              hintStyle: AppTypography.bodyMedium.copyWith(
+                              hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                 color: scheme.onSurfaceVariant,
                               ),
                               border: OutlineInputBorder(
@@ -159,7 +159,7 @@ class _ShareAsPostDialogState extends ConsumerState<ShareAsPostDialog> {
 
             // Action buttons
             Padding(
-              padding: const EdgeInsets.all(AppMetrics.p20),
+              padding: const EdgeInsets.all(AppMetrics.p24),
               child: Row(
                 children: [
                   Expanded(
@@ -168,12 +168,12 @@ class _ShareAsPostDialogState extends ConsumerState<ShareAsPostDialog> {
                           ? null
                           : () => Navigator.pop(context),
                       style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
+                        padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
                         side: BorderSide(color: borderColor),
                       ),
                       child: Text(
                         'Cancel',
-                        style: AppTypography.button.copyWith(color: textColor),
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(color: textColor),
                       ),
                     ),
                   ),
@@ -182,7 +182,7 @@ class _ShareAsPostDialogState extends ConsumerState<ShareAsPostDialog> {
                     child: ElevatedButton(
                       onPressed: _isLoading ? null : _handlePost,
                       style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
+                        padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
                       ),
                       child: _isLoading
                           ? SizedBox(
@@ -197,7 +197,7 @@ class _ShareAsPostDialogState extends ConsumerState<ShareAsPostDialog> {
                             )
                           : Text(
                               widget.isRepost ? 'Share' : 'Post',
-                              style: AppTypography.button.copyWith(
+                              style: Theme.of(context).textTheme.labelLarge?.copyWith(
                                 color: scheme.onPrimary,
                               ),
                             ),

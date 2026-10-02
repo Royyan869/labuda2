@@ -17,7 +17,7 @@ import (
 func TestForSaleListResponse_CarriesCanonicalProductContentBlock(t *testing.T) {
 	for_sale := testForSale(uuid.New())
 	for_sale.Product.FarmAddressID = ptrUUID(uuid.New())
-	for_sale.Product.PreparationTime = "short"
+	for_sale.Product.PreparationTime = "1_3_days"
 	sellerInfo := sellerdisplay.Info{
 		Username:           "seller_user",
 		FarmName:           "Acme Farm",
@@ -38,7 +38,7 @@ func TestForSaleListResponse_CarriesCanonicalProductContentBlock(t *testing.T) {
 	if resp["farm_address_id"] != for_sale.Product.FarmAddressID {
 		t.Fatalf("farm_address_id = %#v, want %#v", resp["farm_address_id"], for_sale.Product.FarmAddressID)
 	}
-	if resp["preparation_time"] != "short" {
+	if resp["preparation_time"] != "1_3_days" {
 		t.Fatalf("preparation_time = %#v, want short", resp["preparation_time"])
 	}
 
@@ -47,7 +47,7 @@ func TestForSaleListResponse_CarriesCanonicalProductContentBlock(t *testing.T) {
 		t.Fatalf("LIST payload must not carry viewer_capabilities: %#v", resp["viewer_capabilities"])
 	}
 
-	detail := forSaleToDetailResponseWithViewerCapabilities(for_sale, sellerInfo, nil)
+	detail := forSaleToDetailResponseWithViewerCapabilities(for_sale, sellerInfo, "", nil)
 	for _, key := range commerceshared.ProductContentWireKeys {
 		if _, ok := detail[key]; !ok {
 			t.Fatalf("for_sale DETAIL payload missing canonical Product content key %q", key)

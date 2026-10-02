@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -11,6 +12,45 @@ import (
 	"github.com/labuda/backend/internal/interaction/notification/entity"
 )
 
+// notificationColumns is the canonical projection order for every read. The
+// actor columns are appended after created_at so the positional binding stays
+// stable: id, recipient_id, actor_id, type, entity_id, data, is_read,
+// created_at, actor_kind, actor_display.
+const notificationColumns = "id, recipient_id, actor_id, type, entity_id, data, is_read, created_at, actor_kind, actor_display"
+
+// rowScanner is satisfied by both pgx.Row and pgx.CollectableRow.
+type rowScanner interface {
+	Scan(dest ...any) error
+}
+
+// scanNotification reconstructs a Notification from the canonical projection.
+func scanNotification(row rowScanner) (*entity.Notification, error) {
+	var n entity.Notification
+	var actorID *uuid.UUID
+	var actorKind string
+	var actorDisplay string
+
+	err := row.Scan(
+		&n.ID, &n.RecipientID, &actorID, &n.Type, &n.EntityID, &n.Data, &n.IsRead, &n.CreatedAt,
+		&actorKind, &actorDisplay,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	actor, err := entity.NewActor(entity.ActorKind(actorKind), actorID, actorDisplay)
+	if err != nil {
+		return nil, fmt.Errorf("scan notification actor: %w", err)
+	}
+	n.Actor = actor
+
+	if n.Data == nil {
+		n.Data = make(map[string]interface{})
+	}
+
+	return &n, nil
+}
+
 // NotificationRepository implements the notification repository.
 type NotificationRepository struct{}
 
@@ -19,61 +59,74 @@ func NewNotificationRepository() notificationrepo.Repository {
 	return &NotificationRepository{}
 }
 
-// Insert creates a new notification within a transaction.
-// Idempotent: duplicate (recipient_id, actor_id, type, entity_id) returns nil.
-func (r *NotificationRepository) Insert(ctx context.Context, tx interface{}, notification *entity.Notification) error {
-	query := `
-		INSERT INTO notifications (id, recipient_id, actor_id, type, entity_id, data, is_read, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-		ON CONFLICT (recipient_id, actor_id, type, entity_id) DO NOTHING
-	`
-
-	_, err := tx.(interface {
-		Exec(ctx context.Context, query string, args ...any) (pgconn.CommandTag, error)
-	}).Exec(
-		ctx, query,
-		notification.ID, notification.RecipientID, notification.ActorID,
-		notification.Type, notification.EntityID, notification.Data,
-		notification.IsRead, notification.CreatedAt,
-	)
-
-	if err != nil {
-		return fmt.Errorf("insert notification failed: %w", err)
+// Insert creates a new notification within a transaction and reports whether a
+// row was actually written.
+//
+// Idempotent: a replay of the same (recipient_id, actor_key, type, entity_id)
+// returns (uuid.Nil, false, nil). actor_key is the generated
+// COALESCE(actor_id, zero) column, so dedup keeps its exact old meaning for
+// visible humans and becomes deterministic for system/anonymized actors.
+func (r *NotificationRepository) Insert(ctx context.Context, tx interface{}, notification *entity.Notification) (uuid.UUID, bool, error) {
+	if err := notification.Actor.Validate(); err != nil {
+		return uuid.Nil, false, fmt.Errorf("insert notification: %w", err)
 	}
 
-	return nil
+	query := `
+		INSERT INTO notifications (id, recipient_id, actor_id, type, entity_id, data, is_read, created_at, actor_kind, actor_display)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		ON CONFLICT (recipient_id, actor_key, type, entity_id) DO NOTHING
+		RETURNING id
+	`
+
+	id := notification.ID
+	err := tx.(interface {
+		QueryRow(ctx context.Context, query string, args ...any) pgx.Row
+	}).QueryRow(
+		ctx, query,
+		notification.ID, notification.RecipientID, notification.Actor.StorageUserID(),
+		notification.Type, notification.EntityID, notification.Data,
+		notification.IsRead, notification.CreatedAt,
+		string(notification.Actor.Kind()), notification.Actor.Display(),
+	).Scan(&id)
+
+	if err != nil {
+		// ON CONFLICT DO NOTHING returns no rows for a duplicate — the
+		// canonical idempotent no-op, not a failure.
+		if errors.Is(err, pgx.ErrNoRows) {
+			return uuid.Nil, false, nil
+		}
+		return uuid.Nil, false, fmt.Errorf("insert notification failed: %w", err)
+	}
+
+	return id, true, nil
 }
 
 // GetByID retrieves a notification by ID.
 func (r *NotificationRepository) GetByID(ctx context.Context, tx interface{}, id uuid.UUID) (*entity.Notification, error) {
 	query := `
-		SELECT id, recipient_id, actor_id, type, entity_id, data, is_read, created_at
+		SELECT ` + notificationColumns + `
 		FROM notifications
 		WHERE id = $1
 	`
 
-	var n entity.Notification
-	err := tx.(interface {
+	n, err := scanNotification(tx.(interface {
 		QueryRow(ctx context.Context, query string, args ...any) pgx.Row
-	}).
-		QueryRow(ctx, query, id).Scan(
-		&n.ID, &n.RecipientID, &n.ActorID, &n.Type, &n.EntityID, &n.Data, &n.IsRead, &n.CreatedAt,
-	)
+	}).QueryRow(ctx, query, id))
 
 	if err != nil {
-		if err == pgx.ErrNoRows {
+		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, &entity.ErrNotificationNotFound{NotificationID: id}
 		}
 		return nil, fmt.Errorf("get notification failed: %w", err)
 	}
 
-	return &n, nil
+	return n, nil
 }
 
 // ListByRecipient retrieves notifications for a recipient ordered by created_at DESC.
 func (r *NotificationRepository) ListByRecipient(ctx context.Context, tx interface{}, recipientID uuid.UUID, limit int, offset int) ([]*entity.Notification, error) {
 	query := `
-		SELECT id, recipient_id, actor_id, type, entity_id, data, is_read, created_at
+		SELECT ` + notificationColumns + `
 		FROM notifications
 		WHERE recipient_id = $1
 		ORDER BY created_at DESC
@@ -90,14 +143,7 @@ func (r *NotificationRepository) ListByRecipient(ctx context.Context, tx interfa
 	defer rows.Close()
 
 	notifications, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (*entity.Notification, error) {
-		var n entity.Notification
-		err := row.Scan(
-			&n.ID, &n.RecipientID, &n.ActorID, &n.Type, &n.EntityID, &n.Data, &n.IsRead, &n.CreatedAt,
-		)
-		if n.Data == nil {
-			n.Data = make(map[string]interface{})
-		}
-		return &n, err
+		return scanNotification(row)
 	})
 
 	if err != nil {

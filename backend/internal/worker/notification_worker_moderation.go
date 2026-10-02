@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	notificationentity "github.com/labuda/backend/internal/interaction/notification/entity"
 	dbpkg "github.com/labuda/backend/pkg/db"
 	"go.uber.org/zap"
 )
@@ -37,8 +38,10 @@ func (h *NotificationEventHandler) handleModerationContentRemoved(ctx context.Co
 		"targetType": "post",
 	}
 
-	// Notify content owner (system-initiated moderation; Moderation category bypasses block checks)
-	info, err := h.insertNotificationWithPolicy(ctx, recipientID, uuid.Nil, "moderation.content.removed", resourceID, data)
+	// Notify content owner. Moderation decisions are admin-caused; until the
+	// decision payload carries the deciding admin id, the canonical actor is
+	// the system (never a nil identity).
+	info, err := h.insertNotificationWithPolicy(ctx, recipientID, notificationentity.SystemActor(), "moderation.content.removed", resourceID, data)
 	if err != nil {
 		return notificationInfo{}, fmt.Errorf("insert notification failed: %w", err)
 	}
@@ -82,8 +85,9 @@ func (h *NotificationEventHandler) handleModerationCommentRemoved(ctx context.Co
 		"commentId":  p.ResourceID,
 	}
 
-	// Notify comment author (system-initiated moderation; Moderation category bypasses block checks)
-	info, err := h.insertNotificationWithPolicy(ctx, recipientID, uuid.Nil, "moderation.comment.removed", commentID, data)
+	// Notify comment author (admin-caused; system actor until the decision
+	// payload carries the deciding admin id).
+	info, err := h.insertNotificationWithPolicy(ctx, recipientID, notificationentity.SystemActor(), "moderation.comment.removed", commentID, data)
 	if err != nil {
 		return notificationInfo{}, fmt.Errorf("insert notification failed: %w", err)
 	}
@@ -126,7 +130,7 @@ func (h *NotificationEventHandler) handleModerationContentRestored(ctx context.C
 	}
 
 	// Notify content owner (appeal accepted; Moderation category bypasses block checks)
-	info, err := h.insertNotificationWithPolicy(ctx, recipientID, uuid.Nil, "moderation.content.restored", resourceID, data)
+	info, err := h.insertNotificationWithPolicy(ctx, recipientID, notificationentity.SystemActor(), "moderation.content.restored", resourceID, data)
 	if err != nil {
 		return notificationInfo{}, fmt.Errorf("insert notification failed: %w", err)
 	}
@@ -165,7 +169,7 @@ func (h *NotificationEventHandler) handleModerationCommentRestored(ctx context.C
 	}
 
 	// Notify comment author (appeal accepted; Moderation category bypasses block checks)
-	info, err := h.insertNotificationWithPolicy(ctx, recipientID, uuid.Nil, "moderation.comment.restored", commentID, data)
+	info, err := h.insertNotificationWithPolicy(ctx, recipientID, notificationentity.SystemActor(), "moderation.comment.restored", commentID, data)
 	if err != nil {
 		return notificationInfo{}, fmt.Errorf("insert notification failed: %w", err)
 	}
@@ -201,8 +205,9 @@ func (h *NotificationEventHandler) handleModerationForSaleRemoved(ctx context.Co
 		"targetType": "for_sale",
 	}
 
-	// Notify fixed-price sale seller (system-initiated moderation; Moderation category bypasses block checks)
-	info, err := h.insertNotificationWithPolicy(ctx, sellerID, uuid.Nil, "moderation.for_sale.removed", forSaleID, data)
+	// Notify fixed-price sale seller (admin-caused; system actor until the
+	// decision payload carries the deciding admin id).
+	info, err := h.insertNotificationWithPolicy(ctx, sellerID, notificationentity.SystemActor(), "moderation.for_sale.removed", forSaleID, data)
 	if err != nil {
 		return notificationInfo{}, fmt.Errorf("insert notification failed: %w", err)
 	}
@@ -244,8 +249,8 @@ func (h *NotificationEventHandler) handleModerationForSaleRestored(ctx context.C
 		"targetType": "for_sale",
 	}
 
-	// Notify fixed-price sale seller (appeal accepted; Moderation category bypasses block checks)
-	info, err := h.insertNotificationWithPolicy(ctx, sellerID, uuid.Nil, "moderation.for_sale.restored", forSaleID, data)
+	// Notify fixed-price sale seller (appeal accepted; admin-caused).
+	info, err := h.insertNotificationWithPolicy(ctx, sellerID, notificationentity.SystemActor(), "moderation.for_sale.restored", forSaleID, data)
 	if err != nil {
 		return notificationInfo{}, fmt.Errorf("insert notification failed: %w", err)
 	}
@@ -271,8 +276,9 @@ func (h *NotificationEventHandler) handleModerationUserSuspended(ctx context.Con
 		return notificationInfo{}, fmt.Errorf("invalid resource_id: %w", err)
 	}
 
-	// Notify suspended user (system-initiated; Moderation category bypasses block + suspended filters)
-	info, err := h.insertNotificationWithPolicy(ctx, userID, uuid.Nil, "moderation.user.suspended", userID, nil)
+	// Notify suspended user (admin-caused; Moderation category bypasses block
+	// + suspended filters).
+	info, err := h.insertNotificationWithPolicy(ctx, userID, notificationentity.SystemActor(), "moderation.user.suspended", userID, nil)
 	if err != nil {
 		return notificationInfo{}, fmt.Errorf("insert notification failed: %w", err)
 	}
@@ -297,8 +303,8 @@ func (h *NotificationEventHandler) handleModerationUserRestored(ctx context.Cont
 		return notificationInfo{}, fmt.Errorf("invalid resource_id: %w", err)
 	}
 
-	// Notify restored user (appeal accepted; Moderation category bypasses block checks)
-	info, err := h.insertNotificationWithPolicy(ctx, userID, uuid.Nil, "moderation.user.restored", userID, nil)
+	// Notify restored user (appeal accepted; admin-caused).
+	info, err := h.insertNotificationWithPolicy(ctx, userID, notificationentity.SystemActor(), "moderation.user.restored", userID, nil)
 	if err != nil {
 		return notificationInfo{}, fmt.Errorf("insert notification failed: %w", err)
 	}
@@ -333,8 +339,9 @@ func (h *NotificationEventHandler) handleModerationWarningIssued(ctx context.Con
 		return notificationInfo{}, fmt.Errorf("invalid warning_id: %w", err)
 	}
 
-	// Notify warned user (system-initiated; Moderation category bypasses block + suspended filters)
-	info, err := h.insertNotificationWithPolicy(ctx, userID, uuid.Nil, "moderation.warning.issued", warningID, map[string]interface{}{
+	// Notify warned user (admin-caused; Moderation category bypasses block +
+	// suspended filters).
+	info, err := h.insertNotificationWithPolicy(ctx, userID, notificationentity.SystemActor(), "moderation.warning.issued", warningID, map[string]interface{}{
 		"level":  p.Level,
 		"reason": p.Reason,
 	})
@@ -350,12 +357,5 @@ func (h *NotificationEventHandler) handleModerationWarningIssued(ctx context.Con
 
 	return info, nil
 }
-
-// =============================================================================
-// SUPPORT NOTIFICATION HANDLERS
-// =============================================================================
-
-// handleSupportTicketResolved processes support.ticket.resolved events.
-// Notifies the user that their support ticket has been resolved.
 
 

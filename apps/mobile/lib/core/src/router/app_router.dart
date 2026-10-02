@@ -43,7 +43,7 @@ Future<void> initializeRouterModules() async {
 /// **ROUTING DECISION OWNERSHIP:**
 /// - This provider owns ALL route redirect logic
 /// - No other module should make route decisions based on auth state
-/// - Router watches AuthController state and reacts via redirect callback
+/// - Router membaca AuthController state dan bereaksi lewat redirect callback
 ///
 /// **FINAL AUTH FLOW (LOCKED - DO NOT CHANGE):**
 /// if not authenticated → /welcome (guest entry default; guests MAY open the
@@ -51,31 +51,38 @@ Future<void> initializeRouterModules() async {
 /// if profile not complete (username only) → /auth/complete-profile
 /// else → /home
 ///
-/// ARSITEKTUR:
-/// 1. authControllerProvider state berubah
-/// 2. goRouterProvider rebuild (karena ref.watch)
-/// 3. GoRouter redirect dipanggil ulang
-/// 4. User diarahkan sesuai AppAuthStatus
+/// ARSITEKTUR — SINGLE STABLE ROUTER (jangan kembali ke pola lama):
+/// 1. GoRouter dibuat SEKALI oleh provider ini; provider ini TIDAK
+///    `ref.watch` apapun yang jadi bahan keputusan redirect.
+/// 2. Bahan keputusan redirect di-`ref.listen` → memberi tahu router lewat
+///    [GoRouterRefresh] → GoRouter menjalankan `redirect:` ULANG di tempat
+///    (mekanisme yang sama dengan `GoRouter.refresh()`).
+/// 3. Redirect menghasilkan lokasi baru → navigasi berpindah TANPA membuat
+///    objek router baru, sehingga riwayat navigasi tidak pernah dibuang.
+///
+/// MENGAPA POLA LAMA DIBONGKAR: provider ini dulu me-`watch`
+/// `authControllerProvider`, jadi SETIAP perubahan auth state membangun
+/// instance GoRouter BARU dengan `initialLocation = '/splash'`. Router baru
+/// selalu mulai dari /splash lalu redirect melempar user ke /home —
+/// akibatnya SATU siklus refresh sesi (kembali dari background; screenshot
+/// yang sebentar mengalihkan fokus window sehingga app melewati `inactive` →
+/// `resumed`) sudah cukup untuk melempar user dari layar manapun kembali ke
+/// Home.
 ///
 /// Tidak ada manual ProviderContainer.
-/// Tidak ada RouterRefreshNotifier.
-/// Tidak ada refreshListenable.
 final goRouterProvider = Provider<GoRouter>((ref) {
-  // Watch auth state - router rebuilds when auth state changes
-  final authState = ref.watch(authControllerProvider);
   final authController = ref.read(authControllerProvider.notifier);
 
-  // Watch current user for role-based guards — currently only the seller
-  // route guard (_sellerRouteGuardCore below). PASS 2C: the "W7-B: Admin
-  // route guard" this comment used to reference does not exist — mobile
-  // has no admin routes/screens at all (admin is web-only, in apps/admin).
-  // AdminGuard/isAdminProvider (permission_guard.dart,
-  // authenticated_account_provider.dart + auth_status_providers.dart) are unused scaffolding kept in case mobile
-  // ever grows admin screens; they are not wired into this router.
-  final authenticatedUser = ref.watch(authenticatedUserProvider);
+  // Redirect re-evaluation bus. Didaftarkan sebagai `refreshListenable`,
+  // bukan sebagai dependensi build, supaya router tidak pernah dibuat ulang.
+  final refresh = GoRouterRefresh();
 
-  // W14-B2: Watch backend sync status to prevent deep-link bypass during initialization
-  final isSyncingWithBackend = ref.watch(isSyncingWithBackendProvider);
+  // Bahan keputusan redirect. Didaftarkan eksplisit satu per satu: kalau suatu
+  // saat redirect menambah bahan baru, daftarkan di sini juga — jangan
+  // berpindah ke `ref.watch` (itu akan menghidupkan kembali bug splash→home).
+  ref.listen(authControllerProvider, (_, _) => refresh.bump());
+  ref.listen(authenticatedUserProvider, (_, _) => refresh.bump());
+  ref.listen(isSyncingWithBackendProvider, (_, _) => refresh.bump());
 
   // Use cached modules manager, or create a new one if not initialized yet
   // This should not happen in normal flow since initializeRouterModules() should be called first
@@ -85,11 +92,19 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     navigatorKey: navigatorKey,
     initialLocation: RoutePaths.splash,
     routes: modulesManager.buildRoutes(),
-    observers: [ref.watch(screenViewRouteObserverProvider)],
+    // read, NOT watch: the observer must never be able to rebuild (and
+    // thereby reset) the router.
+    observers: [ref.read(screenViewRouteObserverProvider)],
+    refreshListenable: refresh,
     errorBuilder: (context, state) => RouterErrorPage(state: state),
     redirect: (context, state) {
+      // Dibaca SEGAR setiap evaluasi: lifetime router jauh lebih panjang daripada
+      // satu snapshot auth, jadi nilai yang ditangkap saat build akan basi.
       final location = state.uri.path;
+      final authState = ref.read(authControllerProvider);
       final authStatus = authController.appAuthStatus;
+      final authenticatedUser = ref.read(authenticatedUserProvider);
+      final isSyncingWithBackend = ref.read(isSyncingWithBackendProvider);
       LoggerService.instance.warning(
         '[ROUTER] redirect: loc=$location syncing=$isSyncingWithBackend status=$authStatus',
       );
@@ -111,14 +126,20 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       }
 
       // Check for specific states first, then fall back to AppAuthStatus
-      return _handleAuthenticationRedirect(
-        authState,
-        authController.appAuthStatus,
-        state,
-      );
+      return _handleAuthenticationRedirect(authState, authStatus, state);
     },
   );
 });
+
+/// [Listenable] that asks the single stable GoRouter to re-run its redirect
+/// without rebuilding the router itself (the equivalent of
+/// `GoRouter.refresh()`).
+///
+/// Dipakai sebagai `refreshListenable` oleh [goRouterProvider].
+class GoRouterRefresh extends ChangeNotifier {
+  /// Marks every redirect input as potentially changed.
+  void bump() => notifyListeners();
+}
 
 /// W14-B2: Seller route guard - router-level protection for seller routes
 ///

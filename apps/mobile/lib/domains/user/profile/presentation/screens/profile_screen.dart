@@ -10,17 +10,18 @@ import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/chat/chat/chat.dart';
 import 'package:labuda/domains/social/follow/follow.dart';
-import 'package:labuda/domains/user/profile/domain/entities/address_entity.dart';
-import 'package:labuda/domains/user/profile/presentation/providers/address_list_provider.dart';
+import 'package:labuda/domains/user/profile/domain/entities/profile_entity.dart'
+    show ProfileEntity;
 import 'package:labuda/domains/user/profile/presentation/providers/profile_about_provider.dart'
     show normalizeProfileLocation;
-import 'package:labuda/domains/user/profile/presentation/providers/profile_stream_provider.dart';
+import 'package:labuda/domains/user/profile/presentation/providers/profile_view_provider.dart';
 import 'package:labuda/domains/user/profile/presentation/providers/user_data_provider.dart';
 import 'package:labuda/domains/user/profile/presentation/screens/settings_screen.dart';
 import 'package:labuda/domains/user/profile/presentation/screens/unified_edit_profile_screen.dart';
 import 'package:labuda/domains/user/profile/presentation/utils/profile_lifecycle_redaction.dart';
 import 'package:labuda/domains/user/profile/presentation/widgets/profile_actions.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
+import 'package:labuda/shared/models/seller_identity_data.dart';
 import 'package:labuda/domains/user/profile/presentation/widgets/profile_cover.dart';
 import 'package:labuda/domains/user/profile/presentation/widgets/profile_feed_tab.dart';
 import 'package:labuda/domains/user/profile/presentation/widgets/profile_reviews_tab.dart';
@@ -331,8 +332,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
             SliverAppBar(
               expandedHeight: headerExpandedHeight,
               pinned: true,
-              elevation: _collapseProgress > 0.8 ? 2 : 0,
-backgroundColor: scheme.surface,
               leading: _buildBackButton(scheme),
               // Title removed - using FlexibleSpaceBar.title for smooth walk animation
               actions: _buildAppBarActions(
@@ -378,10 +377,6 @@ backgroundColor: scheme.surface,
               delegate: _SliverTabBarDelegate(
                 TabBar(
                   controller: _tabController,
-                  labelColor: scheme.primary,
-                  unselectedLabelColor: scheme.onSurfaceVariant,
-                  indicatorColor: scheme.primary,
-                  indicatorWeight: 2,
                   tabs: _getTabs(isSeller),
                 ),
                 scheme: scheme,
@@ -395,10 +390,6 @@ backgroundColor: scheme.surface,
                 delegate: _SliverSubTabBarDelegate(
                   TabBar(
                     controller: _subTabController,
-                    labelColor: scheme.primary,
-                    unselectedLabelColor: scheme.onSurfaceVariant,
-                    indicatorColor: scheme.primary,
-                    indicatorWeight: 2,
                     labelPadding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16),
                     tabs: const [
                       Tab(text: 'Dijual', height: 40),
@@ -500,7 +491,7 @@ backgroundColor: scheme.surface,
   Widget _buildBackButton(ColorScheme scheme) {
     return IconButton(
       icon: Container(
-        padding: const EdgeInsets.all(AppMetrics.p6),
+        padding: const EdgeInsets.all(AppMetrics.p8),
         decoration: BoxDecoration(
           color: _collapseProgress < 0.5
               ? scheme.shadow.withValues(alpha: 0.3)
@@ -512,7 +503,7 @@ backgroundColor: scheme.surface,
           color: _collapseProgress < 0.5
               ? scheme.onPrimary
               : (scheme.onSurface),
-          size: 20,
+          size: AppIconSize.action,
         ),
       ),
       onPressed: () {
@@ -547,9 +538,9 @@ backgroundColor: scheme.surface,
       return [
         IconButton(
           icon: Container(
-            padding: const EdgeInsets.all(AppMetrics.p6),
+            padding: const EdgeInsets.all(AppMetrics.p8),
             decoration: BoxDecoration(color: bgColor, shape: BoxShape.circle),
-            child: Icon(Icons.settings_outlined, color: iconColor, size: 20),
+            child: Icon(Icons.settings_outlined, color: iconColor, size: AppIconSize.action),
           ),
           onPressed: () => _navigateToSettings(context),
           tooltip: 'Settings',
@@ -700,6 +691,12 @@ backgroundColor: scheme.surface,
       _collapseProgress,
     );
 
+    // The pairing rule lives in ONE place — the identity model. This screen
+    // only renders the labels it was handed; it never composes the order.
+    final primaryIdentityLine =
+        (profileData['identityPrimary'] ?? profileData['name']) as String;
+    final secondaryIdentityLine = profileData['identitySecondary'] as String?;
+
     // Color interpolation for better visibility when collapsed
     // Name: stays high contrast
     // Username: gets darker/more visible when collapsed
@@ -744,9 +741,10 @@ backgroundColor: scheme.surface,
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Name
+              // Primary identity line — store name when the user has a store,
+              // otherwise the handle.
               Text(
-                profileData['name'],
+                primaryIdentityLine,
                 style: TextStyle(
                   fontSize: currentNameSize,
                   fontWeight: FontWeight.bold,
@@ -755,10 +753,9 @@ backgroundColor: scheme.surface,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              if (profileData['farmName'] != null &&
-                  profileData['farmName'].toString().isNotEmpty) ...[
+              if (secondaryIdentityLine != null) ...[
                 Text(
-                  profileData['farmName'],
+                  secondaryIdentityLine,
                   style: TextStyle(
                     fontSize: currentUsernameSize,
                     color: secondaryColor,
@@ -846,7 +843,7 @@ backgroundColor: scheme.surface,
                       children: [
                         Icon(
                           Icons.location_on_outlined,
-                          size: 14,
+                          size: AppIconSize.inlineGlyph,
 color: scheme.onSurfaceVariant,
                         ),
                         const SizedBox(width: 4),
@@ -872,7 +869,7 @@ color: scheme.onSurfaceVariant,
                     Text(
                       profileData['bio'],
                       style: TextStyle(
-                        fontSize: AppType.s13,
+                        fontSize: AppType.s14,
 color: scheme.onSurfaceVariant,
                         height: 1.3,
                       ),
@@ -924,23 +921,24 @@ color: scheme.onSurfaceVariant,
   }) {
     final isOwnProfile = _isOwnProfile(authState);
 
-    // Get cover photo URL from profile entity
-    final profileAsync = ref.watch(profileStreamProvider(userId));
-    final coverPhotoUrl = profileAsync.hasValue
-        ? profileAsync.value?.coverPhotoUrl
-        : null;
+    // ONE AUTHORITY FOR THIS PAGE: a single GET supplies cover + location for
+    // both own and viewed profiles. The profile stream (30s polling) and the
+    // client-side address composition are gone — the backend owns the public
+    // origin line, so cover and location render on the first frame.
+    final profileView = ref.watch(profileViewDataProvider(userId)).value;
+    final coverPhotoUrl = profileView?.profile.coverPhotoUrl;
+    final location = _publicLocation(profileView?.profile);
 
     if (authState is AuthStateAuthenticated) {
       if (isOwnProfile) {
         final user = authState.user;
-        final farmInfo = _getFarmInfo(userId);
-        final location = _getLocation(
-          userId,
-          user,
-          isOwnProfile,
-          profileAsync.value?.location,
+        // ONE identity rule: the pairing order (store name primary, handle
+        // secondary) is implemented once, in the identity model.
+        final identity = SellerIdentityData(
+          userId: user.id,
+          username: user.username,
+          storeName: user.storeName,
         );
-
         // E5.2 — Own profile is never degraded from the viewer's own POV;
         // the canonical lifecycle source is the public profile fetch
         // (/users/:id), not /users/me. Force active here so the header
@@ -948,15 +946,17 @@ color: scheme.onSurfaceVariant,
         // hint in the future.
         return {
           'name': '@${user.username}',
-          'farmName':
-              (user.hasCreatedSellerProfile && farmInfo.farmName != null)
-              ? farmInfo.farmName
-              : null,
+          // Store identity travels with the identity payload itself: the
+          // hydrated session snapshot for own profile, the public projection
+          // for a viewed user. The profile stream is not an identity source.
+          'farmName': user.storeName,
+          'identityPrimary': identity.primaryLabel ?? '@${user.username}',
+          'identitySecondary': identity.secondaryLabel,
           'username': '@${user.username}',
           'avatar': user.avatarUrl,
           'bio': user.bio,
           'location': location,
-          'farmPhotoUrl': farmInfo.farmPhotoUrl,
+          'farmPhotoUrl': user.storeImageUrl,
           'coverPhotoUrl': coverPhotoUrl,
           // CONTRACT ALIGNMENT V1: No fake trust score - removed hardcoded value
           'isVerified': user.isEmailVerified || user.role != UserRole.guest,
@@ -965,14 +965,6 @@ color: scheme.onSurfaceVariant,
         };
       } else if (viewedUser != null) {
         final user = viewedUser;
-        final farmInfo = _getFarmInfo(userId);
-        final location = _getLocation(
-          userId,
-          user,
-          isOwnProfile,
-          profileAsync.value?.location,
-        );
-
         // E5.2 — Canonical lifecycle from response.identity.lifecycle.
         // Degraded identities receive a redacted placeholder name, neutral
         // avatar (null), and have bio/location/farm suppressed so the
@@ -986,17 +978,27 @@ color: scheme.onSurfaceVariant,
         final renderedUsername = degraded ? '' : '@${user.username}';
         final renderedAvatar = degraded ? null : user.avatarUrl;
         final renderedBio = degraded ? null : (user.bio ?? '');
-        final renderedFarmName = degraded
+        // ONE identity rule — the same model getters every other surface uses.
+        final identity = SellerIdentityData(
+          userId: user.id,
+          username: user.username,
+          storeName: degraded ? null : user.storeName,
+        );
+        final renderedIdentityPrimary = degraded
+            ? renderedName
+            : (identity.primaryLabel ?? renderedUsername);
+        final renderedIdentitySecondary = degraded
             ? null
-            : ((user.hasCreatedSellerProfile && farmInfo.farmName != null)
-                  ? farmInfo.farmName
-                  : null);
-        final renderedFarmPhoto = degraded ? null : farmInfo.farmPhotoUrl;
+            : identity.secondaryLabel;
+        final renderedFarmName = degraded ? null : user.storeName;
+        final renderedFarmPhoto = degraded ? null : user.storeImageUrl;
         final renderedLocation = degraded ? null : location;
 
         return {
           'name': renderedName,
           'farmName': renderedFarmName,
+          'identityPrimary': renderedIdentityPrimary,
+          'identitySecondary': renderedIdentitySecondary,
           'username': renderedUsername,
           'avatar': renderedAvatar,
           'bio': renderedBio,
@@ -1017,61 +1019,14 @@ color: scheme.onSurfaceVariant,
     throw StateError('Profile identity unresolved');
   }
 
-  ({String? farmName, String? farmPhotoUrl}) _getFarmInfo(String userId) {
-    final profileEntityAsync = ref.watch(profileStreamProvider(userId));
-    if (profileEntityAsync.hasValue && profileEntityAsync.value != null) {
-      return (
-        farmName: profileEntityAsync.value!.farmInfo?.farmName,
-        farmPhotoUrl: profileEntityAsync.value!.farmInfo?.farmPhotoUrl,
-      );
-    }
-    return (farmName: null, farmPhotoUrl: null);
-  }
-
-  String? _getLocation(
-    String userId,
-    AuthUser user,
-    bool isOwnProfile,
-    String? profileLocation,
-  ) {
-    final canonicalLocation = normalizeProfileLocation(profileLocation);
-    if (canonicalLocation != null) {
-      return canonicalLocation;
-    }
-
-    if (!isOwnProfile) {
-      return null;
-    }
-
-    final addressesStreamAsync = ref.watch(addressesStreamProvider(userId));
-
-    if (!addressesStreamAsync.hasValue || addressesStreamAsync.value == null) {
-      return null;
-    }
-
-    final addressesResult = addressesStreamAsync.value!;
-    if (!addressesResult.isSuccess || addressesResult.data == null) {
-      return null;
-    }
-
-    final allAddresses = addressesResult.data!;
-
-    final addressPurpose = user.hasCreatedSellerProfile
-        ? AddressPurpose.sender
-        : AddressPurpose.shipping;
-
-    final relevantAddresses = allAddresses
-        .where((addr) => addr.purpose == addressPurpose)
-        .toList();
-
-    final primaryAddress =
-        relevantAddresses.where((addr) => addr.isPrimary).firstOrNull ??
-        relevantAddresses.firstOrNull;
-
-    if (primaryAddress != null) {
-      return '${primaryAddress.city.name}, ${primaryAddress.province.name}';
-    }
-    return null;
+  /// The ONE location value for this page: the backend's public origin line
+  /// (city, province of the user's sender address), falling back to the
+  /// user's own location field when no sender address exists. The client NEVER
+  /// composes a location from raw address records — that rule lives server-side.
+  String? _publicLocation(ProfileEntity? profile) {
+    if (profile == null) return null;
+    return normalizeProfileLocation(profile.publicOriginLine) ??
+        normalizeProfileLocation(profile.location);
   }
 
   void _navigateToSettings(BuildContext context) {
@@ -1281,7 +1236,7 @@ color: scheme.onSurfaceVariant,
 icon: Icon(
            Icons.shield_outlined,
            color: scheme.primary,
-          size: 48,
+          size: AppIconSize.display,
         ),
         title: const Text('Report Submitted'),
         content: Text(

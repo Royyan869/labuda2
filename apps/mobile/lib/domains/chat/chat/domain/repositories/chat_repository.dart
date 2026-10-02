@@ -3,7 +3,6 @@ import 'package:labuda/domains/chat/chat/data/dto/chat_resource_occurrence_reque
 import 'package:labuda/domains/chat/chat/data/dto/chat_room_event_dto.dart';
 import 'package:labuda/domains/chat/chat/domain/entities/chat_entities.dart';
 import 'package:labuda/shared/attachment/entities/share_reference.dart';
-import 'package:labuda/domains/commerce/catalog/for_sale/data/dto/shipping_quote_dto.dart';
 
 /// Chat Repository Interface
 ///
@@ -102,16 +101,8 @@ abstract class ChatRepository {
   /// (chat list merge, open-thread refresh) re-read the canonical REST state.
   Stream<ChatRoomEventDto> watchChatRoomEvents();
 
-  // ========================================
-  // Commerce Operations
-  // ========================================
-
-  /// Create a shipping quote
-  ///
-  /// Used by sellers to provide manual shipping cost quotes to buyers.
-  /// Creates a shipping quote and sends a message to the chat.
-  Future<Result<Map<String, dynamic>>> createShippingQuote({
-    required String chatId,
-    required CreateShippingQuoteRequestDto request,
-  });
+  // NOTE: commerce write operations (negotiation, shipping quote) do NOT
+  // belong here — they are owned by their commerce domains (Owner rule
+  // 2026-10-01: chat never handles shipping; the Shipping domain owns the
+  // manual shipping quote end-to-end).
 }

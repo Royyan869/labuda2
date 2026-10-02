@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	commerceResponse "github.com/labuda/backend/internal/commerce/response"
 	"github.com/labuda/backend/internal/identity/auth"
+	"github.com/labuda/backend/internal/pkg/mediaref"
 	"github.com/labuda/backend/internal/platform/events"
 	idempotencyRepo "github.com/labuda/backend/internal/platform/idempotency/repository"
 	"github.com/labuda/backend/internal/social/content/entity"
@@ -657,9 +658,13 @@ func (s *ContentService) AddMedia(
 	callerID uuid.UUID,
 	contentID uuid.UUID,
 	mediaItems []struct {
-		MediaURL  string
-		MediaType entity.MediaType
-		Position  int
+		MediaURL   string
+		MediaType  entity.MediaType
+		Position   int
+		Blurhash   *string
+		DurationMs *int
+		Width      *int
+		Height     *int
 	},
 ) error {
 	// Validate caller
@@ -682,6 +687,11 @@ func (s *ContentService) AddMedia(
 	media := make([]*entity.ContentMedia, len(mediaItems))
 	for i, item := range mediaItems {
 		media[i] = entity.NewContentMedia(contentID, item.MediaURL, item.MediaType, item.Position)
+		media[i].Blurhash = item.Blurhash
+		media[i].DurationMs = item.DurationMs
+		media[i].Width = item.Width
+		media[i].Height = item.Height
+		media[i].Status = string(mediaref.StatusForNewRow(string(item.MediaType)))
 	}
 
 	// Persist media
@@ -937,9 +947,15 @@ func (s *ContentService) UpdateCaptionAndVisibility(
 // ============================================================================
 
 // ContentCreateMediaInput is the canonical media shape for idempotency fingerprint.
+// Blurhash and the client-provisional video metadata ride along for
+// persistence but are NEVER part of identity.
 type ContentCreateMediaInput struct {
-	URL  string
-	Type entity.MediaType
+	URL        string
+	Type       entity.MediaType
+	Blurhash   *string
+	DurationMs *int
+	Width      *int
+	Height     *int
 }
 
 // contentIdempotencyKey derives the actor-scoped idempotency key.
@@ -1130,6 +1146,11 @@ func (s *ContentService) CreateContentIdempotent(
 		mediaEntities := make([]*entity.ContentMedia, len(media))
 		for i, m := range media {
 			mediaEntities[i] = entity.NewContentMedia(content.ID, m.URL, m.Type, i)
+			mediaEntities[i].Blurhash = m.Blurhash
+			mediaEntities[i].DurationMs = m.DurationMs
+			mediaEntities[i].Width = m.Width
+			mediaEntities[i].Height = m.Height
+			mediaEntities[i].Status = string(mediaref.StatusForNewRow(string(m.Type)))
 		}
 		if err := s.contentRepo.CreateMedia(ctx, tx, mediaEntities); err != nil {
 			return nil, false, fmt.Errorf("create media failed: %w", err)
@@ -1320,6 +1341,11 @@ func (s *ContentService) CreateContentWithResourceOccurrenceIdempotent(
 		mediaEntities := make([]*entity.ContentMedia, len(media))
 		for i, m := range media {
 			mediaEntities[i] = entity.NewContentMedia(content.ID, m.URL, m.Type, i)
+			mediaEntities[i].Blurhash = m.Blurhash
+			mediaEntities[i].DurationMs = m.DurationMs
+			mediaEntities[i].Width = m.Width
+			mediaEntities[i].Height = m.Height
+			mediaEntities[i].Status = string(mediaref.StatusForNewRow(string(m.Type)))
 		}
 		if err := s.contentRepo.CreateMedia(ctx, tx, mediaEntities); err != nil {
 			return nil, false, fmt.Errorf("create media failed: %w", err)

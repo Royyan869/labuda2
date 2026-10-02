@@ -49,11 +49,6 @@ class MainAppBar extends ConsumerWidget implements PreferredSizeWidget {
     }
 
     return AppBar(
-      backgroundColor: scheme.surface,
-      foregroundColor: scheme.onSurface,
-      elevation: AppElevation.none,
-      surfaceTintColor: Colors.transparent,
-      scrolledUnderElevation: 0,
       leading: IconButton(
         icon: const Icon(Icons.menu),
         onPressed: () => Scaffold.of(context).openDrawer(),
@@ -127,8 +122,10 @@ class MainAppBar extends ConsumerWidget implements PreferredSizeWidget {
     return GestureDetector(
       onTap: () => _handleSearchTap(context, navigationHandler),
       child: Container(
-        height: 40,
-        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppMetrics.p12,
+          vertical: AppMetrics.p8,
+        ),
         decoration: BoxDecoration(
           color: scheme.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(AppShape.r20),
@@ -137,7 +134,7 @@ class MainAppBar extends ConsumerWidget implements PreferredSizeWidget {
           children: [
             Icon(
               Icons.search,
-              size: 20,
+              size: AppIconSize.action,
               color: scheme.onSurfaceVariant,
             ),
             const SizedBox(width: 8),

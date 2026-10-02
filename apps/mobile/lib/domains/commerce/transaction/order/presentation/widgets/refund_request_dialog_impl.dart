@@ -117,7 +117,7 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
             // Content
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(AppMetrics.p20),
+                padding: const EdgeInsets.all(AppMetrics.p24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -151,7 +151,7 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
 
   Widget _buildHeader(ColorScheme colorScheme) {
     return Container(
-      padding: const EdgeInsets.all(AppMetrics.p20),
+      padding: const EdgeInsets.all(AppMetrics.p24),
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHigh,
         borderRadius: const BorderRadius.only(
@@ -168,7 +168,7 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
                 Text(
                   'Ajukan Refund',
                   style: TextStyle(
-                    fontSize: AppType.s18,
+                    fontSize: AppType.s20,
                     fontWeight: FontWeight.bold,
                     color: colorScheme.onSurface,
                   ),
@@ -296,7 +296,7 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
             const SizedBox(width: 8),
             Icon(
               Icons.info_outline,
-              size: 16,
+              size: AppIconSize.inlineGlyph,
               color: colorScheme.onSurfaceVariant,
             ),
           ],
@@ -456,7 +456,7 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
               child: Icon(
                 Icons.close,
                 color: colorScheme.onPrimary,
-                size: 14,
+                size: AppIconSize.inlineGlyph,
               ),
             ),
           ),
@@ -501,7 +501,7 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
 
   Widget _buildFooter(ColorScheme colorScheme) {
     return Container(
-      padding: const EdgeInsets.all(AppMetrics.p20),
+      padding: const EdgeInsets.all(AppMetrics.p24),
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHigh,
         borderRadius: const BorderRadius.only(
@@ -518,7 +518,7 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
                 onPressed: _isSubmitting ? null : widget.onCancel,
                 style: OutlinedButton.styleFrom(
                   foregroundColor: colorScheme.onSurfaceVariant,
-                  padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
+                  padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
                 ),
                 child: const Text(
                   'Batal',
@@ -534,7 +534,7 @@ class _RefundRequestDialogState extends State<RefundRequestDialog> {
                 style: ElevatedButton.styleFrom(
                   disabledBackgroundColor:
                       colorScheme.surfaceContainerHighest,
-                  padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
+                  padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
                 ),
                 child: _isSubmitting
                     ? SizedBox(

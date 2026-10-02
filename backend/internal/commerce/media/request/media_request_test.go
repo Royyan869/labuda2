@@ -1,10 +1,13 @@
 package request
 
 import (
+	"encoding/json"
 	"errors"
 	"testing"
+	"time"
 
 	mediaentity "github.com/labuda/backend/internal/commerce/media/entity"
+	productentity "github.com/labuda/backend/internal/commerce/product/entity"
 )
 
 func TestNormalizeSelection_ImageOnly_Success(t *testing.T) {
@@ -207,3 +210,77 @@ func assertTypedError(t *testing.T, err error, wantCode string) {
 func intPtr(v int) *int { return &v }
 
 func strPtr(v string) *string { return &v }
+
+func TestToProductMedia_PreservesVideoMetadata(t *testing.T) {
+	now := time.Now().UTC()
+	video, err := mediaentity.NewMedia("videos/clip.mp4", mediaentity.MediaTypeVideo, 0, now)
+	if err != nil {
+		t.Fatalf("NewMedia() error = %v", err)
+	}
+	video.ThumbnailURL = strPtr("images/clip-thumb.jpg")
+	video.Width = intPtr(1920)
+	video.Height = intPtr(1080)
+	video.Duration = intPtr(12500)
+	video.Blurhash = strPtr("LKO2?U%2Tw=w]~RBVZRi};RPxuwH")
+
+	got := ToProductMedia([]mediaentity.Media{*video})
+	if len(got) != 1 {
+		t.Fatalf("len(got) = %d, want 1", len(got))
+	}
+	slot := got[0]
+	if slot.URL != "videos/clip.mp4" {
+		t.Fatalf("slot.URL = %q, want videos/clip.mp4", slot.URL)
+	}
+	if slot.ThumbnailURL == nil || *slot.ThumbnailURL != "images/clip-thumb.jpg" {
+		t.Fatalf("slot.ThumbnailURL = %#v, want persisted thumbnail", slot.ThumbnailURL)
+	}
+	if slot.Width == nil || *slot.Width != 1920 || slot.Height == nil || *slot.Height != 1080 {
+		t.Fatalf("slot dims = %#v/%#v, want 1920/1080", slot.Width, slot.Height)
+	}
+	if slot.DurationMs == nil || *slot.DurationMs != 12500 {
+		t.Fatalf("slot.DurationMs = %#v, want 12500ms", slot.DurationMs)
+	}
+	if slot.Blurhash == nil || *slot.Blurhash != "LKO2?U%2Tw=w]~RBVZRi};RPxuwH" {
+		t.Fatalf("slot.Blurhash lost: %#v", slot.Blurhash)
+	}
+}
+
+func TestProductMedia_JSONRoundTrip_ToleratesLegacyShapes(t *testing.T) {
+	full := productentity.ProductMedia{
+		URL:          "videos/clip.mp4",
+		Blurhash:     strPtr("LKO2?U%2Tw=w]~RBVZRi};RPxuwH"),
+		ThumbnailURL: strPtr("images/clip-thumb.jpg"),
+		Width:        intPtr(1920),
+		Height:       intPtr(1080),
+		DurationMs:   intPtr(12500),
+	}
+	raw, err := json.Marshal(full)
+	if err != nil {
+		t.Fatalf("Marshal() error = %v", err)
+	}
+	var back productentity.ProductMedia
+	if err := json.Unmarshal(raw, &back); err != nil {
+		t.Fatalf("Unmarshal(canonical) error = %v", err)
+	}
+	if back.URL != full.URL || back.DurationMs == nil || *back.DurationMs != 12500 {
+		t.Fatalf("round trip lost data: %#v", back)
+	}
+
+	// Legacy bare string.
+	var bare productentity.ProductMedia
+	if err := json.Unmarshal([]byte(`"videos/old.mp4"`), &bare); err != nil {
+		t.Fatalf("Unmarshal(bare string) error = %v", err)
+	}
+	if bare.URL != "videos/old.mp4" {
+		t.Fatalf("bare.URL = %q, want videos/old.mp4", bare.URL)
+	}
+
+	// Legacy capital-key object (pre-tag marshal shape).
+	var caps productentity.ProductMedia
+	if err := json.Unmarshal([]byte(`{"URL":"videos/caps.mp4","Blurhash":"L00000"}`), &caps); err != nil {
+		t.Fatalf("Unmarshal(capital keys) error = %v", err)
+	}
+	if caps.URL != "videos/caps.mp4" || caps.Blurhash == nil {
+		t.Fatalf("capital-key shape lost data: %#v", caps)
+	}
+}

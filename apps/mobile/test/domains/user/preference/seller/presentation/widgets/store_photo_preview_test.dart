@@ -72,17 +72,42 @@ void main() {
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
   });
 
-  test('crop dialog catch must never pop the caller screen', () {
+  test('crop failure paths must never pop the caller screen', () {
+    // Crop authority lives in AvatarImageProcessor (AvatarEditorWidget only
+    // opens the pick sheet and delegates). Scan every catch block THERE.
     final source = File(
-      'lib/shared/widgets/avatar_editor_widget.dart',
+      'lib/shared/widgets/avatar_image_processor.dart',
     ).readAsStringSync();
-    final catchBlock = source.substring(source.indexOf('} catch (e) {'));
+
+    final catchBlocks = <String>[];
+    for (final match in RegExp(r'catch\s*\([^)]*\)\s*\{').allMatches(source)) {
+      var depth = 1;
+      var cursor = match.end;
+      while (cursor < source.length && depth > 0) {
+        final char = source[cursor];
+        if (char == '{') depth++;
+        if (char == '}') depth--;
+        cursor++;
+      }
+      catchBlocks.add(source.substring(match.end, cursor));
+    }
+
     expect(
-      catchBlock.contains('.pop('),
-      isFalse,
+      catchBlocks.length,
+      greaterThanOrEqualTo(2),
       reason:
-          'the pick dialog is already popped before picking; an extra pop in '
-          'catch closes the caller route (P1: wizard died after crop)',
+          'anti-vacuum: crop + temp-file saves each own a failure path; a run '
+          'that finds none is scanning the wrong file (the marker moved once '
+          'already — that is what broke this test)',
     );
+    for (final block in catchBlocks) {
+      expect(
+        block.contains('.pop('),
+        isFalse,
+        reason:
+            'the crop route pops itself on success; an extra pop in catch '
+            'closes the caller route (P1: wizard died after crop)',
+      );
+    }
   });
 }

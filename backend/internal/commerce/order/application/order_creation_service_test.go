@@ -271,7 +271,7 @@ func newHappyPathFixtures(_ *testing.T) (*OrderCreationService, CreateFromSaleSu
 			ID:              productID,
 			Title:           "Kohaku Premium 40cm",
 			FarmAddressID:   &farmAddressID,
-			PreparationTime: string(forsaleentity.PreparationTimeImmediate),
+			PreparationTime: string(forsaleentity.PreparationTime1To3Days),
 		},
 	}
 
@@ -283,9 +283,9 @@ func newHappyPathFixtures(_ *testing.T) (*OrderCreationService, CreateFromSaleSu
 	}
 
 	farmAddress := &addressentity.Address{
-		ID:      farmAddressID,
-		UserID:  sellerID,
-		Purpose: addressentity.AddressPurposeSender,
+		ID:     farmAddressID,
+		UserID: sellerID,
+		Tags:   []addressentity.AddressTag{addressentity.TagSender},
 	}
 
 	shippingSetup := &shippingentity.ShippingSetup{

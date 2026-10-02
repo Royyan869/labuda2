@@ -18,6 +18,7 @@ import 'package:labuda/core/core.dart' as core;
 // =============================================================================
 
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 import 'package:labuda/domains/commerce/transaction/order/domain/domain.dart'
     as order_domain;
 import 'package:labuda/domains/commerce/transaction/order/order.dart';
@@ -151,7 +152,7 @@ class OrderActionHandler {
               Icon(
                 Icons.check_circle_outline,
                 color: context.statusColors.success,
-                size: 48,
+                size: AppIconSize.display,
               ),
               const SizedBox(height: 16),
               const Text(
@@ -162,7 +163,7 @@ class OrderActionHandler {
               Text(
                 'Dengan menerima pesanan, Anda berkewajiban untuk memproses dan mengirim produk sesuai dengan pesanan.',
                 style: TextStyle(
-                  fontSize: core.AppType.s13,
+                  fontSize: core.AppType.s14,
                   color: colorScheme.onSurfaceVariant,
                 ),
               ),
@@ -210,7 +211,7 @@ class OrderActionHandler {
               Icon(
                 Icons.warning_amber_outlined,
                 color: context.statusColors.warning,
-                size: 48,
+                size: AppIconSize.display,
               ),
               const SizedBox(height: 16),
               const Text(
@@ -221,7 +222,7 @@ class OrderActionHandler {
               Text(
                 'Dengan menerima barang, pesanan akan selesai dan pembayaran akan diteruskan ke penjual. Tindakan ini tidak dapat dibatalkan.',
                 style: TextStyle(
-                  fontSize: core.AppType.s13,
+                  fontSize: core.AppType.s14,
                   color: colorScheme.onSurfaceVariant,
                 ),
               ),
@@ -361,12 +362,12 @@ class OrderActionHandler {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.local_shipping, size: 16),
+                      const Icon(Icons.local_shipping, size: AppIconSize.inlineGlyph),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           _formatShippingMethod(),
-                          style: const TextStyle(fontSize: core.AppType.s13),
+                          style: const TextStyle(fontSize: core.AppType.s14),
                         ),
                       ),
                     ],
@@ -385,17 +386,17 @@ class OrderActionHandler {
                     ButtonSegment(
                       value: 'tracking',
                       label: Text('Resi Kurir'),
-                      icon: Icon(Icons.qr_code, size: 16),
+                      icon: Icon(Icons.qr_code, size: AppIconSize.inlineGlyph),
                     ),
                     ButtonSegment(
                       value: 'phone',
                       label: Text('No. HP/WA'),
-                      icon: Icon(Icons.phone, size: 16),
+                      icon: Icon(Icons.phone, size: AppIconSize.inlineGlyph),
                     ),
                     ButtonSegment(
                       value: 'other',
                       label: Text('Lainnya'),
-                      icon: Icon(Icons.more_horiz, size: 16),
+                      icon: Icon(Icons.more_horiz, size: AppIconSize.inlineGlyph),
                     ),
                   ],
                   selected: {referenceType ?? 'tracking'},

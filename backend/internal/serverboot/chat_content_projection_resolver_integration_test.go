@@ -203,7 +203,7 @@ func (f *contentProjectionFixture) seedProduct(
 			preparation_time, created_at, updated_at
 		)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $8)
-	`, id, sellerID, title, description, json.RawMessage(`[]`), "Kohaku", string(fpsEntity.PreparationTimeImmediate), now)
+	`, id, sellerID, title, description, json.RawMessage(`[]`), "Kohaku", string(fpsEntity.PreparationTime1To3Days), now)
 	require.NoError(t, err)
 
 	return id

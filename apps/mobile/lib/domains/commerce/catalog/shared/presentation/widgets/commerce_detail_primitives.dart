@@ -95,7 +95,7 @@ class CommerceDetailAppBarActionButton extends StatelessWidget {
               valueColor: AlwaysStoppedAnimation<Color>(resolvedColor),
             ),
           )
-        : Icon(resolvedIcon, size: 20, color: resolvedColor);
+        : Icon(resolvedIcon, size: AppIconSize.action, color: resolvedColor);
 
     return Semantics(
       button: true,
@@ -227,4 +227,4 @@ class CommerceDetailLabelValue extends StatelessWidget {
             ),
     );
   }
-}
+}

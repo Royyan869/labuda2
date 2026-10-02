@@ -64,7 +64,9 @@ go run ./cmd/migrate
 # Tracks applied versions in schema_migrations table
 ```
 
-Run this before starting `core_server`. The server does not auto-apply migrations.
+Run this before starting `core_server`. The server does not auto-apply migrations, and it refuses to boot while the database is behind the chain head.
+
+The command delegates to `pkg/migration`, the single migration executor: one package resolves, splits, loads, and applies the chain, so the CLI, the server's boot check, and the test bootstrap can never disagree about what the schema should be.
 
 > **Do not use the external `migrate` CLI.** It writes a different `schema_migrations` table schema. Mixing it with `go run ./cmd/migrate` on the same database corrupts the migration state. Always use `go run ./cmd/migrate`.
 

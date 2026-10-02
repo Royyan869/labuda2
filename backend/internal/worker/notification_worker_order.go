@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	notificationentity "github.com/labuda/backend/internal/interaction/notification/entity"
 	"github.com/labuda/backend/internal/platform/events"
 	"go.uber.org/zap"
 )
@@ -37,13 +38,13 @@ func (h *NotificationEventHandler) handleOrderCreated(ctx context.Context, paylo
 	}
 
 	// Notify SELLER: "Order Baru" - new order to fulfill (primary: returned for push dispatch)
-	sellerInfo, err := h.insertNotificationWithPolicy(ctx, sellerID, buyerID, events.EventOrderCreated, orderID, data)
+	sellerInfo, err := h.insertNotificationWithPolicy(ctx, sellerID, notificationentity.UserActor(buyerID), events.EventOrderCreated, orderID, data)
 	if err != nil {
 		return notificationInfo{}, fmt.Errorf("insert seller notification failed: %w", err)
 	}
 
 	// Notify BUYER: "Pesanan Berhasil Dibuat" - order confirmation (non-blocking)
-	buyerInfo, bErr := h.insertNotificationWithPolicy(ctx, buyerID, buyerID, "order.created.buyer", orderID, data)
+	buyerInfo, bErr := h.insertNotificationWithPolicy(ctx, buyerID, notificationentity.UserActor(buyerID), "order.created.buyer", orderID, data)
 	if bErr != nil {
 		h.log.Warn("Failed to create buyer notification for order created", zap.Error(bErr))
 	} else if h.pushSender != nil && buyerInfo.inserted && buyerInfo.allowPush {
@@ -88,13 +89,13 @@ func (h *NotificationEventHandler) handleOrderPaid(ctx context.Context, payload 
 	}
 
 	// Notify SELLER: "Siap Dikirim" - payment received, prepare to ship (primary: returned for push dispatch)
-	sellerInfo, err := h.insertNotificationWithPolicy(ctx, sellerID, buyerID, events.EventOrderPaid, orderID, data)
+	sellerInfo, err := h.insertNotificationWithPolicy(ctx, sellerID, notificationentity.UserActor(buyerID), events.EventOrderPaid, orderID, data)
 	if err != nil {
 		return notificationInfo{}, fmt.Errorf("insert seller notification failed: %w", err)
 	}
 
 	// Notify BUYER: "Pembayaran Berhasil" - payment confirmation (non-blocking)
-	buyerInfo, bErr := h.insertNotificationWithPolicy(ctx, buyerID, buyerID, "order.paid.buyer", orderID, data)
+	buyerInfo, bErr := h.insertNotificationWithPolicy(ctx, buyerID, notificationentity.UserActor(buyerID), "order.paid.buyer", orderID, data)
 	if bErr != nil {
 		h.log.Warn("Failed to create buyer notification for order paid", zap.Error(bErr))
 	} else if h.pushSender != nil && buyerInfo.inserted && buyerInfo.allowPush {
@@ -137,7 +138,7 @@ func (h *NotificationEventHandler) handleOrderShipped(ctx context.Context, paylo
 	}
 
 	// Notify BUYER (seller shipped the item)
-	info, err := h.insertNotificationWithPolicy(ctx, buyerID, sellerID, "order.shipped", orderID, data)
+	info, err := h.insertNotificationWithPolicy(ctx, buyerID, notificationentity.UserActor(sellerID), "order.shipped", orderID, data)
 	if err != nil {
 		return notificationInfo{}, fmt.Errorf("insert notification failed: %w", err)
 	}
@@ -178,14 +179,14 @@ func (h *NotificationEventHandler) handleOrderCompleted(ctx context.Context, pay
 	}
 
 	// Notify SELLER (escrow released, payment completed — primary: returned for push dispatch)
-	sellerInfo, err := h.insertNotificationWithPolicy(ctx, sellerID, buyerID, events.EventOrderCompleted, orderID, data)
+	sellerInfo, err := h.insertNotificationWithPolicy(ctx, sellerID, notificationentity.UserActor(buyerID), events.EventOrderCompleted, orderID, data)
 	if err != nil {
 		return notificationInfo{}, fmt.Errorf("insert seller notification failed: %w", err)
 	}
 
 	// Notify BUYER (order successfully completed — non-blocking, push triggered inline)
 	// NOTE: buyer push was previously missing; this migration restores the correct behavior.
-	buyerInfo, bErr := h.insertNotificationWithPolicy(ctx, buyerID, sellerID, events.EventOrderCompleted, orderID, data)
+	buyerInfo, bErr := h.insertNotificationWithPolicy(ctx, buyerID, notificationentity.UserActor(sellerID), events.EventOrderCompleted, orderID, data)
 	if bErr != nil {
 		h.log.Warn("Failed to create buyer notification for completed", zap.Error(bErr))
 	} else if h.pushSender != nil && buyerInfo.inserted && buyerInfo.allowPush {
@@ -228,7 +229,7 @@ func (h *NotificationEventHandler) handleOrderCancelled(ctx context.Context, pay
 	}
 
 	// Notify SELLER (buyer cancelled the order)
-	info, err := h.insertNotificationWithPolicy(ctx, sellerID, buyerID, "order.cancelled", orderID, data)
+	info, err := h.insertNotificationWithPolicy(ctx, sellerID, notificationentity.UserActor(buyerID), "order.cancelled", orderID, data)
 	if err != nil {
 		return notificationInfo{}, fmt.Errorf("insert notification failed: %w", err)
 	}
@@ -273,7 +274,7 @@ func (h *NotificationEventHandler) handleOrderCancelledTimeout(ctx context.Conte
 	// Notify SELLER (shipment deadline exceeded — seller failed to ship)
 	sellerInfo, sErr := h.insertNotificationWithPolicy(
 		ctx,
-		sellerID, uuid.Nil, // system-initiated
+		sellerID, notificationentity.SystemActor(), // worker timer
 		"order.cancelled_timeout",
 		orderID,
 		data,
@@ -289,7 +290,7 @@ func (h *NotificationEventHandler) handleOrderCancelledTimeout(ctx context.Conte
 	// Notify BUYER (their order was auto-cancelled)
 	buyerInfo, bErr := h.insertNotificationWithPolicy(
 		ctx,
-		buyerID, uuid.Nil, // system-initiated
+		buyerID, notificationentity.SystemActor(), // worker timer
 		"order.cancelled_timeout",
 		orderID,
 		data,
@@ -349,7 +350,7 @@ func (h *NotificationEventHandler) handleOrderExpired(ctx context.Context, paylo
 	}
 
 	// Notify BUYER (payment window expired — system-initiated)
-	info, err := h.insertNotificationWithPolicy(ctx, buyerID, uuid.Nil, "order.expired", orderID, data)
+	info, err := h.insertNotificationWithPolicy(ctx, buyerID, notificationentity.SystemActor(), "order.expired", orderID, data)
 	if err != nil {
 		return notificationInfo{}, fmt.Errorf("insert notification failed: %w", err)
 	}
@@ -390,7 +391,7 @@ func (h *NotificationEventHandler) handleOrderRefunded(ctx context.Context, payl
 	}
 
 	// Notify BUYER (order refunded — actor is seller)
-	info, err := h.insertNotificationWithPolicy(ctx, buyerID, sellerID, "order.refunded", orderID, data)
+	info, err := h.insertNotificationWithPolicy(ctx, buyerID, notificationentity.UserActor(sellerID), "order.refunded", orderID, data)
 	if err != nil {
 		return notificationInfo{}, fmt.Errorf("insert notification failed: %w", err)
 	}
@@ -431,7 +432,7 @@ func (h *NotificationEventHandler) handleOrderPartiallyRefunded(ctx context.Cont
 	}
 
 	// Notify BUYER (partial refund processed — actor is seller)
-	info, err := h.insertNotificationWithPolicy(ctx, buyerID, sellerID, "order.partially_refunded", orderID, data)
+	info, err := h.insertNotificationWithPolicy(ctx, buyerID, notificationentity.UserActor(sellerID), "order.partially_refunded", orderID, data)
 	if err != nil {
 		return notificationInfo{}, fmt.Errorf("insert notification failed: %w", err)
 	}
@@ -479,7 +480,7 @@ func (h *NotificationEventHandler) handleOrderDisputeOpen(ctx context.Context, p
 	}
 
 	// 1. Notify SELLER (buyer opened dispute) — primary recipient.
-	info, err := h.insertNotificationWithPolicy(ctx, sellerID, buyerID, "order.dispute_open", orderID, data)
+	info, err := h.insertNotificationWithPolicy(ctx, sellerID, notificationentity.UserActor(buyerID), "order.dispute_open", orderID, data)
 	if err != nil {
 		return notificationInfo{}, fmt.Errorf("insert seller notification failed: %w", err)
 	}
@@ -525,7 +526,7 @@ func (h *NotificationEventHandler) handleOrderDisputeOpen(ctx context.Context, p
 	for _, adminID := range adminIDs {
 		_, insertErr := h.insertNotificationWithPolicy(
 			ctx,
-			adminID, buyerID,
+			adminID, notificationentity.UserActor(buyerID),
 			"order.dispute_open",
 			orderID,
 			adminData,

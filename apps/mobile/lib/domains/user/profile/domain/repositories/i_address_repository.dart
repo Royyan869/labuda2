@@ -2,24 +2,28 @@ import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/user/profile/domain/entities/address_entity.dart';
 
 /// Address Repository Interface
-/// Handles CRUD operations for user addresses with purpose-based separation
+/// Handles CRUD operations for the account's single address book.
+///
+/// One address book per account; `tag` narrows a read to addresses carrying
+/// that role tag (shipping / sender). There is no per-tag primary: the
+/// account has exactly one primary address.
 abstract class IAddressRepository {
   /// Get all addresses for a user
   Future<Result<List<AddressEntity>>> getAddressesByUserId(String userId);
 
-  /// Get addresses by user ID and purpose (shipping or sender)
-  Future<Result<List<AddressEntity>>> getAddressesByPurpose(
+  /// Get addresses for a user that carry [tag] (shipping or sender)
+  Future<Result<List<AddressEntity>>> getAddressesByTag(
     String userId,
-    AddressPurpose purpose,
+    AddressTag tag,
   );
 
   /// Get address by ID
   Future<Result<AddressEntity>> getAddressById(String addressId);
 
-  /// Get primary address for user (optionally filter by purpose)
+  /// Get the account's primary address, optionally narrowed to [tag]
   Future<Result<AddressEntity?>> getPrimaryAddress(
     String userId, {
-    AddressPurpose? purpose,
+    AddressTag? tag,
   });
 
   /// Add new address
@@ -31,18 +35,18 @@ abstract class IAddressRepository {
   /// Delete address
   Future<Result<void>> deleteAddress(String addressId);
 
-  /// Set address as primary (unset others atomically within the same purpose)
+  /// Set address as primary (unsets the account's previous primary atomically)
   Future<Result<void>> setPrimaryAddress(String addressId, String userId);
 
   /// Stream of addresses for real-time updates
   Stream<Result<List<AddressEntity>>> watchAddresses(String userId);
 
-  /// Stream of addresses by purpose for real-time updates
-  Stream<Result<List<AddressEntity>>> watchAddressesByPurpose(
+  /// Stream of addresses carrying [tag] for real-time updates
+  Stream<Result<List<AddressEntity>>> watchAddressesByTag(
     String userId,
-    AddressPurpose purpose,
+    AddressTag tag,
   );
 
-  /// Count addresses for a user (optionally filter by purpose)
-  Future<Result<int>> countAddresses(String userId, {AddressPurpose? purpose});
+  /// Count addresses for a user (optionally narrowed to [tag])
+  Future<Result<int>> countAddresses(String userId, {AddressTag? tag});
 }

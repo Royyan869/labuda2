@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	notificationentity "github.com/labuda/backend/internal/interaction/notification/entity"
 	"github.com/labuda/backend/internal/interaction/notification/policy"
 	platformevent "github.com/labuda/backend/internal/platform/event"
 	dbpkg "github.com/labuda/backend/pkg/db"
@@ -48,9 +49,9 @@ func TestAuctionBidPlaced_SellerNotified(t *testing.T) {
 			return fn(&mockTxForNotification{
 				QueryRowFunc: func(_ context.Context, _ string, args ...any) pgx.Row {
 					if len(args) >= 4 {
-						capturedRecipient = args[1].(uuid.UUID)
-						capturedActor = args[2].(uuid.UUID)
-						capturedType = args[3].(string)
+						capturedRecipient = insertArg(args).Recipient
+						capturedActor = insertArg(args).ActorIDValue()
+						capturedType = insertArg(args).TypeString()
 					}
 					return &mockRowForNotification{scanValue: uuid.New()}
 				},
@@ -231,8 +232,8 @@ func TestAuctionSettlementFailed_BuyerViolation_NotifiesWinnerAndSeller(t *testi
 				QueryRowFunc: func(_ context.Context, _ string, args ...any) pgx.Row {
 					if len(args) >= 4 {
 						inserts = append(inserts, captured{
-							recipient: args[1].(uuid.UUID),
-							nType:     args[3].(string),
+							recipient: insertArg(args).Recipient,
+							nType:     insertArg(args).TypeString(),
 						})
 					}
 					return &mockRowForNotification{scanValue: uuid.New()}
@@ -290,9 +291,9 @@ func TestAuctionWaitingSettlement_WinnerAndSellerNotified(t *testing.T) {
 				QueryRowFunc: func(_ context.Context, _ string, args ...any) pgx.Row {
 					if len(args) >= 4 {
 						inserts = append(inserts, captured{
-							recipient: args[1].(uuid.UUID),
-							actor:     args[2].(uuid.UUID),
-							nType:     args[3].(string),
+							recipient: insertArg(args).Recipient,
+							actor:     insertArg(args).ActorIDValue(),
+							nType:     insertArg(args).TypeString(),
 						})
 					}
 					return &mockRowForNotification{scanValue: uuid.New()}
@@ -490,8 +491,8 @@ func TestN4A3_NegotiationStarted_WrapperPushLog(t *testing.T) {
 	if rec.recipient != sellerID {
 		t.Errorf("recipient = %v, want sellerID %v", rec.recipient, sellerID)
 	}
-	if rec.actor != uuid.Nil {
-		t.Errorf("actor = %v, want uuid.Nil (buyer-initiated, system delivers)", rec.actor)
+	if rec.actor != buyerID {
+		t.Errorf("actor = %v, want buyerID %v (buyer-initiated — uuid.Nil is unpersistable)", rec.actor, buyerID)
 	}
 	if rec.notifType != "negotiation.started" {
 		t.Errorf("notifType = %q, want %q", rec.notifType, "negotiation.started")
@@ -535,6 +536,9 @@ func TestN5_NegotiationMessageSent_BuyerSends_SellerReceives(t *testing.T) {
 	}
 	if rec.recipient == buyerID {
 		t.Error("sender (buyerID) must not receive own notification")
+	}
+	if rec.actor != buyerID {
+		t.Errorf("actor = %v, want senderID %v (never uuid.Nil — the users FK rejects it)", rec.actor, buyerID)
 	}
 	if push.pushCount() != 1 {
 		t.Errorf("push count = %d, want 1", push.pushCount())
@@ -630,11 +634,13 @@ func makeNegotiationStartedPayloadWithRoom(sessionID, sellerID, buyerID, chatRoo
 	return b
 }
 
-func makeNegotiationAcceptedPayload(sessionID, buyerID, chatRoomID uuid.UUID) []byte {
+func makeNegotiationAcceptedPayload(sessionID, buyerID, sellerID, actorID, chatRoomID uuid.UUID) []byte {
 	b, _ := json.Marshal(NegotiationPayload{
 		SessionID:  sessionID.String(),
 		ChatRoomID: chatRoomID.String(),
 		BuyerID:    buyerID.String(),
+		SellerID:   sellerID.String(),
+		ActorID:    actorID.String(),
 	})
 	return b
 }
@@ -688,7 +694,7 @@ func TestNegotiationStarted_CarriesChatRoomIdFromPayload(t *testing.T) {
 // notification handler's data map silently dropped it, leaving the buyer's
 // "offer accepted" notification with no deep-link target at all.
 func TestNegotiationAccepted_CarriesChatRoomId(t *testing.T) {
-	sessionID, buyerID, chatRoomID := uuid.New(), uuid.New(), uuid.New()
+	sessionID, buyerID, sellerID, chatRoomID := uuid.New(), uuid.New(), uuid.New(), uuid.New()
 	db := &multiInsertDB{}
 	push := &pushCountSender{}
 	push.wg.Add(1)
@@ -698,7 +704,7 @@ func TestNegotiationAccepted_CarriesChatRoomId(t *testing.T) {
 	err := h.Handle(context.Background(), platformevent.OutboxEvent{
 		ID:        uuid.New(),
 		EventType: "negotiation.accepted",
-		Payload:   makeNegotiationAcceptedPayload(sessionID, buyerID, chatRoomID),
+		Payload:   makeNegotiationAcceptedPayload(sessionID, buyerID, sellerID, sellerID, chatRoomID),
 	})
 	if err != nil {
 		t.Fatalf("Handle() error = %v", err)
@@ -712,14 +718,18 @@ func TestNegotiationAccepted_CarriesChatRoomId(t *testing.T) {
 	if rec.recipient != buyerID {
 		t.Errorf("recipient = %v, want buyerID %v", rec.recipient, buyerID)
 	}
+	if rec.actor != sellerID {
+		t.Errorf("actor = %v, want the accepting participant %v (uuid.Nil is unpersistable)", rec.actor, sellerID)
+	}
 	if got := rec.data["chatRoomId"]; got != chatRoomID.String() {
 		t.Fatalf("chatRoomId = %v, want %q — F2 regression: buyer's accepted notification had no deep-link target", got, chatRoomID.String())
 	}
 }
 
-// TestNegotiationExpired_CarriesChatRoomId confirms the expired handler
-// (unchanged by Pass 8A, already correct) still forwards chatRoomId.
-func TestNegotiationExpired_CarriesChatRoomId(t *testing.T) {
+// TestNegotiationExpired_SystemActor_Delivered proves the expiry clock is
+// platform-caused: the event is persisted with the SYSTEM actor (no human
+// exists) and delivered instead of being dropped for an unpersistable sentinel.
+func TestNegotiationExpired_SystemActor_Delivered(t *testing.T) {
 	sessionID, buyerID, chatRoomID := uuid.New(), uuid.New(), uuid.New()
 	db := &multiInsertDB{}
 	push := &pushCountSender{}
@@ -733,16 +743,133 @@ func TestNegotiationExpired_CarriesChatRoomId(t *testing.T) {
 		Payload:   makeNegotiationExpiredPayload(sessionID, buyerID, chatRoomID),
 	})
 	if err != nil {
-		t.Fatalf("Handle() error = %v", err)
+		t.Fatalf("Handle() error = %v (must be acknowledged, not retried)", err)
 	}
 	push.wg.Wait()
 
 	if db.count() != 1 {
-		t.Fatalf("DB inserts = %d, want 1", db.count())
+		t.Fatalf("DB inserts = %d, want 1 (system actor is persistable)", db.count())
 	}
 	rec := db.at(0)
-	if got := rec.data["chatRoomId"]; got != chatRoomID.String() {
-		t.Fatalf("chatRoomId = %v, want %q", got, chatRoomID.String())
+	if rec.recipient != buyerID {
+		t.Errorf("recipient = %v, want buyer %v", rec.recipient, buyerID)
+	}
+	if rec.actor != uuid.Nil || rec.actorKind != notificationentity.ActorKindSystem {
+		t.Errorf("actor = %v/%q, want system actor (no user id)", rec.actor, rec.actorKind)
+	}
+	if rec.notifType != "negotiation.expired" {
+		t.Errorf("notifType = %q, want negotiation.expired", rec.notifType)
+	}
+	if push.pushCount() != 1 {
+		t.Errorf("push count = %d, want 1", push.pushCount())
+	}
+}
+
+// TestNegotiationStarted_NoBuyer_AcknowledgedWithoutInsert proves a legacy
+// started event without the initiating buyer is acknowledged without an insert
+// (the users FK rejects uuid.Nil), so it cannot poison the outbox.
+func TestNegotiationStarted_NoBuyer_AcknowledgedWithoutInsert(t *testing.T) {
+	sessionID, sellerID := uuid.New(), uuid.New()
+	db := &multiInsertDB{}
+	push := &pushCountSender{}
+
+	h := buildN4Handler(t, db, &mockBlockCheckerForNotification{}, push, nil)
+
+	payload, _ := json.Marshal(NegotiationPayload{
+		SessionID: sessionID.String(),
+		SellerID:  sellerID.String(),
+	})
+	err := h.Handle(context.Background(), platformevent.OutboxEvent{
+		ID:        uuid.New(),
+		EventType: "negotiation.started",
+		Payload:   payload,
+	})
+	if err != nil {
+		t.Fatalf("Handle() error = %v (must be acknowledged, not retried)", err)
+	}
+	if db.count() != 0 {
+		t.Errorf("DB inserts = %d, want 0 (no real actor)", db.count())
+	}
+	if push.pushCount() != 0 {
+		t.Errorf("push count = %d, want 0", push.pushCount())
+	}
+}
+
+// TestNegotiationAccepted_NoActor_SystemActorDelivered proves legacy accepted
+// events (emitted before actor_id existed) still notify the buyer: an unknown
+// human cause degrades to the system actor, it never drops the notification.
+func TestNegotiationAccepted_NoActor_SystemActorDelivered(t *testing.T) {
+	sessionID, buyerID, sellerID := uuid.New(), uuid.New(), uuid.New()
+	db := &multiInsertDB{}
+	push := &pushCountSender{}
+	push.wg.Add(1)
+
+	h := buildN4Handler(t, db, &mockBlockCheckerForNotification{}, push, nil)
+
+	payload, _ := json.Marshal(NegotiationPayload{
+		SessionID: sessionID.String(),
+		BuyerID:   buyerID.String(),
+		SellerID:  sellerID.String(),
+	})
+	err := h.Handle(context.Background(), platformevent.OutboxEvent{
+		ID:        uuid.New(),
+		EventType: "negotiation.accepted",
+		Payload:   payload,
+	})
+	if err != nil {
+		t.Fatalf("Handle() error = %v (must be acknowledged, not retried)", err)
+	}
+	push.wg.Wait()
+
+	if db.count() != 1 {
+		t.Fatalf("DB inserts = %d, want 1 with system actor", db.count())
+	}
+	rec := db.at(0)
+	if rec.recipient != buyerID {
+		t.Errorf("recipient = %v, want buyer %v", rec.recipient, buyerID)
+	}
+	if rec.actor != uuid.Nil || rec.actorKind != notificationentity.ActorKindSystem {
+		t.Errorf("actor = %v/%q, want system actor", rec.actor, rec.actorKind)
+	}
+}
+
+// TestNegotiationCancelled_NoActor_SystemActorDeliveredToBoth proves legacy
+// cancelled events (emitted before actor_id existed) notify BOTH parties with
+// the system actor instead of being dropped.
+func TestNegotiationCancelled_NoActor_SystemActorDeliveredToBoth(t *testing.T) {
+	sessionID, buyerID, sellerID := uuid.New(), uuid.New(), uuid.New()
+	db := &multiInsertDB{}
+	push := &pushCountSender{}
+	push.wg.Add(2) // buyer via Handle() dispatch + seller via in-handler goroutine
+
+	h := buildN4Handler(t, db, &mockBlockCheckerForNotification{}, push, nil)
+
+	payload, _ := json.Marshal(NegotiationPayload{
+		SessionID: sessionID.String(),
+		BuyerID:   buyerID.String(),
+		SellerID:  sellerID.String(),
+	})
+	err := h.Handle(context.Background(), platformevent.OutboxEvent{
+		ID:        uuid.New(),
+		EventType: "negotiation.cancelled",
+		Payload:   payload,
+	})
+	if err != nil {
+		t.Fatalf("Handle() error = %v (must be acknowledged, not retried)", err)
+	}
+	push.wg.Wait()
+
+	if db.count() != 2 {
+		t.Fatalf("DB inserts = %d, want 2 (buyer + seller)", db.count())
+	}
+	for i, want := range []uuid.UUID{buyerID, sellerID} {
+		rec := db.at(i)
+		if rec.recipient != want {
+			t.Errorf("insert %d recipient = %v, want %v", i, rec.recipient, want)
+		}
+		if rec.actor != uuid.Nil || rec.actorKind != notificationentity.ActorKindSystem {
+			t.Errorf("insert %d actor = %v/%q, want system actor", i, rec.actor, rec.actorKind)
+		}
 	}
 }
 
@@ -843,7 +970,7 @@ func TestB1_NegotiationCancelled_BothPartiesNotified(t *testing.T) {
 	err := h.Handle(context.Background(), platformevent.OutboxEvent{
 		ID:        uuid.New(),
 		EventType: "negotiation.cancelled",
-		Payload:   makeNegotiationCancelledPayload(sessionID, buyerID, sellerID, uuid.Nil),
+		Payload:   makeNegotiationCancelledPayload(sessionID, buyerID, sellerID, uuid.Nil, buyerID),
 	})
 	if err != nil {
 		t.Fatalf("Handle() error = %v", err)
@@ -885,7 +1012,7 @@ func TestB1_NegotiationCancelled_SelfSendPrevented(t *testing.T) {
 	err := h.Handle(context.Background(), platformevent.OutboxEvent{
 		ID:        uuid.New(),
 		EventType: "negotiation.cancelled",
-		Payload:   makeNegotiationCancelledPayload(sessionID, singlePartyID, singlePartyID, uuid.Nil),
+		Payload:   makeNegotiationCancelledPayload(sessionID, singlePartyID, singlePartyID, uuid.Nil, singlePartyID),
 	})
 	if err != nil {
 		t.Fatalf("Handle() error = %v", err)
@@ -912,7 +1039,7 @@ func TestB1_NegotiationCancelled_CarriesChatRoomID(t *testing.T) {
 	err := h.Handle(context.Background(), platformevent.OutboxEvent{
 		ID:        uuid.New(),
 		EventType: "negotiation.cancelled",
-		Payload:   makeNegotiationCancelledPayload(sessionID, buyerID, sellerID, chatRoomID),
+		Payload:   makeNegotiationCancelledPayload(sessionID, buyerID, sellerID, chatRoomID, sellerID),
 	})
 	if err != nil {
 		t.Fatalf("Handle() error = %v", err)
@@ -949,10 +1076,10 @@ func TestB1_SellerTierPushPolicy(t *testing.T) {
 // O3: PANIC RECOVERY TESTS
 // =============================================================================
 
-// panickingInserter is a NotificationInserter that panics on InsertNotification.
+// panickingInserter is a NotificationInserter that panics on Insert.
 type panickingInserter struct{}
 
-func (p *panickingInserter) InsertNotification(ctx context.Context, tx dbpkg.Tx, recipientID, actorID uuid.UUID, notificationType string, entityID uuid.UUID, data map[string]interface{}) (uuid.UUID, error) {
+func (p *panickingInserter) Insert(ctx context.Context, tx interface{}, n *notificationentity.Notification) (uuid.UUID, bool, error) {
 	panic("simulated inserter crash")
 }
 

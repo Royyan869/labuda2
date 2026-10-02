@@ -113,9 +113,9 @@ class _AuctionClaimShippingModalState
       }
 
       final addressRepository = ref.read(addressRepositoryProvider);
-      final addressesResult = await addressRepository.getAddressesByPurpose(
+      final addressesResult = await addressRepository.getAddressesByTag(
         user.id,
-        AddressPurpose.shipping,
+        AddressTag.shipping,
       );
 
       if (addressesResult.isError) {
@@ -352,15 +352,8 @@ class _AuctionClaimShippingModalState
       ),
       child: Column(
         children: [
-          // Drag handle
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: scheme.outlineVariant,
-              borderRadius: BorderRadius.circular(AppShape.r2),
-            ),
-          ),
+          // Drag handle — ONE authority: `AppDragHandle` beside the bottom-sheet base
+          const AppDragHandle(padding: EdgeInsets.zero),
           const SizedBox(height: 16),
           // Title
           Row(
@@ -408,7 +401,7 @@ class _AuctionClaimShippingModalState
       ),
       child: Row(
         children: [
-          Icon(Icons.error_outline, color: scheme.error, size: 20),
+          Icon(Icons.error_outline, color: scheme.error, size: AppIconSize.action),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
@@ -425,9 +418,11 @@ class _AuctionClaimShippingModalState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Alamat Pengiriman',
-          style: TextStyle(fontSize: AppType.s16, fontWeight: FontWeight.bold),
+          // Section-header role (canonical map: section → titleMedium); it was
+          // s16 here while checkout said the same line at s18.
+          style: Theme.of(context).textTheme.titleMedium,
         ),
         const SizedBox(height: 12),
         if (_isLoadingAddresses)
@@ -438,165 +433,27 @@ class _AuctionClaimShippingModalState
             ),
           )
         else if (_addresses.isEmpty)
-          _buildEmptyAddressState()
-        else
-          ..._addresses.map((address) => _buildAddressCard(address)),
-      ],
-    );
-  }
-
-  Widget _buildEmptyAddressState() {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(AppMetrics.p24),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(AppShape.r8),
-        border: Border.all(color: scheme.outlineVariant),
-      ),
-      child: Column(
-        children: [
-          Icon(
-            Icons.location_on_outlined,
-            size: 40,
-            color: scheme.onSurfaceVariant,
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Belum ada alamat pengiriman',
-            style: TextStyle(
-              fontSize: AppType.s14,
-              fontWeight: FontWeight.w600,
-              color: scheme.onSurface,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Tambahkan alamat untuk melanjutkan',
-            style: TextStyle(
-              fontSize: AppType.s12,
-              color: scheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 16),
-          OutlinedButton.icon(
-            onPressed: () {
-              // Navigate to address creation
-              Navigator.of(context).pop();
-              // TODO: Navigate to address creation screen
+          // Layout is the canonical one; the ACTION is this flow's: close the
+          // sheet and prompt (until the claim flow can resume after the
+          // address book).
+          ShippingAddressEmptyState(
+            onAdd: () {
               AppSnackBar.showInfo(
                 context,
                 'Silakan tambahkan alamat terlebih dahulu',
               );
+              Navigator.of(context).pop();
             },
-            icon: const Icon(Icons.add, size: 16),
-            label: const Text('Tambah Alamat'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAddressCard(AddressEntity address) {
-    final isSelected = _selectedAddress?.id == address.id;
-    final scheme = Theme.of(context).colorScheme;
-
-    return GestureDetector(
-      onTap: () => _onAddressSelected(address),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: AppMetrics.p8),
-        padding: const EdgeInsets.all(AppMetrics.p12),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? scheme.primary.withValues(alpha: 0.08)
-              : scheme.surface,
-          borderRadius: BorderRadius.circular(AppShape.r8),
-          border: Border.all(
-            color: isSelected ? scheme.primary : scheme.outlineVariant,
-            width: isSelected ? 2 : 1,
-          ),
-        ),
-        child: Row(
-          children: [
-            // Radio indicator
-            Container(
-              width: 20,
-              height: 20,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: isSelected ? scheme.primary : scheme.outline,
-                  width: 2,
-                ),
-                color: isSelected ? scheme.primary : Colors.transparent,
-              ),
-              child: isSelected
-                  ? Icon(Icons.check, size: 12, color: scheme.onPrimary)
-                  : null,
+          )
+        else
+          ..._addresses.map(
+            (address) => ShippingAddressCard(
+              address: address,
+              isSelected: _selectedAddress?.id == address.id,
+              onTap: () => _onAddressSelected(address),
             ),
-            const SizedBox(width: 12),
-            // Address details
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (address.nickname != null)
-                    Text(
-                      address.nickname!,
-                      style: TextStyle(
-                        fontSize: AppType.s12,
-                        fontWeight: FontWeight.w600,
-                        color: scheme.primary,
-                      ),
-                    ),
-                  Text(
-                    address.recipientName,
-                    style: const TextStyle(
-                      fontSize: AppType.s14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    address.phone,
-                    style: TextStyle(
-                      fontSize: AppType.s12,
-                      color: scheme.onSurfaceVariant,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    address.fullAddress,
-                    style: TextStyle(
-                      fontSize: AppType.s12,
-                      color: scheme.onSurfaceVariant,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            // Primary badge
-            if (address.isPrimary)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p6, vertical: AppMetrics.p2),
-                decoration: BoxDecoration(
-                  color: context.statusColors.success.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(AppShape.r4),
-                ),
-                child: Text(
-                  'Utama',
-                  style: TextStyle(
-                    fontSize: AppType.s10,
-                    fontWeight: FontWeight.w600,
-                    color: context.statusColors.success,
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
+          ),
+      ],
     );
   }
 
@@ -653,7 +510,7 @@ class _AuctionClaimShippingModalState
     if (coinBalance <= 0) return const SizedBox.shrink();
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p10),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p12),
       decoration: BoxDecoration(
         border: Border.all(color: scheme.outlineVariant),
         borderRadius: BorderRadius.circular(AppShape.r8),
@@ -708,7 +565,7 @@ class _AuctionClaimShippingModalState
           Icon(
             Icons.warning_amber_outlined,
             color: context.statusColors.warning,
-            size: 20,
+            size: AppIconSize.action,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -718,7 +575,7 @@ class _AuctionClaimShippingModalState
                 Text(
                   'Tidak ada opsi pengiriman',
                   style: TextStyle(
-                    fontSize: AppType.s13,
+                    fontSize: AppType.s14,
                     fontWeight: FontWeight.w600,
                     color: scheme.onSurface,
                   ),
@@ -727,7 +584,7 @@ class _AuctionClaimShippingModalState
                 Text(
                   'Penjual belum menyediakan opsi pengiriman ke lokasi Anda.',
                   style: TextStyle(
-                    fontSize: AppType.s11,
+                    fontSize: AppType.s12,
                     color: scheme.onSurfaceVariant,
                   ),
                 ),
@@ -763,8 +620,8 @@ class _AuctionClaimShippingModalState
           children: [
             // Radio indicator
             Container(
-              width: 20,
-              height: 20,
+              width: AppIconSize.action,
+              height: AppIconSize.action,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
@@ -774,7 +631,7 @@ class _AuctionClaimShippingModalState
                 color: isSelected ? scheme.primary : Colors.transparent,
               ),
               child: isSelected
-                  ? Icon(Icons.check, size: 12, color: scheme.onPrimary)
+                  ? Icon(Icons.check, size: AppIconSize.inlineGlyph, color: scheme.onPrimary)
                   : null,
             ),
             const SizedBox(width: 12),
@@ -841,7 +698,7 @@ class _AuctionClaimShippingModalState
                     ? null
                     : () => Navigator.of(context).pop(),
                 style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
+                  padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
                   side: BorderSide(color: scheme.outline),
                 ),
                 child: const Text('Batal'),
@@ -856,7 +713,7 @@ class _AuctionClaimShippingModalState
                 style: ElevatedButton.styleFrom(
                   disabledBackgroundColor: scheme.surfaceContainerHighest,
                   disabledForegroundColor: scheme.onSurfaceVariant,
-                  padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
+                  padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
                 ),
                 child: _isClaiming
                     ? SizedBox(

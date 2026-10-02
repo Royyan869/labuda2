@@ -200,7 +200,7 @@ class _LoginSessionsScreenState extends ConsumerState<LoginSessionsScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline, size: 48, color: scheme.error),
+            Icon(Icons.error_outline, size: AppIconSize.display, color: scheme.error),
             const SizedBox(height: 16),
             Text(
               l10n.failedToLoadSessions,
@@ -231,7 +231,7 @@ class _LoginSessionsScreenState extends ConsumerState<LoginSessionsScreen> {
           children: [
             Icon(
               Icons.devices_outlined,
-              size: 64,
+              size: AppIconSize.display,
               color: scheme.outline,
             ),
             const SizedBox(height: 16),
@@ -262,7 +262,7 @@ class _LoginSessionsScreenState extends ConsumerState<LoginSessionsScreen> {
           l10n.manageActiveSessions,
           style: TextStyle(
             color: scheme.onSurfaceVariant,
-            fontSize: AppType.s13,
+            fontSize: AppType.s14,
           ),
         ),
         const SizedBox(height: 12),
@@ -281,7 +281,7 @@ class _LoginSessionsScreenState extends ConsumerState<LoginSessionsScreen> {
         // Sign out all devices button
         OutlinedButton.icon(
           onPressed: _isMutating ? null : () => _confirmLogoutAll(context),
-          icon: const Icon(Icons.logout, size: 18),
+          icon: const Icon(Icons.logout, size: AppIconSize.action),
           label: Text(l10n.signOutAllDevices),
           style: OutlinedButton.styleFrom(
             foregroundColor: scheme.error,
@@ -399,7 +399,7 @@ class _SessionCard extends StatelessWidget {
     final textColor = Theme.of(context).colorScheme.onSurfaceVariant;
     return Row(
       children: [
-        Icon(icon, size: 14, color: textColor),
+        Icon(icon, size: AppIconSize.inlineGlyph, color: textColor),
         const SizedBox(width: 4),
         Text(
           '$label: $formatted',

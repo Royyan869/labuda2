@@ -30,7 +30,7 @@ class PersonalInformationSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.all(AppMetrics.p20),
+      padding: const EdgeInsets.all(AppMetrics.p24),
       decoration: BoxDecoration(
         color: scheme.surface,
         borderRadius: BorderRadius.circular(AppShape.r16),
@@ -44,7 +44,7 @@ class PersonalInformationSection extends StatelessWidget {
               Icon(
                 Icons.person_outline,
                 color: scheme.onSurfaceVariant,
-                size: 20,
+                size: AppIconSize.action,
               ),
               const SizedBox(width: 8),
               Text(
@@ -69,7 +69,7 @@ class PersonalInformationSection extends StatelessWidget {
               Icon(
                 Icons.contact_mail_outlined,
                 color: scheme.onSurfaceVariant,
-                size: 20,
+                size: AppIconSize.action,
               ),
               const SizedBox(width: 8),
               Text(
@@ -114,7 +114,7 @@ class PersonalInformationSection extends StatelessWidget {
                   Icon(
                     Icons.phone_outlined,
                     color: scheme.onSurfaceVariant,
-                    size: 20,
+                    size: AppIconSize.action,
                   ),
                   const SizedBox(width: 8),
                   Text(
@@ -149,7 +149,7 @@ class PersonalInformationSection extends StatelessWidget {
                           color: phoneVerified
                               ? context.statusColors.success
                               : context.statusColors.warning,
-                          size: 12,
+                          size: AppIconSize.inlineGlyph,
                         ),
                         const SizedBox(width: 4),
                         Text(
@@ -158,7 +158,7 @@ class PersonalInformationSection extends StatelessWidget {
                             color: phoneVerified
                                 ? context.statusColors.success
                                 : context.statusColors.warning,
-                            fontSize: AppType.s10,
+                            fontSize: AppType.s12,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -183,7 +183,7 @@ class PersonalInformationSection extends StatelessWidget {
                   ),
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: AppMetrics.p12,
-                    vertical: AppMetrics.p10,
+                    vertical: AppMetrics.p12,
                   ),
                   // Border shapes come from AppTheme.inputDecorationTheme.
                 ),
@@ -193,7 +193,7 @@ class PersonalInformationSection extends StatelessWidget {
                 Text(
                   'Verified on ${phoneVerifiedAt!.day}/${phoneVerifiedAt!.month}/${phoneVerifiedAt!.year}',
                   style: TextStyle(
-                    fontSize: AppType.s11,
+                    fontSize: AppType.s12,
                     color: scheme.onSurfaceVariant,
                   ),
                 ),
@@ -214,13 +214,13 @@ class PersonalInformationSection extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Icon(Icons.info_outline, color: context.statusColors.warning, size: 16),
+                Icon(Icons.info_outline, color: context.statusColors.warning, size: AppIconSize.inlineGlyph),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'Please verify your phone number',
                     style: TextStyle(
-                      fontSize: AppType.s11,
+                      fontSize: AppType.s12,
                       color: scheme.onSurfaceVariant,
                     ),
                   ),
@@ -254,7 +254,7 @@ class PersonalInformationSection extends StatelessWidget {
             Icon(
               Icons.cake_outlined,
               color: scheme.onSurfaceVariant,
-              size: 20,
+              size: AppIconSize.action,
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -288,7 +288,7 @@ class PersonalInformationSection extends StatelessWidget {
             ),
             Icon(
               Icons.calendar_today,
-              size: 18,
+              size: AppIconSize.action,
               color: scheme.onSurfaceVariant,
             ),
           ],
@@ -313,7 +313,7 @@ class PersonalInformationSection extends StatelessWidget {
               Icon(
                 Icons.email_outlined,
                 color: scheme.onSurfaceVariant,
-                size: 20,
+                size: AppIconSize.action,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -340,7 +340,7 @@ class PersonalInformationSection extends StatelessWidget {
                     Text(
                       'Used for login and cannot be changed',
                       style: TextStyle(
-                        fontSize: AppType.s11,
+                        fontSize: AppType.s12,
                         color: scheme.onSurfaceVariant,
                       ),
                     ),
@@ -368,7 +368,7 @@ class PersonalInformationSection extends StatelessWidget {
                       color: emailVerified
                           ? context.statusColors.success
                           : context.statusColors.warning,
-                      size: 12,
+                      size: AppIconSize.inlineGlyph,
                     ),
                     const SizedBox(width: 4),
                     Text(
@@ -377,7 +377,7 @@ class PersonalInformationSection extends StatelessWidget {
                         color: emailVerified
                             ? context.statusColors.success
                             : context.statusColors.warning,
-                        fontSize: AppType.s10,
+                        fontSize: AppType.s12,
                         fontWeight: FontWeight.w600,
                       ),
                     ),

@@ -22,7 +22,7 @@ class DropdownDecorationHelper {
           ? Icon(prefixIcon, color: scheme.onSurfaceVariant)
           : null,
       border: InputBorder.none,
-      contentPadding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p14),
+      contentPadding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p16),
       hintStyle: TextStyle(color: scheme.onSurfaceVariant),
     );
   }

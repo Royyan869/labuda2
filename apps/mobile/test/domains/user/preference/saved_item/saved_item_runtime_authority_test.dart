@@ -72,20 +72,40 @@ SavedItemModel _auctionItem({
 /// Canonical wire value for a TargetType (matches backend contract).
 String _wireValue(TargetType t) => t == TargetType.forSale ? 'for_sale' : 'auction';
 
+class _RecordingNavigationHandler implements NavigationHandler {
+  String? forSaleDetailId;
+  String? auctionId;
+
+  @override
+  void navigateToForSaleDetail(String forSaleId) => forSaleDetailId = forSaleId;
+
+  @override
+  void navigateToAuction(String auctionId) => this.auctionId = auctionId;
+
+  @override
+  void noSuchMethod(Invocation invocation) {}
+}
+
 class _MemorySavedItemRepository extends SavedItemRepository {
   _MemorySavedItemRepository({
     List<SavedItemModel>? initialItems,
     this.failOnAdd = false,
+    this.failOnLoad = false,
   }) : super(dio: Dio(BaseOptions(baseUrl: 'http://localhost'))) {
     _items.addAll(initialItems ?? const []);
   }
 
   final bool failOnAdd;
+  bool failOnLoad;
 
   final List<SavedItemModel> _items = <SavedItemModel>[];
 
   @override
   Future<List<SavedItemModel>> getSavedItems({String? type}) async {
+    if (failOnLoad) {
+      throw Exception('load failed');
+    }
+
     final items = type == null
         ? _items
         : _items.where((item) => _wireValue(item.targetType) == type).toList();
@@ -155,6 +175,7 @@ Widget _wrap({
   required Widget child,
   AuthState? authState,
   SavedItemRepository? repository,
+  NavigationHandler? navigationHandler,
 }) {
   return ProviderScope(
     overrides: [
@@ -162,6 +183,8 @@ Widget _wrap({
         authControllerProvider.overrideWith(() => _FakeAuthController(authState)),
       if (repository != null)
         savedItemRepositoryProvider.overrideWithValue(repository),
+      if (navigationHandler != null)
+        navigationHandlerProvider.overrideWithValue(navigationHandler),
     ],
     child: MaterialApp(home: Scaffold(body: child)),
   );
@@ -185,6 +208,37 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Belum ada item yang disimpan'), findsOneWidget);
+      expect(find.byIcon(Icons.bookmarks_outlined), findsOneWidget);
+    });
+
+    testWidgets('load failure shows error state and retry refetches', (
+      tester,
+    ) async {
+      final repository = _MemorySavedItemRepository(failOnLoad: true);
+
+      await tester.pumpWidget(
+        _wrap(
+          repository: repository,
+          authState: AuthState.authenticated(
+            _authUser(id: 'buyer-load-error'),
+            emailVerified: true,
+          ),
+          child: const SavedItemScreen(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Data belum bisa dimuat.'), findsOneWidget);
+      expect(find.text('Belum ada item yang disimpan'), findsNothing);
+      expect(find.byIcon(Icons.error_outline), findsOneWidget);
+
+      repository.failOnLoad = false;
+      await tester.tap(find.text('Try Again'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Data belum bisa dimuat.'), findsNothing);
+      expect(find.text('Belum ada item yang disimpan'), findsOneWidget);
+      expect(find.byIcon(Icons.bookmarks_outlined), findsOneWidget);
     });
 
     testWidgets('shows saved items', (tester) async {
@@ -356,6 +410,41 @@ void main() {
         expect(await repository.getSavedItemsCount(), 0);
       },
     );
+
+    testWidgets('tapping a saved card opens its canonical detail route', (
+      tester,
+    ) async {
+      final repository = _MemorySavedItemRepository(
+        initialItems: [
+          _forSaleItem(id: 'for-sale-tap', title: 'For Sale Tap'),
+          _auctionItem(id: 'auction-tap', title: 'Auction Tap'),
+        ],
+      );
+      final navigation = _RecordingNavigationHandler();
+
+      await tester.pumpWidget(
+        _wrap(
+          repository: repository,
+          navigationHandler: navigation,
+          authState: AuthState.authenticated(
+            _authUser(id: 'buyer-tap'),
+            emailVerified: true,
+          ),
+          child: const SavedItemScreen(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('For Sale Tap'));
+      await tester.pumpAndSettle();
+      expect(navigation.forSaleDetailId, 'for-sale-tap');
+      expect(navigation.auctionId, isNull);
+
+      await tester.tap(find.text('Auction Tap'));
+      await tester.pumpAndSettle();
+      expect(navigation.auctionId, 'auction-tap');
+      expect(navigation.forSaleDetailId, 'for-sale-tap');
+    });
 
     testWidgets('saved page keeps for-sale and auction records distinct', (
       tester,

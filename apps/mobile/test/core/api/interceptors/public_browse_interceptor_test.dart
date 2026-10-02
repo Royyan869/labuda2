@@ -1,10 +1,15 @@
 // Public browse interceptor contract tests.
 //
-// Verifies that _isPublicEndpoint correctly classifies the browse surface and
-// that a 401 on a public endpoint does NOT trigger the session-expired signal.
+// CANONICAL VIEWER-IDENTITY CONTRACT: the Labuda access token is attached to
+// every request, including the public browse GETs. The backend browse group
+// is optional-auth (no header → anonymous, valid header → authenticated
+// viewer with full context), and viewer-scoped blocks (viewer_capabilities)
+// only resolve when the identity travels. A guest has no token, so it stays
+// anonymous.
 //
-// Tests 1-10 cover endpoint classification (GET vs POST method-awareness and
-// path patterns).  Test 11 proves the 401-on-public-endpoint guard.
+// Tests 1-10 prove token attachment per method; test 11 proves a 401 without
+// a credential never signals session-expired; test 12 covers the search
+// surface.
 
 import 'dart:async';
 import 'dart:convert';
@@ -91,10 +96,10 @@ void main() {
   });
 
   // ------------------------------------------------------------------
-  // 1. GET /api/v1/for-sale → public (no token attached to request)
+  // 1. GET /api/v1/for-sale → viewer-scoped browse (token attached)
   // ------------------------------------------------------------------
   test(
-    '1. GET /api/v1/for-sale is public — no Authorization header attached',
+    '1. GET /api/v1/for-sale attaches the Labuda token (viewer identity)',
     () async {
       final adapter = _CaptureAdapter();
       final dio = _buildDio(adapter);
@@ -103,15 +108,15 @@ void main() {
 
       expect(
         adapter.capturedAuth,
-        isNull,
+        equals('Bearer stub-token'),
         reason:
-            'GET /api/v1/for-sale is a public browse endpoint; no token should be sent',
+            'browse GET must carry the viewer identity so viewer_capabilities resolves for a logged-in viewer',
       );
     },
   );
 
   // ------------------------------------------------------------------
-  // 2. POST /api/v1/for-sale is NOT public
+  // 2. POST /api/v1/for-sale remains auth-required
   // ------------------------------------------------------------------
   test(
     '2. POST /api/v1/for-sale is auth-required — Authorization header attached',
@@ -131,31 +136,31 @@ void main() {
   );
 
   // ------------------------------------------------------------------
-  // 3. GET /api/v1/for-sale/some-id → public
+  // 3. GET /api/v1/for-sale/some-id → viewer-scoped browse
   // ------------------------------------------------------------------
-  test('3. GET /api/v1/for-sale/some-id is public', () async {
+  test('3. GET /api/v1/for-sale/some-id attaches the token', () async {
     final adapter = _CaptureAdapter();
     final dio = _buildDio(adapter);
 
     await dio.get<dynamic>('/api/v1/for-sale/some-id');
 
-    expect(adapter.capturedAuth, isNull);
+    expect(adapter.capturedAuth, equals('Bearer stub-token'));
   });
 
   // ------------------------------------------------------------------
-  // 4. GET /api/v1/auctions → public
+  // 4. GET /api/v1/auctions → viewer-scoped browse
   // ------------------------------------------------------------------
-  test('4. GET /api/v1/auctions is public', () async {
+  test('4. GET /api/v1/auctions attaches the token', () async {
     final adapter = _CaptureAdapter();
     final dio = _buildDio(adapter);
 
     await dio.get<dynamic>('/api/v1/auctions');
 
-    expect(adapter.capturedAuth, isNull);
+    expect(adapter.capturedAuth, equals('Bearer stub-token'));
   });
 
   // ------------------------------------------------------------------
-  // 5. POST /api/v1/auctions/:id/bid is NOT public
+  // 5. POST /api/v1/auctions/:id/bid remains auth-required
   // ------------------------------------------------------------------
   test('5. POST /api/v1/auctions/id/bid is auth-required', () async {
     final adapter = _CaptureAdapter();
@@ -167,7 +172,7 @@ void main() {
   });
 
   // ------------------------------------------------------------------
-  // 6. GET /api/v1/users/me is NOT public
+  // 6. GET /api/v1/users/me remains auth-required
   // ------------------------------------------------------------------
   test('6. GET /api/v1/users/me is auth-required — token attached', () async {
     final adapter = _CaptureAdapter();
@@ -183,10 +188,10 @@ void main() {
   });
 
   // ------------------------------------------------------------------
-  // 7. GET /api/v1/users/some-uuid → public
+  // 7. GET /api/v1/users/some-uuid → viewer-scoped browse
   // ------------------------------------------------------------------
   test(
-    '7. GET /api/v1/users/some-uuid is public — no token attached',
+    '7. GET /api/v1/users/some-uuid attaches the token',
     () async {
       final adapter = _CaptureAdapter();
       final dio = _buildDio(adapter);
@@ -195,12 +200,12 @@ void main() {
         '/api/v1/users/550e8400-e29b-41d4-a716-446655440000',
       );
 
-      expect(adapter.capturedAuth, isNull);
+      expect(adapter.capturedAuth, equals('Bearer stub-token'));
     },
   );
 
   // ------------------------------------------------------------------
-  // 8. GET /api/v1/feed is NOT public
+  // 8. GET /api/v1/feed remains auth-required
   // ------------------------------------------------------------------
   test('8. GET /api/v1/feed is auth-required', () async {
     final adapter = _CaptureAdapter();
@@ -212,19 +217,19 @@ void main() {
   });
 
   // ------------------------------------------------------------------
-  // 9. GET /api/v1/contents/some-id → public
+  // 9. GET /api/v1/contents/some-id → viewer-scoped browse
   // ------------------------------------------------------------------
-  test('9. GET /api/v1/contents/some-id is public', () async {
+  test('9. GET /api/v1/contents/some-id attaches the token', () async {
     final adapter = _CaptureAdapter();
     final dio = _buildDio(adapter);
 
     await dio.get<dynamic>('/api/v1/contents/some-content-id');
 
-    expect(adapter.capturedAuth, isNull);
+    expect(adapter.capturedAuth, equals('Bearer stub-token'));
   });
 
   // ------------------------------------------------------------------
-  // 10. GET /api/v1/users/check-username is NOT public (moved to auth-required v1 group)
+  // 10. GET /api/v1/users/check-username remains auth-required
   // ------------------------------------------------------------------
   test('10. GET /api/v1/users/check-username is auth-required', () async {
     final adapter = _CaptureAdapter();
@@ -241,17 +246,19 @@ void main() {
   });
 
   // ------------------------------------------------------------------
-  // 11. 401 on public browse endpoint does NOT trigger session-expired
+  // 11. 401 without a credential does NOT trigger session-expired
   // ------------------------------------------------------------------
   test(
-    '11. 401 on public browse endpoint does NOT trigger session-expired callback',
+    '11. 401 with no credential does NOT trigger session-expired callback',
     () async {
       bool sessionExpiredFired = false;
       final restore = AuthInterceptor.setSessionExpiredCallbackForTest(() {
         sessionExpiredFired = true;
       });
 
-      // Backend returns 401 (StrictBrowseAuthMiddleware rejected malformed token)
+      // Defensive simulation: 401 although no token was attached. An
+      // anonymous browse request never receives a 401 from the backend
+      // (StrictBrowse: no header → anonymous, pass through).
       final adapter = _FixedStatusAdapter(401);
       final dio = Dio()..httpClientAdapter = adapter;
       dio.options.validateStatus = (_) => true;
@@ -268,7 +275,7 @@ void main() {
         sessionExpiredFired,
         isFalse,
         reason:
-            '401 on a public browse endpoint must NOT fire the session-expired callback',
+            '401 without a credential must NOT fire the session-expired callback',
       );
 
       restore();
@@ -276,9 +283,9 @@ void main() {
   );
 
   // ------------------------------------------------------------------
-  // Extra: GET /api/v1/search/for-sale, /search/auctions, /search/content, /search/users → public
+  // 12. Search surface carries the viewer identity too
   // ------------------------------------------------------------------
-  test('12. GET /api/v1/search/* browse routes are public', () async {
+  test('12. GET /api/v1/search/* browse routes attach the token', () async {
     final paths = [
       '/api/v1/search/for-sale',
       '/api/v1/search/auctions',
@@ -293,9 +300,29 @@ void main() {
       await dio.get<dynamic>(path);
       expect(
         adapter.capturedAuth,
-        isNull,
-        reason: 'GET $path should be public (no token)',
+        equals('Bearer stub-token'),
+        reason: 'GET $path must carry the viewer identity',
       );
     }
+  });
+
+  // ------------------------------------------------------------------
+  // 13. GUEST NEGATIVE PROOF: no token → no Authorization header at all
+  // ------------------------------------------------------------------
+  test('13. guest (no credential) sends NO Authorization header', () async {
+    final adapter = _CaptureAdapter();
+    final dio = Dio()..httpClientAdapter = adapter;
+    dio.options.validateStatus = (_) => true;
+    dio.interceptors.add(
+      AuthInterceptor(labudaTokenFetcher: () async => null),
+    );
+
+    await dio.get<dynamic>('/api/v1/for-sale/84b4b44d-be1b-4443-9c65-10947f86aa26');
+
+    expect(
+      adapter.capturedAuth,
+      isNull,
+      reason: 'a guest has no credential and must stay anonymous',
+    );
   });
 }

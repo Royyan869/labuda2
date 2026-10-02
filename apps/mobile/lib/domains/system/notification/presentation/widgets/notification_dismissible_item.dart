@@ -56,7 +56,7 @@ class NotificationDismissibleItem extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     return Container(
       alignment: Alignment.centerRight,
-      padding: const EdgeInsets.only(right: AppMetrics.p20),
+      padding: const EdgeInsets.only(right: AppMetrics.p24),
       color: scheme.error,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.end,
@@ -69,7 +69,7 @@ class NotificationDismissibleItem extends ConsumerWidget {
             ),
           ),
           const SizedBox(width: 8),
-          Icon(Icons.delete_outline, color: scheme.onPrimary, size: 24),
+          Icon(Icons.delete_outline, color: scheme.onPrimary, size: AppIconSize.header),
         ],
       ),
     );

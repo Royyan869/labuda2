@@ -227,9 +227,9 @@ func (s *FinanceService) RecordSubscriptionRevenue(
 // credits PLATFORM_REVENUE with the principal (A) only. This method carves
 // the fee (F) from BANK_SETTLEMENT into PLATFORM_REVENUE.
 //
-// Ledger movements (Σ entries = 0 invariant):
-//   - BANK_SETTLEMENT   balance -= fee (entry amount = -fee, credit)
-//   - PLATFORM_REVENUE  balance += fee (entry amount = +fee, debit)
+// Ledger movements (Σ entries = 0 invariant, canonical class-aware sign):
+//   - BANK_SETTLEMENT   balance -= fee (entry amount = +fee, DR decreases liability)
+//   - PLATFORM_REVENUE  balance += fee (entry amount = -fee, CR increases revenue)
 //
 // A zero fee is a no-op, not an error.
 //
@@ -266,9 +266,15 @@ func (s *FinanceService) RecordSubscriptionPaymentFeeRevenue(
 
 	idempotencyKey := fmt.Sprintf("subscription_fee_revenue_%s", paymentID.String())
 
+	// CANONICAL SIGN (ledger_repository.go balance formula): BANK_SETTLEMENT
+	// (liability) DR decreases => Amount +fee; PLATFORM_REVENUE (revenue)
+	// CR increases => Amount -fee. Same direction as the principal booking in
+	// RecordSubscriptionRevenue and as the sibling fee paths
+	// (RecordBuyerPaymentFeeRevenue / RecordBillingPaymentFeeRevenue), so the
+	// fee ADDS to platform revenue instead of cancelling it.
 	entries := []ledgerepo.Entry{
-		{AccountID: bankSettlementID, Amount: money.New(-buyerPaymentFee)}, // CR -fee
-		{AccountID: platformRevenueID, Amount: money.New(buyerPaymentFee)}, // DR +fee
+		{AccountID: bankSettlementID, Amount: money.New(buyerPaymentFee)},   // DR: reserve decreases by fee
+		{AccountID: platformRevenueID, Amount: money.New(-buyerPaymentFee)}, // CR: revenue increases
 	}
 
 	if err := s.ledgerRepo.CreateTransaction(ctx, tx, idempotencyKey, "subscription_fee_revenue", paymentID, &subID, &paymentID, entries); err != nil {
@@ -416,8 +422,8 @@ func (s *FinanceService) RecordGatewayPaymentSettlement(
 // buyer successfully pays via the chosen method, not when the order ships.
 //
 // Ledger movements (Σ entries = 0 invariant):
-//   - GATEWAY_CLEARING balance -= buyerPaymentFee (entry amount = -fee, credit)
-//   - PLATFORM_REVENUE  balance += buyerPaymentFee (entry amount = +fee, debit)
+//   - GATEWAY_CLEARING balance -= buyerPaymentFee (entry amount = +fee, DR decreases liability)
+//   - PLATFORM_REVENUE  balance += buyerPaymentFee (entry amount = -fee, CR increases revenue)
 //
 // A zero fee (e.g. a hypothetical free method) is a no-op, not an error.
 //
@@ -486,8 +492,8 @@ func (s *FinanceService) RecordBuyerPaymentFeeRevenue(
 // PLATFORM_REVENUE.
 //
 // Ledger movements (Σ entries = 0 invariant):
-//   - BANK_SETTLEMENT   balance -= buyerPaymentFee (entry amount = -fee, credit)
-//   - PLATFORM_REVENUE  balance += buyerPaymentFee (entry amount = +fee, debit)
+//   - BANK_SETTLEMENT   balance -= buyerPaymentFee (entry amount = +fee, DR decreases liability)
+//   - PLATFORM_REVENUE  balance += buyerPaymentFee (entry amount = -fee, CR increases revenue)
 //
 // A zero fee is a no-op, not an error.
 //

@@ -1,0 +1,12 @@
+{
+  "name": "labuda-video-processor",
+  "version": "1.0.0",
+  "description": "AWS Lambda function for video faststart remux + poster frames",
+  "main": "index.js",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.600.0"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}

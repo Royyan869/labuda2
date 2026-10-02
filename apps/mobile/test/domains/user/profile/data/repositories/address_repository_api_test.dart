@@ -16,13 +16,13 @@ class _FakeAddressDatasource extends AddressApiDatasource {
   final Result<AddressResponseApi> primaryResult;
 
   @override
-  Future<Result<AddressListResponseApi>> getAddresses({String? purpose}) async {
+  Future<Result<AddressListResponseApi>> getAddresses({String? tag}) async {
     return addressesResult;
   }
 
   @override
   Future<Result<AddressResponseApi>> getPrimaryAddress({
-    String? purpose,
+    String? tag,
   }) async {
     return primaryResult;
   }
@@ -72,7 +72,7 @@ void main() {
 
       final result = await repository.getPrimaryAddress(
         'user-1',
-        purpose: AddressPurpose.sender,
+        tag: AddressTag.sender,
       );
 
       expect(result.isSuccess, isTrue);

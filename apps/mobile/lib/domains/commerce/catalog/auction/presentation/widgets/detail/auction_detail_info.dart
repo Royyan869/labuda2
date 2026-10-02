@@ -57,7 +57,7 @@ class AuctionDetailInfo extends StatelessWidget {
                   children: [
                     Icon(
                       Icons.info_outline,
-                      size: 16,
+                      size: AppIconSize.inlineGlyph,
                       color: colorScheme.onSurfaceVariant,
                     ),
                     const SizedBox(width: 8),
@@ -65,7 +65,7 @@ class AuctionDetailInfo extends StatelessWidget {
                       child: Text(
                         'Lelang — harga naik, penawar tertinggi menang',
                         style: TextStyle(
-                          fontSize: AppType.s13,
+                          fontSize: AppType.s14,
                           color: colorScheme.onSurfaceVariant,
                           fontStyle: FontStyle.italic,
                         ),

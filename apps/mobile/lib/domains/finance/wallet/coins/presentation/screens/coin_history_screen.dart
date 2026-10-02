@@ -170,7 +170,7 @@ class _TransactionTile extends StatelessWidget {
             'Balance: ${transaction.balanceAfter}',
             style: TextStyle(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
-              fontSize: AppType.s11,
+              fontSize: AppType.s12,
             ),
           ),
         ],
@@ -214,14 +214,14 @@ class _EmptyState extends StatelessWidget {
         children: [
           Icon(
             icon,
-            size: 64,
+            size: AppIconSize.display,
             color: AppColors.coinPrimary.withValues(alpha: 0.5),
           ),
           const SizedBox(height: 16),
           Text(
             'No Transactions',
             style: TextStyle(
-              fontSize: AppType.s18,
+              fontSize: AppType.s20,
               fontWeight: FontWeight.bold,
               color: Theme.of(context).colorScheme.onSurface,
             ),
@@ -256,14 +256,14 @@ class _ErrorState extends StatelessWidget {
           children: [
             Icon(
               Icons.error_outline,
-              size: 64,
+              size: AppIconSize.display,
               color: AppColors.coinSecondary.withValues(alpha: 0.5),
             ),
             const SizedBox(height: 16),
             Text(
               'Failed to Load',
               style: TextStyle(
-                fontSize: AppType.s18,
+                fontSize: AppType.s20,
                 fontWeight: FontWeight.bold,
                 color: Theme.of(context).colorScheme.onSurface,
               ),

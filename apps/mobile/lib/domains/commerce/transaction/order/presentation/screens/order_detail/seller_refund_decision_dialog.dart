@@ -7,6 +7,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart' as core;
+import 'package:labuda/core/src/theme/app_theme.dart';
 import 'package:labuda/domains/commerce/transaction/order/data/order_providers.dart';
 import 'package:labuda/domains/commerce/transaction/order/domain/entities/refund_request.dart';
 import 'package:labuda/shared/utils/app_formatters.dart';
@@ -129,13 +130,13 @@ class _SellerRefundDecisionDialogState
             color: _isApprove
                 ? context.statusColors.success
                 : context.statusColors.error,
-            size: 24,
+            size: AppIconSize.header,
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               _isApprove ? 'Setujui Refund' : 'Tolak Refund',
-              style: const TextStyle(fontSize: core.AppType.s18, fontWeight: FontWeight.w600),
+              style: const TextStyle(fontSize: core.AppType.s20, fontWeight: FontWeight.w600),
             ),
           ),
         ],
@@ -314,7 +315,7 @@ class _InfoBanner extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: color, size: 18),
+          Icon(icon, color: color, size: AppIconSize.action),
           const SizedBox(width: 8),
           Expanded(
             child: Text(

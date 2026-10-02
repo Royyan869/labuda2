@@ -84,7 +84,7 @@ class PopupMoreOptionsButton extends StatelessWidget {
             value: 'share',
             child: Row(
               children: [
-                const Icon(Icons.share_outlined, size: 20),
+                const Icon(Icons.share_outlined, size: AppIconSize.action),
                 const SizedBox(width: 12),
                 const Text('Share Profile'),
               ],
@@ -100,7 +100,7 @@ class PopupMoreOptionsButton extends StatelessWidget {
             value: 'block',
             child: Row(
               children: [
-                const Icon(Icons.block_outlined, size: 20),
+                const Icon(Icons.block_outlined, size: AppIconSize.action),
                 const SizedBox(width: 12),
                 const Text('Block User'),
               ],
@@ -115,7 +115,7 @@ class PopupMoreOptionsButton extends StatelessWidget {
           value: 'report',
           child: Row(
             children: [
-              const Icon(Icons.report_outlined, size: 20),
+              const Icon(Icons.report_outlined, size: AppIconSize.action),
               const SizedBox(width: 12),
               const Text('Report User'),
             ],
@@ -133,7 +133,7 @@ class PopupMoreOptionsButton extends StatelessWidget {
           value: 'report',
           child: Row(
             children: [
-              const Icon(Icons.report_outlined, size: 20),
+              const Icon(Icons.report_outlined, size: AppIconSize.action),
               const SizedBox(width: 12),
               const Text('Report'),
             ],
@@ -158,7 +158,7 @@ class PopupMoreOptionsButton extends StatelessWidget {
             value: 'edit',
             child: Row(
               children: [
-                const Icon(Icons.edit_outlined, size: 20),
+                const Icon(Icons.edit_outlined, size: AppIconSize.action),
                 const SizedBox(width: 12),
                 const Text('Edit'),
               ],
@@ -186,7 +186,7 @@ class PopupMoreOptionsButton extends StatelessWidget {
                     )
                   : Icon(
                       Icons.delete_outline,
-                      size: 20,
+                      size: AppIconSize.action,
                       color: Theme.of(context).colorScheme.error,
                     ),
               const SizedBox(width: 12),
@@ -213,7 +213,7 @@ class PopupMoreOptionsButton extends StatelessWidget {
             children: [
               const Icon(
                 Icons.cancel_outlined,
-                size: 20,
+                size: AppIconSize.action,
                 color: AppColors.koiOrange,
               ),
               const SizedBox(width: 12),

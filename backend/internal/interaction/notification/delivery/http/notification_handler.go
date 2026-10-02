@@ -61,15 +61,22 @@ func NewNotificationHandlerWithDefaults(db *db.DB, log *zap.Logger) *Notificatio
 //     notification payloads. Producers may still place additional context
 //     in `data`; the canonical actor identity now lives in `actor`.
 type NotificationResponse struct {
-	ID        uuid.UUID                           `json:"id"`
-	UserID    uuid.UUID                           `json:"user_id"`
-	Type      notificationEntity.NotificationType `json:"type"`
-	Title     string                              `json:"title"`
-	Body      string                              `json:"body"`
-	Actor     *publiccard.UserCard                `json:"actor,omitempty"`
-	Data      map[string]interface{}              `json:"data,omitempty"`
-	IsRead    bool                                `json:"is_read"`
-	CreatedAt string                              `json:"created_at"`
+	ID     uuid.UUID                           `json:"id"`
+	UserID uuid.UUID                           `json:"user_id"`
+	Type   notificationEntity.NotificationType `json:"type"`
+	Title  string                              `json:"title"`
+	Body   string                              `json:"body"`
+	// Actor is the hydrated card for a visible human actor. It is absent for
+	// system and anonymized causes.
+	Actor *publiccard.UserCard `json:"actor,omitempty"`
+	// ActorKind is always present: "user", "system", or "anonymized".
+	ActorKind string `json:"actor_kind"`
+	// ActorDisplay carries the role label for anonymized actors ("Penjual",
+	// "Admin", ...) and is empty for user/system actors.
+	ActorDisplay string                 `json:"actor_display,omitempty"`
+	Data         map[string]interface{} `json:"data,omitempty"`
+	IsRead       bool                   `json:"is_read"`
+	CreatedAt    string                 `json:"created_at"`
 }
 
 // ListNotificationsRequest holds the query parameters for listing notifications.
@@ -185,29 +192,35 @@ func (h *NotificationHandler) mapToResponse(
 		data = make(map[string]interface{})
 	}
 
-	// Ensure actor_id and entity_id are always present for backward compatibility
-	if _, ok := data["actor_id"]; !ok {
-		data["actor_id"] = n.ActorID.String()
+	// Legacy data.actor_id remains for visible human actors only — system and
+	// anonymized causes are described by actor_kind/actor_display, never by a
+	// nil identity smuggled into the data map.
+	if n.Actor.IsUser() {
+		if _, ok := data["actor_id"]; !ok {
+			data["actor_id"] = n.Actor.UserID().String()
+		}
 	}
 	if _, ok := data["entity_id"]; !ok {
 		data["entity_id"] = n.EntityID.String()
 	}
 
 	resp := NotificationResponse{
-		ID:        n.ID,
-		UserID:    n.RecipientID,
-		Type:      n.Type,
-		Title:     title,
-		Body:      body,
-		Data:      data,
-		IsRead:    n.IsRead,
-		CreatedAt: n.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		ID:           n.ID,
+		UserID:       n.RecipientID,
+		Type:         n.Type,
+		Title:        title,
+		Body:         body,
+		ActorKind:    string(n.Actor.Kind()),
+		ActorDisplay: n.Actor.Display(),
+		Data:         data,
+		IsRead:       n.IsRead,
+		CreatedAt:    n.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}
 
-	// Canonical NotificationActorCard. Only emit when an actor was hydrated;
-	// system-generated notifications with no real actor leave `actor` absent.
-	if actorCards != nil && n.ActorID != uuid.Nil {
-		if card, ok := actorCards[n.ActorID]; ok {
+	// Canonical NotificationActorCard. Only emit when a visible human actor was
+	// hydrated; system/anonymized notifications leave `actor` absent.
+	if actorCards != nil && n.Actor.IsUser() {
+		if card, ok := actorCards[n.Actor.UserID()]; ok {
 			resp.Actor = &card
 		}
 	}
@@ -229,14 +242,15 @@ func (h *NotificationHandler) hydrateNotificationActors(
 	ids := make([]uuid.UUID, 0, len(notifications))
 	seen := make(map[uuid.UUID]struct{}, len(notifications))
 	for _, n := range notifications {
-		if n.ActorID == uuid.Nil {
+		if !n.Actor.IsUser() {
 			continue
 		}
-		if _, ok := seen[n.ActorID]; ok {
+		actorID := n.Actor.UserID()
+		if _, ok := seen[actorID]; ok {
 			continue
 		}
-		seen[n.ActorID] = struct{}{}
-		ids = append(ids, n.ActorID)
+		seen[actorID] = struct{}{}
+		ids = append(ids, actorID)
 	}
 	if len(ids) == 0 {
 		return map[uuid.UUID]publiccard.UserCard{}

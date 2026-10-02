@@ -297,7 +297,7 @@ func TestForSaleToDetailResponseWithSellerProjection_EmitsCanonicalProductFields
 		SellerID:        for_sale.SellerID,
 		Title:           "Showa Koi 30cm",
 		Description:     "Premium showa",
-		MediaURLs:       []string{"https://example.com/thumb.jpg"},
+		MediaURLs:       []productEntity.ProductMedia{{URL: "https://example.com/thumb.jpg"}},
 		Variety:         "Showa",
 		SizeCm:          ptrInt(30),
 		AgeMonths:       ptrInt(8),
@@ -305,8 +305,7 @@ func TestForSaleToDetailResponseWithSellerProjection_EmitsCanonicalProductFields
 		Breeder:         ptrString("Acme Farm"),
 		Bloodline:       ptrString("Ogata"),
 		Certificates:    []string{"cert-a"},
-		PreparationTime: "short",
-		PreparationNote: ptrString("Pack carefully"),
+		PreparationTime: "1_3_days",
 	}
 	sellerInfo := sellerdisplay.Info{
 		Username:           "seller_user",
@@ -329,8 +328,7 @@ func TestForSaleToDetailResponseWithSellerProjection_EmitsCanonicalProductFields
 	require.Equal(t, "Showa Koi 30cm", decoded["title"])
 	require.Equal(t, "Premium showa", decoded["description"])
 	require.Equal(t, "Showa", decoded["variety"])
-	require.Equal(t, "short", decoded["preparation_time"])
-	require.Equal(t, "Pack carefully", decoded["preparation_note"])
+	require.Equal(t, "1_3_days", decoded["preparation_time"])
 }
 
 func TestBuildForSaleViewerCapabilities_CanonicalCases(t *testing.T) {
@@ -553,7 +551,7 @@ func testForSale(sellerID uuid.UUID) *entity.ForSale {
 			SellerID:     sellerID,
 			Title:        "Showa Koi 30cm",
 			Description:  "Premium showa",
-			MediaURLs:    []string{"https://example.com/thumb.jpg"},
+			MediaURLs:       []productEntity.ProductMedia{{URL: "https://example.com/thumb.jpg"}},
 			Variety:      "Showa",
 			Certificates: []string{"cert-1"},
 			CreatedAt:    now,
@@ -579,7 +577,7 @@ func TestForSaleToDetailResponseWithViewerCapabilities(t *testing.T) {
 		SellerID:    for_sale.SellerID,
 		Title:       "Showa Koi 30cm",
 		Description: "Premium showa",
-		MediaURLs:   []string{"https://example.com/thumb.jpg"},
+		MediaURLs:       []productEntity.ProductMedia{{URL: "https://example.com/thumb.jpg"}},
 	}
 	sellerInfo := sellerdisplay.Info{
 		Username:           "seller_user",
@@ -592,7 +590,7 @@ func TestForSaleToDetailResponseWithViewerCapabilities(t *testing.T) {
 	}
 	viewerID := uuid.New()
 
-	detailResp := forSaleToDetailResponseWithViewerCapabilities(for_sale, sellerInfo, &viewerID)
+	detailResp := forSaleToDetailResponseWithViewerCapabilities(for_sale, sellerInfo, "", &viewerID)
 	detailRaw, err := json.Marshal(detailResp)
 	require.NoError(t, err)
 	var detailDecoded map[string]interface{}

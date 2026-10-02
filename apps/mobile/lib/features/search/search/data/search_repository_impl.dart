@@ -8,7 +8,7 @@ import 'package:labuda/features/search/search/domain/entities/search_result.dart
     show SearchResult, SearchResultType, UnifiedSearchResults;
 import 'package:labuda/features/search/search/domain/repositories/search_repository.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
-import 'package:labuda/shared/utils/commerce_seller_identity.dart';
+import 'package:labuda/shared/models/seller_identity_data.dart';
 
 /// Search Repository Implementation using API backend
 ///
@@ -324,10 +324,11 @@ class SearchRepositoryImpl implements SearchRepository {
             id: r.id,
             type: SearchResultType.forSale,
             title: r.title,
-            subtitle: buildCommerceSellerIdentity(
+            subtitle: SellerIdentityData(
+              userId: r.sellerId,
               username: r.sellerUsername,
               storeName: r.sellerFarmName,
-            )?.multilineLabel,
+            ).multilineLabel,
             imageUrl: r.thumbnailUrl ??
                 (r.mediaUrls.isNotEmpty ? r.mediaUrls.first : null),
             description: r.description.isEmpty ? null : r.description,
@@ -394,10 +395,11 @@ class SearchRepositoryImpl implements SearchRepository {
             id: r.id,
             type: SearchResultType.auction,
             title: r.title,
-            subtitle: buildCommerceSellerIdentity(
+            subtitle: SellerIdentityData(
+              userId: r.sellerId,
               username: r.sellerUsername,
               storeName: r.sellerFarmName,
-            )?.multilineLabel,
+            ).multilineLabel,
             imageUrl: r.thumbnailUrl,
             description: r.description,
             metadata: {

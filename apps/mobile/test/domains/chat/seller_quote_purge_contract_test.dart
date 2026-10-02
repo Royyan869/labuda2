@@ -10,7 +10,8 @@
 //
 // What shares the name but is NOT this feature and must stay alive:
 //   - auction settlement seller quote in the backend (SellerQuoteProvided),
-//   - negotiation ("Kirim Tawaran" dialog — nego authority, Owner O4),
+//   - negotiation (nominal form via the commerce-owned NegotiationOfferSheet
+//     — nego authority, Owner O4),
 //   - shipping quote (ongkir — separate feature).
 //
 // These negative contracts make resurrection fail CI: any future agent that
@@ -95,19 +96,33 @@ void main() {
   });
 
   group('Neighbors that share the name but stay alive', () {
-    test('negotiation offer dialog (Kirim Tawaran) still exists — nego is '
+    test('commerce NegotiationOfferSheet owns the nego form — nego is '
         'NOT seller quote', () {
       final screen = File(
         'lib/domains/chat/chat/presentation/screens/chat_detail_screen.dart',
       ).readAsStringSync();
-      expect(screen, contains('Kirim Tawaran'));
+      // The homegrown dialog is gone; the canonical commerce sheet is what
+      // chat forwards the nego intent to.
+      expect(screen, contains('NegotiationOfferSheet.show'));
+      expect(screen, isNot(contains('Kirim Tawaran')));
     });
 
-    test('shipping quote (ongkir) still exists — separate feature', () {
-      final repo = File(
+    test('shipping quote (ongkir) moved to the Shipping domain — chat holds '
+        'no producer (Owner 2026-10-01)', () {
+      // Negative proof: the chat-side write path was a competing authority
+      // and is killed end-to-end. Positive proof: the Shipping domain owns
+      // the intent + request builder now (chat only forwards the tap).
+      final chatRepo = File(
         'lib/domains/chat/chat/data/repositories/chat_repository_impl.dart',
       ).readAsStringSync();
-      expect(repo, contains('createShippingQuote'));
+      expect(chatRepo, isNot(contains('createShippingQuote')));
+
+      final shippingSource = File(
+        'lib/domains/commerce/transaction/shipping/presentation/'
+        'shipping_quote_intent.dart',
+      ).readAsStringSync();
+      expect(shippingSource, contains('openSellerShippingQuoteSheet'));
+      expect(shippingSource, contains('buildForSaleShippingQuoteRequest'));
     });
   });
 }

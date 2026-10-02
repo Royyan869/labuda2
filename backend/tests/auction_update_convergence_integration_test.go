@@ -34,10 +34,10 @@ func seedAuctionProductConvergence(t *testing.T, ctx context.Context, pool *pgxp
 	_, err := pool.Exec(ctx, `
 		INSERT INTO products (id, seller_id, title, description, media_urls, variety,
 			size_cm, age_months, gender, breeder, bloodline, certificates,
-			farm_address_id, preparation_time, preparation_note, selling_surface, created_at, updated_at)
+			farm_address_id, preparation_time, selling_surface, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, '[]', 'Kohaku',
 			50, 12, 'female', 'Breeder', 'Ogata', '{}',
-			NULL, 'short', NULL, NULL, NOW(), NOW())
+			NULL, 'short', NULL, NOW(), NOW())
 	`, id, sellerID, title, desc)
 	require.NoError(t, err)
 	return id

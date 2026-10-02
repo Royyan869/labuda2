@@ -42,7 +42,7 @@ class UserCard extends ConsumerWidget {
         onTap: isDegraded ? null : onTap,
         borderRadius: BorderRadius.circular(AppShape.r12),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p10),
+          padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p12),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -146,7 +146,7 @@ class UserCard extends ConsumerWidget {
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
       color: colorScheme.surfaceContainerHighest,
-      child: Icon(Icons.person, size: 24, color: colorScheme.onSurfaceVariant),
+      child: Icon(Icons.person, size: AppIconSize.header, color: colorScheme.onSurfaceVariant),
     );
   }
 

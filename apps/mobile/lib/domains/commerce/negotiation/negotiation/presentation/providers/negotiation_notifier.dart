@@ -26,6 +26,23 @@ class NegotiationNotifier extends Notifier<NegotiationState> {
     return const NegotiationState();
   }
 
+  /// DEAL PRICE BINDING (commerce authority): the accepted, settleable
+  /// session held in state for [forSaleId]. Every Beli path — for-sale
+  /// detail, chat projection card, proposal card, shipping quote — forwards
+  /// HERE, so checkout binds the DEAL price, never the list price (owner
+  /// truth: the deal price is valid 24h from accept). Commerce decides the
+  /// rule; other domains only carry the returned id.
+  String? acceptedNegotiationIdFor(String? forSaleId) {
+    if (forSaleId == null || forSaleId.isEmpty) return null;
+    final cur = state.currentNegotiation;
+    if (cur != null &&
+        cur.status == NegotiationStatus.accepted &&
+        cur.fixedPriceSaleId == forSaleId) {
+      return cur.id;
+    }
+    return null;
+  }
+
   /// Start new negotiation in a chat room
   Future<Result<Negotiation>> createNegotiation({
     required String chatRoomId,
@@ -100,7 +117,8 @@ class NegotiationNotifier extends Notifier<NegotiationState> {
     }
   }
 
-  /// Accept offer (seller only)
+  /// Accept the current price (either participant — owner truth: Terima
+  /// exists on both sides; backend authorizes participation).
   Future<Result<Negotiation>> acceptOffer({
     required String chatRoomId,
     required String sessionId,
@@ -133,7 +151,7 @@ class NegotiationNotifier extends Notifier<NegotiationState> {
     }
   }
 
-  /// Cancel negotiation (buyer only)
+  /// Reject (Tolak) an active negotiation — either participant.
   Future<Result<Negotiation>> cancelNegotiation({
     required String chatRoomId,
     required String sessionId,
@@ -154,7 +172,11 @@ class NegotiationNotifier extends Notifier<NegotiationState> {
     return result;
   }
 
-  /// Get latest negotiation for a chat room
+  /// Load the negotiation session of ONE chat room.
+  ///
+  /// EXACT-SET CONTRACT: success with null (room has no session) and transport
+  /// failure both REPLACE currentNegotiation. copyWith keeps the old value on
+  /// null, which leaked a previous room's session into the next room's banner.
   Future<Result<Negotiation?>> getNegotiation({
     required String chatRoomId,
   }) async {
@@ -162,11 +184,12 @@ class NegotiationNotifier extends Notifier<NegotiationState> {
 
     final result = await _repository.getNegotiation(chatRoomId: chatRoomId);
 
-    if (result.isSuccess) {
-      state = state.copyWith(isLoading: false, currentNegotiation: result.data);
-    } else {
-      state = state.copyWith(isLoading: false, error: result.error);
-    }
+    state = NegotiationState(
+      isLoading: false,
+      error: result.isSuccess ? null : result.error,
+      currentNegotiation: result.isSuccess ? result.data : null,
+      negotiations: state.negotiations,
+    );
 
     return result;
   }

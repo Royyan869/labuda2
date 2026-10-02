@@ -50,7 +50,7 @@ class AuctionCountdownTimer extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p12),
       child: Row(
         children: [
-          Icon(display.icon, size: 20, color: display.iconColor),
+          Icon(display.icon, size: AppIconSize.action, color: display.iconColor),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
@@ -274,10 +274,18 @@ class AuctionCountdownTimer extends StatelessWidget {
         '${seconds.toString().padLeft(2, '0')}';
   }
 
-  Color _getTimeColor(BuildContext context, ColorScheme scheme, Duration duration) {
+  /// Countdown tone: status tones only where the remaining time IS the
+  /// status (critical < 1h = error, urgent < 6h = warning). Plenty of time
+  /// left is not a success event — it reads as the default data tone, so the
+  /// countdown stops looking like a "berhasil" badge.
+  Color _getTimeColor(
+    BuildContext context,
+    ColorScheme scheme,
+    Duration duration,
+  ) {
     if (duration.inHours < 1) return scheme.error;
     if (duration.inHours < 6) return context.statusColors.warning;
-    return context.statusColors.success;
+    return scheme.onSurface;
   }
 }
 

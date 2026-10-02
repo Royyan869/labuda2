@@ -100,7 +100,7 @@ class _MediaVideoItemState extends State<MediaVideoItem> {
         child: Icon(
           Icons.error_outline,
           color: scheme.onSurfaceVariant,
-          size: 32,
+          size: AppIconSize.emphasis,
         ),
       );
     }
@@ -126,7 +126,7 @@ class _MediaVideoItemState extends State<MediaVideoItem> {
       bottom: 8,
       left: 8,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p6, vertical: AppMetrics.p3),
+        padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
         decoration: BoxDecoration(
           color: scheme.scrim.withValues(alpha: 0.7),
           borderRadius: BorderRadius.circular(AppShape.r4),
@@ -134,7 +134,7 @@ class _MediaVideoItemState extends State<MediaVideoItem> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.play_arrow, color: scheme.onPrimary, size: 12),
+            Icon(Icons.play_arrow, color: scheme.onPrimary, size: AppIconSize.inlineGlyph),
             const SizedBox(width: 2),
             Text(
               _isInitialized && _controller != null
@@ -142,7 +142,7 @@ class _MediaVideoItemState extends State<MediaVideoItem> {
                   : '--:--',
               style: TextStyle(
                 color: scheme.onPrimary,
-                fontSize: AppType.s10,
+                fontSize: AppType.s12,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -165,7 +165,7 @@ class _MediaVideoItemState extends State<MediaVideoItem> {
             color: scheme.error.withValues(alpha: 0.9),
             shape: BoxShape.circle,
           ),
-          child: Icon(Icons.close, color: scheme.onPrimary, size: 16),
+          child: Icon(Icons.close, color: scheme.onPrimary, size: AppIconSize.inlineGlyph),
         ),
       ),
     );

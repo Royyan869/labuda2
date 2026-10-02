@@ -1,10 +1,13 @@
 package entity
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/google/uuid"
+	productentity "github.com/labuda/backend/internal/commerce/product/entity"
+	commerceshared "github.com/labuda/backend/internal/commerce/shared"
 )
 
 // TargetType defines the type of saved item
@@ -48,13 +51,13 @@ func GetIntentTypeForTarget(targetType TargetType) IntentType {
 // SavedItem represents a user's saved item (unified shortlist + auction watch)
 // This is a SINGLE SOURCE OF TRUTH for all user-saved items
 type SavedItem struct {
-	ID         uuid.UUID
-	UserID     uuid.UUID
-	TargetType TargetType
-	TargetID   uuid.UUID
-	IntentType IntentType // Semantic intent: bookmark (forSales) or watch (auctions)
-	SellerID   *uuid.UUID // Nullable: Only for forSales, nil for auctions
-	CreatedAt  time.Time
+	ID         uuid.UUID  `json:"id"`
+	UserID     uuid.UUID  `json:"user_id"`
+	TargetType TargetType `json:"target_type"`
+	TargetID   uuid.UUID  `json:"target_id"`
+	IntentType IntentType `json:"intent_type"`         // Semantic intent: bookmark (forSales) or watch (auctions)
+	SellerID   *uuid.UUID `json:"seller_id,omitempty"` // Nullable: Only for forSales, nil for auctions
+	CreatedAt  time.Time  `json:"created_at"`
 }
 
 // NewSavedItem creates a new saved item with automatic intent type detection
@@ -85,13 +88,41 @@ type SavedItemWithForSale struct {
 	SavedItem
 
 	// ForSale snapshot (immutable at time of saving)
-	ForSaleTitle      string
-	ForSalePrice      int64
-	ForSaleType       string
-	QuantityAvailable int
-	ForSaleStatus     string
-	ForSaleVisibility string
-	ForSaleMediaURLs  []byte // JSONB array of image URLs
+	ForSaleTitle      string `json:"for_sale_title,omitempty"`
+	ForSalePrice      int64  `json:"for_sale_price,omitempty"`
+	ForSaleType       string `json:"for_sale_type,omitempty"`
+	QuantityAvailable int    `json:"quantity_available,omitempty"`
+	ForSaleStatus     string `json:"for_sale_status,omitempty"`
+	ForSaleVisibility string `json:"for_sale_visibility,omitempty"`
+	ForSaleMediaURLs  []byte `json:"-"` // JSONB snapshot; projected by MarshalJSON
+}
+
+// MarshalJSON projects the persisted JSONB media snapshot onto the canonical
+// readable URL array. The stored bytes are raw JSONB; the default marshaler
+// would emit them base64-encoded — a wire shape no consumer can read.
+func (s SavedItemWithForSale) MarshalJSON() ([]byte, error) {
+	type Alias SavedItemWithForSale
+	return json.Marshal(struct {
+		Alias
+		ForSaleMediaURLs []string `json:"for_sale_media_urls,omitempty"`
+	}{
+		Alias:            Alias(s),
+		ForSaleMediaURLs: forSaleMediaURLs(s.ForSaleMediaURLs),
+	})
+}
+
+// forSaleMediaURLs decodes the persisted products.media_urls snapshot through
+// the canonical Product media projection: tolerant to {url, blurhash?} objects
+// and legacy bare strings, resolved to readable URLs.
+func forSaleMediaURLs(raw []byte) []string {
+	if len(raw) == 0 {
+		return nil
+	}
+	var media []productentity.ProductMedia
+	if err := json.Unmarshal(raw, &media); err != nil {
+		return nil
+	}
+	return commerceshared.ResolveReadableMediaReferences(productentity.URLs(media))
 }
 
 // SavedItemWithAuction represents a saved auction with its details
@@ -99,21 +130,21 @@ type SavedItemWithAuction struct {
 	SavedItem
 
 	// Auction snapshot
-	AuctionTitle   string
-	AuctionStatus  string
-	StartPrice     *int64
-	CurrentBid     *int64
-	EndAt          *time.Time
+	AuctionTitle  string     `json:"auction_title,omitempty"`
+	AuctionStatus string     `json:"auction_status,omitempty"`
+	StartPrice    *int64     `json:"start_price,omitempty"`
+	CurrentBid    *int64     `json:"current_bid,omitempty"`
+	EndAt         *time.Time `json:"end_at,omitempty"`
 }
 
 // SavedItemList represents a user's saved items with pagination
 type SavedItemList struct {
-	UserID  uuid.UUID
-	Items   []*SavedItemWithForSale
-	Auctions []*SavedItemWithAuction
-	Total   int
-	Page    int
-	PerPage int
+	UserID   uuid.UUID               `json:"user_id"`
+	Items    []*SavedItemWithForSale `json:"items"`
+	Auctions []*SavedItemWithAuction `json:"auctions"`
+	Total    int                     `json:"total"`
+	Page     int                     `json:"page"`
+	PerPage  int                     `json:"per_page"`
 }
 
 // ErrInvalidTargetType is returned when target type is invalid

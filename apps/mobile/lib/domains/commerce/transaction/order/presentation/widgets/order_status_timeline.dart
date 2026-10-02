@@ -37,7 +37,7 @@ class SellerActionRequiredBanner extends StatelessWidget {
             child: Icon(
               Icons.notification_important,
               color: context.statusColors.warning,
-              size: 20,
+              size: AppIconSize.action,
             ),
           ),
           const SizedBox(width: 12),
@@ -338,7 +338,7 @@ class _TimelineStepTile extends StatelessWidget {
                 color: iconBgColor,
                 shape: BoxShape.circle,
               ),
-              child: Icon(step.icon, color: iconColor, size: 20),
+              child: Icon(step.icon, color: iconColor, size: AppIconSize.action),
             ),
             if (!isLast)
               Container(

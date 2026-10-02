@@ -54,7 +54,7 @@ func newAuctionOrder(buyerID, sellerID, auctionID uuid.UUID, unitPrice int64) *o
 		price, price, money.New(15000), 5,
 		money.New(25000), money.New(3000), price.Add(money.New(15000)).Add(money.New(25000)).Add(money.New(3000)),
 		nil, "JNE", "truck",
-		"immediate", nil, nil, nil, nil, nil,
+		"1_3_days", nil, nil, nil, nil,
 		time.Now().Add(1*time.Hour),
 	)
 }
@@ -81,7 +81,7 @@ func TestAuctionBuyNowSettlement_ClosesAuctionAndBlocksDoubleSale(t *testing.T) 
 	err := testDB.WithTx(ctx, func(tx db.Tx) error {
 		product := &productentity.Product{
 			SellerID: sellerID, Title: "Test Koi", Description: "desc",
-			Variety: "Kohaku", PreparationTime: "immediate",
+			Variety: "Kohaku", PreparationTime: "1_3_days",
 		}
 		if err := productRepo.Create(ctx, tx, product); err != nil {
 			return err
@@ -202,7 +202,7 @@ func TestAuctionBuyNowSettlement_RollbackLeavesAuctionUnchanged(t *testing.T) {
 	err := testDB.WithTx(ctx, func(tx db.Tx) error {
 		product := &productentity.Product{
 			SellerID: sellerID, Title: "Test Koi", Description: "desc",
-			Variety: "Kohaku", PreparationTime: "immediate",
+			Variety: "Kohaku", PreparationTime: "1_3_days",
 		}
 		if err := productRepo.Create(ctx, tx, product); err != nil {
 			return err
@@ -303,7 +303,7 @@ func TestAuctionOrderCancel_ReleasesBinding(t *testing.T) {
 	err := testDB.WithTx(ctx, func(tx db.Tx) error {
 		product := &productentity.Product{
 			SellerID: sellerID, Title: "Test Koi", Description: "desc",
-			Variety: "Kohaku", PreparationTime: "immediate",
+			Variety: "Kohaku", PreparationTime: "1_3_days",
 		}
 		if err := productRepo.Create(ctx, tx, product); err != nil {
 			return err
@@ -386,7 +386,7 @@ func TestAuctionOrderExpire_ReleasesBinding(t *testing.T) {
 	err := testDB.WithTx(ctx, func(tx db.Tx) error {
 		product := &productentity.Product{
 			SellerID: sellerID, Title: "Test Koi Bid-Win", Description: "desc",
-			Variety: "Showa", PreparationTime: "immediate",
+			Variety: "Showa", PreparationTime: "1_3_days",
 		}
 		if err := productRepo.Create(ctx, tx, product); err != nil {
 			return err

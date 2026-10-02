@@ -30,14 +30,17 @@ class _CaptureAdapter implements HttpClientAdapter {
 }
 
 void main() {
-  // PUBLIC BROWSE OPTION C — contract update (2026-07-01):
-  // /api/v1/users/:id is now a public browse endpoint so that unauthenticated
-  // users can view public profiles. The intercept policy for /users/* paths is:
+  // PUBLIC BROWSE — VIEWER-IDENTITY CONTRACT (convergence):
+  // /api/v1/users/:id is a public browse endpoint (unauthenticated users may
+  // read public profiles), and the backend group is optional-auth: the Labuda
+  // token travels whenever it exists so viewer-scoped facts resolve for a
+  // logged-in viewer. The intercept policy for /users/* paths is:
   //   - /api/v1/users/me               → auth-required  (own profile)
   //   - /api/v1/users/check-username   → auth-required  (now in v1 auth group)
-  //   - /api/v1/users/<any-other-id>   → public browse  (no token sent)
+  //   - /api/v1/users/<any-other-id>   → browse (token attached when present,
+  //                                       anonymous when no credential)
   test(
-    '/api/v1/users/:id paths are now public browse (no token attached)',
+    '/api/v1/users/:id browse paths attach the token (viewer identity)',
     () async {
       final adapter = _CaptureAdapter();
       final dio = Dio()..httpClientAdapter = adapter;
@@ -45,17 +48,17 @@ void main() {
         AuthInterceptor(labudaTokenFetcher: () async => 'fresh-token'),
       );
 
-      // Any user-ID path (including former "trending") → public, no token
+      // Any user-ID path (including former "trending") → identity travels
       await dio.get<dynamic>('/api/v1/users/trending');
       expect(
         adapter.lastAuthorizationHeader,
-        isNull,
+        equals('Bearer fresh-token'),
         reason:
-            '/api/v1/users/:id is a public browse endpoint; no token should be sent',
+            'browse GET must carry the viewer identity so viewer-scoped facts resolve',
       );
 
       await dio.get<dynamic>('/api/v1/users/some-user-uuid');
-      expect(adapter.lastAuthorizationHeader, isNull);
+      expect(adapter.lastAuthorizationHeader, equals('Bearer fresh-token'));
     },
   );
 
@@ -68,8 +71,8 @@ void main() {
         AuthInterceptor(labudaTokenFetcher: () async => 'fresh-token'),
       );
 
-      // check-username is explicitly excluded from the public browse list
-      await dio.get<dynamic>('/api/v1/users/check-username');
+    // check-username is explicitly auth-required (v1 auth group)
+    await dio.get<dynamic>('/api/v1/users/check-username');
       expect(
         adapter.lastAuthorizationHeader,
         equals('Bearer fresh-token'),

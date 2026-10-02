@@ -206,7 +206,7 @@ class SearchResultItem extends ConsumerWidget {
           Text(
             sellerRedactionSubtitle,
             style: TextStyle(
-              fontSize: AppType.s13,
+              fontSize: AppType.s14,
               fontStyle: FontStyle.italic,
               color: scheme.onSurfaceVariant,
             ),
@@ -218,7 +218,7 @@ class SearchResultItem extends ConsumerWidget {
           Text(
             contentAuthorRedactionSubtitle,
             style: TextStyle(
-              fontSize: AppType.s13,
+              fontSize: AppType.s14,
               fontStyle: FontStyle.italic,
               color: scheme.onSurfaceVariant,
             ),
@@ -230,7 +230,7 @@ class SearchResultItem extends ConsumerWidget {
           Text(
             result.subtitle!,
             style: TextStyle(
-              fontSize: AppType.s13,
+              fontSize: AppType.s14,
               color: scheme.onSurfaceVariant,
             ),
             maxLines: subtitleMaxLines,
@@ -259,7 +259,7 @@ class SearchResultItem extends ConsumerWidget {
       child: Text(
         label,
         style: TextStyle(
-          fontSize: AppType.s11,
+          fontSize: AppType.s12,
           fontWeight: FontWeight.w600,
           color: color,
         ),

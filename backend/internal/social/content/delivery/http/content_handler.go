@@ -15,6 +15,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	commerceshared "github.com/labuda/backend/internal/commerce/shared"
+	"github.com/labuda/backend/internal/pkg/mediaref"
 	"github.com/labuda/backend/internal/governance/evaluator"
 	"github.com/labuda/backend/internal/governance/viewercontext"
 	"github.com/labuda/backend/internal/identity/auth"
@@ -212,9 +213,40 @@ type CreateContentRequest struct {
 }
 
 // MediaInput represents a media attachment in the request.
+//
+// DurationMs/Width/Height are client-provisional video metadata: validated
+// for shape here, persisted as-is, and canonicalized by the video worker
+// later. NEVER part of the idempotency fingerprint (see
+// ContentCreateMediaInput) — re-sending the same URL with refined metadata
+// replays the original instead of forking a duplicate.
 type MediaInput struct {
-	URL  string `json:"url" binding:"required"`
-	Type string `json:"type" binding:"required,oneof=image video"`
+	URL        string  `json:"url" binding:"required"`
+	Type       string  `json:"type" binding:"required,oneof=image video"`
+	Blurhash   *string `json:"blurhash,omitempty"`
+	DurationMs *int    `json:"duration_ms,omitempty"`
+	Width      *int    `json:"width,omitempty"`
+	Height     *int    `json:"height,omitempty"`
+}
+
+// validateMediaInput rejects malformed provisional metadata with 400-shaped
+// errors. Mirrors the commerce media_request rules: dimensions positive,
+// duration non-negative, and positive when a video provides it.
+func validateMediaInput(m MediaInput) error {
+	if m.Width != nil && *m.Width <= 0 {
+		return fmt.Errorf("width must be positive when provided")
+	}
+	if m.Height != nil && *m.Height <= 0 {
+		return fmt.Errorf("height must be positive when provided")
+	}
+	if m.DurationMs != nil {
+		if *m.DurationMs < 0 {
+			return fmt.Errorf("duration_ms must be non-negative when provided")
+		}
+		if m.Type == "video" && *m.DurationMs == 0 {
+			return fmt.Errorf("video duration_ms must be positive when provided")
+		}
+	}
+	return nil
 }
 
 // LocationInput represents location data in the request.
@@ -293,11 +325,24 @@ type UserContentListResponse struct {
 }
 
 // MediaResponse represents a media attachment in the response.
+//
+// `thumbnail_url` is the Lambda-derived frame: the poster for videos, the
+// list variant for images — the same rule comments and feed already use.
+// `duration_ms`/`width`/`height` emit whatever is persisted (NULL when
+// unknown); the client renders the static mat / hides the duration badge.
 type MediaResponse struct {
-	ID       uuid.UUID `json:"id"`
-	URL      string    `json:"url"`
-	Type     string    `json:"type"`
-	Position int       `json:"position"`
+	ID           uuid.UUID `json:"id"`
+	URL          string    `json:"url"`
+	Type         string    `json:"type"`
+	Position     int       `json:"position"`
+	Blurhash     *string   `json:"blurhash,omitempty"`
+	ThumbnailURL *string   `json:"thumbnail_url,omitempty"`
+	DurationMs   *int      `json:"duration_ms,omitempty"`
+	Width        *int      `json:"width,omitempty"`
+	Height       *int      `json:"height,omitempty"`
+	// Processing state, always a vocabulary string (legacy rows read
+	// as ready — see mediaref.NormalizeStatus).
+	Status string `json:"status"`
 }
 
 // LocationResponse represents location data in the response.
@@ -373,11 +418,25 @@ func ToContentResponse(content *entity.Content, media []*entity.ContentMedia) Co
 	}
 
 	for i, m := range media {
+		var thumbnail string
+		if m.MediaType == entity.MediaTypeVideo {
+			thumbnail = commerceshared.ResolveReadablePosterURL(m.MediaURL)
+		} else {
+			thumbnail = commerceshared.ResolveReadableThumbnailURL(m.MediaURL)
+		}
 		resp.Media[i] = MediaResponse{
-			ID:       m.ID,
-			URL:      resolveReadableContentMediaReference(m.MediaURL),
-			Type:     string(m.MediaType),
-			Position: m.Position,
+			ID:         m.ID,
+			URL:        resolveReadableContentMediaReference(m.MediaURL),
+			Type:       string(m.MediaType),
+			Position:   m.Position,
+			Blurhash:   m.Blurhash,
+			DurationMs: m.DurationMs,
+			Width:      m.Width,
+			Height:     m.Height,
+			Status:     string(mediaref.NormalizeStatus(m.Status)),
+		}
+		if thumbnail != "" {
+			resp.Media[i].ThumbnailURL = &thumbnail
 		}
 	}
 
@@ -547,26 +606,24 @@ func (h *ContentHandler) CreateContent(c *gin.Context) {
 			}
 		}
 
-		// Canonical media ordering before fingerprint (photos first, then videos).
+		// Owner order is preserved exactly — position 0 is canonical cover
+		// media regardless of image/video type. No photos-first rebucket.
 		var mediaInputs []contentApp.ContentCreateMediaInput
 		if len(req.Media) > 0 {
-			type rawMedia struct {
-				URL  string
-				Type entity.MediaType
-			}
-			var photos, videos []rawMedia
-			for _, m := range req.Media {
-				mt := entity.MediaType(m.Type)
-				if mt == entity.MediaTypeVideo {
-					videos = append(videos, rawMedia{URL: m.URL, Type: mt})
-				} else {
-					photos = append(photos, rawMedia{URL: m.URL, Type: mt})
+			mediaInputs = make([]contentApp.ContentCreateMediaInput, len(req.Media))
+			for i, m := range req.Media {
+				if err := validateMediaInput(m); err != nil {
+					response.BadRequest(c, "Invalid request: "+err.Error())
+					return fmt.Errorf("invalid media metadata: %w", err)
 				}
-			}
-			canonical := append(photos, videos...)
-			mediaInputs = make([]contentApp.ContentCreateMediaInput, len(canonical))
-			for i, m := range canonical {
-				mediaInputs[i] = contentApp.ContentCreateMediaInput{URL: m.URL, Type: m.Type}
+				mediaInputs[i] = contentApp.ContentCreateMediaInput{
+					URL:        m.URL,
+					Type:       entity.MediaType(m.Type),
+					Blurhash:   m.Blurhash,
+					DurationMs: m.DurationMs,
+					Width:      m.Width,
+					Height:     m.Height,
+				}
 			}
 		}
 

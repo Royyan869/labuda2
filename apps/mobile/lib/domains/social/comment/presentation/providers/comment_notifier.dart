@@ -270,6 +270,7 @@ class CommentNotifier extends _$CommentNotifier {
         resourceType: payload.resourceType!,
         resourceId: payload.resourceId!,
         body: payload.content.isEmpty ? null : payload.content,
+        mediaUrls: payload.mediaUrls,
       );
     }
 
@@ -346,11 +347,15 @@ class CommentNotifier extends _$CommentNotifier {
   }
 
   /// Create a commerce reference comment (seller response).
+  ///
+  /// One tap = one row: [mediaUrls] ride on the same commerce-reference
+  /// row (backend persists both atomically), never as a second comment.
   Future<Result<Comment>> createCommerceReferenceComment({
     required String contentId,
     required String resourceType,
     required String resourceId,
     String? body,
+    List<String> mediaUrls = const [],
   }) async {
     // Same provisional row as a normal comment: the seller's attach flow must not
     // look inert either.
@@ -358,6 +363,7 @@ class CommentNotifier extends _$CommentNotifier {
       targetId: contentId,
       targetType: CommentTargetType.content,
       content: body ?? '',
+      mediaUrls: mediaUrls,
       resourceType: resourceType,
       resourceId: resourceId,
       pendingLabel: 'Lampiran produk',
@@ -368,6 +374,7 @@ class CommentNotifier extends _$CommentNotifier {
       resourceType: resourceType,
       resourceId: resourceId,
       body: body,
+      mediaUrls: mediaUrls,
     );
 
     if (result.isSuccess) {

@@ -59,7 +59,7 @@ func TestStage5_RestoreListingStock_ResolvesSurfaceFromOrderSource(t *testing.T)
 	// --- Seed: product + active FPS with 2 units ---
 	var productID, fpsID uuid.UUID
 	require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
-		product := &productentity.Product{SellerID: sellerID, Title: "Kohaku", Description: "d", Variety: "Kohaku", PreparationTime: "immediate"}
+		product := &productentity.Product{SellerID: sellerID, Title: "Kohaku", Description: "d", Variety: "Kohaku", PreparationTime: "1_3_days"}
 		if err := productRepo.Create(ctx, tx, product); err != nil {
 			return err
 		}
@@ -77,8 +77,7 @@ func TestStage5_RestoreListingStock_ResolvesSurfaceFromOrderSource(t *testing.T)
 	Bloodline: nil,
 	Certificates: []string{},
 	FarmAddressID: nil,
-	PreparationTime: string(fpsentity.PreparationTimeImmediate),
-	PreparationNote: nil,
+	PreparationTime: string(fpsentity.PreparationTime1To3Days),
 	SellingSurface: productEntity.SellingSurfaceForSale,
 }
 	productRepo := productInfraRepo.NewProductRepository()
@@ -119,7 +118,7 @@ func TestStage5_RestoreListingStock_ResolvesSurfaceFromOrderSource(t *testing.T)
 		buyerID, sellerID, orderentity.OrderSourceForSale, fpsID, nil,
 		1, money.New(50000), money.New(50000), money.New(0),
 		0, money.New(0), money.New(0), money.New(50000),
-		nil, "", "", "immediate", nil, nil, nil, nil, nil,
+		nil, "", "", "1_3_days", nil, nil, nil, nil,
 		time.Now(),
 	)
 	order.ID = uuid.New()
@@ -150,7 +149,7 @@ func TestStage5_RestoreListingStock_ResolvesSurfaceFromOrderSource(t *testing.T)
 	// sale (rule 9 forbids a simultaneous active auction on the same product).
 	var auctionProductID uuid.UUID
 	require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
-		product := &productentity.Product{SellerID: sellerID, Title: "Auction Koi", Description: "d", Variety: "Showa", PreparationTime: "immediate"}
+		product := &productentity.Product{SellerID: sellerID, Title: "Auction Koi", Description: "d", Variety: "Showa", PreparationTime: "1_3_days"}
 		if err := productRepo.Create(ctx, tx, product); err != nil {
 			return err
 		}
@@ -162,7 +161,7 @@ func TestStage5_RestoreListingStock_ResolvesSurfaceFromOrderSource(t *testing.T)
 		buyerID, sellerID, orderentity.OrderSourceAuction, uuid.Nil, nil,
 		1, money.New(40000), money.New(40000), money.New(0),
 		0, money.New(0), money.New(0), money.New(40000),
-		nil, "", "", "immediate", nil, nil, nil, nil, nil,
+		nil, "", "", "1_3_days", nil, nil, nil, nil,
 		time.Now(),
 	)
 	auctionOrder.ID = uuid.New()

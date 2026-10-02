@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/labuda/backend/internal/discovery/search/entity"
+	productentity "github.com/labuda/backend/internal/commerce/product/entity"
 	"github.com/labuda/backend/internal/pkg/publiccard"
 )
 
@@ -22,7 +23,7 @@ func TestSearchCommerceSellerProjection_ActiveCanonicalSeller_ForSaleAndAuctionP
 		Description:              "Beautiful showa",
 		Variety:                  "Showa",
 		Price:                    1500000,
-		MediaURLs:                []string{"https://example.com/forSale.jpg"},
+		MediaURLs:                []productentity.ProductMedia{{URL: "https://example.com/forSale.jpg"}},
 		SellerID:                 sellerID,
 		CreatedAt:                time.Date(2026, time.July, 24, 10, 0, 0, 0, time.UTC),
 		SellerUsername:           "  Seller_User  ",
@@ -93,7 +94,7 @@ func TestSearchCommerceSellerProjection_BlankAndMissingUsernameRedactWithoutAnon
 				Description:              "Beautiful showa",
 				Variety:                  "Showa",
 				Price:                    1500000,
-				MediaURLs:                []string{},
+				MediaURLs:                []productentity.ProductMedia{},
 				SellerID:                 sellerID,
 				CreatedAt:                time.Date(2026, time.July, 24, 10, 0, 0, 0, time.UTC),
 				SellerUsername:           tt.username,
@@ -147,7 +148,7 @@ func TestSearchCommerceSellerProjection_SuspendedUserRedactsIdentity(t *testing.
 		Description:              "Beautiful showa",
 		Variety:                  "Showa",
 		Price:                    1500000,
-		MediaURLs:                []string{},
+		MediaURLs:                []productentity.ProductMedia{},
 		SellerID:                 sellerID,
 		CreatedAt:                time.Date(2026, time.July, 24, 10, 0, 0, 0, time.UTC),
 		SellerUsername:           "seller_user",
@@ -200,7 +201,7 @@ func TestSearchCommerceSellerProjection_MissingSellerProfileKeepsUserIdentityAnd
 		Description:              "Beautiful showa",
 		Variety:                  "Showa",
 		Price:                    1500000,
-		MediaURLs:                []string{},
+		MediaURLs:                []productentity.ProductMedia{},
 		SellerID:                 sellerID,
 		CreatedAt:                time.Date(2026, time.July, 24, 10, 0, 0, 0, time.UTC),
 		SellerUsername:           "seller_user",
@@ -251,7 +252,7 @@ func TestSearchCommerceSellerProjection_NilSellerIDFailsClosed(t *testing.T) {
 		Description:              "Beautiful showa",
 		Variety:                  "Showa",
 		Price:                    1500000,
-		MediaURLs:                []string{},
+		MediaURLs:                []productentity.ProductMedia{},
 		SellerID:                 uuid.Nil,
 		CreatedAt:                time.Date(2026, time.July, 24, 10, 0, 0, 0, time.UTC),
 		SellerUsername:           "seller_user",
@@ -303,7 +304,7 @@ func TestSearchCommerceSellerProjection_RealStoredUserPrefixUsernamePreserved(t 
 		Description:              "Beautiful showa",
 		Variety:                  "Showa",
 		Price:                    1500000,
-		MediaURLs:                []string{},
+		MediaURLs:                []productentity.ProductMedia{},
 		SellerID:                 sellerID,
 		CreatedAt:                time.Date(2026, time.July, 24, 10, 0, 0, 0, time.UTC),
 		SellerUsername:           username,

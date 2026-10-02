@@ -16,9 +16,12 @@ import 'package:labuda/core/common/types/preparation_time.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/domain/domain.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/create_for_sale_route_contract.dart';
+import 'package:labuda/features/home/home.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart';
 import 'package:labuda/domains/commerce/catalog/shared/presentation/sender_address_provider.dart';
 import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_access_gate.dart';
+import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_certificate_selector.dart';
+import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_preparation_time_selector.dart';
 import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_detail_states.dart';
 import 'package:labuda/shared/widgets/media_grid_uploader.dart';
 import 'package:labuda/domains/commerce/transaction/shipping/presentation/widgets/seller_shipping_options_selector.dart';
@@ -45,10 +48,11 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
-  final _preparationNoteController = TextEditingController();
 
   // Form state (UI only)
-  bool _isNegotiable = true;
+  /// Owner default: FOR SALE TANPA NEGO — nego hanya aktif bila seller
+  /// mengaktifkannya sendiri saat membuat listing.
+  bool _isNegotiable = false;
   double? _price;
   int _quantity = 1;
   final List<String> _mediaUrls = [];
@@ -61,8 +65,13 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
   String? _breeder;
   String? _bloodline;
 
+  /// Seller-declared certificates (canonical values: breeder, contest, import,
+  /// health). Optional product content — a certificate states that the fish is
+  /// certified, it never asks the seller to upload a document.
+  List<String> _certificates = const [];
+
   // Shipping readiness
-  PreparationTime _preparationTime = PreparationTime.immediate;
+  PreparationTime _preparationTime = PreparationTime.days1_3;
 
   // Shipping option IDs the seller selects to apply to this forSale. They
   // travel INSIDE the create request — create = publish, no separate linking.
@@ -75,7 +84,6 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
-    _preparationNoteController.dispose();
     super.dispose();
   }
 
@@ -129,7 +137,10 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
     // CREATE = PUBLISH: shipping selection is mandatory — the backend
     // rejects a create without at least one option that has active coverage.
     if (_selectedShippingSetupIds.isEmpty) {
-      setState(() => _errorMessage = 'Pilih minimal 1 opsi pengiriman untuk forSale ini');
+      setState(
+        () =>
+            _errorMessage = 'Pilih minimal 1 opsi pengiriman untuk forSale ini',
+      );
       return;
     }
 
@@ -153,12 +164,10 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
         gender: _gender,
         breeder: _breeder,
         bloodline: _bloodline,
+        certificates: _certificates,
         farmAddressId: ref.read(senderAddressIdProvider).value,
         shippingSetupIds: _selectedShippingSetupIds,
         preparationTime: _preparationTime,
-        preparationNote: _preparationNoteController.text.trim().isEmpty
-            ? null
-            : _preparationNoteController.text.trim(),
       );
 
       // Call controller via provider (application layer)
@@ -178,7 +187,13 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
         // the same on its own create path.
         ref.invalidate(forSalesProvider);
 
-        // Show success and navigate back with forSale data
+        // OWNER CANONICAL LANDING: after a successful create, request the
+        // switch to the Marketplace For Sale tab so the user lands on the
+        // surface where the listing now lives. Main screen consumes this to
+        // move the outer tab; MarketplaceScreen consumes the sub-tab.
+        ref
+            .read(pendingTabSwitchProvider.notifier)
+            .setSwitch('marketplace', subTab: 0);
         AppSnackBar.showSuccess(
           context,
           'ForSale tayang dengan ${_selectedShippingSetupIds.length} opsi pengiriman.',
@@ -186,9 +201,7 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
         );
         // Return mode comes from the canonical route args (see [routeArgs]).
         final returnMode = widget.routeArgs?.returnMode;
-        Navigator.of(
-          context,
-        ).pop(
+        Navigator.of(context).pop(
           returnMode == CreateForSaleReturnMode.forSaleId
               ? CreatedForSaleResult(forSaleId: forSale.forSaleId)
               : forSale,
@@ -207,7 +220,9 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
           actionDescription: 'membuat forSale',
         );
         if (!consumed) {
-          setState(() => _errorMessage = result.error ?? 'Gagal membuat forSale');
+          setState(
+            () => _errorMessage = result.error ?? 'Gagal membuat forSale',
+          );
         }
       }
     } catch (e) {
@@ -299,11 +314,6 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        backgroundColor: scheme.surface,
-        foregroundColor: scheme.onSurface,
-        elevation: AppElevation.none,
-        surfaceTintColor: Colors.transparent,
-        scrolledUnderElevation: 0,
       ),
       body: Form(
         key: _formKey,
@@ -325,13 +335,13 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
             MediaGridUploader(
               mediaUrls: _mediaUrls,
               onMediaAdded: (url) => setState(() => _mediaUrls.add(url)),
-               onMediaRemoved: (index) =>
-                   setState(() => _mediaUrls.removeAt(index)),
-               onMediaReordered: (oldIndex, newIndex) => setState(() {
-                 final item = _mediaUrls.removeAt(oldIndex);
-                 _mediaUrls.insert(newIndex, item);
-               }),
-             ),
+              onMediaRemoved: (index) =>
+                  setState(() => _mediaUrls.removeAt(index)),
+              onMediaReordered: (oldIndex, newIndex) => setState(() {
+                final item = _mediaUrls.removeAt(oldIndex);
+                _mediaUrls.insert(newIndex, item);
+              }),
+            ),
 
             const SizedBox(height: 24),
 
@@ -373,6 +383,16 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
               onBloodlineChanged: (value) => setState(() => _bloodline = value),
             ),
 
+            const SizedBox(height: 16),
+
+            CommerceCertificateSelector(
+              selectedCertificates: _certificates,
+              onChanged: (value) => setState(() => _certificates = value),
+              helperText:
+                  'Pilih jenis sertifikat yang ikan ini miliki. Sertifikat adalah '
+                  'keterangan dari seller, bukan unggahan dokumen.',
+            ),
+
             const SizedBox(height: 24),
 
             // Shipping Readiness Section
@@ -383,17 +403,15 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
               child: Text(
                 'Informasikan kepada pembeli berapa lama waktu yang Anda butuhkan untuk menyiapkan ikan sebelum dikirim.',
                 style: TextStyle(
-                  fontSize: AppType.s13,
+                  fontSize: AppType.s14,
                   color: scheme.onSurfaceVariant,
                 ),
               ),
             ),
-            _PreparationTimeSelector(
+            CommercePreparationTimeSelector(
               selected: _preparationTime,
               onChanged: (value) => setState(() => _preparationTime = value),
             ),
-            const SizedBox(height: 12),
-            _PreparationNoteField(controller: _preparationNoteController),
 
             const SizedBox(height: 24),
 
@@ -477,7 +495,8 @@ class _CreateForSaleScreenState extends ConsumerState<CreateForSaleScreen> {
     return switch (authState) {
       AuthStateAuthenticated(:final user) when user.hasSellerProfile != true =>
         'Buat seller profile dulu untuk membuat forSale.',
-      AuthStateAuthenticated(:final user) when user.hasMarketAuthority != true =>
+      AuthStateAuthenticated(:final user)
+          when user.hasMarketAuthority != true =>
         'Langganan seller belum aktif atau sudah berakhir. Perpanjang dulu untuk membuat forSale.',
       _ => 'Sesi autentikasi belum siap untuk membuat forSale.',
     };
@@ -497,7 +516,10 @@ class _SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       title,
-      style: const TextStyle(fontSize: AppType.s18, fontWeight: FontWeight.bold),
+      style: const TextStyle(
+        fontSize: AppType.s20,
+        fontWeight: FontWeight.bold,
+      ),
     );
   }
 }
@@ -865,125 +887,3 @@ const _koiGenders = [
   {'value': 'unknown', 'label': 'Tidak Diketahui'},
 ];
 
-/// Preparation time selector widget
-class _PreparationTimeSelector extends StatelessWidget {
-  final PreparationTime selected;
-  final void Function(PreparationTime) onChanged;
-
-  const _PreparationTimeSelector({
-    required this.selected,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(AppMetrics.p12),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(AppShape.r12),
-        border: Border.all(color: scheme.outlineVariant),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Waktu Persiapan *',
-            style: TextStyle(fontSize: AppType.s14, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: PreparationTime.values.map((time) {
-              final isSelected = selected == time;
-              return InkWell(
-                onTap: () => onChanged(time),
-                borderRadius: BorderRadius.circular(AppShape.r20),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppMetrics.p16,
-                    vertical: AppMetrics.p10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? scheme.primary
-                        : scheme.surface,
-                    borderRadius: BorderRadius.circular(AppShape.r20),
-                    border: Border.all(
-                      color: isSelected
-                          ? scheme.primary
-                          : scheme.outlineVariant,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (isSelected)
-                        Icon(
-                          Icons.check_circle,
-                          size: 16,
-                          color: scheme.onPrimary,
-                        )
-                      else
-                        Icon(
-                          Icons.radio_button_unchecked,
-                          size: 16,
-                          color: scheme.onSurfaceVariant,
-                        ),
-                      const SizedBox(width: 6),
-                      Text(
-                        time.displayName,
-                        style: TextStyle(
-                          color: isSelected
-                              ? scheme.onPrimary
-                              : scheme.onSurface,
-                          fontSize: AppType.s13,
-                          fontWeight: isSelected
-                              ? FontWeight.w600
-                              : FontWeight.normal,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            selected.description,
-            style: TextStyle(
-              fontSize: AppType.s12,
-              color: scheme.onSurfaceVariant,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Preparation note field widget
-class _PreparationNoteField extends StatelessWidget {
-  final TextEditingController controller;
-
-  const _PreparationNoteField({required this.controller});
-
-  @override
-  Widget build(BuildContext context) {
-    return TextFormField(
-      controller: controller,
-      maxLines: 2,
-      maxLength: 200,
-      decoration: InputDecoration(
-        labelText: 'Catatan Persiapan (Opsional)',
-        hintText:
-            'Contoh: Lolos karantina siap kirim, Butuh puasa 2 hari sebelum packing',
-        border: const OutlineInputBorder(),
-        helperText: 'Informasikan kondisi khusus yang pembeli perlu tahu',
-      ),
-    );
-  }
-}

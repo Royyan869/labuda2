@@ -2,23 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/shared.dart';
-import 'package:labuda/domains/user/preference/seller/presentation/providers/current_seller_provider.dart';
 import 'package:labuda/domains/user/profile/domain/entities/address_entity.dart';
 import 'package:labuda/domains/user/profile/presentation/providers/address_list_provider.dart';
 import 'package:labuda/domains/user/profile/data/profile_providers.dart';
 import 'package:labuda/domains/user/profile/presentation/widgets/address_form_dialog.dart';
-import 'package:labuda/domains/user/preference/seller/domain/entities/seller_state.dart';
 
-/// Address List Screen - Tab-based Multiple Addresses Support
+/// Address List Screen — the account's ONE address book.
 ///
-/// Features:
-/// - Tab-based separation: Shipping vs Sender addresses
-/// - Tab visibility: Buyer (shipping only) vs Seller (both tabs)
-/// - Add new address via modal dialog (purpose based on active tab)
-/// - Edit existing address via modal dialog
-/// - Delete address (with validation per purpose)
-/// - Set primary address (per purpose)
-/// - Max 10 addresses per purpose, Min 1 per purpose
+/// CANONICAL DESIGN (single page, no tabs):
+/// - One list of every saved address; each card carries its role TAGS
+///   (Shipping / Sender). One address may carry both.
+/// - Exactly one address per account is Primary. There is no per-tag primary.
+/// - Add / edit goes through AddressFormDialog — the only address form.
+/// - Min 1 address, max 10 addresses per account.
 class AddressListScreen extends ConsumerStatefulWidget {
   const AddressListScreen({super.key});
 
@@ -26,60 +22,23 @@ class AddressListScreen extends ConsumerStatefulWidget {
   ConsumerState<AddressListScreen> createState() => _AddressListScreenState();
 }
 
-class _AddressListScreenState extends ConsumerState<AddressListScreen>
-    with SingleTickerProviderStateMixin {
-  TabController? _tabController;
-
-  @override
-  void initState() {
-    super.initState();
-    // TabController will be initialized after we know if user is seller
-  }
-
-  @override
-  void dispose() {
-    _tabController?.dispose();
-    super.dispose();
-  }
-
-  void _initializeTabController(bool isSeller) {
-    if (_tabController == null && isSeller) {
-      _tabController = TabController(length: 2, vsync: this);
-      _tabController!.addListener(() {
-        // Rebuild to update sticky button text when tab changes
-        if (mounted) setState(() {});
-      });
-    }
-  }
-
-  AddressPurpose get _currentPurpose {
-    if (_tabController == null) {
-      return AddressPurpose.shipping; // Buyer only has shipping
-    }
-    return _tabController!.index == 0
-        ? AddressPurpose.shipping
-        : AddressPurpose.sender;
-  }
-
+class _AddressListScreenState extends ConsumerState<AddressListScreen> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     // Use centralized providers (TANGGUNG_JAWAB_MODUL compliance)
     final authState = ref.watch(authControllerProvider);
     final currentUser = ref.watch(authenticatedUserProvider);
-    final sellerIdentityStatus = ref.watch(sellerIdentityStatusProvider);
-
     if (currentUser == null) {
-      if (_isUnresolvedAuthState(authState) ||
-          sellerIdentityStatus == SellerIdentityStatus.unknown) {
-        return _buildUnknownSellerState(context, scheme);
+      if (_isUnresolvedAuthState(authState)) {
+        return _buildUnknownSellerState(context);
       }
 
       return PopScope(
         canPop: true,
         child: Scaffold(
-          appBar: AppBarCustom(
-            title: 'Addresses',
+          appBar: AppBar(
+            title: const Text('Addresses'),
             leading: IconButton(
               icon: const Icon(Icons.arrow_back),
               onPressed: () => Navigator.of(context).pop(),
@@ -90,36 +49,19 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
       );
     }
 
-    if (sellerIdentityStatus == SellerIdentityStatus.unknown) {
-      return _buildUnknownSellerState(context, scheme);
-    }
-
-    final isSeller = sellerIdentityStatus == SellerIdentityStatus.seller;
     final userId = currentUser.id;
-
-    // Initialize TabController for sellers
-    _initializeTabController(isSeller);
 
     final addressesAsync = ref.watch(addressesStreamProvider(userId));
 
     return PopScope(
       canPop: true,
       child: Scaffold(
-        backgroundColor: scheme.onSurfaceVariant,
+        // ONE rule for this screen: the theme owns every chrome colour
+        // (scaffold, app bar, title ink, icons). The ink role
+        // `onSurfaceVariant` used to be pasted in here — a grey slab with
+        // back button and title in the exact same grey as their background.
         appBar: AppBar(
-          title: Text(
-            'Addresses',
-            style: TextStyle(
-              fontSize: AppType.s18,
-              fontWeight: FontWeight.w600,
-              color: scheme.onSurfaceVariant,
-            ),
-          ),
-          backgroundColor: scheme.onSurfaceVariant,
-          foregroundColor: scheme.onSurfaceVariant,
-          elevation: AppElevation.none,
-          surfaceTintColor: Colors.transparent,
-          scrolledUnderElevation: 0,
+          title: const Text('Addresses'),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
             onPressed: () => Navigator.of(context).pop(),
@@ -134,19 +76,6 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
               onPressed: () => _showAddressInfoDialog(context, scheme),
             ),
           ],
-          bottom: isSeller && _tabController != null
-              ? TabBar(
-                  controller: _tabController,
-                  labelColor: scheme.primary,
-                  unselectedLabelColor: scheme.onSurfaceVariant,
-                  indicatorColor: scheme.primary,
-                  indicatorWeight: 3,
-                  tabs: const [
-                    Tab(icon: Icon(Icons.home), text: 'Shipping Address'),
-                    Tab(icon: Icon(Icons.agriculture), text: 'Sender Address'),
-                  ],
-                )
-              : null,
         ),
         body: addressesAsync.when(
           data: (result) {
@@ -163,55 +92,23 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
 
             final addresses = result.data ?? [];
 
-            if (isSeller && _tabController != null) {
-              // Seller: Show TabBarView with sticky button
-              return SafeArea(
-                child: Column(
-                  children: [
-                    Expanded(
-                      child: TabBarView(
-                        controller: _tabController,
-                        children: [
-                          _buildTabContent(
-                            context,
-                            addresses,
-                            userId,
-                            AddressPurpose.shipping,
-                            scheme,
-                          ),
-                          _buildTabContent(
-                            context,
-                            addresses,
-                            userId,
-                            AddressPurpose.sender,
-                            scheme,
-                          ),
-                        ],
-                      ),
+            // ONE list for the whole account. Role tags live on the card,
+            // never in a tab that splits the book in two.
+            return SafeArea(
+              child: Column(
+                children: [
+                  Expanded(
+                    child: _buildAddressList(
+                      context,
+                      addresses,
+                      userId,
+                      scheme,
                     ),
-                    _buildStickyAddButton(context, addresses, scheme),
-                  ],
-                ),
-              );
-            } else {
-              // Buyer: Show only shipping addresses with sticky button
-              return SafeArea(
-                child: Column(
-                  children: [
-                    Expanded(
-                      child: _buildTabContent(
-                        context,
-                        addresses,
-                        userId,
-                        AddressPurpose.shipping,
-                        scheme,
-                      ),
-                    ),
-                    _buildStickyAddButton(context, addresses, scheme),
-                  ],
-                ),
-              );
-            }
+                  ),
+                  _buildStickyAddButton(context, addresses),
+                ],
+              ),
+            );
           },
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (error, stack) => Center(
@@ -234,44 +131,37 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
         authState is AuthStateSyncingWithBackend;
   }
 
-  Widget _buildUnknownSellerState(BuildContext context, ColorScheme scheme) {
+  Widget _buildUnknownSellerState(BuildContext context) {
     return Scaffold(
-      backgroundColor: scheme.surfaceContainerLowest,
-      appBar: AppBar(
-        title: const Text('Addresses'),
-        backgroundColor: scheme.onSurfaceVariant,
-        foregroundColor: scheme.onSurfaceVariant,
-        elevation: AppElevation.none,
-        surfaceTintColor: Colors.transparent,
-        scrolledUnderElevation: 0,
-      ),
+      appBar: AppBar(title: const Text('Addresses')),
       body: const Center(child: CircularProgressIndicator()),
     );
   }
 
-  Widget _buildTabContent(
+  Widget _buildAddressList(
     BuildContext context,
-    List<AddressEntity> allAddresses,
+    List<AddressEntity> addresses,
     String userId,
-    AddressPurpose purpose,
     ColorScheme scheme,
   ) {
-    // Filter addresses by purpose
-    final filteredAddresses = allAddresses
-        .where((addr) => addr.purpose == purpose)
-        .toList();
+    // One account, one book: the account-level minimum is 1 address.
+    final canDelete = addresses.length > 1;
 
-    final canDelete = filteredAddresses.length > 1; // Min 1 per purpose
-
-    if (filteredAddresses.isEmpty) {
-      return _buildEmptyState(context, purpose, scheme);
+    if (addresses.isEmpty) {
+      // Canonical empty state (shared) — the screen no longer owns its own
+      // copy; the dead `AddressEmptyState`/`AddressEmptyStateWidget`
+      // duplicates were the competing one.
+      return EmptyState(
+        icon: Icons.location_off_outlined,
+        title: 'No Address Yet',
+        subtitle: 'Add an address to shop and to ship from',
+      );
     }
 
     return ListView(
       padding: const EdgeInsets.only(left: AppMetrics.p16, right: AppMetrics.p16, top: AppMetrics.p16, bottom: AppMetrics.p16),
       children: [
-        // Address Cards
-        ...filteredAddresses.map((address) {
+        ...addresses.map((address) {
           return Padding(
             padding: const EdgeInsets.only(bottom: AppMetrics.p12),
             child: _buildAddressCard(
@@ -279,9 +169,8 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
               address,
               canDelete,
               userId,
-              filteredAddresses.length,
+              addresses.length,
               scheme,
-              purpose,
             ),
           );
         }),
@@ -289,83 +178,33 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
     );
   }
 
-  Widget _buildEmptyState(
-    BuildContext context,
-    AddressPurpose purpose,
-    ColorScheme scheme,
-  ) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppMetrics.p24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              purpose == AddressPurpose.shipping
-                  ? Icons.location_off_outlined
-                  : Icons.agriculture_outlined,
-              size: 80,
-              color: scheme.onSurfaceVariant,
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'No ${purpose.label} Yet',
-              style: TextStyle(
-                fontSize: AppType.s20,
-                fontWeight: FontWeight.bold,
-                color: scheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              purpose == AddressPurpose.shipping
-                  ? 'Add a shipping address to start shopping'
-                  : 'Add a sender address (farm/warehouse location)',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: AppType.s14,
-                color: scheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildStickyAddButton(
     BuildContext context,
     List<AddressEntity> addresses,
-    ColorScheme scheme,
   ) {
-    final purpose = _currentPurpose;
-    final filteredAddresses = addresses
-        .where((addr) => addr.purpose == purpose)
-        .toList();
-
-    // Max 10 addresses per purpose - hide button if limit reached
-    if (filteredAddresses.length >= 10) {
+    // Max 10 addresses per account - hide button if limit reached
+    if (addresses.length >= 10) {
       return const SizedBox.shrink();
     }
 
     return Container(
       padding: const EdgeInsets.only(left: AppMetrics.p16, right: AppMetrics.p16, top: AppMetrics.p12, bottom: AppMetrics.p12),
       decoration: BoxDecoration(
-        color: scheme.surface,
+        color: Theme.of(context).colorScheme.surface,
         border: Border(
           top: BorderSide(
-            color: scheme.outlineVariant,
+            color: Theme.of(context).colorScheme.outlineVariant,
           ),
         ),
       ),
       child: SizedBox(
         width: double.infinity,
         child: ElevatedButton.icon(
-          onPressed: () => _showAddressDialog(context, purpose),
+          onPressed: () => _showAddressDialog(context),
           icon: const Icon(Icons.add_location_alt),
-          label: Text('Add ${purpose.label}'),
+          label: const Text('Add Address'),
           style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
+            padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
           ),
         ),
       ),
@@ -376,20 +215,17 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: scheme.onSurfaceVariant,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppShape.r16)),
+        // Dialog surface + title ink come from the theme (dialogTheme); the
+        // old copy pasted `onSurfaceVariant` into both, so the dialog was a
+        // grey card with grey-on-grey text.
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppShape.r16),
+        ),
         title: Row(
           children: [
-            Icon(Icons.info_outline, color: scheme.primary, size: 24),
+            Icon(Icons.info_outline, color: scheme.primary, size: AppIconSize.header),
             const SizedBox(width: 12),
-            Text(
-              'Address Information',
-              style: TextStyle(
-                fontSize: AppType.s18,
-                fontWeight: FontWeight.bold,
-                color: scheme.onSurfaceVariant,
-              ),
-            ),
+            const Text('Address Information'),
           ],
         ),
         content: Column(
@@ -398,15 +234,22 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
           children: [
             _buildInfoRow(
               Icons.home,
-              'Shipping Address',
-              'Address for receiving packages/shipments',
+              'Shipping tag',
+              'Use this address as a delivery destination at checkout',
               scheme,
             ),
             const SizedBox(height: 12),
             _buildInfoRow(
               Icons.agriculture,
-              'Sender Address',
-              'Origin address for goods (for seller)',
+              'Sender tag',
+              'Use this address as the origin of goods you ship from',
+              scheme,
+            ),
+            const SizedBox(height: 12),
+            _buildInfoRow(
+              Icons.star_outline,
+              'Primary',
+              'One address per account is the default everywhere',
               scheme,
             ),
             const SizedBox(height: 16),
@@ -418,13 +261,13 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
               ),
               child: Row(
                 children: [
-                  Icon(Icons.rule, color: scheme.primary, size: 20),
+                  Icon(Icons.rule, color: scheme.primary, size: AppIconSize.action),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'Min. 1 address per category\nMax. 10 addresses per category',
+                      'One address can carry both tags.\nMin. 1 address, max. 10 per account.',
                       style: TextStyle(
-                        fontSize: AppType.s13,
+                        fontSize: AppType.s14,
                         color: scheme.onSurfaceVariant,
                       ),
                     ),
@@ -456,7 +299,7 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
       children: [
         Icon(
           icon,
-          size: 20,
+          size: AppIconSize.action,
           color: scheme.onSurfaceVariant,
         ),
         const SizedBox(width: 10),
@@ -466,10 +309,12 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
             children: [
               Text(
                 title,
+                // Primary line reads the primary ink, description the
+                // secondary one — both used to be secondary.
                 style: TextStyle(
                   fontSize: AppType.s14,
                   fontWeight: FontWeight.w600,
-                  color: scheme.onSurfaceVariant,
+                  color: scheme.onSurface,
                 ),
               ),
               Text(
@@ -493,16 +338,13 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
     String userId,
     int totalAddresses,
     ColorScheme scheme,
-    AddressPurpose purpose,
   ) {
     return Container(
       decoration: BoxDecoration(
         color: scheme.surface,
         borderRadius: BorderRadius.circular(AppShape.r12),
         border: Border.all(
-          color: address.isPrimary
-              ? scheme.primary
-              : scheme.onSurfaceVariant,
+          color: address.isPrimary ? scheme.primary : scheme.outlineVariant,
           width: address.isPrimary ? 2 : 1,
         ),
       ),
@@ -515,7 +357,9 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
             Row(
               children: [
                 Icon(
-                  _getPurposeIcon(address.purpose),
+                  _getTagIcon(address.tags.isNotEmpty
+                      ? address.tags.first
+                      : AddressTag.shipping),
                   size: 20,
                   color: scheme.primary,
                 ),
@@ -525,7 +369,7 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
                   style: TextStyle(
                     fontSize: AppType.s16,
                     fontWeight: FontWeight.bold,
-                    color: scheme.onSurfaceVariant,
+                    color: scheme.onSurface,
                   ),
                 ),
                 if (address.isPrimary) ...[
@@ -533,7 +377,7 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppMetrics.p8,
-                      vertical: AppMetrics.p2,
+                      vertical: AppMetrics.p4,
                     ),
                     decoration: BoxDecoration(
                       color: scheme.primary,
@@ -542,7 +386,7 @@ class _AddressListScreenState extends ConsumerState<AddressListScreen>
 child: Text(
                        'Primary',
                       style: TextStyle(
-                        fontSize: AppType.s10,
+                        fontSize: AppType.s12,
                         fontWeight: FontWeight.w600,
                         color: scheme.onPrimary,
                       ),
@@ -554,17 +398,16 @@ child: Text(
                   onSelected: (value) {
                     switch (value) {
                       case 'edit':
-                        _showAddressDialog(context, address.purpose, address);
+                        _showAddressDialog(context, address);
                         break;
                       case 'setPrimary':
-                        _setPrimaryAddress(context, address, userId, purpose);
+                        _setPrimaryAddress(context, address, userId);
                         break;
                       case 'delete':
                         _deleteAddress(
                           context,
                           address,
                           totalAddresses,
-                          purpose,
                         );
                         break;
                     }
@@ -574,18 +417,20 @@ child: Text(
                       value: 'edit',
                       child: Row(
                         children: [
-                          Icon(Icons.edit, size: 18),
+                          Icon(Icons.edit, size: AppIconSize.action),
                           SizedBox(width: 8),
                           Text('Edit'),
                         ],
                       ),
                     ),
-                    if (!address.isPrimary)
+                    // "Set as Primary" only makes sense as a CHOICE —
+                    // at1 address the reconciler already owns the flag.
+                    if (totalAddresses >= 2 && !address.isPrimary)
                       const PopupMenuItem(
                         value: 'setPrimary',
                         child: Row(
                           children: [
-                            Icon(Icons.star, size: 18),
+                            Icon(Icons.star, size: AppIconSize.action),
                             SizedBox(width: 8),
                             Text('Set as Primary'),
                           ],
@@ -598,7 +443,7 @@ child: Text(
                           children: [
                             Icon(
                               Icons.delete,
-                              size: 18,
+                              size: AppIconSize.action,
                               color: context.statusColors.error,
                             ),
                             const SizedBox(width: 8),
@@ -615,12 +460,51 @@ child: Text(
             ),
             const SizedBox(height: 12),
 
+            // Role tags: what this address is FOR. One address may carry both.
+            Wrap(
+              spacing: AppMetrics.p8,
+              runSpacing: AppMetrics.p8,
+              children: [
+                for (final tag in address.tags)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppMetrics.p8,
+                      vertical: AppMetrics.p4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: scheme.primary.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(AppShape.r6),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          _getTagIcon(tag),
+                          size: 12,
+                          color: scheme.primary,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          tag.shortLabel,
+                          style: TextStyle(
+                            fontSize: AppType.s12,
+                            fontWeight: FontWeight.w600,
+                            color: scheme.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 10),
+
             // Recipient/Sender Name & Phone
             Row(
               children: [
                 Icon(
                   Icons.person_outline,
-                  size: 14,
+                  size: AppIconSize.inlineGlyph,
                   color: scheme.onSurfaceVariant,
                 ),
                 const SizedBox(width: 6),
@@ -628,7 +512,7 @@ child: Text(
                   child: Text(
                     '${address.recipientName} • ${address.phone}',
                     style: TextStyle(
-                      fontSize: AppType.s13,
+                      fontSize: AppType.s14,
                       fontWeight: FontWeight.w500,
                       color: scheme.onSurfaceVariant,
                     ),
@@ -652,13 +536,15 @@ child: Text(
               const SizedBox(height: 8),
               Container(
                 padding: const EdgeInsets.all(AppMetrics.p8),
+                // Subtle fill role, not an ink role: a solid `onSurfaceVariant`
+                // box with `onSurfaceVariant` text inside it was invisible.
                 decoration: BoxDecoration(
-                  color: scheme.onSurfaceVariant,
+                  color: scheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(AppShape.r6),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.note, size: 14, color: scheme.onSurfaceVariant),
+                    Icon(Icons.note, size: AppIconSize.inlineGlyph, color: scheme.onSurfaceVariant),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
@@ -683,8 +569,8 @@ child: Text(
                 borderRadius: BorderRadius.circular(AppShape.r6),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: AppMetrics.p10,
-                    vertical: AppMetrics.p6,
+                    horizontal: AppMetrics.p12,
+                    vertical: AppMetrics.p8,
                   ),
                   decoration: BoxDecoration(
                     color: context.statusColors.success.withValues(alpha: 0.1),
@@ -698,7 +584,7 @@ child: Text(
                     children: [
                       Icon(
                         Icons.location_on,
-                        size: 14,
+                        size: AppIconSize.inlineGlyph,
                         color: context.statusColors.success,
                       ),
                       const SizedBox(width: 6),
@@ -713,7 +599,7 @@ child: Text(
                       const SizedBox(width: 4),
                       Icon(
                         Icons.chevron_right,
-                        size: 14,
+                        size: AppIconSize.inlineGlyph,
                         color: context.statusColors.success,
                       ),
                     ],
@@ -727,29 +613,24 @@ child: Text(
     );
   }
 
-  IconData _getPurposeIcon(AddressPurpose purpose) {
-    switch (purpose) {
-      case AddressPurpose.shipping:
+  IconData _getTagIcon(AddressTag tag) {
+    switch (tag) {
+      case AddressTag.shipping:
         return Icons.home; // Shipping destination
-      case AddressPurpose.sender:
+      case AddressTag.sender:
         return Icons.agriculture; // Sender origin (farm/warehouse)
     }
   }
 
-  void _showAddressDialog(
-    BuildContext context,
-    AddressPurpose initialPurpose, [
+  Future<void> _showAddressDialog(
+    BuildContext context, [
     AddressEntity? address,
   ]) async {
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => AddressFormDialog(
-        addressToEdit: address,
-        // Lock purpose based on active tab (prevents user confusion)
-        forcedPurpose: initialPurpose,
-      ),
+      builder: (context) => AddressFormDialog(addressToEdit: address),
     );
   }
 
@@ -757,13 +638,12 @@ child: Text(
     BuildContext context,
     AddressEntity address,
     int totalAddresses,
-    AddressPurpose purpose,
   ) async {
-    // Min 1 address per purpose
+    // Min 1 address for the account
     if (totalAddresses <= 1) {
       AppSnackBar.showError(
         context,
-        'Cannot delete. You need at least 1 ${purpose.label.toLowerCase()}.',
+        'Cannot delete. You need at least 1 address.',
       );
       return;
     }
@@ -818,13 +698,9 @@ child: Text(
     BuildContext context,
     AddressEntity address,
     String userId,
-    AddressPurpose purpose,
   ) async {
     if (address.isPrimary) {
-      AppSnackBar.showInfo(
-        context,
-        'This ${purpose.label.toLowerCase()} is already set as primary',
-      );
+      AppSnackBar.showInfo(context, 'This address is already the primary');
       return;
     }
 
@@ -834,14 +710,11 @@ child: Text(
     if (!context.mounted) return;
 
     if (result.isSuccess) {
-      AppSnackBar.showSuccess(
-        context,
-        'Primary ${purpose.label.toLowerCase()} updated successfully',
-      );
+      AppSnackBar.showSuccess(context, 'Primary address updated');
     } else {
       AppSnackBar.showError(
         context,
-        result.error ?? 'Failed to set primary ${purpose.label.toLowerCase()}',
+        result.error ?? 'Failed to set primary address',
       );
     }
   }

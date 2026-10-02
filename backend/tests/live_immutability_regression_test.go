@@ -15,15 +15,15 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
-	forsaleApp "github.com/labuda/backend/internal/commerce/forsale/application"
-	forsaleEntity "github.com/labuda/backend/internal/commerce/forsale/entity"
-	forsaleHttp "github.com/labuda/backend/internal/commerce/forsale/delivery/http"
 	auctionApp "github.com/labuda/backend/internal/commerce/auction/application"
 	auctionHttp "github.com/labuda/backend/internal/commerce/auction/delivery/http"
-	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
-	productRepo "github.com/labuda/backend/internal/commerce/product/infrastructure/repository"
+	forsaleApp "github.com/labuda/backend/internal/commerce/forsale/application"
+	forsaleHttp "github.com/labuda/backend/internal/commerce/forsale/delivery/http"
+	forsaleEntity "github.com/labuda/backend/internal/commerce/forsale/entity"
 	orderEntity "github.com/labuda/backend/internal/commerce/order/entity"
 	"github.com/labuda/backend/internal/commerce/order/repository"
+	productEntity "github.com/labuda/backend/internal/commerce/product/entity"
+	productRepo "github.com/labuda/backend/internal/commerce/product/infrastructure/repository"
 	shippingApp "github.com/labuda/backend/internal/commerce/shipping/application"
 	shippingInfraRepo "github.com/labuda/backend/internal/commerce/shipping/infrastructure/repository"
 	capabilityEntity "github.com/labuda/backend/internal/platform/capability/entity"
@@ -45,19 +45,35 @@ func (f liveFakeActorResolver) ResolveActor(_ context.Context, userID uuid.UUID)
 
 type liveFakeRoleChecker struct{}
 
-func (liveFakeRoleChecker) IsAdmin(_ context.Context, _ uuid.UUID) (bool, error) { return false, nil }
+func (liveFakeRoleChecker) IsAdmin(_ context.Context, _ uuid.UUID) (bool, error)  { return false, nil }
 func (liveFakeRoleChecker) IsSeller(_ context.Context, _ uuid.UUID) (bool, error) { return true, nil }
-func (liveFakeRoleChecker) HasActiveSellerCapability(_ context.Context, _ uuid.UUID) (bool, error) { return true, nil }
-func (liveFakeRoleChecker) HasSellerProfile(_ context.Context, _ uuid.UUID) (bool, error) { return true, nil }
+func (liveFakeRoleChecker) HasActiveSellerCapability(_ context.Context, _ uuid.UUID) (bool, error) {
+	return true, nil
+}
+func (liveFakeRoleChecker) HasSellerProfile(_ context.Context, _ uuid.UUID) (bool, error) {
+	return true, nil
+}
 
 type liveFakeOrderRepo struct{}
 
-func (liveFakeOrderRepo) CreateOrderTx(_ context.Context, _ db.Tx, _ *orderEntity.Order) error { return nil }
-func (liveFakeOrderRepo) CreateOrderItemTx(_ context.Context, _ db.Tx, _ *orderEntity.OrderItem) error { return nil }
-func (liveFakeOrderRepo) GetByID(_ context.Context, _ db.Tx, _ uuid.UUID) (*orderEntity.Order, error) { return nil, nil }
-func (liveFakeOrderRepo) GetForUpdate(_ context.Context, _ db.Tx, _ uuid.UUID) (*orderEntity.Order, error) { return nil, nil }
-func (liveFakeOrderRepo) UpdateStatusTx(_ context.Context, _ db.Tx, _ *orderEntity.Order) error { return nil }
-func (liveFakeOrderRepo) GetByPricingTokenID(_ context.Context, _ db.Tx, _ uuid.UUID) (*orderEntity.Order, error) { return nil, nil }
+func (liveFakeOrderRepo) CreateOrderTx(_ context.Context, _ db.Tx, _ *orderEntity.Order) error {
+	return nil
+}
+func (liveFakeOrderRepo) CreateOrderItemTx(_ context.Context, _ db.Tx, _ *orderEntity.OrderItem) error {
+	return nil
+}
+func (liveFakeOrderRepo) GetByID(_ context.Context, _ db.Tx, _ uuid.UUID) (*orderEntity.Order, error) {
+	return nil, nil
+}
+func (liveFakeOrderRepo) GetForUpdate(_ context.Context, _ db.Tx, _ uuid.UUID) (*orderEntity.Order, error) {
+	return nil, nil
+}
+func (liveFakeOrderRepo) UpdateStatusTx(_ context.Context, _ db.Tx, _ *orderEntity.Order) error {
+	return nil
+}
+func (liveFakeOrderRepo) GetByPricingTokenID(_ context.Context, _ db.Tx, _ uuid.UUID) (*orderEntity.Order, error) {
+	return nil, nil
+}
 func (liveFakeOrderRepo) GetByIdempotencyKey(_ context.Context, _ db.Tx, _ uuid.UUID, _ string) (*orderEntity.Order, error) {
 	return nil, nil
 }
@@ -116,11 +132,11 @@ func TestForSale_DraftRemainsEditable_PositiveControl(t *testing.T) {
 	appDB := db.NewFromPool(tdb.Pool())
 	seller := seedLiveUser(t, ctx, tdb)
 	svc := forsaleApp.NewForSaleService(liveFakeActorResolver{allow: true}, liveFakeRoleChecker{})
-	handler := forsaleHttp.NewForSaleHandler(svc, appDB, zap.NewNop(), liveFakeOrderRepo{})
+	handler := forsaleHttp.NewForSaleHandler(svc, appDB, zap.NewNop(), liveFakeOrderRepo{}, nil)
 	// Direct SQL setup to avoid service overhead (faster, no actor/role checks)
 	productID := uuid.New()
 	forSaleID := uuid.New()
-	_, err := tdb.Pool().Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, size_cm, preparation_time, selling_surface, created_at, updated_at) VALUES ($1,$2,'draft original','draft desc','["https://cdn.test/a.jpg"]','Kohaku',30,'immediate','for_sale',NOW(),NOW())`, productID, seller)
+	_, err := tdb.Pool().Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, size_cm, preparation_time, selling_surface, created_at, updated_at) VALUES ($1,$2,'draft original','draft desc','["https://cdn.test/a.jpg"]','Kohaku',30,'1_3_days','for_sale',NOW(),NOW())`, productID, seller)
 	require.NoError(t, err)
 	_, err = tdb.Pool().Exec(ctx, `INSERT INTO for_sales (id, product_id, seller_id, price_per_unit, negotiation_enabled, status, quantity_available, created_at, updated_at) VALUES ($1,$2,$3,100000,false,'draft',2,NOW(),NOW())`, forSaleID, productID, seller)
 	require.NoError(t, err)
@@ -151,10 +167,10 @@ func TestForSale_ActiveImmutable_ZeroOrders(t *testing.T) {
 	appDB := db.NewFromPool(tdb.Pool())
 	seller := seedLiveUser(t, ctx, tdb)
 	svc := forsaleApp.NewForSaleService(liveFakeActorResolver{allow: true}, liveFakeRoleChecker{})
-	handler := forsaleHttp.NewForSaleHandler(svc, appDB, zap.NewNop(), liveFakeOrderRepo{})
+	handler := forsaleHttp.NewForSaleHandler(svc, appDB, zap.NewNop(), liveFakeOrderRepo{}, nil)
 	productID := uuid.New()
 	forSaleID := uuid.New()
-	_, err := tdb.Pool().Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, size_cm, preparation_time, selling_surface, created_at, updated_at) VALUES ($1,$2,'live original','live desc','["https://cdn.test/live.jpg"]','Kohaku',30,'immediate','for_sale',NOW(),NOW())`, productID, seller)
+	_, err := tdb.Pool().Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, size_cm, preparation_time, selling_surface, created_at, updated_at) VALUES ($1,$2,'live original','live desc','["https://cdn.test/live.jpg"]','Kohaku',30,'1_3_days','for_sale',NOW(),NOW())`, productID, seller)
 	require.NoError(t, err)
 	_, err = tdb.Pool().Exec(ctx, `INSERT INTO for_sales (id, product_id, seller_id, price_per_unit, negotiation_enabled, status, quantity_available, created_at, updated_at) VALUES ($1,$2,$3,100000,false,'draft',2,NOW(),NOW())`, forSaleID, productID, seller)
 	require.NoError(t, err)
@@ -194,7 +210,7 @@ func TestForSale_ShippingImmutable_WhenActive(t *testing.T) {
 	// Direct SQL setup
 	productID := uuid.New()
 	forSaleID := uuid.New()
-	_, err := tdb.Pool().Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, selling_surface, created_at, updated_at) VALUES ($1,$2,'ship test','desc','["https://cdn.test/a.jpg"]','Kohaku','immediate','for_sale',NOW(),NOW())`, productID, seller)
+	_, err := tdb.Pool().Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, selling_surface, created_at, updated_at) VALUES ($1,$2,'ship test','desc','["https://cdn.test/a.jpg"]','Kohaku','1_3_days','for_sale',NOW(),NOW())`, productID, seller)
 	require.NoError(t, err)
 	_, err = tdb.Pool().Exec(ctx, `INSERT INTO for_sales (id, product_id, seller_id, price_per_unit, negotiation_enabled, status, quantity_available, created_at, updated_at) VALUES ($1,$2,$3,100000,false,'draft',1,NOW(),NOW())`, forSaleID, productID, seller)
 	require.NoError(t, err)
@@ -255,7 +271,7 @@ func TestForSale_ShippingMutable_WhenDraft(t *testing.T) {
 	seller := seedLiveUser(t, ctx, tdb)
 	productID := uuid.New()
 	forSaleID := uuid.New()
-	_, err := tdb.Pool().Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, selling_surface, created_at, updated_at) VALUES ($1,$2,'draft ship','desc','["https://cdn.test/a.jpg"]','Kohaku','immediate','for_sale',NOW(),NOW())`, productID, seller)
+	_, err := tdb.Pool().Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, selling_surface, created_at, updated_at) VALUES ($1,$2,'draft ship','desc','["https://cdn.test/a.jpg"]','Kohaku','1_3_days','for_sale',NOW(),NOW())`, productID, seller)
 	require.NoError(t, err)
 	_, err = tdb.Pool().Exec(ctx, `INSERT INTO for_sales (id, product_id, seller_id, price_per_unit, negotiation_enabled, status, quantity_available, created_at, updated_at) VALUES ($1,$2,$3,50000,false,'draft',1,NOW(),NOW())`, forSaleID, productID, seller)
 	require.NoError(t, err)
@@ -294,7 +310,7 @@ func TestAuction_ShippingLifecycle(t *testing.T) {
 	seller := seedLiveUser(t, ctx, tdb)
 	// Create product + auction draft via direct SQL (simpler than service which auto-schedules)
 	productID := uuid.New()
-	_, err := tdb.Pool().Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, selling_surface, created_at, updated_at) VALUES ($1,$2,'auction prod','desc','[]','Kohaku','immediate','auction',NOW(),NOW())`, productID, seller)
+	_, err := tdb.Pool().Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, selling_surface, created_at, updated_at) VALUES ($1,$2,'auction prod','desc','[]','Kohaku','1_3_days','auction',NOW(),NOW())`, productID, seller)
 	require.NoError(t, err)
 	auctionID := uuid.New()
 	startAt := time.Now().Add(2 * time.Hour)
@@ -358,7 +374,7 @@ func TestAuction_DirectEdit_ActiveRejected(t *testing.T) {
 	appDB := db.NewFromPool(tdb.Pool())
 	seller := seedLiveUser(t, ctx, tdb)
 	productID := uuid.New()
-	_, err := tdb.Pool().Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, selling_surface, created_at, updated_at) VALUES ($1,$2,'orig','desc','[]','Kohaku','immediate','auction',NOW(),NOW())`, productID, seller)
+	_, err := tdb.Pool().Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, selling_surface, created_at, updated_at) VALUES ($1,$2,'orig','desc','[]','Kohaku','1_3_days','auction',NOW(),NOW())`, productID, seller)
 	require.NoError(t, err)
 	auctionID := uuid.New()
 	startAt := time.Now().Add(-1 * time.Hour)
@@ -394,7 +410,7 @@ func TestAuction_DraftFullProduct_Persists(t *testing.T) {
 	appDB := db.NewFromPool(tdb.Pool())
 	seller := seedLiveUser(t, ctx, tdb)
 	productID := uuid.New()
-	_, err := tdb.Pool().Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, size_cm, preparation_time, selling_surface, created_at, updated_at) VALUES ($1,$2,'orig','desc','[]','Kohaku',30,'immediate','auction',NOW(),NOW())`, productID, seller)
+	_, err := tdb.Pool().Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, size_cm, preparation_time, selling_surface, created_at, updated_at) VALUES ($1,$2,'orig','desc','[]','Kohaku',30,'1_3_days','auction',NOW(),NOW())`, productID, seller)
 	require.NoError(t, err)
 	auctionID := uuid.New()
 	startAt := time.Now().Add(48 * time.Hour)
@@ -406,7 +422,7 @@ func TestAuction_DraftFullProduct_Persists(t *testing.T) {
 	auctionSvc.SetProductRepo(auctionProdRepo)
 	handler := auctionHttp.NewAuctionHandler(auctionSvc, auctionProdRepo, nil, appDB, zap.NewNop())
 	body, _ := json.Marshal(map[string]interface{}{
-		"title": "New Title", "description": "New Desc", "media_urls": []string{"https://a.jpg", "https://b.mp4"}, "variety": "Showa", "size_cm": 45, "age_months": 12, "gender": "male", "breeder": "Sakai", "bloodline": "Matsu", "certificates": []string{"breeder", "health"}, "preparation_time": "short", "preparation_note": "note", "start_price": int64(150000), "bid_increment": int64(15000), "start_at": startAt.Add(time.Hour).Format(time.RFC3339), "end_at": endAt.Add(time.Hour).Format(time.RFC3339),
+		"title": "New Title", "description": "New Desc", "media_urls": []string{"https://a.jpg", "https://b.mp4"}, "variety": "Showa", "size_cm": 45, "age_months": 12, "gender": "male", "breeder": "Sakai", "bloodline": "Matsu", "certificates": []string{"breeder", "health"}, "preparation_time": "1_3_days", "start_price": int64(150000), "bid_increment": int64(15000), "start_at": startAt.Add(time.Hour).Format(time.RFC3339), "end_at": endAt.Add(time.Hour).Format(time.RFC3339),
 	})
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
@@ -424,7 +440,7 @@ func TestAuction_DraftFullProduct_Persists(t *testing.T) {
 	require.Equal(t, "New Desc", desc)
 	require.Contains(t, string(mediaRaw), "a.jpg")
 	require.Equal(t, "Showa", variety)
-	require.Equal(t, "short", prep)
+	require.Equal(t, "1_3_days", prep)
 	require.Equal(t, "male", gender)
 	require.Contains(t, certs[0], "breeder")
 	var sp, bi int64
@@ -441,7 +457,7 @@ func TestAuction_ScheduledRejectsPricingAndMedia(t *testing.T) {
 	appDB := db.NewFromPool(tdb.Pool())
 	seller := seedLiveUser(t, ctx, tdb)
 	productID := uuid.New()
-	_, err := tdb.Pool().Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, selling_surface, created_at, updated_at) VALUES ($1,$2,'orig','desc','[]','Kohaku','immediate','auction',NOW(),NOW())`, productID, seller)
+	_, err := tdb.Pool().Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, selling_surface, created_at, updated_at) VALUES ($1,$2,'orig','desc','[]','Kohaku','1_3_days','auction',NOW(),NOW())`, productID, seller)
 	require.NoError(t, err)
 	auctionID := uuid.New()
 	startAt := time.Now().Add(48 * time.Hour)
@@ -478,7 +494,7 @@ func TestAuction_ActiveFullProductRejected(t *testing.T) {
 	appDB := db.NewFromPool(tdb.Pool())
 	seller := seedLiveUser(t, ctx, tdb)
 	productID := uuid.New()
-	_, err := tdb.Pool().Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, selling_surface, created_at, updated_at) VALUES ($1,$2,'orig','desc','[]','Kohaku','immediate','auction',NOW(),NOW())`, productID, seller)
+	_, err := tdb.Pool().Exec(ctx, `INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, selling_surface, created_at, updated_at) VALUES ($1,$2,'orig','desc','[]','Kohaku','1_3_days','auction',NOW(),NOW())`, productID, seller)
 	require.NoError(t, err)
 	auctionID := uuid.New()
 	startAt := time.Now().Add(-1 * time.Hour)
@@ -489,7 +505,7 @@ func TestAuction_ActiveFullProductRejected(t *testing.T) {
 	auctionSvc := auctionApp.NewAuctionService(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, zap.NewNop())
 	auctionSvc.SetProductRepo(auctionProdRepo)
 	handler := auctionHttp.NewAuctionHandler(auctionSvc, auctionProdRepo, nil, appDB, zap.NewNop())
-	body, _ := json.Marshal(map[string]interface{}{"title": "hacked", "media_urls": []string{"https://hack.jpg"}, "certificates": []string{"breeder"}, "preparation_time": "short", "start_price": int64(999999)})
+	body, _ := json.Marshal(map[string]interface{}{"title": "hacked", "media_urls": []string{"https://hack.jpg"}, "certificates": []string{"breeder"}, "preparation_time": "1_3_days", "start_price": int64(999999)})
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	c.Request = httptest.NewRequest(http.MethodPut, "/api/v1/auctions/"+auctionID.String(), bytes.NewReader(body))
@@ -527,4 +543,3 @@ func (a *liveForSaleRepoAdapter) GetByID(ctx context.Context, tx db.Tx, id uuid.
 	p.PreparationTime = prep
 	return &forsaleEntity.ForSale{Product: &p, SellerID: sellerID}, nil
 }
-

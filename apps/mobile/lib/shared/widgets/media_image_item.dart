@@ -73,7 +73,7 @@ class MediaImageItem extends StatelessWidget {
           'Cover',
           style: TextStyle(
             color: scheme.onPrimary,
-            fontSize: AppType.s10,
+            fontSize: AppType.s12,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -94,7 +94,7 @@ class MediaImageItem extends StatelessWidget {
             color: scheme.error.withValues(alpha: 0.9),
             shape: BoxShape.circle,
           ),
-          child: Icon(Icons.close, color: scheme.onPrimary, size: 16),
+          child: Icon(Icons.close, color: scheme.onPrimary, size: AppIconSize.inlineGlyph),
         ),
       ),
     );
@@ -111,7 +111,7 @@ class MediaImageItem extends StatelessWidget {
       child: Icon(
         Icons.broken_image_outlined,
         color: scheme.onSurfaceVariant,
-        size: 32,
+        size: AppIconSize.emphasis,
       ),
     );
   }

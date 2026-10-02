@@ -129,7 +129,7 @@ class _BankAccountScreenState extends ConsumerState<BankAccountScreen> {
     return Text(
       title,
       style: TextStyle(
-        fontSize: AppType.s18,
+        fontSize: AppType.s20,
         fontWeight: FontWeight.bold,
         color: Theme.of(context).colorScheme.onSurface,
       ),

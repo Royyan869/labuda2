@@ -49,8 +49,8 @@ func TestAuctionListResponse_CarriesCanonicalProductContentBlock(t *testing.T) {
 		SellerID:    auction.SellerID,
 		Title:       "Showa Koi 30cm",
 		Description: "Premium showa",
-		MediaURLs: []string{
-			"https://labuda-uploads.s3.us-east-1.amazonaws.com/auctions/koi.jpg",
+		MediaURLs: []productEntity.ProductMedia{
+			{URL: "https://labuda-uploads.s3.us-east-1.amazonaws.com/auctions/koi.jpg"},
 		},
 		Variety:         "Showa",
 		SizeCm:          ptrInt(30),
@@ -59,8 +59,7 @@ func TestAuctionListResponse_CarriesCanonicalProductContentBlock(t *testing.T) {
 		Breeder:         ptrString("Acme Farm"),
 		Bloodline:       ptrString("Ogata"),
 		Certificates:    []string{"cert-a"},
-		PreparationTime: "short",
-		PreparationNote: ptrString("Pack carefully"),
+		PreparationTime: "1_3_days",
 	}
 	seller := sellerdisplay.Info{
 		Username:           "seller_user",
@@ -114,6 +113,7 @@ func TestAuctionListResponse_CarriesCanonicalProductContentBlock(t *testing.T) {
 		publiccard.SellerCard{User: publiccard.UserCard{ID: auction.SellerID}},
 		seller,
 		product,
+		"",
 		nil,
 	)
 	for _, key := range commerceshared.ProductContentWireKeys {

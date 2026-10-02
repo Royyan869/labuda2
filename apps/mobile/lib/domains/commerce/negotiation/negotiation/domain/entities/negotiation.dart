@@ -65,6 +65,11 @@ class Negotiation extends Equatable {
   final DateTime updatedAt;
   final DateTime? completedAt;
 
+  /// SESSION/DEAL EXPIRY (wire: `expires_at`) — NULL = legacy never-expires.
+  /// For an accepted deal this is the 24h deal-validity deadline (backend
+  /// refreshes it at accept). Display authority for the countdown banner.
+  final DateTime? expiresAt;
+
   /// Optional notes
   final String? rejectionReason;
 
@@ -89,6 +94,7 @@ class Negotiation extends Equatable {
     required this.createdAt,
     required this.updatedAt,
     this.completedAt,
+    this.expiresAt,
     this.rejectionReason,
   });
 
@@ -98,7 +104,8 @@ class Negotiation extends Equatable {
   /// - Only active negotiations can receive actions
   /// - If buyer made last offer, only seller can counter or accept
   /// - If seller made last offer (counter), only buyer can counter or accept
-  /// - Only seller can accept (finalize the negotiation)
+  /// - Either participant may ACCEPT on their turn (owner truth: Terima and
+  ///   Tolak exist on both sides — backend authorizes participation)
   bool canUserAct(String userId) {
     // Only active negotiations allow actions
     if (!status.isActive) {
@@ -110,13 +117,6 @@ class Negotiation extends Equatable {
     }
     // If seller made last offer, buyer can respond
     return userId == buyerId;
-  }
-
-  /// Check if seller can accept (finalize) the negotiation
-  ///
-  /// **RULE:** Only seller can accept, and only when negotiation is active
-  bool canSellerAccept(String userId) {
-    return status.isActive && userId == sellerId;
   }
 
   /// Check if user is buyer
@@ -164,6 +164,7 @@ class Negotiation extends Equatable {
     createdAt,
     updatedAt,
     completedAt,
+    expiresAt,
     rejectionReason,
   ];
 
@@ -188,6 +189,7 @@ class Negotiation extends Equatable {
     DateTime? createdAt,
     DateTime? updatedAt,
     DateTime? completedAt,
+    DateTime? expiresAt,
     String? rejectionReason,
   }) {
     return Negotiation(
@@ -211,6 +213,7 @@ class Negotiation extends Equatable {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       completedAt: completedAt ?? this.completedAt,
+      expiresAt: expiresAt ?? this.expiresAt,
       rejectionReason: rejectionReason ?? this.rejectionReason,
     );
   }
@@ -335,10 +338,15 @@ extension NegotiationStatusExtension on NegotiationStatus {
   /// Check if negotiation is still active (can accept counter offers)
   bool get isActive => this == NegotiationStatus.active;
 
-  /// Check if negotiation is in terminal state (no more actions possible)
+  /// Check if negotiation is in a terminal (dead) state.
+  ///
+  /// CONVERGED TO BACKEND AUTHORITY (NegotiationStatus.IsTerminal): only
+  /// cancelled and expired. `accepted` is NOT terminal — it is the settleable
+  /// deal state (accepted → expired still allowed) and must stay visible so
+  /// the buyer's Beli CTA renders. Action-blocking is owned by [isActive] /
+  /// `canUserAct`, not by this getter.
   bool get isTerminal {
-    return this == NegotiationStatus.accepted ||
-        this == NegotiationStatus.cancelled ||
+    return this == NegotiationStatus.cancelled ||
         this == NegotiationStatus.expired;
   }
 }

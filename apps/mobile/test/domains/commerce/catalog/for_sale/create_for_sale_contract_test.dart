@@ -4,20 +4,32 @@ import 'package:labuda/domains/commerce/catalog/for_sale/data/dto/for_sale_dto.d
 void main() {
   group('Create forSale contract', () {
     test(
-      'CreateForSaleRequestDto keeps legacy media_urls when typed media is absent',
+      'CreateForSaleRequestDto sends typed media[] and never legacy media_urls',
       () {
         final dto = CreateForSaleRequestDto(
-          title: 'Legacy ForSale',
-          description: 'Legacy payload',
+          title: 'Typed ForSale',
+          description: 'Typed payload',
           price: 1500000,
           quantity: 1,
-          mediaUrls: const ['https://legacy.example.com/a.jpg'],
+          media: const [
+            {
+              'type': 'image',
+              'url': 'https://legacy.example.com/a.jpg',
+              'blurhash': 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
+            },
+          ],
         );
 
         final json = dto.toJson();
 
-        expect(json['media_urls'], const ['https://legacy.example.com/a.jpg']);
-        expect(json.containsKey('media'), isFalse);
+        expect(json['media'], const [
+          {
+            'type': 'image',
+            'url': 'https://legacy.example.com/a.jpg',
+            'blurhash': 'LKO2?U%2Tw=w]~RBVZRi};RPxuwH',
+          },
+        ]);
+        expect(json.containsKey('media_urls'), isFalse);
       },
     );
   });

@@ -33,7 +33,7 @@ class BlockedUserBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.block, size: 20, color: context.statusColors.warning),
+          Icon(Icons.block, size: AppIconSize.action, color: context.statusColors.warning),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -50,7 +50,7 @@ class BlockedUserBanner extends StatelessWidget {
               style: TextButton.styleFrom(
                 padding: const EdgeInsets.symmetric(
                   horizontal: AppMetrics.p12,
-                  vertical: AppMetrics.p6,
+                  vertical: AppMetrics.p8,
                 ),
                 minimumSize: Size.zero,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,

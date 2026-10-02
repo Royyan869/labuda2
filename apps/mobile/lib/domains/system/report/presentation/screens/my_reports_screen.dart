@@ -101,7 +101,7 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.error_outline, size: 64, color: context.statusColors.error),
+          Icon(Icons.error_outline, size: AppIconSize.display, color: context.statusColors.error),
           const SizedBox(height: 16),
           Text(
             'Failed to load reports',
@@ -127,7 +127,7 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
         children: [
           Icon(
             Icons.outbox_outlined,
-            size: 64,
+            size: AppIconSize.display,
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
           const SizedBox(height: 16),
@@ -181,14 +181,14 @@ class ReportCard extends StatelessWidget {
                 children: [
                   Icon(
                     _getIconForTargetType(report.subjectType),
-                    size: 16,
+                    size: AppIconSize.inlineGlyph,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                   const SizedBox(width: 6),
                   Text(
                     report.subjectType.displayName,
                     style: TextStyle(
-                      fontSize: AppType.s13,
+                      fontSize: AppType.s14,
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontWeight: FontWeight.w500,
                     ),
@@ -202,7 +202,7 @@ class ReportCard extends StatelessWidget {
           Text(
             report.targetTitle,
             style: TextStyle(
-              fontSize: AppType.s15,
+              fontSize: AppType.s16,
               fontWeight: FontWeight.w600,
               color: Theme.of(context).colorScheme.onSurface,
             ),
@@ -212,13 +212,13 @@ class ReportCard extends StatelessWidget {
           const SizedBox(height: 8),
           Row(
             children: [
-              Icon(Icons.flag_outlined, size: 14, color: Theme.of(context).colorScheme.primary),
+              Icon(Icons.flag_outlined, size: AppIconSize.inlineGlyph, color: Theme.of(context).colorScheme.primary),
               const SizedBox(width: 4),
               Expanded(
                 child: Text(
                   report.reason.displayName,
                   style: TextStyle(
-                    fontSize: AppType.s13,
+                    fontSize: AppType.s14,
                     color: Theme.of(context).colorScheme.primary,
                     fontWeight: FontWeight.w500,
                   ),
@@ -231,7 +231,7 @@ class ReportCard extends StatelessWidget {
             Text(
               report.description!,
               style: TextStyle(
-                fontSize: AppType.s13,
+                fontSize: AppType.s14,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               maxLines: 2,
@@ -288,12 +288,12 @@ class ReportCard extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 12, color: textColor),
+          Icon(icon, size: AppIconSize.inlineGlyph, color: textColor),
           const SizedBox(width: 4),
           Text(
             state.displayName,
             style: TextStyle(
-              fontSize: AppType.s11,
+              fontSize: AppType.s12,
               color: textColor,
               fontWeight: FontWeight.w600,
             ),

@@ -148,6 +148,8 @@ UserApiResponse _usersMeResponse({
   required String id,
   required bool hasSellerProfile,
   required bool hasMarketAuthority,
+  String? storeName,
+  String? storeImageUrl,
 }) {
   return UserApiResponse.fromJson({
     'id': id,
@@ -159,6 +161,11 @@ UserApiResponse _usersMeResponse({
     'seller_subscription_status': hasMarketAuthority ? 'active' : 'expired',
     'has_market_authority': hasMarketAuthority,
     'is_email_verified': true,
+    // Store identity is part of the self snapshot: it travels with the same
+    // payload as `username`, so the drawer can render it on the first frame
+    // without a second fetch. Omitted when the user owns no seller profile.
+    'store_name': ?storeName,
+    'store_image_url': ?storeImageUrl,
     'created_at': '2026-06-01T00:00:00Z',
     'updated_at': '2026-06-02T00:00:00Z',
     'profile': {
@@ -244,6 +251,8 @@ void main() {
         id: 'user-1',
         hasSellerProfile: true,
         hasMarketAuthority: false,
+        storeName: 'Qiqi Farm',
+        storeImageUrl: 'https://example.com/store.png',
       );
       final service = UserSyncService(
         firebaseAuth: _MockFirebaseAuth(currentUserValue: _MockFirebaseUser()),
@@ -255,6 +264,10 @@ void main() {
       expect(result.isSuccess, isTrue);
       final user = result.data!;
       expect(user, isA<AuthUser>());
+      // Store identity is hydrated with the session snapshot itself, not
+      // fetched separately afterwards.
+      expect(user.storeName, 'Qiqi Farm');
+      expect(user.storeImageUrl, 'https://example.com/store.png');
       expect(user.hasSellerProfile, isTrue);
       expect(user.hasMarketAuthority, isFalse);
       expect(user.hasCreatedSellerProfile, isTrue);
@@ -268,6 +281,28 @@ void main() {
       expect(marketOnly.isSeller, isTrue);
     },
   );
+
+  test('/users/me without a seller profile carries no store identity', () async {
+    final response = _usersMeResponse(
+      id: 'user-3',
+      hasSellerProfile: false,
+      hasMarketAuthority: false,
+    );
+    final service = UserSyncService(
+      firebaseAuth: _MockFirebaseAuth(currentUserValue: _MockFirebaseUser()),
+      datasource: _StaticUserApiDatasource(response),
+    );
+
+    final result = await service.getCurrentUser();
+
+    expect(result.isSuccess, isTrue);
+    final user = result.data!;
+    expect(user.hasCreatedSellerProfile, isFalse);
+    // Non-seller: no store identity is invented — the handle stays the only
+    // identity label the UI may show.
+    expect(user.storeName, isNull);
+    expect(user.storeImageUrl, isNull);
+  });
 
   test('hasSellerProfile and hasMarketAuthority remain independent', () {
     final sellerOnly = _baseUser(

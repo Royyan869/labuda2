@@ -9,8 +9,18 @@
 /// screen decides when to persist. The selector exposes its current selection
 /// through [onSelectionChanged] and renders three honest states:
 ///   - loading (showing a spinner)
-///   - empty (seller has zero active options -> CTA to /seller/shipping)
+///   - empty (seller has zero active options -> warning banner)
 ///   - populated (chips for each active option, multi-select)
+///
+/// ADDING OPTIONS: this widget never creates a shipping option itself — that
+/// is the job of the ONE canonical management surface (/seller/shipping, the
+/// one-package setup screen). A single "Atur Pengiriman" affordance is
+/// rendered in BOTH the empty and populated states and routes there, so a
+/// seller who already has an active option can still add another. Returning
+/// from that surface re-fetches the active list; without it the selector would
+/// keep the list loaded in initState and a freshly created option would never
+/// show up. An inline name+type form here is a killed design — do not add a
+/// second creation path.
 library;
 
 import 'package:flutter/material.dart';
@@ -56,6 +66,19 @@ class _SellerShippingSetupsSelectorState
     _future = _loadOptions();
   }
 
+  /// Opens the ONE canonical surface where shipping options are authored
+  /// (identity + destinations in one package). Shared by both states so there
+  /// is exactly one navigation call site — never a second "add" path.
+  Future<void> _openShippingManagement() async {
+    await context.push(RoutePaths.sellerShipping);
+    if (!mounted) return;
+    // Block body on purpose: an arrow closure returns the assigned Future and
+    // trips "setState() callback argument returned a Future".
+    setState(() {
+      _future = _loadOptions();
+    });
+  }
+
   Future<List<ShippingSetup>> _loadOptions() async {
     final authState = ref.read(authControllerProvider);
     if (authState is! AuthStateAuthenticated) {
@@ -92,13 +115,17 @@ class _SellerShippingSetupsSelectorState
           return _ErrorPlaceholder(
             message: snap.error.toString(),
             onRetry: () {
-              setState(() => _future = _loadOptions());
+              // Same reason as _openShippingManagement: block body, never an
+              // arrow closure returning the Future.
+              setState(() {
+                _future = _loadOptions();
+              });
             },
           );
         }
         final options = snap.data ?? const [];
         if (options.isEmpty) {
-          return const _EmptyOptionsBanner();
+          return _EmptyOptionsBanner(onManage: _openShippingManagement);
         }
         return _populated(options);
       },
@@ -116,7 +143,10 @@ class _SellerShippingSetupsSelectorState
             padding: const EdgeInsets.only(bottom: AppMetrics.p12),
             child: Text(
               widget.helperText!,
-              style: TextStyle(fontSize: AppType.s13, color: colorScheme.onSurfaceVariant),
+              style: TextStyle(
+                fontSize: AppType.s14,
+                color: colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
         Wrap(
@@ -136,7 +166,7 @@ class _SellerShippingSetupsSelectorState
         if (!hasSelection) ...[
           const SizedBox(height: 8),
           Text(
-            'Pilih minimal 1 opsi pengiriman agar forSale bisa dipublish.',
+            'Pilih minimal 1 opsi pengiriman agar bisa dipublish.',
             style: TextStyle(
               fontSize: AppType.s12,
               color: context.statusColors.warning,
@@ -144,6 +174,18 @@ class _SellerShippingSetupsSelectorState
             ),
           ),
         ],
+        // Canonical add-option affordance: present even when the seller
+        // already has active options, otherwise a listing could never gain a
+        // second shipping option.
+        const SizedBox(height: 8),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton.icon(
+            onPressed: _openShippingManagement,
+            icon: const Icon(Icons.add, size: AppIconSize.inlineGlyph),
+            label: const Text('Atur Pengiriman'),
+          ),
+        ),
       ],
     );
   }
@@ -160,7 +202,10 @@ class _LoadingPlaceholder extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16, horizontal: AppMetrics.p12),
+      padding: const EdgeInsets.symmetric(
+        vertical: AppMetrics.p16,
+        horizontal: AppMetrics.p12,
+      ),
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(AppShape.r8),
@@ -175,7 +220,10 @@ class _LoadingPlaceholder extends StatelessWidget {
           const SizedBox(width: 12),
           Text(
             'Memuat opsi pengiriman...',
-            style: TextStyle(fontSize: AppType.s13, color: colorScheme.onSurfaceVariant),
+            style: TextStyle(
+              fontSize: AppType.s14,
+              color: colorScheme.onSurfaceVariant,
+            ),
           ),
         ],
       ),
@@ -204,7 +252,7 @@ class _ErrorPlaceholder extends StatelessWidget {
           Text(
             'Gagal memuat opsi pengiriman.',
             style: TextStyle(
-              fontSize: AppType.s13,
+              fontSize: AppType.s14,
               fontWeight: FontWeight.w600,
               color: colorScheme.error,
             ),
@@ -212,7 +260,10 @@ class _ErrorPlaceholder extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             message,
-            style: TextStyle(fontSize: AppType.s12, color: colorScheme.onSurfaceVariant),
+            style: TextStyle(
+              fontSize: AppType.s12,
+              color: colorScheme.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 8),
           Align(
@@ -229,7 +280,11 @@ class _ErrorPlaceholder extends StatelessWidget {
 }
 
 class _EmptyOptionsBanner extends StatelessWidget {
-  const _EmptyOptionsBanner();
+  /// Routes to the canonical management surface. Injected so this banner owns
+  /// no navigation of its own — one route call site for both states.
+  final VoidCallback onManage;
+
+  const _EmptyOptionsBanner({required this.onManage});
 
   @override
   Widget build(BuildContext context) {
@@ -250,7 +305,7 @@ class _EmptyOptionsBanner extends StatelessWidget {
             children: [
               Icon(
                 Icons.local_shipping_outlined,
-                size: 18,
+                size: AppIconSize.action,
                 color: context.statusColors.warning,
               ),
               const SizedBox(width: 8),
@@ -258,7 +313,7 @@ class _EmptyOptionsBanner extends StatelessWidget {
                 child: Text(
                   'Belum Ada Opsi Pengiriman Aktif',
                   style: TextStyle(
-                    fontSize: AppType.s13,
+                    fontSize: AppType.s14,
                     fontWeight: FontWeight.w600,
                     color: context.statusColors.warning,
                   ),
@@ -268,18 +323,21 @@ class _EmptyOptionsBanner extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'Belum ada opsi pengiriman aktif. Buat opsi pengiriman dulu sebelum publish forSale.',
-            style: TextStyle(fontSize: AppType.s12, color: colorScheme.onSurfaceVariant),
+            'Belum ada opsi pengiriman aktif. Atur opsi pengiriman dulu sebelum publish.',
+            style: TextStyle(
+              fontSize: AppType.s12,
+              color: colorScheme.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 10),
           Align(
             alignment: Alignment.centerLeft,
             child: ElevatedButton.icon(
-              onPressed: () => context.push(RoutePaths.sellerShipping),
+              onPressed: onManage,
               style: ElevatedButton.styleFrom(
                 visualDensity: VisualDensity.compact,
               ),
-              icon: const Icon(Icons.add, size: 16),
+              icon: const Icon(Icons.add, size: AppIconSize.inlineGlyph),
               label: const Text('Atur Pengiriman'),
             ),
           ),

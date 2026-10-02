@@ -819,12 +819,13 @@ func (h *Handler) SendMessage(c *gin.Context) {
 		return
 	}
 
-	// A text message must carry a body OR media: a caption-less foto/video
-	// message is legitimate, an entirely empty message is not.
+	// A text message must carry a body OR media OR a commerce reference: a
+	// caption-less foto/video message is legitimate, a product-only share is
+	// legitimate, an entirely empty message is not.
 	var body *string
 	if messageType == chatEntity.MessageTypeText {
-		if req.Body == "" && len(req.MediaAssetIDs) == 0 {
-			response.BadRequest(c, "Body is required for text messages without media")
+		if req.Body == "" && len(req.MediaAssetIDs) == 0 && req.ResourceOccurrence == nil && req.AttachmentJSON == nil {
+			response.BadRequest(c, "Body is required for text messages without media or product reference")
 			return
 		}
 		if req.Body != "" {
@@ -2157,13 +2158,20 @@ func (h *Handler) SendCounterOffer(c *gin.Context) {
 		return
 	}
 
-	err = h.negotiationService.SendCounterOffer(ctx, negotiationApp.SendCounterOfferRequest{
+	session, err := h.negotiationService.SendCounterOffer(ctx, negotiationApp.SendCounterOfferRequest{
 		SessionID: sessionID,
 		SenderID:  userID,
 		Price:     req.Price,
 		Note:      req.Note,
 	})
 	if err != nil {
+		// TURN: alternating counter is a business rule — surface it as its own
+		// contract code instead of a generic error mapping.
+		var notYourTurn *negotiationApp.ErrNotYourTurn
+		if errors.As(err, &notYourTurn) {
+			response.Error(c, 409, "NEGOTIATION_NOT_YOUR_TURN", "Bukan giliran Anda untuk membalas penawaran ini")
+			return
+		}
 		h.log.Error("Failed to send counter offer",
 			zap.String("room_id", roomID.String()),
 			zap.String("user_id", userID.String()),
@@ -2173,12 +2181,17 @@ func (h *Handler) SendCounterOffer(c *gin.Context) {
 		return
 	}
 
-	response.Success(c, gin.H{"message": "Counter offer sent"})
+	// COUNTER RESPONSE CONTRACT: same sessionToResponse envelope as start/
+	// respond/get. The previous {"message":"Counter offer sent"} body made the
+	// mobile DTO read data.id as null → "Failed to counter offer" although the
+	// counter had committed — the client then kept its stale turn state.
+	response.Success(c, sessionToResponse(session))
 }
 
 // RespondToNegotiation handles POST /api/v1/chat/rooms/:room_id/respond
 //
-// Accepts or cancels a negotiation. Only seller can accept; only buyer can cancel.
+// Accepts or cancels a negotiation. Either PARTICIPANT may accept or cancel
+// (owner truth: Terima and Tolak exist on both sides).
 // Suspended users CAN cancel (cleanup exemption).
 func (h *Handler) RespondToNegotiation(c *gin.Context) {
 	ctx := c.Request.Context()
@@ -2240,7 +2253,7 @@ func (h *Handler) RespondToNegotiation(c *gin.Context) {
 
 		session, err := h.negotiationService.AcceptNegotiation(ctx, negotiationApp.AcceptNegotiationRequest{
 			SessionID: sessionID,
-			SellerID:  userID,
+			ActorID:   userID,
 		})
 		if err != nil {
 			h.log.Error("Failed to accept negotiation",
@@ -2257,7 +2270,7 @@ func (h *Handler) RespondToNegotiation(c *gin.Context) {
 		// No EnsureActive for cancel — suspended users can cancel (cleanup exemption)
 		err := h.negotiationService.CancelNegotiation(ctx, negotiationApp.CancelNegotiationRequest{
 			SessionID: sessionID,
-			BuyerID:   userID,
+			ActorID:   userID,
 		})
 		if err != nil {
 			h.log.Error("Failed to cancel negotiation",

@@ -54,11 +54,15 @@ func TestRecordSubscriptionPaymentFeeRevenue_BalancedEntries(t *testing.T) {
 	platformRevenue := uuid.MustParse("00000000-0000-0000-0000-000000000002")
 	bankSettlement := uuid.MustParse("00000000-0000-0000-0000-000000000003")
 
-	if movements[platformRevenue] != fee {
-		t.Errorf("PLATFORM_REVENUE movement = %d, want +%d", movements[platformRevenue], fee)
+	// Canonical class-aware sign: PLATFORM_REVENUE is ClassRevenue and
+	// BANK_SETTLEMENT is ClassLiability, so Δbalance = -entry.Amount for both.
+	// Revenue going UP is therefore recorded as a NEGATIVE amount — the same
+	// raw convention RecordSubscriptionRevenue and RecordOrderRelease use.
+	if movements[platformRevenue] != -fee {
+		t.Errorf("PLATFORM_REVENUE movement = %d, want %d (CR: revenue increases)", movements[platformRevenue], -fee)
 	}
-	if movements[bankSettlement] != -fee {
-		t.Errorf("BANK_SETTLEMENT movement = %d, want -%d", movements[bankSettlement], fee)
+	if movements[bankSettlement] != fee {
+		t.Errorf("BANK_SETTLEMENT movement = %d, want +%d (DR: reserve decreases)", movements[bankSettlement], fee)
 	}
 }
 
@@ -137,7 +141,8 @@ func TestRecordSubscriptionPaymentFeeRevenue_IdempotencyKeyIsStable(t *testing.T
 }
 
 // TestRecordSubscriptionPaymentFeeRevenue_EntryShape locks the exact account
-// pair: BANK_SETTLEMENT (credit) then PLATFORM_REVENUE (debit).
+// pair and its direction: BANK_SETTLEMENT DR (+fee) then PLATFORM_REVENUE
+// CR (-fee) — the carve-out moves fee INTO revenue, never out of it.
 func TestRecordSubscriptionPaymentFeeRevenue_EntryShape(t *testing.T) {
 	mock := &mockFeeLedgerRepo{}
 	svc := &FinanceService{ledgerRepo: mock, logger: zap.NewNop()}
@@ -152,12 +157,12 @@ func TestRecordSubscriptionPaymentFeeRevenue_EntryShape(t *testing.T) {
 	bankSettlement := uuid.MustParse("00000000-0000-0000-0000-000000000003")
 	platformRevenue := uuid.MustParse("00000000-0000-0000-0000-000000000002")
 
-	if mock.lastEntries[0].AccountID != bankSettlement || mock.lastEntries[0].Amount.Int64() != -2500 {
-		t.Errorf("entry[0] = (%s, %d), want BANK_SETTLEMENT credit -2500",
+	if mock.lastEntries[0].AccountID != bankSettlement || mock.lastEntries[0].Amount.Int64() != 2500 {
+		t.Errorf("entry[0] = (%s, %d), want BANK_SETTLEMENT debit +2500",
 			mock.lastEntries[0].AccountID, mock.lastEntries[0].Amount.Int64())
 	}
-	if mock.lastEntries[1].AccountID != platformRevenue || mock.lastEntries[1].Amount.Int64() != 2500 {
-		t.Errorf("entry[1] = (%s, %d), want PLATFORM_REVENUE debit +2500",
+	if mock.lastEntries[1].AccountID != platformRevenue || mock.lastEntries[1].Amount.Int64() != -2500 {
+		t.Errorf("entry[1] = (%s, %d), want PLATFORM_REVENUE credit -2500",
 			mock.lastEntries[1].AccountID, mock.lastEntries[1].Amount.Int64())
 	}
 	if mock.lastEntries[0].AccountID == mock.lastEntries[1].AccountID {

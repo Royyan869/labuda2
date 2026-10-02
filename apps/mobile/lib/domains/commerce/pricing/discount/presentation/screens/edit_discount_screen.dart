@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart' as core;
+import 'package:labuda/core/src/theme/app_theme.dart';
 import 'package:labuda/shared/widgets/app_snackbar.dart';
 import 'package:labuda/shared/shared.dart' show authenticatedUserProvider;
 import 'package:labuda/domains/commerce/pricing/discount/domain/entities/discount_entity.dart';
@@ -216,7 +217,7 @@ class _EditDiscountScreenState extends ConsumerState<EditDiscountScreen> {
         children: [
           Row(
             children: [
-              Icon(Icons.info_outline, color: context.statusColors.warning, size: 20),
+              Icon(Icons.info_outline, color: context.statusColors.warning, size: AppIconSize.action),
               const SizedBox(width: 8),
               Text(
                 'Discount Already Used',
@@ -231,14 +232,14 @@ class _EditDiscountScreenState extends ConsumerState<EditDiscountScreen> {
           Text(
             'This discount has been used ${_original.currentUsageCount} times. '
             'Some fields cannot be changed to maintain data consistency.',
-            style: TextStyle(fontSize: core.AppType.s13, color: context.statusColors.warning),
+            style: TextStyle(fontSize: core.AppType.s14, color: context.statusColors.warning),
           ),
           const SizedBox(height: 12),
           Text(
             'What can be changed:',
             style: TextStyle(
               fontWeight: FontWeight.w600,
-              fontSize: core.AppType.s13,
+              fontSize: core.AppType.s14,
               color: context.statusColors.warning,
             ),
           ),
@@ -250,7 +251,7 @@ class _EditDiscountScreenState extends ConsumerState<EditDiscountScreen> {
             '• Add usage limit',
           ].map(
             (text) => Padding(
-              padding: const EdgeInsets.only(left: core.AppMetrics.p8, top: core.AppMetrics.p2),
+              padding: const EdgeInsets.only(left: core.AppMetrics.p8, top: core.AppMetrics.p4),
               child: Text(
                 text,
                 style: TextStyle(fontSize: core.AppType.s12, color: context.statusColors.warning),
@@ -277,10 +278,7 @@ class _EditDiscountScreenState extends ConsumerState<EditDiscountScreen> {
       child: Scaffold(
         backgroundColor: Theme.of(context).colorScheme.surface,
         appBar: AppBar(
-          title: const Text('Edit Discount'),
-          elevation: core.AppElevation.none,
-          surfaceTintColor: Colors.transparent,
-          scrolledUnderElevation: 0,
+          title: const Text('Edit Diskon'),
           leading: IconButton(
             icon: const Icon(Icons.close),
             onPressed: () {

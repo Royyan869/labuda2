@@ -105,7 +105,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Search'),
-        elevation: AppElevation.none,
       ),
       body: Column(
         children: [

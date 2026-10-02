@@ -10,6 +10,7 @@ import 'package:labuda/shared/widgets/app_snackbar.dart';
 import 'package:labuda/shared/utils/media_extensions.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/domain/domain.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart';
+import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_certificate_selector.dart';
 import 'package:labuda/shared/widgets/media_grid_uploader.dart';
 import 'package:labuda/domains/commerce/transaction/shipping/presentation/providers/providers.dart';
 import 'package:labuda/domains/commerce/transaction/shipping/presentation/widgets/seller_shipping_options_selector.dart';
@@ -71,7 +72,9 @@ class _EditForSaleScreenState extends ConsumerState<EditForSaleScreen> {
   // Form state
   // F01C: quantity intentionally not editable here — backend PUT /for-sale/:id
   // has no quantity field; stock mutations are canonical order paths only.
-  bool _isNegotiable = true;
+  /// Hydrates from the SERVER truth (`isNegotiable`), never derived from
+  /// price — the listing's negotiation flag is its own canonical field.
+  bool _isNegotiable = false;
   double? _price;
   final List<String> _mediaUrls = [];
 
@@ -82,6 +85,10 @@ class _EditForSaleScreenState extends ConsumerState<EditForSaleScreen> {
   String? _gender;
   String? _breeder;
   String? _bloodline;
+
+  /// Seller-declared certificates, hydrated from the canonical read model and
+  /// written back on save (empty list = clear).
+  List<String> _certificates = const [];
 
   bool _isSubmitting = false;
   String? _errorMessage;
@@ -136,7 +143,7 @@ class _EditForSaleScreenState extends ConsumerState<EditForSaleScreen> {
                 _titleController.text = forSale.title;
                 _descriptionController.text = forSale.description;
                 _price = forSale.price;
-                _isNegotiable = forSale.price > 0;
+                _isNegotiable = forSale.isNegotiable;
                 _mediaUrls.clear();
                 _mediaUrls.addAll(forSale.media.urls);
                 _variety = forSale.variety;
@@ -145,6 +152,7 @@ class _EditForSaleScreenState extends ConsumerState<EditForSaleScreen> {
                 _gender = forSale.gender;
                 _breeder = forSale.breeder;
                 _bloodline = forSale.bloodline;
+                _certificates = forSale.certificates;
               });
             } else {
               setState(
@@ -193,6 +201,7 @@ class _EditForSaleScreenState extends ConsumerState<EditForSaleScreen> {
         gender: _gender,
         breeder: _breeder,
         bloodline: _bloodline,
+        certificates: _certificates,
       );
 
       final controller = ref.read(forSaleControllerProvider);
@@ -258,21 +267,14 @@ class _EditForSaleScreenState extends ConsumerState<EditForSaleScreen> {
 
     if (_originalForSale == null && _errorMessage == null) {
       return Scaffold(
-        appBar: AppBar(
-          title: const Text('Edit ForSale'),
-          backgroundColor: scheme.surface,
-          foregroundColor: scheme.onSurface,
-        ),
+        appBar: AppBar(title: const Text('Edit ForSale')),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     if (_errorMessage != null && _errorMessage!.contains('izin')) {
       return Scaffold(
-        appBar: AppBar(
-          title: const Text('Edit ForSale'),
-          backgroundColor: scheme.surface,
-        ),
+        appBar: AppBar(title: const Text('Edit ForSale')),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(AppMetrics.p24),
@@ -281,7 +283,7 @@ class _EditForSaleScreenState extends ConsumerState<EditForSaleScreen> {
               children: [
                 Icon(
                   Icons.lock,
-                  size: 64,
+                  size: AppIconSize.display,
                   color: Theme.of(context).colorScheme.primary,
                 ),
                 const SizedBox(height: 16),
@@ -310,11 +312,6 @@ class _EditForSaleScreenState extends ConsumerState<EditForSaleScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        backgroundColor: scheme.surface,
-        foregroundColor: scheme.onSurface,
-        elevation: AppElevation.none,
-        surfaceTintColor: Colors.transparent,
-        scrolledUnderElevation: 0,
         actions: [
           TextButton(
             onPressed: _isSubmitting ? null : _submitForm,
@@ -324,9 +321,7 @@ class _EditForSaleScreenState extends ConsumerState<EditForSaleScreen> {
                     height: 16,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        scheme.primary,
-                      ),
+                      valueColor: AlwaysStoppedAnimation<Color>(scheme.primary),
                     ),
                   )
                 : Text(
@@ -358,13 +353,13 @@ class _EditForSaleScreenState extends ConsumerState<EditForSaleScreen> {
             MediaGridUploader(
               mediaUrls: _mediaUrls,
               onMediaAdded: (url) => setState(() => _mediaUrls.add(url)),
-               onMediaRemoved: (index) =>
-                   setState(() => _mediaUrls.removeAt(index)),
-               onMediaReordered: (oldIndex, newIndex) => setState(() {
-                 final item = _mediaUrls.removeAt(oldIndex);
-                 _mediaUrls.insert(newIndex, item);
-               }),
-             ),
+              onMediaRemoved: (index) =>
+                  setState(() => _mediaUrls.removeAt(index)),
+              onMediaReordered: (oldIndex, newIndex) => setState(() {
+                final item = _mediaUrls.removeAt(oldIndex);
+                _mediaUrls.insert(newIndex, item);
+              }),
+            ),
 
             const SizedBox(height: 24),
 
@@ -396,6 +391,16 @@ class _EditForSaleScreenState extends ConsumerState<EditForSaleScreen> {
               onGenderChanged: (value) => setState(() => _gender = value),
               onBreederChanged: (value) => setState(() => _breeder = value),
               onBloodlineChanged: (value) => setState(() => _bloodline = value),
+            ),
+
+            const SizedBox(height: 16),
+
+            CommerceCertificateSelector(
+              selectedCertificates: _certificates,
+              onChanged: (value) => setState(() => _certificates = value),
+              helperText:
+                  'Pilih jenis sertifikat yang ikan ini miliki. Sertifikat adalah '
+                  'keterangan dari seller, bukan unggahan dokumen.',
             ),
 
             const SizedBox(height: 24),
@@ -456,7 +461,10 @@ class _SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       title,
-      style: const TextStyle(fontSize: AppType.s18, fontWeight: FontWeight.bold),
+      style: const TextStyle(
+        fontSize: AppType.s20,
+        fontWeight: FontWeight.bold,
+      ),
     );
   }
 }

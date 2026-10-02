@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	auctionentity "github.com/labuda/backend/internal/commerce/auction/entity"
+	notificationentity "github.com/labuda/backend/internal/interaction/notification/entity"
 	dbpkg "github.com/labuda/backend/pkg/db"
 	"go.uber.org/zap"
 )
@@ -25,6 +26,16 @@ func (h *NotificationEventHandler) handleNegotiationStarted(ctx context.Context,
 	sellerID, err := uuid.Parse(p.SellerID)
 	if err != nil {
 		return notificationInfo{}, fmt.Errorf("invalid seller_id: %w", err)
+	}
+
+	// Actor = the buyer who opened the negotiation. A payload without a real
+	// buyer is corrupt (not a legacy shape) — acknowledge without an insert.
+	actor := notificationentity.ParseUserActor(p.BuyerID)
+	if !actor.IsUser() {
+		h.log.Warn("negotiation.started without a real buyer actor — acknowledged without insert",
+			zap.String("session_id", p.SessionID),
+		)
+		return notificationInfo{}, nil
 	}
 
 	// Enrich chatRoomId: payload has no chat_room_id at started time (room created after).
@@ -52,7 +63,7 @@ func (h *NotificationEventHandler) handleNegotiationStarted(ctx context.Context,
 	}
 
 	// Notify SELLER (buyer-initiated negotiation)
-	info, err := h.insertNotificationWithPolicy(ctx, sellerID, uuid.Nil, "negotiation.started", sessionID, data)
+	info, err := h.insertNotificationWithPolicy(ctx, sellerID, actor, "negotiation.started", sessionID, data)
 	if err != nil {
 		return notificationInfo{}, fmt.Errorf("insert notification failed: %w", err)
 	}
@@ -110,8 +121,9 @@ func (h *NotificationEventHandler) handleNegotiationMessageSent(ctx context.Cont
 		"chatRoomId": p.ChatRoomID,
 	}
 
-	// Notify the other party (not the sender)
-	info, err := h.insertNotificationWithPolicy(ctx, recipientID, uuid.Nil, "negotiation.message_sent", sessionID, data)
+	// Notify the other party (not the sender). Actor = the sender of the
+	// counter-offer (already validated as buyer/seller above).
+	info, err := h.insertNotificationWithPolicy(ctx, recipientID, notificationentity.UserActor(senderID), "negotiation.message_sent", sessionID, data)
 	if err != nil {
 		return notificationInfo{}, fmt.Errorf("insert notification failed: %w", err)
 	}
@@ -136,6 +148,12 @@ func (h *NotificationEventHandler) handleNegotiationAccepted(ctx context.Context
 		return notificationInfo{}, fmt.Errorf("invalid buyer_id: %w", err)
 	}
 
+	// Actor = the participant who accepted (owner truth: both sides hold
+	// Terima). Legacy events without an actor id are system-caused and still
+	// delivered — the canonical model no longer needs a drop-the-event
+	// workaround for a sentinel that could not be persisted.
+	actor := notificationentity.ParseUserActor(p.ActorID)
+
 	// Navigation data for mobile
 	data := map[string]interface{}{
 		"sessionId":    p.SessionID,
@@ -144,8 +162,8 @@ func (h *NotificationEventHandler) handleNegotiationAccepted(ctx context.Context
 		"resourceId":   p.ResourceID,
 	}
 
-	// Notify BUYER (seller accepted the offer)
-	info, err := h.insertNotificationWithPolicy(ctx, buyerID, uuid.Nil, "negotiation.accepted", sessionID, data)
+	// Notify BUYER (the other party accepted the offer)
+	info, err := h.insertNotificationWithPolicy(ctx, buyerID, actor, "negotiation.accepted", sessionID, data)
 	if err != nil {
 		return notificationInfo{}, fmt.Errorf("insert notification failed: %w", err)
 	}
@@ -153,7 +171,8 @@ func (h *NotificationEventHandler) handleNegotiationAccepted(ctx context.Context
 }
 
 // handleNegotiationExpired processes negotiation.expired events.
-// Notifies both parties that the negotiation has expired.
+// Notifies both parties that the negotiation has expired. The expiry clock is
+// platform-caused: the canonical actor is the system actor.
 func (h *NotificationEventHandler) handleNegotiationExpired(ctx context.Context, payload []byte) (notificationInfo, error) {
 	var p NegotiationPayload
 	if err := json.Unmarshal(payload, &p); err != nil {
@@ -170,17 +189,34 @@ func (h *NotificationEventHandler) handleNegotiationExpired(ctx context.Context,
 		return notificationInfo{}, fmt.Errorf("invalid buyer_id: %w", err)
 	}
 
-	// Navigation data for mobile
 	data := map[string]interface{}{
 		"sessionId":  p.SessionID,
 		"chatRoomId": p.ChatRoomID,
 	}
 
-	// Notify BUYER (session timed out — seller can be notified similarly if needed)
-	info, err := h.insertNotificationWithPolicy(ctx, buyerID, uuid.Nil, "negotiation.expired", sessionID, data)
+	// Notify BUYER (primary — returned for push dispatch)
+	info, err := h.insertNotificationWithPolicy(ctx, buyerID, notificationentity.SystemActor(), "negotiation.expired", sessionID, data)
 	if err != nil {
-		return notificationInfo{}, fmt.Errorf("insert notification failed: %w", err)
+		return notificationInfo{}, fmt.Errorf("insert buyer notification failed: %w", err)
 	}
+
+	// Notify SELLER if present and distinct from the buyer.
+	if p.SellerID != "" {
+		sellerID, sErr := uuid.Parse(p.SellerID)
+		if sErr != nil {
+			h.log.Warn("negotiation.expired: invalid seller_id, skipping seller notification",
+				zap.String("session_id", p.SessionID),
+			)
+		} else if sellerID != buyerID {
+			sellerInfo, sErr := h.insertNotificationWithPolicy(ctx, sellerID, notificationentity.SystemActor(), "negotiation.expired", sessionID, data)
+			if sErr != nil {
+				h.log.Warn("negotiation.expired: failed to notify seller", zap.Error(sErr))
+			} else if h.pushSender != nil && sellerInfo.inserted && sellerInfo.allowPush {
+				go h.sendPushAsync(context.Background(), sellerInfo)
+			}
+		}
+	}
+
 	return info, nil
 }
 
@@ -204,13 +240,18 @@ func (h *NotificationEventHandler) handleNegotiationCancelled(ctx context.Contex
 		return notificationInfo{}, fmt.Errorf("invalid buyer_id: %w", err)
 	}
 
+	// Actor = the participant who cancelled (owner truth: both sides hold
+	// Tolak). Legacy events without an actor id are system-caused and still
+	// delivered.
+	actor := notificationentity.ParseUserActor(p.ActorID)
+
 	data := map[string]interface{}{
 		"sessionId":  p.SessionID,
 		"chatRoomId": p.ChatRoomID,
 	}
 
 	// Notify BUYER (primary — returned for push dispatch)
-	info, err := h.insertNotificationWithPolicy(ctx, buyerID, uuid.Nil, "negotiation.cancelled", sessionID, data)
+	info, err := h.insertNotificationWithPolicy(ctx, buyerID, actor, "negotiation.cancelled", sessionID, data)
 	if err != nil {
 		return notificationInfo{}, fmt.Errorf("insert buyer notification failed: %w", err)
 	}
@@ -223,7 +264,7 @@ func (h *NotificationEventHandler) handleNegotiationCancelled(ctx context.Contex
 				zap.String("session_id", p.SessionID),
 			)
 		} else if sellerID != buyerID {
-			sellerInfo, sErr := h.insertNotificationWithPolicy(ctx, sellerID, uuid.Nil, "negotiation.cancelled", sessionID, data)
+			sellerInfo, sErr := h.insertNotificationWithPolicy(ctx, sellerID, actor, "negotiation.cancelled", sessionID, data)
 			if sErr != nil {
 				h.log.Warn("negotiation.cancelled: failed to notify seller", zap.Error(sErr))
 			} else if h.pushSender != nil && sellerInfo.inserted && sellerInfo.allowPush {
@@ -267,8 +308,8 @@ func (h *NotificationEventHandler) handleSellerTierChanged(ctx context.Context, 
 		"newTier":      p.NewTier,
 	}
 
-	// Notify SELLER (system-initiated — uuid.Nil actor)
-	return h.insertNotificationWithPolicy(ctx, sellerID, uuid.Nil, eventType, sellerID, data)
+	// Notify SELLER (system-initiated reputation evaluation)
+	return h.insertNotificationWithPolicy(ctx, sellerID, notificationentity.SystemActor(), eventType, sellerID, data)
 }
 
 // =============================================================================
@@ -315,7 +356,7 @@ func (h *NotificationEventHandler) handleAuctionBidPlaced(ctx context.Context, p
 
 	return h.insertNotificationWithPolicy(
 		ctx,
-		sellerID, bidderID,
+		sellerID, notificationentity.UserActor(bidderID),
 		"auction.bid.placed",
 		auctionID,
 		data,
@@ -360,7 +401,7 @@ func (h *NotificationEventHandler) handleAuctionWaitingSettlement(ctx context.Co
 	// Notify WINNER — must claim within 24 hours (primary obligation).
 	winnerInfo, wErr := h.insertNotificationWithPolicy(
 		ctx,
-		winnerID, sellerID,
+		winnerID, notificationentity.UserActor(sellerID),
 		"auction.waiting_settlement",
 		auctionID,
 		data,
@@ -370,7 +411,7 @@ func (h *NotificationEventHandler) handleAuctionWaitingSettlement(ctx context.Co
 	// Distinct type so seller copy ("Ada Pemenang Lelang") differs from winner copy.
 	_, sErr := h.insertNotificationWithPolicy(
 		ctx,
-		sellerID, winnerID,
+		sellerID, notificationentity.UserActor(winnerID),
 		"auction.seller_has_winner",
 		auctionID,
 		data,
@@ -447,7 +488,7 @@ func (h *NotificationEventHandler) handleAuctionSettlementFailed(ctx context.Con
 	if p.ViolationType == "seller_shipping_default" {
 		info, sErr := h.insertNotificationWithPolicy(
 			ctx,
-			sellerID, uuid.Nil, // system-initiated
+			sellerID, notificationentity.UserActor(sellerID), // the seller's own default
 			"auction.settlement_failed.seller_default",
 			auctionID,
 			data,
@@ -465,7 +506,7 @@ func (h *NotificationEventHandler) handleAuctionSettlementFailed(ctx context.Con
 	// BUYER violation — notify the violating winner (primary; returned for push).
 	winnerInfo, wErr := h.insertNotificationWithPolicy(
 		ctx,
-		violatedUserID, uuid.Nil, // system-initiated
+		violatedUserID, notificationentity.UserActor(violatedUserID), // the winner's own default
 		"auction.settlement_failed.buyer",
 		auctionID,
 		data,
@@ -482,7 +523,7 @@ func (h *NotificationEventHandler) handleAuctionSettlementFailed(ctx context.Con
 	if sellerID != violatedUserID {
 		sellerInfo, sErr := h.insertNotificationWithPolicy(
 			ctx,
-			sellerID, uuid.Nil, // system-initiated
+			sellerID, notificationentity.UserActor(violatedUserID), // the winner's default cancelled the deal
 			"auction.settlement_failed.relistable",
 			auctionID,
 			data,
@@ -535,7 +576,7 @@ func (h *NotificationEventHandler) handleAuctionEndedNoWinner(ctx context.Contex
 
 	return h.insertNotificationWithPolicy(
 		ctx,
-		sellerID, uuid.Nil, // system-initiated — no human actor
+		sellerID, notificationentity.SystemActor(), // auction clock — no human actor
 		"auction.ended_no_winner",
 		auctionID,
 		data,
@@ -590,7 +631,7 @@ func (h *NotificationEventHandler) handleAuctionCancelled(ctx context.Context, p
 
 	return h.insertNotificationWithPolicy(
 		ctx,
-		sellerID, uuid.Nil, // system-initiated — no human actor
+		sellerID, notificationentity.SystemActor(), // subscription expiry — no human actor
 		"auction.cancelled.seller",
 		auctionID,
 		data,
@@ -635,8 +676,9 @@ func (h *NotificationEventHandler) handleExternalProductReviewLifecycle(
 		data["reason"] = p.Reason
 	}
 
-	// Notify OWNER — admin-initiated review decision; actor is the system (uuid.Nil).
-	info, err := h.insertNotificationWithPolicy(ctx, ownerID, uuid.Nil, notifyType, productID, data)
+	// Notify OWNER — the payload carries the reviewing admin; legacy events
+	// without one degrade to the system actor.
+	info, err := h.insertNotificationWithPolicy(ctx, ownerID, notificationentity.ParseUserActor(p.ReviewedBy), notifyType, productID, data)
 	if err != nil {
 		return notificationInfo{}, fmt.Errorf("insert notification failed: %w", err)
 	}

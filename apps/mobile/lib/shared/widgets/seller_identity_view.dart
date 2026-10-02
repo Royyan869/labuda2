@@ -1,40 +1,32 @@
 import 'package:flutter/material.dart';
-import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/models/seller_identity_data.dart';
 import 'package:labuda/shared/widgets/hybrid_avatar.dart';
 import 'package:labuda/shared/widgets/seller_dual_avatar.dart';
 
-enum SellerIdentityViewVariant { profile, drawer, detail }
-
-/// Shared seller identity composite for profile, drawer, and detail surfaces.
+/// The ONE identity composite: store name primary, handle secondary.
+///
+/// Surfaces that pair the two labels render this widget instead of composing
+/// their own order. The former `drawer`/`detail` variants were dead renderers
+/// (no consumer); the commerce detail surface has its own canonical authority
+/// (`CommerceDetailSellerCard`), so only one renderer remains here.
 class SellerIdentityView extends StatelessWidget {
   final SellerIdentityData identity;
-  final SellerIdentityViewVariant variant;
   final double? size;
   final VoidCallback? onTap;
 
   const SellerIdentityView({
     super.key,
     required this.identity,
-    required this.variant,
     this.size,
     this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final avatarSize = size ?? _defaultAvatarSize();
-    switch (variant) {
-      case SellerIdentityViewVariant.profile:
-        return _buildProfile(context, avatarSize: avatarSize);
-      case SellerIdentityViewVariant.drawer:
-        return _buildAvatar(context, size: avatarSize);
-      case SellerIdentityViewVariant.detail:
-        return _buildDetail(context, avatarSize: avatarSize);
-    }
+    return _buildIdentity(context, avatarSize: size ?? _defaultAvatarSize());
   }
 
-  Widget _buildProfile(BuildContext context, {required double avatarSize}) {
+  Widget _buildIdentity(BuildContext context, {required double avatarSize}) {
     final scheme = Theme.of(context).colorScheme;
     final handle = identity.displayHandle;
     final storeName = identity.normalizedStoreName;
@@ -45,10 +37,27 @@ class SellerIdentityView extends StatelessWidget {
 
     final avatar = _buildAvatar(context, size: avatarSize);
     final textScale = _profileTextScale(avatarSize);
-    final storeNameSize = _lerpDouble(11.0, 13.0, textScale);
-    final handleSize = _lerpDouble(14.0, 18.0, textScale);
-    final storeColor = scheme.onSurface;
-    final handleColor = scheme.onSurfaceVariant;
+
+    // OWNER TRUTH — identity pairing: the store name is the primary line (top,
+    // larger, emphasised) and the handle is secondary (below, smaller). A user
+    // without a store has only a handle, and that handle takes the primary
+    // treatment.
+    final primarySize = _lerpDouble(15.0, 18.0, textScale);
+    final secondarySize = _lerpDouble(12.0, 13.0, textScale);
+    final textTheme = Theme.of(context).textTheme;
+    final primaryStyle = textTheme.bodyMedium!.copyWith(
+      color: scheme.onSurface,
+      fontWeight: FontWeight.w600,
+      fontSize: primarySize,
+    );
+    final secondaryStyle = textTheme.bodySmall!.copyWith(
+      color: scheme.onSurfaceVariant,
+      fontSize: secondarySize,
+    );
+    // The pairing rule lives in ONE place — the identity model — so every
+    // surface orders the store name and the handle identically.
+    final primaryLine = identity.primaryLabel;
+    final secondaryLine = identity.secondaryLabel;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -61,25 +70,18 @@ class SellerIdentityView extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (storeName != null)
+              if (primaryLine != null)
                 Text(
-                  storeName,
-                  style: AppTypography.bodyMedium.copyWith(
-                    color: storeColor,
-                    fontWeight: FontWeight.w600,
-                    fontSize: storeNameSize,
-                  ),
+                  primaryLine,
+                  style: primaryStyle,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-              if (handle != null) ...[
-                if (storeName != null) const SizedBox(height: 2),
+              if (secondaryLine != null) ...[
+                const SizedBox(height: 2),
                 Text(
-                  handle,
-                  style: AppTypography.bodySmall.copyWith(
-                    color: handleColor,
-                    fontSize: handleSize,
-                  ),
+                  secondaryLine,
+                  style: secondaryStyle,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -110,79 +112,7 @@ class SellerIdentityView extends StatelessWidget {
     );
   }
 
-  Widget _buildDetail(BuildContext context, {required double avatarSize}) {
-    final scheme = Theme.of(context).colorScheme;
-    final handle = identity.displayHandle;
-    final storeName = identity.normalizedStoreName;
-    final originLine = identity.publicOriginLine?.trim();
-
-    if (handle == null && storeName == null && originLine == null) {
-      return const SizedBox.shrink();
-    }
-
-    final avatar = _buildAvatar(context, size: avatarSize);
-
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Row(
-        children: [
-          avatar,
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (storeName != null)
-                  Text(
-                    storeName,
-                    style: AppTypography.bodyMedium.copyWith(
-                      color: scheme.onSurface,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                if (handle != null) ...[
-                  if (storeName != null) const SizedBox(height: 2),
-                  Text(
-                    handle,
-                    style: AppTypography.bodySmall.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-                if (originLine != null) ...[
-                  if (handle != null || storeName != null) const SizedBox(height: 2),
-                  Text(
-                    originLine,
-                    style: AppTypography.bodySmall.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  double _defaultAvatarSize() {
-    switch (variant) {
-      case SellerIdentityViewVariant.profile:
-        return 80;
-      case SellerIdentityViewVariant.drawer:
-        return 56;
-      case SellerIdentityViewVariant.detail:
-        return 48;
-    }
-  }
+  double _defaultAvatarSize() => 80;
 
   double _profileTextScale(double avatarSize) {
     const minAvatarSize = 40.0;

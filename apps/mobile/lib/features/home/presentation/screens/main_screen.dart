@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/generated/app_localizations.dart';
@@ -23,35 +24,17 @@ class MainScreen extends ConsumerStatefulWidget {
   ConsumerState<MainScreen> createState() => _MainScreenState();
 }
 
-class _MainScreenState extends ConsumerState<MainScreen>
-    with WidgetsBindingObserver {
+// CATATAN ARSITEKTUR: pengamat lifecycle (WidgetsBindingObserver) yang
+// dulu hidup di screen ini sudah dipindah ke [SessionLifecycleObserver]
+// (lib/core/session/session_lifecycle_observer.dart) — pekerjaan resume
+// (reconnect socket + re-read backend) milik sesi, jadi harus berjalan di
+// route manapun, bukan hanya selama MainScreen ada di stack. Dulu hook itu
+// hilang diam-diam pada route yang dicapai lewat `go()`, dan setiap
+// focus-blip (screenshot) ikut menjalankan refresh sesi sehingga user
+// dilempar loading → splash → home.
+class _MainScreenState extends ConsumerState<MainScreen> {
   int _currentIndex = 0;
   DateTime? _lastBackPressed;
-
-  @override
-  void initState() {
-    super.initState();
-    // Batch 2: a seller payment (subscription activation/renewal) often
-    // settles while the app is backgrounded (m-banking / wallet app). The
-    // stale "Langganan belum aktif" sheet is exactly what confused fresh
-    // sellers ("saya belum bisa jualan") — resume is the natural moment to
-    // re-read backend truth so the sheet reflects it.
-    WidgetsBinding.instance.addObserver(this);
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state != AppLifecycleState.resumed) return;
-    final s = ref.read(authControllerProvider);
-    if (s is! AuthStateAuthenticated) return;
-    ref.read(authControllerProvider.notifier).forceRefreshAuthState();
-  }
 
   /// Helper untuk find tab index by label
   int _findTabIndexByLabel(String label, INavigationRegistry registry) {
@@ -274,24 +257,18 @@ class _MainScreenState extends ConsumerState<MainScreen>
         final navigation = ref.read(navigationHandlerProvider);
         navigation.navigateToCreateContent();
       },
-      // Create lands on the MARKETPLACE, on the tab that matches the choice.
-      // The form itself is one tap away there ("Buat Listing" / "Buat Lelang"),
-      // so creating is anchored in the surface where the listing will live.
+      // CREATE FLOW (owner canonical): the bottom-bar sheet pushes the form
+      // DIRECTLY. On success the create screens set a pending marketplace
+      // switch (for-sale → sub-tab 0, auction → sub-tab 1), so the user lands
+      // on the surface where the listing now lives. The marketplace itself
+      // carries NO create buttons — this sheet is the single create entry.
       // Comment/chat keep their own direct push: they are pickers that need the
       // create screen to come back to them with a result.
       onCreateForSale: sellerCapabilityStatus == SellerCapabilityStatus.active
-          ? () {
-              ref
-                  .read(pendingTabSwitchProvider.notifier)
-                  .setSwitch('marketplace', subTab: 0);
-            }
+          ? () => context.push(RoutePaths.createForSale)
           : null,
       onCreateAuction: sellerCapabilityStatus == SellerCapabilityStatus.active
-          ? () {
-              ref
-                  .read(pendingTabSwitchProvider.notifier)
-                  .setSwitch('marketplace', subTab: 1);
-            }
+          ? () => context.push(RoutePaths.createAuction)
           : null,
       onStartSelling: () {
         // Navigate to seller onboarding/subscription

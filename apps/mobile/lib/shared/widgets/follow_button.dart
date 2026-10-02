@@ -89,12 +89,12 @@ class _FollowButtonState extends ConsumerState<FollowButton> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.person_add_outlined, size: 16, color: fg),
+            Icon(Icons.person_add_outlined, size: AppIconSize.inlineGlyph, color: fg),
             const SizedBox(width: 4),
             Text(
               'Follow',
               style: TextStyle(
-                fontSize: AppType.s13,
+                fontSize: AppType.s14,
                 color: fg,
                 fontWeight: FontWeight.w500,
               ),
@@ -142,14 +142,14 @@ class _FollowButtonState extends ConsumerState<FollowButton> {
                 else
                   Icon(
                     isFollowing ? Icons.person_remove : Icons.person_add_outlined,
-                    size: 16,
+                    size: AppIconSize.inlineGlyph,
                     color: fg,
                   ),
                 const SizedBox(width: 4),
                 Text(
                   isFollowing ? 'Following' : 'Follow',
                   style: TextStyle(
-                    fontSize: AppType.s13,
+                    fontSize: AppType.s14,
                     color: fg,
                     fontWeight: FontWeight.w500,
                   ),

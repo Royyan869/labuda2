@@ -20,6 +20,8 @@ class CommentMediaDto extends Equatable {
   final String mediaUrl;
   final String mediaType;
   final int position;
+  final String? thumbnailUrl;
+  final String? blurhash;
 
   const CommentMediaDto({
     required this.id,
@@ -27,6 +29,8 @@ class CommentMediaDto extends Equatable {
     required this.mediaUrl,
     required this.mediaType,
     required this.position,
+    this.thumbnailUrl,
+    this.blurhash,
   });
 
   factory CommentMediaDto.fromJson(Map<String, dynamic> json) => CommentMediaDto(
@@ -35,6 +39,8 @@ class CommentMediaDto extends Equatable {
         mediaUrl: json['media_url'] as String,
         mediaType: json['media_type'] as String,
         position: json['position'] as int,
+        thumbnailUrl: json['thumbnail_url'] as String?,
+        blurhash: json['blurhash'] as String?,
       );
 
   @override
@@ -201,18 +207,25 @@ class ResourceReferenceRequest {
 }
 
 /// Request DTO to create a commerce reference comment.
+///
+/// One tap = one row: an optional body plus optional foto+video ride on the
+/// same commerce-reference row (backend persists both atomically).
 class CreateCommerceReferenceCommentDto {
   final ResourceReferenceRequest resourceReference;
   final String? body;
+  final List<CommentCreateMediaDto>? media;
 
   const CreateCommerceReferenceCommentDto({
     required this.resourceReference,
     this.body,
+    this.media,
   });
 
   Map<String, dynamic> toJson() => {
     'resource_reference': resourceReference.toJson(),
     if (body != null) 'body': body,
+    if (media != null && media!.isNotEmpty)
+      'media': media!.map((m) => m.toJson()).toList(),
   };
 }
 
@@ -222,6 +235,7 @@ class CommentCreateMediaDto {
   final String mediaType; // image/video
   final int position;
   final int? byteSize;
+  final String? blurhash;
 
   const CommentCreateMediaDto({
     required this.storageKey,
@@ -229,6 +243,7 @@ class CommentCreateMediaDto {
     required this.mediaType,
     required this.position,
     this.byteSize,
+    this.blurhash,
   });
 
   Map<String, dynamic> toJson() => {
@@ -237,6 +252,7 @@ class CommentCreateMediaDto {
         'media_type': mediaType,
         'position': position,
         if (byteSize != null) 'byte_size': byteSize,
+        if (blurhash != null) 'blurhash': blurhash,
       };
 }
 

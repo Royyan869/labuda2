@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Custom Rupiah (Rp) icon widget yang menyerupai Material Icons
 /// Bisa digunakan sebagai replacement untuk Icons.attach_money
@@ -87,16 +88,16 @@ class RpIcon extends StatelessWidget {
 
   /// Factory constructor untuk membuat icon berukuran kecil (16px)
   factory RpIcon.small({Color? color}) {
-    return RpIcon(size: 16.0, color: color);
+    return RpIcon(size: AppIconSize.inlineGlyph, color: color);
   }
 
   /// Factory constructor untuk membuat icon berukuran normal (24px)
   factory RpIcon.normal({Color? color}) {
-    return RpIcon(size: 24.0, color: color);
+    return RpIcon(size: AppIconSize.header, color: color);
   }
 
   /// Factory constructor untuk membuat icon berukuran besar (32px)
   factory RpIcon.large({Color? color}) {
-    return RpIcon(size: 32.0, color: color);
+    return RpIcon(size: AppIconSize.emphasis, color: color);
   }
 }

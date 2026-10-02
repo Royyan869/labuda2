@@ -9,9 +9,12 @@ import (
 
 // Repository defines the interface for notification persistence.
 type Repository interface {
-	// Insert creates a new notification within a transaction.
-	// Idempotent: duplicate (recipient_id, actor_id, type, entity_id) returns nil.
-	Insert(ctx context.Context, tx interface{}, notification *entity.Notification) error
+	// Insert creates a new notification within a transaction and reports
+	// whether a row was actually written.
+	//
+	// Idempotent: a replay of the same (recipient_id, actor_key, type,
+	// entity_id) returns (uuid.Nil, false, nil).
+	Insert(ctx context.Context, tx interface{}, notification *entity.Notification) (uuid.UUID, bool, error)
 
 	// GetByID retrieves a notification by ID.
 	GetByID(ctx context.Context, tx interface{}, id uuid.UUID) (*entity.Notification, error)

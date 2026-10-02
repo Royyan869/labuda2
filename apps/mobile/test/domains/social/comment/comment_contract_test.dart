@@ -117,6 +117,39 @@ void main() {
       expect(listingJson.containsKey('content_id'), isFalse);
     });
 
+    test('commerce reference carries media on the same row (one tap = one comment)', () {
+      const commerceRequest = CreateCommerceReferenceCommentDto(
+        resourceReference: ResourceReferenceRequest(
+          resourceType: 'for_sale',
+          resourceId: 'forSale-1',
+        ),
+        media: [
+          CommentCreateMediaDto(
+            storageKey: 'images/a.jpg',
+            mediaUrl: 'https://cdn.example/images/a.jpg',
+            mediaType: 'image',
+            position: 0,
+          ),
+        ],
+      );
+      final listingJson = commerceRequest.toJson();
+
+      final media = listingJson['media'] as List<dynamic>;
+      expect(media, hasLength(1));
+      expect(
+        (media.first as Map<String, dynamic>)['storage_key'],
+        'images/a.jpg',
+      );
+
+      const mediaLess = CreateCommerceReferenceCommentDto(
+        resourceReference: ResourceReferenceRequest(
+          resourceType: 'for_sale',
+          resourceId: 'forSale-1',
+        ),
+      );
+      expect(mediaLess.toJson().containsKey('media'), isFalse);
+    });
+
     test('empty pagination metadata parses safely', () {
       final dto = ListCommentsDto.fromJson(<String, dynamic>{
         'comments': const [],
@@ -152,6 +185,37 @@ void main() {
       expect(reply.authorId, 'author-1');
       expect(reply.authorUsername, 'alice');
       expect(reply.authorLifecycle, ContentLifecycle.active);
+    });
+
+    test('media maps with thumbnail variant intact', () {
+      final entity = CommentMapper.toEntity(
+        CommentDto.fromJson({
+          ..._commentJson(id: 'comment-3', contentId: 'content-1'),
+          'media': [
+            {
+              'id': 'm1',
+              'storage_key': 'images/a.jpg',
+              'media_url':
+                  'https://d358tu61i1wrtt.cloudfront.net/images/a.jpg',
+              'media_type': 'image',
+              'position': 0,
+              'thumbnail_url':
+                  'https://d358tu61i1wrtt.cloudfront.net/images/medium/a.jpg',
+            },
+          ],
+        }),
+      );
+
+      expect(entity.media, hasLength(1));
+      expect(
+        entity.media.first.mediaUrl,
+        'https://d358tu61i1wrtt.cloudfront.net/images/a.jpg',
+      );
+      expect(
+        entity.media.first.thumbnailUrl,
+        'https://d358tu61i1wrtt.cloudfront.net/images/medium/a.jpg',
+      );
+      expect(entity.media.first.isVideo, isFalse);
     });
 
     test('removed author stays redacted through the canonical mapper', () {

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	notificationentity "github.com/labuda/backend/internal/interaction/notification/entity"
 	"github.com/labuda/backend/internal/interaction/notification/policy"
 	"github.com/labuda/backend/internal/platform/events"
 	dbpkg "github.com/labuda/backend/pkg/db"
@@ -178,8 +179,13 @@ type NegotiationPayload struct {
 	BuyerID      string `json:"buyer_id"`
 	SellerID     string `json:"seller_id"`
 	SenderID     string `json:"sender_id"`
-	Price        int64  `json:"price,omitempty"`
-	Status       string `json:"status,omitempty"`
+	// ActorID is the real participant who acted (buyer for started, sender for
+	// message_sent, accepter for accepted, canceller for cancelled). Legacy
+	// events without it are system-caused: delivered as the system actor,
+	// never as a nil identity.
+	ActorID string `json:"actor_id,omitempty"`
+	Price   int64  `json:"price,omitempty"`
+	Status  string `json:"status,omitempty"`
 }
 
 // WithdrawalPayload represents the payload for withdrawal events.
@@ -211,6 +217,31 @@ type SellerVerificationPayload struct {
 	ApprovedBy  string `json:"approved_by,omitempty"`
 	RejectedBy  string `json:"rejected_by,omitempty"`
 	RequestedBy string `json:"requested_by,omitempty"`
+	// The remaining admin decisions each carry their own actor key (see
+	// VerificationService.emitEventTx). Dropping them would surface an
+	// anonymous "admin" while the identity is right there in the payload.
+	SuspendedBy   string `json:"suspended_by,omitempty"`
+	RevokedBy     string `json:"revoked_by,omitempty"`
+	InvestigatedBy string `json:"investigated_by,omitempty"`
+	RestoredBy    string `json:"restored_by,omitempty"`
+}
+
+// reviewerID resolves the human who caused a seller-verification lifecycle
+// transition, in the canonical order every admin decision is emitted with.
+//
+// It returns "" when the payload names no reviewer: such an event has no known
+// human cause and must degrade to the system actor — never to the seller, who
+// is the SUBJECT of the decision, not its cause.
+func (p SellerVerificationPayload) reviewerID() string {
+	for _, raw := range []string{
+		p.ApprovedBy, p.RejectedBy, p.RequestedBy,
+		p.SuspendedBy, p.RevokedBy, p.InvestigatedBy, p.RestoredBy,
+	} {
+		if _, err := uuid.Parse(raw); err == nil {
+			return raw
+		}
+	}
+	return ""
 }
 
 // ExternalProductReviewPayload represents the payload for external_product.review.* events.
@@ -229,7 +260,7 @@ type notificationInfo struct {
 	notificationID uuid.UUID // Set after DB insert
 	inserted       bool      // True when a new DB row was inserted (not dedup no-op)
 	recipientID    uuid.UUID
-	actorID        uuid.UUID
+	actor          notificationentity.Actor
 	notifyType     string
 	category       policy.NotificationCategory
 	title          string
@@ -447,12 +478,17 @@ func (h *NotificationEventHandler) getTitleAndBody(notifyType string) (title, bo
 // This is the MAIN ENTRY POINT for policy enforcement.
 func (h *NotificationEventHandler) applyPolicyLayer(
 	ctx context.Context,
-	recipientID, actorID uuid.UUID,
+	recipientID uuid.UUID,
+	actor notificationentity.Actor,
 	notifyType string,
 	data map[string]interface{},
 ) notificationInfo {
 	// STEP 1: Determine category
 	category := policy.GetCategory(notifyType)
+
+	// Policy gates are keyed by user id. System and anonymized actors have
+	// none, and no gate may observe a sentinel identity.
+	actorID := actor.UserID()
 
 	// STEP 2: Account status filtering
 	var allowDB, allowPush bool
@@ -471,7 +507,7 @@ func (h *NotificationEventHandler) applyPolicyLayer(
 	}
 
 	// STEP 3: Block policy check (for social notifications)
-	finalActorID := actorID
+	finalActor := actor
 	if category == policy.Social || category == policy.Marketing {
 		if h.policyBlock != nil {
 			action := h.policyBlock.ShouldApplyBlock(ctx, actorID, recipientID, category)
@@ -480,7 +516,7 @@ func (h *NotificationEventHandler) applyPolicyLayer(
 				return notificationInfo{
 					notificationID: uuid.Nil,
 					recipientID:    recipientID,
-					actorID:        actorID,
+					actor:          actor,
 					notifyType:     notifyType,
 					category:       category,
 					title:          "",
@@ -496,7 +532,7 @@ func (h *NotificationEventHandler) applyPolicyLayer(
 				return notificationInfo{
 					notificationID: uuid.Nil,
 					recipientID:    recipientID,
-					actorID:        actorID,
+					actor:          actor,
 					notifyType:     notifyType,
 					category:       category,
 					title:          "",
@@ -518,7 +554,7 @@ func (h *NotificationEventHandler) applyPolicyLayer(
 				return notificationInfo{
 					notificationID: uuid.Nil,
 					recipientID:    recipientID,
-					actorID:        actorID,
+					actor:          actor,
 					notifyType:     notifyType,
 					category:       category,
 					title:          "",
@@ -556,7 +592,7 @@ func (h *NotificationEventHandler) applyPolicyLayer(
 				return notificationInfo{
 					notificationID: uuid.Nil,
 					recipientID:    recipientID,
-					actorID:        actorID,
+					actor:          actor,
 					notifyType:     notifyType,
 					category:       category,
 					title:          "",
@@ -574,14 +610,11 @@ func (h *NotificationEventHandler) applyPolicyLayer(
 		if h.policyBlock != nil {
 			action := h.policyBlock.ShouldApplyBlock(ctx, actorID, recipientID, category)
 			if action.Anonymize {
-				// Use role-based display instead of actor identity
-				finalActorID = uuid.Nil
-				// Add actor_display to data for frontend
+				// Identity is hidden from the recipient. The anonymized actor
+				// carries the role label instead of the user id — the schema
+				// stores it as a first-class state, not a smuggled data key.
 				actorDisplay := policy.InferActorDisplayFromNotificationType(notifyType, actorID, recipientID, data)
-				if data == nil {
-					data = make(map[string]interface{})
-				}
-				data["actor_display"] = actorDisplay
+				finalActor = notificationentity.AnonymizedActor(actorDisplay)
 			}
 		}
 	}
@@ -592,7 +625,7 @@ func (h *NotificationEventHandler) applyPolicyLayer(
 	return notificationInfo{
 		notificationID: uuid.Nil, // Set after DB insert
 		recipientID:    recipientID,
-		actorID:        finalActorID,
+		actor:          finalActor,
 		notifyType:     notifyType,
 		category:       category,
 		title:          title,
@@ -616,14 +649,15 @@ func (h *NotificationEventHandler) applyPolicyLayer(
 // in-flight event never leaves a stale notification.
 func (h *NotificationEventHandler) insertNotificationWithPolicy(
 	ctx context.Context,
-	recipientID, actorID uuid.UUID,
+	recipientID uuid.UUID,
+	actor notificationentity.Actor,
 	notifyType string,
 	entityID uuid.UUID,
 	data map[string]interface{},
 	preconditions ...func(tx dbpkg.Tx) (bool, error),
 ) (notificationInfo, error) {
 	// Apply policy layer
-	info := h.applyPolicyLayer(ctx, recipientID, actorID, notifyType, data)
+	info := h.applyPolicyLayer(ctx, recipientID, actor, notifyType, data)
 
 	// Generate a notification ID for logging (will be replaced by actual ID after insert)
 	notificationID := uuid.New()
@@ -647,8 +681,9 @@ func (h *NotificationEventHandler) insertNotificationWithPolicy(
 		return info, nil // Return empty info, no error
 	}
 
-	// Insert notification
+	// Insert notification through the canonical write authority.
 	var insertedNotificationID uuid.UUID
+	var inserted bool
 	err := h.db.WithTx(ctx, func(tx dbpkg.Tx) error {
 		for _, pre := range preconditions {
 			if pre == nil {
@@ -664,15 +699,17 @@ func (h *NotificationEventHandler) insertNotificationWithPolicy(
 				return nil
 			}
 		}
-		insertedID, err := h.notificationInserter.InsertNotification(
-			ctx, tx,
-			recipientID, info.actorID,
-			notifyType,
+		n := notificationentity.NewNotification(
+			recipientID,
+			info.actor,
+			notificationentity.NotificationType(notifyType),
 			entityID,
 			info.data,
 		)
+		insertedID, wasInserted, err := h.notificationInserter.Insert(ctx, tx, n)
 		if err == nil {
 			insertedNotificationID = insertedID
+			inserted = wasInserted
 		}
 		return err
 	})
@@ -687,9 +724,9 @@ func (h *NotificationEventHandler) insertNotificationWithPolicy(
 		return notificationInfo{}, fmt.Errorf("insert notification failed: %w", err)
 	}
 
-	// ON CONFLICT DO NOTHING path: dedup no-op. Treated as handled (idempotent)
-	// but push must NOT be sent.
-	if insertedNotificationID == uuid.Nil {
+	// Dedup no-op: the (recipient, actor_key, type, entity) tuple already
+	// exists. Treated as handled (idempotent) but push must NOT be sent.
+	if !inserted {
 		info.notificationID = uuid.Nil
 		info.inserted = false
 		h.logDelivery(ctx, notificationID, recipientID, "in_app", "skipped", "dedup_no_insert", map[string]interface{}{
@@ -705,12 +742,13 @@ func (h *NotificationEventHandler) insertNotificationWithPolicy(
 
 	// AUDIT: Log successful in-app delivery
 	metadata := map[string]interface{}{
-		"category":  string(info.category),
-		"type":      notifyType,
-		"allowPush": info.allowPush,
+		"category":   string(info.category),
+		"type":       notifyType,
+		"allowPush":  info.allowPush,
+		"actor_kind": string(info.actor.Kind()),
 	}
-	if info.actorID != actorID {
-		metadata["anonymized"] = true
+	if !info.actor.IsUser() {
+		metadata["anonymized"] = info.actor.Kind() == notificationentity.ActorKindAnonymized
 	}
 
 	h.logDelivery(ctx, insertedNotificationID, recipientID, "in_app", "sent", "", metadata)

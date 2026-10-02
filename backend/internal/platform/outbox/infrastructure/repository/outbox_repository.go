@@ -93,11 +93,43 @@ func (r *OutboxRepository) InsertEvent(
 	entityID uuid.UUID,
 	payload []byte,
 ) error {
-	now := time.Now()
-	id := uuid.New()
-
 	// Deterministic idempotency key: eventType.entityID
 	idempotencyKey := fmt.Sprintf("%s.%s", eventType, entityID.String())
+	return r.insertEventKeyed(ctx, tx, eventType, entityID, payload, idempotencyKey)
+}
+
+// InsertEventWithSuffix creates an outbox event whose idempotency key carries
+// a domain suffix: "<eventType>.<entityID>.<suffix>".
+//
+// REQUIRED for event types that legitimately REPEAT on one aggregate.
+// negotiation.message_sent fires on every counter of the same session — with
+// the bare per-session key, ON CONFLICT (idempotency_key) DO NOTHING silently
+// swallowed every counter after the first: the session and price history
+// advanced while chat never received the proposal (runtime proof, 2026-09-30:
+// history row seq3 exists, no outbox row, no chat message).
+func (r *OutboxRepository) InsertEventWithSuffix(
+	ctx context.Context,
+	tx db.Tx,
+	eventType string,
+	entityID uuid.UUID,
+	payload []byte,
+	suffix string,
+) error {
+	idempotencyKey := fmt.Sprintf("%s.%s.%s", eventType, entityID.String(), suffix)
+	return r.insertEventKeyed(ctx, tx, eventType, entityID, payload, idempotencyKey)
+}
+
+// insertEventKeyed is the single INSERT path for both entry points above.
+func (r *OutboxRepository) insertEventKeyed(
+	ctx context.Context,
+	tx db.Tx,
+	eventType string,
+	entityID uuid.UUID,
+	payload []byte,
+	idempotencyKey string,
+) error {
+	now := time.Now()
+	id := uuid.New()
 
 	// Extract aggregate type from event type (e.g., "offer.created" -> "offer")
 	aggregateType := eventType

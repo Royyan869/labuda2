@@ -239,7 +239,7 @@ class _ProfileFeedTabState extends ConsumerState<ProfileFeedTab> {
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: AppMetrics.p12,
-                    vertical: AppMetrics.p6,
+                    vertical: AppMetrics.p8,
                   ),
                   decoration: BoxDecoration(
                     color: scheme.surfaceContainer,
@@ -351,14 +351,14 @@ class _ProfileFeedTabState extends ConsumerState<ProfileFeedTab> {
         children: [
           Icon(
             Icons.photo_library_outlined,
-            size: 64,
+            size: AppIconSize.display,
             color: scheme.onSurfaceVariant,
           ),
           const SizedBox(height: 16),
           Text(
             _getEmptyStateTitle(),
             style: TextStyle(
-              fontSize: AppType.s18,
+              fontSize: AppType.s20,
               fontWeight: FontWeight.w600,
               color: scheme.onSurface,
             ),

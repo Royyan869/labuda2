@@ -10,7 +10,7 @@ Do not add a new subdirectory without updating this table.
 | cmd | Purpose | Notes |
 |---|---|---|
 | `core_server` | **Production HTTP server** | Start after `go run ./cmd/migrate`. Does not apply migrations itself. All routes, workers, DI root. |
-| `migrate` | Migration runner (custom PGX runner) | Explicit manual migration command. Applies the numbered `backend/migrations/` chain. |
+| `migrate` | Migration runner (thin CLI over `pkg/migration`) | Explicit manual migration command. Applies the numbered `backend/migrations/` chain through the single executor and owns no SQL parsing of its own. |
 | `bootstrap-admin` | **Canonical first-admin bootstrap (production)** | Out-of-band CLI. Promotes exactly one existing verified, active user to the canonical admin role (`capability/entity.AdminRole`) and grants the entire canonical capability universe (`capability.AllCapabilityStrings()`) in the same transaction; full access is then a derived state (`capability.IsFullAccessAdmin`). There is no bootstrap preset and no fixed capability set. Usage: `go run ./cmd/bootstrap-admin --user-id <uuid>` or `--email <email>`. |
 | `seed` | Data seeder (dev fixture only) | Populates local dev users (`buyer@test.local`, `seller@test.local`, `admin@test.local` with fixed UUIDs away from SystemCaller) and sample content. Bypasses business logic. **Not a production bootstrap** — use `bootstrap-admin`. Run after migrations. |
 | `corpus_driver` | CI corpus scenario runner | Referenced by `serverboot/dependencies.go`; runs E2E governance scenarios. |

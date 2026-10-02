@@ -63,11 +63,6 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
       backgroundColor: scheme.surfaceContainerLowest,
       appBar: AppBar(
         title: const Text('For Sale Saya'),
-        backgroundColor: scheme.surface,
-        foregroundColor: scheme.onSurface,
-        elevation: AppElevation.none,
-        surfaceTintColor: Colors.transparent,
-        scrolledUnderElevation: 0,
         actions: [
           // Status filter dropdown
           Padding(
@@ -135,11 +130,7 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.error_outline,
-                size: 48,
-                color: scheme.error,
-              ),
+              Icon(Icons.error_outline, size: AppIconSize.display, color: scheme.error),
               const SizedBox(height: 16),
               Text(
                 'Error loading For Sale',
@@ -172,10 +163,7 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
         onPressed: () => _createNewForSale(context),
         backgroundColor: scheme.primary,
         icon: Icon(Icons.add, color: scheme.onPrimary),
-        label: Text(
-          'Buat For Sale',
-          style: TextStyle(color: scheme.onPrimary),
-        ),
+        label: Text('Buat For Sale', style: TextStyle(color: scheme.onPrimary)),
       ),
     );
   }
@@ -188,13 +176,16 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
           children: [
             Icon(
               Icons.lock_outline,
-              size: 64,
+              size: AppIconSize.display,
               color: Theme.of(context).colorScheme.primary,
             ),
             const SizedBox(height: 16),
             const Text(
               'Login Diperlukan',
-              style: TextStyle(fontSize: AppType.s20, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: AppType.s20,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 8),
             const Text('Silakan login untuk mengelola For Sale Anda'),
@@ -212,13 +203,16 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
         children: [
           Icon(
             Icons.inventory_2_outlined,
-            size: 64,
+            size: AppIconSize.display,
             color: scheme.onSurfaceVariant,
           ),
           const SizedBox(height: 16),
           const Text(
             'Belum Ada For Sale',
-            style: TextStyle(fontSize: AppType.s20, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontSize: AppType.s20,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
@@ -235,19 +229,13 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
 
   void _viewForSaleDetail(BuildContext context, String forSaleId) {
     context.push(
-      RoutePaths.forSaleDetail.replaceFirst(
-        ':forSaleId',
-        forSaleId,
-      ),
+      RoutePaths.forSaleDetail.replaceFirst(':forSaleId', forSaleId),
     );
   }
 
   void _editForSale(BuildContext context, ForSale forSale) {
     context.push(
-      RoutePaths.editForSale.replaceFirst(
-        ':forSaleId',
-        forSale.forSaleId,
-      ),
+      RoutePaths.editForSale.replaceFirst(':forSaleId', forSale.forSaleId),
     );
   }
 
@@ -393,10 +381,7 @@ class _MyForSalesScreenState extends ConsumerState<MyForSalesScreen> {
       if (mounted) {
         result.fold(
           (error) {
-            AppSnackBar.showError(
-              context,
-              'Gagal menghapus For Sale: $error',
-            );
+            AppSnackBar.showError(context, 'Gagal menghapus For Sale: $error');
           },
           (_) {
             AppSnackBar.showSuccess(context, 'For Sale berhasil dihapus');
@@ -451,13 +436,13 @@ class _SellerForSaleManagementCard extends StatelessWidget {
               ClipRRect(
                 borderRadius: BorderRadius.circular(AppShape.r8),
                 child: forSale.media.isNotEmptyUrls
-                 ? AppImage(
-                     imageUrl: forSale.media.firstUrl,
-                     width: 80,
-                     height: 80,
-                     fit: BoxFit.cover,
-                     errorWidget: _buildPlaceholder(context),
-                   )
+                    ? AppImage(
+                        imageUrl: forSale.media.firstUrl,
+                        width: 80,
+                        height: 80,
+                        fit: BoxFit.cover,
+                        errorWidget: _buildPlaceholder(context),
+                      )
                     : _buildPlaceholder(context),
               ),
               const SizedBox(width: 12),
@@ -474,7 +459,7 @@ class _SellerForSaleManagementCard extends StatelessWidget {
                             forSale.title,
                             style: const TextStyle(
                               fontWeight: FontWeight.w600,
-                              fontSize: AppType.s15,
+                              fontSize: AppType.s16,
                             ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
@@ -539,7 +524,7 @@ class _SellerForSaleManagementCard extends StatelessWidget {
                         children: [
                           Icon(
                             Icons.campaign,
-                            size: 18,
+                            size: AppIconSize.action,
                             color: Theme.of(context).colorScheme.primary,
                           ),
                           SizedBox(width: 12),
@@ -553,12 +538,12 @@ class _SellerForSaleManagementCard extends StatelessWidget {
                       value: 'edit',
                       child: Row(
                         children: [
-                          Icon(Icons.edit, size: 18),
+                          Icon(Icons.edit, size: AppIconSize.action),
                           SizedBox(width: 12),
                           Text('Edit'),
                         ],
                       ),
-                  ),
+                    ),
                   if (forSale.status != ForSaleStatus.active)
                     PopupMenuItem(
                       value: 'activate',
@@ -566,7 +551,7 @@ class _SellerForSaleManagementCard extends StatelessWidget {
                         children: [
                           Icon(
                             Icons.check_circle,
-                            size: 18,
+                            size: AppIconSize.action,
                             color: context.statusColors.success,
                           ),
                           SizedBox(width: 12),
@@ -579,7 +564,7 @@ class _SellerForSaleManagementCard extends StatelessWidget {
                       value: 'deactivate',
                       child: Row(
                         children: [
-                          Icon(Icons.visibility_off, size: 18),
+                          Icon(Icons.visibility_off, size: AppIconSize.action),
                           SizedBox(width: 12),
                           Text('Nonaktifkan'),
                         ],
@@ -590,7 +575,7 @@ class _SellerForSaleManagementCard extends StatelessWidget {
                       value: 'mark_sold',
                       child: Row(
                         children: [
-                          Icon(Icons.sell, size: 18),
+                          Icon(Icons.sell, size: AppIconSize.action),
                           SizedBox(width: 12),
                           Text('Tandai Terjual'),
                         ],
@@ -602,7 +587,7 @@ class _SellerForSaleManagementCard extends StatelessWidget {
                       children: [
                         Icon(
                           Icons.delete,
-                          size: 18,
+                          size: AppIconSize.action,
                           color: Theme.of(context).colorScheme.error,
                         ),
                         SizedBox(width: 12),
@@ -635,7 +620,7 @@ class _SellerForSaleManagementCard extends StatelessWidget {
       ),
       child: Icon(
         Icons.image_not_supported,
-        size: 24,
+        size: AppIconSize.header,
         color: scheme.onSurfaceVariant,
       ),
     );
@@ -699,7 +684,10 @@ class _StatusBadge extends StatelessWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppMetrics.p8,
+        vertical: AppMetrics.p4,
+      ),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(AppShape.r6),
@@ -707,7 +695,7 @@ class _StatusBadge extends StatelessWidget {
       child: Text(
         label,
         style: TextStyle(
-          fontSize: AppType.s11,
+          fontSize: AppType.s12,
           fontWeight: FontWeight.w600,
           color: color,
         ),

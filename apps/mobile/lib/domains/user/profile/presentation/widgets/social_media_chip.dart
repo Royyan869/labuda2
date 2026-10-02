@@ -36,12 +36,12 @@ class SocialMediaChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 16, color: scheme.primary),
+            Icon(icon, size: AppIconSize.inlineGlyph, color: scheme.primary),
             const SizedBox(width: 8),
             Text(
               label,
               style: TextStyle(
-                fontSize: AppType.s13,
+                fontSize: AppType.s14,
                 color: scheme.onSurface,
               ),
             ),

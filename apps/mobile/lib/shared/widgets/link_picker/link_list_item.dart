@@ -95,8 +95,8 @@ class LinkListItem extends StatelessWidget {
                         if (badge != null) ...[
                           Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: AppMetrics.p6,
-                              vertical: AppMetrics.p2,
+                              horizontal: AppMetrics.p8,
+                              vertical: AppMetrics.p4,
                             ),
                             decoration: BoxDecoration(
                               color: (badgeColor ?? scheme.primary)
@@ -106,7 +106,7 @@ class LinkListItem extends StatelessWidget {
                             child: Text(
                               badge!,
                               style: TextStyle(
-                                fontSize: AppType.s10,
+                                fontSize: AppType.s12,
                                 fontWeight: FontWeight.w600,
                                 color: badgeColor ?? scheme.primary,
                               ),
@@ -148,7 +148,7 @@ class LinkListItem extends StatelessWidget {
                           Text(
                             price!,
                             style: TextStyle(
-                              fontSize: AppType.s13,
+                              fontSize: AppType.s14,
                               fontWeight: FontWeight.w600,
                               color: context.statusColors.success,
                             ),
@@ -172,7 +172,7 @@ class LinkListItem extends StatelessWidget {
                     child: Icon(
                       Icons.check_circle,
                       color: scheme.onPrimary,
-                      size: 28,
+                      size: AppIconSize.emphasis,
                     ),
                   ),
                 ),

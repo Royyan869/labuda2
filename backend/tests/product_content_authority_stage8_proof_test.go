@@ -31,10 +31,10 @@ func seedStage8Product(t *testing.T, ctx context.Context, pool *pgxpool.Pool, se
 	_, err := pool.Exec(ctx, `
 		INSERT INTO products (id, seller_id, title, description, media_urls, variety,
 			size_cm, age_months, gender, breeder, bloodline, certificates,
-			farm_address_id, preparation_time, preparation_note, created_at, updated_at)
+			farm_address_id, preparation_time, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6,
 			$7, $8, $9, $10, $11, $12,
-			NULL, $13, NULL, NOW(), NOW())
+			NULL, $13, NOW(), NOW())
 	`, id, sellerID, "Canonical Koi", "The one true description",
 		`["https://cdn.test/koi.jpg"]`, "Kohaku",
 			50, 12, "female", "Acme Breeder", "Ogata", "{}",

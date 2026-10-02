@@ -9,7 +9,10 @@ class AddressApiMapper {
     return AddressEntity(
       id: api.id,
       userId: api.userId,
-      purpose: _mapPurposeToDomain(api.purpose),
+      tags: api.tags
+          .map(AddressTagExtension.parse)
+          .whereType<AddressTag>()
+          .toList(),
       nickname: api.nickname,
       recipientName: api.recipientName,
       phone: api.phone,
@@ -43,7 +46,7 @@ class AddressApiMapper {
   /// Convert domain entity to create request API model
   static CreateAddressRequestApi toCreateRequest(AddressEntity entity) {
     return CreateAddressRequestApi(
-      purpose: _mapPurposeToApi(entity.purpose),
+      tags: entity.tagValues,
       nickname: entity.nickname,
       recipientName: entity.recipientName,
       phone: entity.phone,
@@ -67,6 +70,7 @@ class AddressApiMapper {
   /// Convert partial domain entity updates to update request API model
   static UpdateAddressRequestApi toUpdateRequest(Map<String, dynamic> updates) {
     return UpdateAddressRequestApi(
+      tags: updates['tags'] as List<String>?,
       nickname: updates['nickname'] as String?,
       recipientName: updates['recipientName'] as String?,
       phone: updates['phone'] as String?,
@@ -86,25 +90,4 @@ class AddressApiMapper {
     );
   }
 
-  /// Map API purpose string to domain enum
-  static AddressPurpose _mapPurposeToDomain(String purpose) {
-    switch (purpose) {
-      case 'shipping':
-        return AddressPurpose.shipping;
-      case 'sender':
-        return AddressPurpose.sender;
-      default:
-        return AddressPurpose.shipping; // Default fallback
-    }
-  }
-
-  /// Map domain purpose enum to API string
-  static String _mapPurposeToApi(AddressPurpose purpose) {
-    switch (purpose) {
-      case AddressPurpose.shipping:
-        return 'shipping';
-      case AddressPurpose.sender:
-        return 'sender';
-    }
-  }
 }

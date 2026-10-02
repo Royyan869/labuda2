@@ -65,8 +65,12 @@ type RoomGetter interface {
 }
 
 // ForSaleRepository defines the interface for getting for_sale items.
+//
+// LOOKUP KEY: the quote's ProductID is the PHYSICAL product id (products.id) —
+// order creation enforces `quote.ProductID == order product_id`, so the sale
+// surface must be resolved by its product FK, never by for_sales.id.
 type ForSaleRepository interface {
-	GetByID(ctx context.Context, tx db.Tx, id uuid.UUID) (*forsaleEntity.ForSale, error)
+	GetByProductID(ctx context.Context, tx db.Tx, productID uuid.UUID) (*forsaleEntity.ForSale, error)
 }
 
 // AuctionQuoteReader defines the narrow auction lookup needed for shipping
@@ -218,7 +222,7 @@ func (s *Service) CreateShippingQuote(ctx context.Context, input CreateShippingQ
 		} else {
 			// Validate product exists and belongs to seller.
 			var err error
-			forSale, err = s.forSaleRepo.GetByID(ctx, tx, input.ProductID)
+			forSale, err = s.forSaleRepo.GetByProductID(ctx, tx, input.ProductID)
 			if err != nil {
 				return fmt.Errorf("product not found: %w", err)
 			}
@@ -475,7 +479,7 @@ func buildShippingQuoteAttachmentJSONV2(
 			if forSale.Product != nil {
 				linkedItemName = forSale.Product.Title
 				if len(forSale.Product.MediaURLs) > 0 {
-					imageURL = forSale.Product.MediaURLs[0]
+					imageURL = forSale.Product.MediaURLs[0].URL
 				}
 			}
 			data["linked_item_name"] = linkedItemName

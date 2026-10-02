@@ -15,6 +15,7 @@
 - `AppImage` (cached) satu-satunya widget gambar network; loading vs error selalu beda widget.
 - Di-purge total: `StableNetworkImage`, `resolveNetworkImageUrl`, `normalizeMarketplace*`, `awsS3BaseUrl`/`useCloudFront`, `ContentMediaHandler`, 2 modal picker mati, `showImageSourcePicker`, cropper stub, `TextInput*` orphan, dep `image_cropper`, UCrop manifest.
 - Detail/carousel/viewer selalu original penuh + zoom; daftar pakai thumbnail (di bawah).
+- Feed = mosaic (1 full 4:5 / 2 sejajar / 3 besar+susun / 4+ grid+N), comment = mosaic yang sama, bubble chat = natural + tap fullscreen, detail forsale+auction = carousel 4:5 contain + tap viewer (sama dengan kartu).
 - Bukti: sapu residu `lib/` nol; 35+ test kontrak media hijau.
 
 ### 1.3 Upload 1 mesin (CLOSED)
@@ -31,6 +32,12 @@
 - Mobile preset kirim subpath; fixed-key kirim 2 segmen; backend tidak validasi folder untuk fixed-key (key-nya sendiri otoritas).
 - Lambda skip `avatars/stores/profile-covers` (varian sia-sia berhenti).
 
+### 1.6b Blurhash ganti shimmer (CLOSED)
+- Pola Mastodon: kolom `blurhash` di content/comment/commerce, emit di wire, decode klien; shimmer dipurge total (dep dihapus + negative test).
+- Commerce: `Product.MediaURLs []string` → `[]ProductMedia{URL,Blurhash}` (+ `UnmarshalJSON` toleran); backend tolak campuran `media_urls`+`media[]`; mobile kirim typed `media[]` via `MediaUploadOrchestrator.typedWriteItems` (forSale create/update, auction create), parse typed di DTO/mapper.
+- Poster video server-side Tahap-1: Lambda `video-processor` (remux faststart + `{name}_poster.jpg`), backfill 14/14 poster 200; HLS tetap ditunda sampai metrik menuntut.
+- Bukti: `go test` shared/media/forsale/auction hijau (satu-satunya FAIL = subscription fee pre-existing, di luar media); `flutter test test/domains/commerce/catalog/ test/core/media/` 259 hijau; `flutter analyze` nol error.
+
 ### 1.6 Varian thumbnail tersambung (CLOSED)
 - Aturan `ThumbnailVariantKey` = Lambda `getVariantKey` (idempoten, unit-tested).
 - Backend isi `thumbnail_url`: commerce wire + card, search previews, feed `media[]` (additive).
@@ -45,11 +52,12 @@
 
 ## 2. BELUM (terurut, siap eksekusi)
 
-### 2.1 Video sebagai major surface (berikutnya, desain siap)
-- Poster klien saat upload (`video_thumbnail` → `_poster.jpg`, jalur backend sudah izin).
-- Player visibility-aware (jangan `initialize()` semua kartu); durasi + mute; error Retry (sudah ada).
-- Urutan owner-controlled dipertahankan di UI; rebucket images-first backend sudah dibunuh.
-- HLS/transcoding: HANYA jika metrik menuntut (titik picu: % error/timeout video di <3G).
+### 2.1 Video sebagai major surface (player CLOSED, poster = server)
+- Player visibility-aware (CLOSED): `CarouselVideoPlayer` + `MediaViewerVideoPlayer` punya `isActive` — hanya halaman aktif yang `initialize()`; sibling render poster mat nol byte; pause saat off-page (`didUpdateWidget`) dan saat scroll-off-screen (`VisibilityDetector`); controller dipertahankan agar swipe-back tanpa re-buffer. Feed tetap thumbnail + badge play (nol player di daftar — memang benar).
+- Durasi + mute + Retry (CLOSED — sudah ada, diverifikasi di custom controls kedua player; bukan dibangun ulang).
+- Poster klien DIBATALKAN (keputusan): API content `MediaInput` tidak punya field poster, commerce `ToProductMedia` membuang `thumbnail_url`, dan Lambda sudah menulis `{name}_poster.jpg` untuk semua video (backfill 14/14). Poster klien butuh dep native baru + perubahan skema backend hanya untuk mempersingkat jeda upload→Lambda — tidak worth it.
+- Sisa video: HLS/transcoding HANYA jika metrik menuntut (titik picu: % error/timeout video di <3G).
+- Bukti: `video_visibility_authority_test` (5) + kontrak viewer/chat hijau; `flutter analyze` nol error.
 
 ### 2.2 P2 tertunda (desain siap, butuh 1 keputusan owner)
 - Trust-embedded-avatar (bunuh GET per-instance; butuh restu basi ≤5 mnt + umur daftar).

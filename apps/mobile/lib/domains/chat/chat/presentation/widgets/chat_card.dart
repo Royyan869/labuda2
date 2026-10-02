@@ -332,7 +332,7 @@ class ChatCard extends ConsumerWidget {
                 unreadCount > 99 ? '99+' : unreadCount.toString(),
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.onPrimary,
-                  fontSize: AppType.s11,
+                  fontSize: AppType.s12,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -343,7 +343,7 @@ class ChatCard extends ConsumerWidget {
             chat.isSupportChat && chat.supportStatus == SupportStatus.resolved
                 ? Icons.check_circle
                 : Icons.chevron_right,
-            size: 20,
+            size: AppIconSize.action,
             color: Theme.of(context).colorScheme.outline,
           ),
       ],

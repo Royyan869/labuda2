@@ -52,7 +52,7 @@ class UploadTaskUtils {
         iconColor = scheme.onSurfaceVariant;
     }
 
-    return Icon(iconData, size: 20, color: iconColor);
+    return Icon(iconData, size: AppIconSize.action, color: iconColor);
   }
 
   /// Get task title berdasarkan type

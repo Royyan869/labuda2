@@ -46,7 +46,7 @@ class MediaGridUploader extends StatelessWidget {
       return GestureDetector(
         onTap: () => _openPicker(context),
         child: Container(
-          height: 150,
+          padding: const EdgeInsets.symmetric(vertical: AppMetrics.p32),
           decoration: BoxDecoration(
             color: scheme.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(AppShape.r12),
@@ -58,7 +58,7 @@ class MediaGridUploader extends StatelessWidget {
               children: [
                 Icon(
                   Icons.add_photo_alternate,
-                  size: 40,
+                  size: AppIconSize.display,
                   color: scheme.onSurfaceVariant,
                 ),
                 SizedBox(height: 8),
@@ -96,7 +96,7 @@ class MediaGridUploader extends StatelessWidget {
           final isVideo = MediaUploadOrchestrator.isVideoUrl(url);
            return SizedBox(
              key: ValueKey('media-$url-$index'),
-             height: 112,
+             height: AppContentSize.thumbnail,
              child: Stack(
              fit: StackFit.expand,
              children: [
@@ -108,7 +108,7 @@ class MediaGridUploader extends StatelessWidget {
                         child: Icon(
                           Icons.videocam,
                           color: scheme.onPrimary,
-                          size: 32,
+                          size: AppIconSize.emphasis,
                         ),
                       )
                     : AppImage(imageUrl: url, fit: BoxFit.cover, errorWidget: const Icon(Icons.broken_image)),
@@ -126,7 +126,7 @@ class MediaGridUploader extends StatelessWidget {
                     ),
                     child: Icon(
                       Icons.close,
-                      size: 16,
+                      size: AppIconSize.inlineGlyph,
                       color: scheme.onPrimary,
                     ),
                   ),
@@ -136,7 +136,7 @@ class MediaGridUploader extends StatelessWidget {
                 Center(
                   child: Icon(
                     Icons.play_circle_fill,
-                    size: 28,
+                    size: AppIconSize.emphasis,
                     color: scheme.onPrimary.withValues(alpha: 0.7),
                   ),
                 ),

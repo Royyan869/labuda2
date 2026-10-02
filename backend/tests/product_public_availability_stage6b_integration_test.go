@@ -63,7 +63,7 @@ func seedStage6BProduct(t *testing.T, ctx context.Context, tdb *testdb.TestDB, s
 	require.NoError(t, tdb.WithTx(ctx, func(tx db.Tx) error {
 		_, err := tx.Exec(ctx, `
 			INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, created_at, updated_at)
-			VALUES ($1, $2, 'Stage6B Koi', 'desc', '[]'::jsonb, 'kohaku', 'immediate', NOW(), NOW())
+			VALUES ($1, $2, 'Stage6B Koi', 'desc', '[]'::jsonb, 'kohaku', '1_3_days', NOW(), NOW())
 		`, productID, sellerID)
 		return err
 	}))
@@ -347,6 +347,7 @@ func TestStage6B_FPSBrowse_AnonymousSellerFilter_PublicOnly(t *testing.T) {
 		fpsApp.NewForSaleService(),
 		db.NewFromPool(tdb.Pool()),
 		zap.NewNop(),
+		nil,
 		nil,
 	)
 

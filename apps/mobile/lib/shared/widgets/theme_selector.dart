@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/shared/widgets/app_bottom_sheet_base.dart';
 import 'package:labuda/shared/widgets/app_snackbar.dart';
 import 'package:labuda/generated/app_localizations.dart';
 
@@ -61,7 +62,7 @@ class ThemeSelector extends ConsumerWidget {
           ),
         ),
         trailing: Container(
-          padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p6),
+          padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p8),
           decoration: BoxDecoration(
             color: scheme.surfaceContainerHighest,
             border: Border.all(color: scheme.outlineVariant),
@@ -144,7 +145,7 @@ class ThemeSelector extends ConsumerWidget {
           icon: Icon(
             Icons.keyboard_arrow_down,
             color: scheme.onSurfaceVariant,
-            size: 16,
+            size: AppIconSize.inlineGlyph,
           ),
           items: ThemeMode.values.map((themeMode) {
             return DropdownMenuItem<ThemeMode>(
@@ -154,7 +155,7 @@ class ThemeSelector extends ConsumerWidget {
                 children: [
                   Icon(
                     themeMode.icon,
-                    size: 16,
+                    size: AppIconSize.inlineGlyph,
                     color: scheme.onSurfaceVariant,
                   ),
                   const SizedBox(width: 6),
@@ -209,7 +210,7 @@ class ThemeSelectorTile extends ConsumerWidget {
       leading: Icon(
         currentTheme.icon,
         color: scheme.onSurfaceVariant,
-        size: 24,
+        size: AppIconSize.header,
       ),
       title: Text(
         l10n.theme,
@@ -277,22 +278,13 @@ void showThemeSelectionSheet(BuildContext context, WidgetRef ref) {
     ),
     builder: (BuildContext context) {
       return Container(
-        padding: const EdgeInsets.all(AppMetrics.p20),
+        padding: const EdgeInsets.all(AppMetrics.p24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Handle bar
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: scheme.outlineVariant,
-                  borderRadius: BorderRadius.circular(AppShape.r2),
-                ),
-              ),
-            ),
+            // Handle bar — ONE authority: `AppDragHandle` beside the bottom-sheet base
+            const Center(child: AppDragHandle(padding: EdgeInsets.zero)),
             const SizedBox(height: 20),
 
             // Title
@@ -341,7 +333,7 @@ void showThemeSelectionSheet(BuildContext context, WidgetRef ref) {
                     ? Icon(
                         Icons.check_circle,
                         color: scheme.primary,
-                        size: 20,
+                        size: AppIconSize.action,
                       )
                     : null,
                 onTap: () {

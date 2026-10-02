@@ -121,6 +121,17 @@ func (h *Handler) CreateShippingQuote(c *gin.Context) {
 		return
 	}
 
+	// DESTINATION LOCK IS MANDATORY (Owner 2026-10-01): a quote without a
+	// locked destination city can be consumed by ANY buyer address (the
+	// entity's ValidateDestinationAddress passes everything when no lock is
+	// set). Every non-auction quote must name its kota/kabupaten so checkout
+	// only accepts the buyer whose address matches. Auction settlement quotes
+	// are workflow-owned and stay exempt.
+	if req.SourceType != "auction" && req.DestinationCityID == "" {
+		response.BadRequest(c, "destination_city_id wajib diisi untuk penawaran ongkir")
+		return
+	}
+
 	// Prepare input with defaults
 	input := shippingQuoteApp.CreateShippingQuoteInput{
 		ChatID:         chatID,

@@ -39,18 +39,9 @@ func BuildPublicShippingSetupSummaries(options []*entity.ShippingSetup) []Public
 // BuildPublicOriginSummary returns a safe public string summary for a seller
 // sender address. It excludes street, district, recipient, phone, and
 // coordinates.
+//
+// DELEGATION: the redaction rule itself lives ONCE, on the address entity
+// (identity/address/entity), so commerce and the public profile cannot drift.
 func BuildPublicOriginSummary(address *addressEntity.Address) string {
-	if address == nil {
-		return ""
-	}
-
-	parts := make([]string, 0, 2)
-	if city := strings.TrimSpace(address.CityName); city != "" {
-		parts = append(parts, city)
-	}
-	if province := strings.TrimSpace(address.ProvinceName); province != "" {
-		parts = append(parts, province)
-	}
-
-	return strings.Join(parts, ", ")
+	return addressEntity.BuildPublicOriginSummary(address)
 }

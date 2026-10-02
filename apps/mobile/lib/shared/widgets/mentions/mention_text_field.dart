@@ -193,7 +193,7 @@ class _MentionTextFieldState extends ConsumerState<MentionTextField> {
             right: 0,
             bottom: keyboardHeight + 8,
             child: Container(
-              height: 250,
+              height: AppContentSize.overlay,
               padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16),
               child: Material(
                 color: Colors.transparent,

@@ -4,6 +4,7 @@ library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:labuda/core/core.dart';
+import 'package:labuda/core/common/types/preparation_time.dart';
 import 'package:labuda/shared/domain/entities/resource_projection.dart';
 import 'package:labuda/domains/commerce/catalog/auction/data/auction_providers.dart'
     show auctionRepositoryProvider;
@@ -327,8 +328,8 @@ class AuctionNotifier extends Notifier<AuctionNotifierState> {
     DateTime? scheduledStartAt,
     required int durationHours,
     String? farmAddressId,
+    required PreparationTime preparationTime,
     required List<String> shippingSetupIds,
-    String? preparationNote,
   }) async {
     state = state.copyWith(isCreating: true, clearError: true);
 
@@ -349,8 +350,8 @@ class AuctionNotifier extends Notifier<AuctionNotifierState> {
       scheduledStartAt: scheduledStartAt,
       durationHours: durationHours,
       farmAddressId: farmAddressId,
+      preparationTime: preparationTime,
       shippingSetupIds: shippingSetupIds,
-      preparationNote: preparationNote,
     );
 
     if (result.isError) {

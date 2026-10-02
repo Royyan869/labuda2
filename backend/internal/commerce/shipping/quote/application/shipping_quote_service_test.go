@@ -37,7 +37,7 @@ func TestBuildShippingQuoteAttachmentJSON_Canonical(t *testing.T) {
 		PricePerUnit: money.New(125000),
 		Product: &productEntity.Product{
 			Title:     "ForSale Title",
-			MediaURLs: []string{"https://example.com/for_sale.jpg"},
+			MediaURLs:  []productEntity.ProductMedia{{URL: "https://example.com/for_sale.jpg"}},
 		},
 	}
 

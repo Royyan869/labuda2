@@ -159,7 +159,7 @@ class _SupportTicketThreadScreenState
             const SizedBox(height: 8),
             Row(
               children: [
-                Icon(Icons.link, size: 14, color: Theme.of(context).colorScheme.secondary),
+                Icon(Icons.link, size: AppIconSize.inlineGlyph, color: Theme.of(context).colorScheme.secondary),
                 const SizedBox(width: 4),
                 Text(
                   'Order #${ticket.linkedOrderId!.substring(0, 8)}...',
@@ -174,7 +174,7 @@ class _SupportTicketThreadScreenState
           Text(
             'Created ${SupportUtils.formatTimeAgo(ticket.createdAt)}',
             style: TextStyle(
-              fontSize: AppType.s11,
+              fontSize: AppType.s12,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
@@ -189,7 +189,7 @@ class _SupportTicketThreadScreenState
     required int colorValue,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p10, vertical: AppMetrics.p4),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p4),
       decoration: BoxDecoration(
         color: Color(colorValue).withAlpha(40),
         borderRadius: BorderRadius.circular(AppShape.r12),
@@ -203,7 +203,7 @@ class _SupportTicketThreadScreenState
           Text(
             label,
             style: TextStyle(
-              fontSize: AppType.s11,
+              fontSize: AppType.s12,
               fontWeight: FontWeight.bold,
               color: Color(colorValue),
             ),
@@ -228,7 +228,7 @@ class _SupportTicketThreadScreenState
               children: [
                 Icon(
                   Icons.error_outline,
-                  size: 48,
+                  size: AppIconSize.display,
                   color: context.statusColors.error,
                 ),
                 const SizedBox(height: 16),
@@ -249,7 +249,7 @@ class _SupportTicketThreadScreenState
               children: [
                 Icon(
                   Icons.error_outline,
-                  size: 48,
+                  size: AppIconSize.display,
                   color: context.statusColors.error,
                 ),
                 const SizedBox(height: 16),
@@ -291,12 +291,12 @@ class _SupportTicketThreadScreenState
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.mail_outline, size: 64, color: Theme.of(context).colorScheme.onSurfaceVariant),
+          Icon(Icons.mail_outline, size: AppIconSize.display, color: Theme.of(context).colorScheme.onSurfaceVariant),
           const SizedBox(height: 16),
           Text(
             'Ticket berhasil dibuat',
             style: TextStyle(
-              fontSize: AppType.s18,
+              fontSize: AppType.s20,
               fontWeight: FontWeight.bold,
               color: Theme.of(context).colorScheme.onSurface,
             ),
@@ -418,7 +418,7 @@ class _ThreadMessageCard extends StatelessWidget {
                       Text(
                         _getSenderTypeLabel(),
                         style: TextStyle(
-                          fontSize: AppType.s11,
+                          fontSize: AppType.s12,
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
@@ -430,7 +430,7 @@ class _ThreadMessageCard extends StatelessWidget {
                 Text(
                   _formatTimestamp(message.createdAt),
                   style: TextStyle(
-                    fontSize: AppType.s11,
+                    fontSize: AppType.s12,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),

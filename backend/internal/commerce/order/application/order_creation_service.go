@@ -362,7 +362,7 @@ func (s *OrderCreationService) validateSaleSurfaceForCheckout(
 // VALIDATION:
 // - FarmAddressID must exist (not nil/empty)
 // - Address must exist in database
-// - Address must have purpose="sender" (seller shipping origin)
+// - Address must carry the "sender" tag (seller shipping origin)
 //
 // Returns AddressSnapshot for order immutability.
 func (s *OrderCreationService) getFarmAddressSnapshot(
@@ -381,9 +381,9 @@ func (s *OrderCreationService) getFarmAddressSnapshot(
 		return addressentity.AddressSnapshot{}, fmt.Errorf("farm address not found: address_id=%s, sale_surface_id=%s", *saleSurface.Product.FarmAddressID, saleSurface.ID)
 	}
 
-	// Guard: Address must have purpose="sender" (seller shipping origin)
-	if farmAddress.Purpose != addressentity.AddressPurposeSender {
-		return addressentity.AddressSnapshot{}, fmt.Errorf("farm address must have purpose='sender': address_id=%s, purpose=%s", farmAddress.ID, farmAddress.Purpose)
+	// Guard: Address must carry the "sender" tag (seller shipping origin)
+	if !farmAddress.HasTag(addressentity.TagSender) {
+		return addressentity.AddressSnapshot{}, fmt.Errorf("farm address must carry the 'sender' tag: address_id=%s, tags=%v", farmAddress.ID, farmAddress.TagStrings())
 	}
 
 	// Return snapshot for order immutability
@@ -409,13 +409,13 @@ func (s *OrderCreationService) getAuctionFarmAddressSnapshot(
 		if err != nil {
 			return addressentity.AddressSnapshot{}, fmt.Errorf("farm address not found: address_id=%s, product_id=%s", *product.FarmAddressID, product.ID)
 		}
-		if farmAddress.Purpose != addressentity.AddressPurposeSender {
-			return addressentity.AddressSnapshot{}, fmt.Errorf("farm address must have purpose='sender': address_id=%s, purpose=%s", farmAddress.ID, farmAddress.Purpose)
+		if !farmAddress.HasTag(addressentity.TagSender) {
+			return addressentity.AddressSnapshot{}, fmt.Errorf("farm address must carry the 'sender' tag: address_id=%s, tags=%v", farmAddress.ID, farmAddress.TagStrings())
 		}
 		return farmAddress.ToSnapshot(), nil
 	}
 
-	farmAddress, err := s.addressRepo.GetPrimaryByUserIDFiltered(ctx, tx, product.SellerID, string(addressentity.AddressPurposeSender))
+	farmAddress, err := s.addressRepo.GetPrimaryByTag(ctx, tx, product.SellerID, string(addressentity.TagSender))
 	if err != nil {
 		return addressentity.AddressSnapshot{}, fmt.Errorf("failed to resolve seller sender address: seller_id=%s", product.SellerID)
 	}
@@ -973,7 +973,6 @@ func (s *OrderCreationService) CreateFromAuction(
 		snapshot.ShippingSetupName,     // Option name from pricing snapshot
 		snapshot.ShippingTransportType, // Transport type from pricing snapshot
 		product.PreparationTime,        // SNAPSHOT: Freeze preparation time from canonical product
-		product.PreparationNote,        // SNAPSHOT: Freeze preparation note from canonical product
 		snapshot.ShippingSource,        // Shipping source from pricing snapshot
 		shippingQuoteID,                // TASK F: Quote ID
 		shippingQuotePrice,             // TASK F: Quote price snapshot
@@ -1719,7 +1718,6 @@ func (s *OrderCreationService) CreateFromSaleSurface(
 		snapshot.ShippingSetupName,      // Option name from pricing snapshot
 		snapshot.ShippingTransportType,  // Transport type from pricing snapshot
 		string(forSale.Product.PreparationTime), // SNAPSHOT: Freeze preparation time from canonical product
-		forSale.Product.PreparationNote,         // SNAPSHOT: Freeze preparation note from canonical product
 		snapshot.ShippingSource,         // Shipping source from pricing snapshot
 		shippingQuoteID,                 // TASK F: Quote ID
 		shippingQuotePrice,              // TASK F: Quote price snapshot

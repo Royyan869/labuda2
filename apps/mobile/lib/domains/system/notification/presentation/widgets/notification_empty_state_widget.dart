@@ -38,7 +38,7 @@ class NotificationEmptyStateWidget extends StatelessWidget {
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  Icon(filter.icon, size: 80, color: scheme.outlineVariant),
+                  Icon(filter.icon, size: AppIconSize.display, color: scheme.outlineVariant),
                   Positioned(
                     right: 35,
                     top: 35,
@@ -52,7 +52,7 @@ class NotificationEmptyStateWidget extends StatelessWidget {
                       ),
                       child: Icon(
                         Icons.check,
-                        size: 20,
+                        size: AppIconSize.action,
                         color: scheme.onSurfaceVariant,
                       ),
                     ),
@@ -79,7 +79,7 @@ class NotificationEmptyStateWidget extends StatelessWidget {
               description,
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: AppType.s15,
+                fontSize: AppType.s16,
                 color: scheme.onSurfaceVariant,
                 height: 1.5,
               ),
@@ -163,7 +163,7 @@ class _InfoChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p6),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p8),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(AppShape.r16),
@@ -172,12 +172,12 @@ class _InfoChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 16, color: color),
+          Icon(icon, size: AppIconSize.inlineGlyph, color: color),
           const SizedBox(width: 6),
           Text(
             label,
             style: TextStyle(
-              fontSize: AppType.s13,
+              fontSize: AppType.s14,
               fontWeight: FontWeight.w500,
               color: color,
             ),

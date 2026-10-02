@@ -13,6 +13,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"go.uber.org/zap/zaptest"
 
+	notificationentity "github.com/labuda/backend/internal/interaction/notification/entity"
+	notificationrepository "github.com/labuda/backend/internal/interaction/notification/infrastructure/repository"
 	platformevent "github.com/labuda/backend/internal/platform/event"
 	"github.com/labuda/backend/internal/platform/events"
 	dbpkg "github.com/labuda/backend/pkg/db"
@@ -56,7 +58,7 @@ func TestOrderDisputeOpen_SellerAndAdminFanout(t *testing.T) {
 			tx := &mockTxForNotification{
 				QueryRowFunc: func(_ context.Context, _ string, args ...any) pgx.Row {
 					if len(args) >= 6 {
-						recipients = append(recipients, args[1].(uuid.UUID))
+						recipients = append(recipients, insertArg(args).Recipient)
 					}
 					return &mockRowForNotification{scanValue: uuid.New()}
 				},
@@ -318,7 +320,7 @@ func TestOrderDisputeOpen_RefundEscalatedNoAdminDuplicate(t *testing.T) {
 			tx := &mockTxForNotification{
 				QueryRowFunc: func(_ context.Context, _ string, args ...any) pgx.Row {
 					if len(args) >= 6 {
-						recipients = append(recipients, args[1].(uuid.UUID))
+						recipients = append(recipients, insertArg(args).Recipient)
 					}
 					return &mockRowForNotification{scanValue: uuid.New()}
 				},
@@ -485,7 +487,7 @@ func TestDisputeOpened_PostRelease_AdminFanout(t *testing.T) {
 			tx := &mockTxForNotification{
 				QueryRowFunc: func(_ context.Context, _ string, args ...any) pgx.Row {
 					if len(args) >= 6 {
-						recipients = append(recipients, args[1].(uuid.UUID))
+						recipients = append(recipients, insertArg(args).Recipient)
 					}
 					return &mockRowForNotification{scanValue: uuid.New()}
 				},
@@ -646,7 +648,7 @@ func TestMoneyRefundFailed_AdminFanout(t *testing.T) {
 			tx := &mockTxForNotification{
 				QueryRowFunc: func(_ context.Context, _ string, args ...any) pgx.Row {
 					if len(args) >= 6 {
-						recipients = append(recipients, args[1].(uuid.UUID))
+						recipients = append(recipients, insertArg(args).Recipient)
 					}
 					return &mockRowForNotification{scanValue: uuid.New()}
 				},
@@ -891,10 +893,10 @@ func TestMoneyRefundFailed_OtherMoneyEventsNoFanout(t *testing.T) {
 	}
 }
 
-func TestInsertNotification_DedupReturnsNil(t *testing.T) {
+func TestInsert_DedupReturnsNil(t *testing.T) {
 	// Verify that ON CONFLICT DO NOTHING (ErrNoRows from Scan) is treated as
 	// success, not as an error. This is the dedup safety net for outbox replay.
-	inserter := NewNotificationServiceInserter()
+	inserter := notificationrepository.NewNotificationRepository()
 
 	dedupTx := &mockTxForNotification{
 		QueryRowFunc: func(_ context.Context, _ string, _ ...any) pgx.Row {
@@ -902,13 +904,15 @@ func TestInsertNotification_DedupReturnsNil(t *testing.T) {
 		},
 	}
 
-	id, err := inserter.InsertNotification(
+	id, inserted, err := inserter.Insert(
 		context.Background(), dedupTx,
-		uuid.New(), uuid.Nil, "withdrawal.requested", uuid.New(),
-		map[string]interface{}{"test": true},
+		notificationentity.NewNotification(uuid.New(), notificationentity.SystemActor(), "withdrawal.requested", uuid.New(), map[string]interface{}{"test": true}),
 	)
 	if err != nil {
 		t.Fatalf("dedup insert should return nil error, got: %v", err)
+	}
+	if inserted {
+		t.Error("dedup insert must report inserted=false")
 	}
 	if id != uuid.Nil {
 		t.Errorf("dedup insert should return uuid.Nil, got: %v", id)
@@ -944,10 +948,10 @@ func TestNotificationEventHandler_HandleRefundApproved(t *testing.T) {
 			mockTx := &mockTxForNotification{
 				QueryRowFunc: func(ctx context.Context, sql string, args ...any) pgx.Row {
 					if len(args) >= 6 {
-						insertedRecipientID = args[1].(uuid.UUID)
-						insertedActorID = args[2].(uuid.UUID)
-						insertedType = args[3].(string)
-						insertedEntityID = args[4].(uuid.UUID)
+						insertedRecipientID = insertArg(args).Recipient
+						insertedActorID = insertArg(args).ActorIDValue()
+						insertedType = insertArg(args).TypeString()
+						insertedEntityID = insertArg(args).EntityID
 					}
 					return &mockRowForNotification{scanValue: uuid.New()}
 				},
@@ -956,7 +960,7 @@ func TestNotificationEventHandler_HandleRefundApproved(t *testing.T) {
 		},
 	}
 
-	inserter := NewNotificationServiceInserter()
+	inserter := notificationrepository.NewNotificationRepository()
 	handler := NewNotificationEventHandler(mockDB, &mockBlockCheckerForNotification{}, inserter, &mockPushSenderForNotification{}, &mockAccountStatusCheckerForNotification{}, log)
 
 	err := handler.Handle(context.Background(), platformevent.OutboxEvent{
@@ -1011,10 +1015,10 @@ func TestNotificationEventHandler_HandleRefundRejected(t *testing.T) {
 			mockTx := &mockTxForNotification{
 				QueryRowFunc: func(ctx context.Context, sql string, args ...any) pgx.Row {
 					if len(args) >= 6 {
-						insertedRecipientID = args[1].(uuid.UUID)
-						insertedActorID = args[2].(uuid.UUID)
-						insertedType = args[3].(string)
-						insertedEntityID = args[4].(uuid.UUID)
+						insertedRecipientID = insertArg(args).Recipient
+						insertedActorID = insertArg(args).ActorIDValue()
+						insertedType = insertArg(args).TypeString()
+						insertedEntityID = insertArg(args).EntityID
 					}
 					return &mockRowForNotification{scanValue: uuid.New()}
 				},
@@ -1023,7 +1027,7 @@ func TestNotificationEventHandler_HandleRefundRejected(t *testing.T) {
 		},
 	}
 
-	inserter := NewNotificationServiceInserter()
+	inserter := notificationrepository.NewNotificationRepository()
 	handler := NewNotificationEventHandler(mockDB, &mockBlockCheckerForNotification{}, inserter, &mockPushSenderForNotification{}, &mockAccountStatusCheckerForNotification{}, log)
 
 	err := handler.Handle(context.Background(), platformevent.OutboxEvent{
@@ -1056,7 +1060,7 @@ func TestNotificationEventHandler_RefundApproved_InvalidPayload(t *testing.T) {
 	log := zaptest.NewLogger(t)
 
 	mockDB := &mockDBForNotification{}
-	inserter := NewNotificationServiceInserter()
+	inserter := notificationrepository.NewNotificationRepository()
 	handler := NewNotificationEventHandler(mockDB, &mockBlockCheckerForNotification{}, inserter, nil, &mockAccountStatusCheckerForNotification{}, log)
 
 	err := handler.Handle(context.Background(), platformevent.OutboxEvent{
@@ -1082,7 +1086,7 @@ func TestNotificationEventHandler_RefundRejected_InvalidOrderID(t *testing.T) {
 	})
 
 	mockDB := &mockDBForNotification{}
-	inserter := NewNotificationServiceInserter()
+	inserter := notificationrepository.NewNotificationRepository()
 	handler := NewNotificationEventHandler(mockDB, &mockBlockCheckerForNotification{}, inserter, nil, &mockAccountStatusCheckerForNotification{}, log)
 
 	err := handler.Handle(context.Background(), platformevent.OutboxEvent{
@@ -1106,35 +1110,33 @@ func TestNotificationEventHandler_RefundRejected_InvalidOrderID(t *testing.T) {
 //   - support.ticket.user_responded routes to admin recipient
 // =============================================================================
 
-// multiInsertDB captures every InsertNotification call in order, for multi-recipient handlers.
+// multiInsertDB captures every notifications INSERT, in order, for multi-recipient handlers.
 type multiInsertDB struct {
 	mu      sync.Mutex
 	records []n4InsertRecord
 }
 
 type n4InsertRecord struct {
-	recipient uuid.UUID
-	actor     uuid.UUID
-	notifType string
-	data      map[string]any
+	recipient    uuid.UUID
+	actor        uuid.UUID // uuid.Nil for system/anonymized actors
+	actorKind    notificationentity.ActorKind
+	actorDisplay string
+	notifType    string
+	data         map[string]any
 }
 
 func (d *multiInsertDB) WithTx(_ context.Context, fn func(dbpkg.Tx) error) error {
 	tx := &mockTxForNotification{
 		QueryRowFunc: func(_ context.Context, _ string, args ...any) pgx.Row {
-			if len(args) >= 4 {
+			if arg := insertArg(args); arg.ID != uuid.Nil {
 				d.mu.Lock()
-				var data map[string]any
-				if len(args) >= 6 {
-					if v, ok := args[5].(map[string]any); ok {
-						data = v
-					}
-				}
 				d.records = append(d.records, n4InsertRecord{
-					recipient: args[1].(uuid.UUID),
-					actor:     args[2].(uuid.UUID),
-					notifType: args[3].(string),
-					data:      data,
+					recipient:    arg.Recipient,
+					actor:        arg.ActorIDValue(),
+					actorKind:    arg.ActorKind,
+					actorDisplay: arg.Display,
+					notifType:    arg.TypeString(),
+					data:         arg.Data,
 				})
 				d.mu.Unlock()
 			}
@@ -1184,7 +1186,7 @@ func (p *pushCountSender) pushCount() int {
 // buildN4Handler constructs a handler with active account status and configurable block/push/logger.
 func buildN4Handler(t *testing.T, db *multiInsertDB, block BlockChecker, push PushSender, logger DeliveryLogger) *NotificationEventHandler {
 	t.Helper()
-	h := NewNotificationEventHandler(db, block, NewNotificationServiceInserter(), push, &mockAccountStatusCheckerForNotification{}, zaptest.NewLogger(t))
+	h := NewNotificationEventHandler(db, block, notificationrepository.NewNotificationRepository(), push, &mockAccountStatusCheckerForNotification{}, zaptest.NewLogger(t))
 	if logger != nil {
 		h.SetDeliveryLogger(logger)
 	}
@@ -1239,7 +1241,7 @@ func TestRefundEscalated_DedupSeller_BuyerInserted_PushOnce_NoFailure(t *testing
 	h := NewNotificationEventHandler(
 		mockDB,
 		&mockBlockCheckerForNotification{},
-		NewNotificationServiceInserter(),
+		notificationrepository.NewNotificationRepository(),
 		push,
 		&mockAccountStatusCheckerForNotification{},
 		zaptest.NewLogger(t),
@@ -1273,12 +1275,13 @@ func makeSellerTierPayload(sellerID uuid.UUID, previousTier, newTier string) []b
 	return b
 }
 
-func makeNegotiationCancelledPayload(sessionID, buyerID, sellerID, chatRoomID uuid.UUID) []byte {
+func makeNegotiationCancelledPayload(sessionID, buyerID, sellerID, chatRoomID, actorID uuid.UUID) []byte {
 	b, _ := json.Marshal(NegotiationPayload{
 		SessionID:  sessionID.String(),
 		ChatRoomID: chatRoomID.String(),
 		BuyerID:    buyerID.String(),
 		SellerID:   sellerID.String(),
+		ActorID:    actorID.String(),
 	})
 	return b
 }
@@ -1301,7 +1304,7 @@ func TestDisputeOverdue_AdminFanout(t *testing.T) {
 			tx := &mockTxForNotification{
 				QueryRowFunc: func(_ context.Context, _ string, args ...any) pgx.Row {
 					if len(args) >= 6 {
-						recipients = append(recipients, args[1].(uuid.UUID))
+						recipients = append(recipients, insertArg(args).Recipient)
 					}
 					return &mockRowForNotification{scanValue: uuid.New()}
 				},
@@ -1414,7 +1417,7 @@ func TestDisputeTimeoutEscalation_AdminFanout(t *testing.T) {
 			tx := &mockTxForNotification{
 				QueryRowFunc: func(_ context.Context, _ string, args ...any) pgx.Row {
 					if len(args) >= 6 {
-						recipients = append(recipients, args[1].(uuid.UUID))
+						recipients = append(recipients, insertArg(args).Recipient)
 					}
 					return &mockRowForNotification{scanValue: uuid.New()}
 				},
@@ -1542,6 +1545,3 @@ func TestDisputeTimeoutEscalation_ZeroReviewers_NoError(t *testing.T) {
 		t.Errorf("WithTx called %d times, want 0 (no reviewers = no inserts)", dbCalls)
 	}
 }
-
-
-

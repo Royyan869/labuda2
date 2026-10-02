@@ -130,12 +130,12 @@ class _CompactButton extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(icon, size: 16, color: foregroundColor),
+                Icon(icon, size: AppIconSize.inlineGlyph, color: foregroundColor),
                 const SizedBox(width: 4),
                 Text(
                   label,
                   style: TextStyle(
-                    fontSize: AppType.s13,
+                    fontSize: AppType.s14,
                     fontWeight: FontWeight.w500,
                     color: foregroundColor,
                   ),

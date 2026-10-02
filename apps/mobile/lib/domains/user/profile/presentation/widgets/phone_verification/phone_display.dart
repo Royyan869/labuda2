@@ -14,7 +14,7 @@ class PhoneDisplay extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p14, vertical: AppMetrics.p10),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p12),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(AppShape.r10),
@@ -25,14 +25,14 @@ class PhoneDisplay extends StatelessWidget {
         children: [
           Icon(
             Icons.phone,
-            size: 16,
+            size: AppIconSize.inlineGlyph,
             color: scheme.onSurfaceVariant,
           ),
           const SizedBox(width: 8),
           Text(
             phoneNumber,
             style: TextStyle(
-              fontSize: AppType.s15,
+              fontSize: AppType.s16,
               fontWeight: FontWeight.w600,
               color: scheme.onSurface,
             ),

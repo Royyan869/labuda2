@@ -27,7 +27,7 @@ class _ShippingClarityBanner extends StatelessWidget {
         children: [
           Icon(
             Icons.local_shipping_outlined,
-            size: 18,
+            size: AppIconSize.action,
             color: colorScheme.secondary,
           ),
           const SizedBox(width: 10),
@@ -38,7 +38,7 @@ class _ShippingClarityBanner extends StatelessWidget {
                 Text(
                   'Pengiriman dikelola oleh penjual',
                   style: TextStyle(
-                    fontSize: AppType.s13,
+                    fontSize: AppType.s14,
                     fontWeight: FontWeight.w600,
                     color: colorScheme.secondary,
                   ),
@@ -47,7 +47,7 @@ class _ShippingClarityBanner extends StatelessWidget {
                 Text(
                   'Setelah pesanan dibuat, penjual akan menginformasikan opsi pengiriman yang tersedia.',
                   style: TextStyle(
-                    fontSize: AppType.s11,
+                    fontSize: AppType.s12,
                     color: colorScheme.onSurfaceVariant,
                     height: 1.4,
                   ),
@@ -90,14 +90,14 @@ class _AuctionWinnerBanner extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(AppMetrics.p6),
+            padding: const EdgeInsets.all(AppMetrics.p8),
             decoration: BoxDecoration(
               color: context.statusColors.success.withValues(alpha: 0.15),
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.emoji_events,
-              size: 18,
+              size: AppIconSize.action,
               color: context.statusColors.success,
             ),
           ),
@@ -159,14 +159,14 @@ class _NegotiationWarningBanner extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(AppMetrics.p6),
+            padding: const EdgeInsets.all(AppMetrics.p8),
             decoration: BoxDecoration(
               color: context.statusColors.warning.withValues(alpha: 0.15),
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.info_outline,
-              size: 18,
+              size: AppIconSize.action,
               color: context.statusColors.warning,
             ),
           ),
@@ -230,7 +230,7 @@ class _StockWarningBanner extends StatelessWidget {
         children: [
           Icon(
             Icons.warning_amber_outlined,
-            size: 18,
+            size: AppIconSize.action,
             color: context.statusColors.warning,
           ),
           const SizedBox(width: 10),
@@ -241,7 +241,7 @@ class _StockWarningBanner extends StatelessWidget {
                 Text(
                   'Stok Terbatas',
                   style: TextStyle(
-                    fontSize: AppType.s13,
+                    fontSize: AppType.s14,
                     fontWeight: FontWeight.w600,
                     color: context.statusColors.warning,
                   ),
@@ -250,7 +250,7 @@ class _StockWarningBanner extends StatelessWidget {
                 Text(
                   'Barang bisa habis kapan saja. Segera selesaikan pembayaran.',
                   style: TextStyle(
-                    fontSize: AppType.s11,
+                    fontSize: AppType.s12,
                     color: colorScheme.onSurfaceVariant,
                     height: 1.3,
                   ),

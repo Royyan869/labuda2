@@ -203,7 +203,7 @@ func newNotificationLifecycleFixture(t *testing.T) *notificationLifecycleFixture
 	handler := worker.NewNotificationEventHandler(
 		appDB,
 		blockChecker,
-		worker.NewNotificationServiceInserter(),
+		notificationrepoimpl.NewNotificationRepository(),
 		pushSender,
 		accountStatusChecker,
 		zap.NewNop(),
@@ -857,7 +857,7 @@ func TestChatNotificationLifecycle_PostgresBacked(t *testing.T) {
 				db:   fixture.appDB,
 				repo: socialrepo.NewSocialRepository(),
 			},
-			worker.NewNotificationServiceInserter(),
+			notificationrepoimpl.NewNotificationRepository(),
 			panicSender,
 			auth.NewAccountStatusCheckerDB(fixture.appDB),
 			zap.NewNop(),
@@ -947,7 +947,7 @@ func newContentLikeLifecycleFixture(t *testing.T) *contentLikeLifecycleFixture {
 	handler := worker.NewNotificationEventHandler(
 		appDB,
 		blockChecker,
-		worker.NewNotificationServiceInserter(),
+		notificationrepoimpl.NewNotificationRepository(),
 		pushSender,
 		auth.NewAccountStatusCheckerDB(appDB),
 		zap.NewNop(),

@@ -184,8 +184,8 @@ class _WebImageCropperState extends State<WebImageCropper> {
           height: double.infinity,
           child: Center(
             child: Container(
-              width: 500,
-              height: 600,
+              width: AppContentSize.cropperCanvas.width,
+              height: AppContentSize.cropperCanvas.height,
               decoration: BoxDecoration(
                 color: scheme.surface,
                 borderRadius: BorderRadius.circular(AppShape.r16),
@@ -213,7 +213,7 @@ class _WebImageCropperState extends State<WebImageCropper> {
                         Text(
                           widget.title,
                           style: TextStyle(
-                            fontSize: AppType.s18,
+                            fontSize: AppType.s20,
                             fontWeight: FontWeight.w600,
                             color: scheme.onSurface,
                           ),
@@ -261,7 +261,7 @@ class _WebImageCropperState extends State<WebImageCropper> {
                             Icon(
                               Icons.zoom_out,
                               color: scheme.onSurfaceVariant,
-                              size: 20,
+                              size: AppIconSize.action,
                             ),
                             Expanded(
                               child: Slider(
@@ -282,7 +282,7 @@ class _WebImageCropperState extends State<WebImageCropper> {
                             Icon(
                               Icons.zoom_in,
                               color: scheme.onSurfaceVariant,
-                              size: 20,
+                              size: AppIconSize.action,
                             ),
                           ],
                         ),

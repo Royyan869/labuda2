@@ -28,7 +28,7 @@ class _NextStepsSection extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(core.AppMetrics.p20),
+      padding: const EdgeInsets.all(core.AppMetrics.p24),
       decoration: BoxDecoration(
         color: colorScheme.surface,
         borderRadius: BorderRadius.circular(core.AppShape.r16),
@@ -49,7 +49,7 @@ class _NextStepsSection extends StatelessWidget {
                 child: Icon(
                   Icons.info_outline,
                   color: context.statusColors.success,
-                  size: 20,
+                  size: AppIconSize.action,
                 ),
               ),
               const SizedBox(width: 12),
@@ -117,7 +117,7 @@ class _NextStepItem extends StatelessWidget {
             color: colorScheme.secondary.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, size: 16, color: colorScheme.secondary),
+          child: Icon(icon, size: AppIconSize.inlineGlyph, color: colorScheme.secondary),
         ),
         const SizedBox(width: 12),
         Expanded(

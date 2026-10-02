@@ -19,7 +19,7 @@ class RatingOverviewSection extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(AppMetrics.p14),
+      padding: const EdgeInsets.all(AppMetrics.p16),
       decoration: BoxDecoration(
         color: scheme.surface,
         border: Border(
@@ -38,7 +38,7 @@ class RatingOverviewSection extends StatelessWidget {
                 Text(
                   averageRating.toStringAsFixed(1),
                   style: TextStyle(
-                    fontSize: AppType.s36,
+                    fontSize: AppType.s24,
                     fontWeight: FontWeight.bold,
                     color: scheme.onSurface,
                   ),
@@ -70,17 +70,17 @@ class RatingOverviewSection extends StatelessWidget {
                     : 0.0;
 
                 return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: AppMetrics.p1_5),
+                  padding: const EdgeInsets.symmetric(vertical: AppMetrics.p4),
                   child: Row(
                     children: [
                       Text(
                         '$starCount',
                         style: TextStyle(
-                          fontSize: AppType.s11,
+                          fontSize: AppType.s12,
                           color: scheme.onSurfaceVariant,
                         ),
                       ),
-                      Icon(Icons.star, size: 11, color: AppColors.koiGold),
+                      Icon(Icons.star, size: AppIconSize.inlineGlyph, color: AppColors.koiGold),
                       const SizedBox(width: 6),
                       Expanded(
                         child: LinearProgressIndicator(
@@ -93,11 +93,11 @@ class RatingOverviewSection extends StatelessWidget {
                       ),
                       const SizedBox(width: 6),
                       SizedBox(
-                        width: 22,
+                        width: AppContentSize.badge,
                         child: Text(
                           '$count',
                           style: TextStyle(
-                            fontSize: AppType.s11,
+                            fontSize: AppType.s12,
                             color: scheme.onSurfaceVariant,
                           ),
                           textAlign: TextAlign.end,

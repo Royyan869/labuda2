@@ -49,12 +49,17 @@ class VillageDropdown extends ConsumerWidget {
             color: scheme.surface,
           ),
           child: selectedDistrict == null
-              ? _buildDisabledDropdown(context, 'Pilih kecamatan dulu')
+              ? DropdownStateBuilders.buildDisabled(
+                  context: context,
+                  text: 'Pilih kecamatan dulu',
+                  prefixIcon: prefixIcon,
+                )
               : villagesAsync.when(
                   data: (villages) => villages.isEmpty
-                      ? _buildEmptyDropdown(
-                          context,
-                          'Tidak ada desa tersedia',
+                      ? DropdownStateBuilders.buildEmpty(
+                          context: context,
+                          text: 'Tidak ada desa tersedia',
+                          prefixIcon: prefixIcon,
                         )
                       : DropdownButtonFormField<Village>(
                           initialValue: selectedVillage,
@@ -72,7 +77,7 @@ class VillageDropdown extends ConsumerWidget {
                             border: InputBorder.none,
                             contentPadding: const EdgeInsets.symmetric(
                               horizontal: AppMetrics.p16,
-                              vertical: AppMetrics.p14,
+                              vertical: AppMetrics.p16,
                             ),
                             hintStyle: TextStyle(
                               color: scheme.onSurfaceVariant,
@@ -103,105 +108,19 @@ class VillageDropdown extends ConsumerWidget {
                             );
                           }).toList(),
                         ),
-                  loading: () =>
-                      _buildLoadingDropdown(context, 'Loading desa...'),
-                  error: (error, stack) => _buildErrorDropdown(
-                    context,
-                    'Error loading desa',
+                  loading: () => DropdownStateBuilders.buildLoading(
+                    context: context,
+                    text: 'Loading desa...',
+                    prefixIcon: prefixIcon,
+                  ),
+                  error: (error, stack) => DropdownStateBuilders.buildError(
+                    context: context,
+                    text: 'Error loading desa',
+                    prefixIcon: prefixIcon,
                   ),
                 ),
         ),
       ],
-    );
-  }
-
-  Widget _buildDisabledDropdown(BuildContext context, String text) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      height: 50,
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16),
-      child: Row(
-        children: [
-          if (prefixIcon != null) ...[
-            Icon(prefixIcon, color: scheme.onSurfaceVariant),
-            const SizedBox(width: 12),
-          ],
-          Text(
-            text,
-            style: TextStyle(
-              color: scheme.onSurfaceVariant,
-              fontSize: AppType.s16,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEmptyDropdown(BuildContext context, String text) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      height: 50,
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16),
-      child: Row(
-        children: [
-          if (prefixIcon != null) ...[
-            Icon(prefixIcon, color: scheme.onSurfaceVariant),
-            const SizedBox(width: 12),
-          ],
-          Text(
-            text,
-            style: TextStyle(
-              color: scheme.onSurfaceVariant,
-              fontSize: AppType.s16,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLoadingDropdown(BuildContext context, String text) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      height: 50,
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16),
-      child: Row(
-        children: [
-          if (prefixIcon != null) ...[
-            Icon(prefixIcon, color: scheme.onSurfaceVariant),
-            const SizedBox(width: 12),
-          ],
-          const SizedBox(
-            width: 20,
-            height: 20,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
-          const SizedBox(width: 12),
-          Text(
-            text,
-            style: TextStyle(color: scheme.onSurfaceVariant),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildErrorDropdown(BuildContext context, String text) {
-    return Container(
-      height: 50,
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16),
-      child: Row(
-        children: [
-          if (prefixIcon != null) ...[
-            Icon(prefixIcon, color: context.statusColors.error),
-            const SizedBox(width: 12),
-          ],
-          Icon(Icons.error_outline, color: context.statusColors.error, size: 20),
-          const SizedBox(width: 8),
-          Text(text, style: TextStyle(color: context.statusColors.error)),
-        ],
-      ),
     );
   }
 }

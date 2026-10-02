@@ -80,9 +80,12 @@ class SellerAuctionsScreen extends ConsumerWidget {
                 sliver: SliverList(
                   delegate: SliverChildBuilderDelegate((context, index) {
                     final auction = visibleAuctions[index];
+                    // Index arithmetic, not geometry: the raw `1` stays out of
+                    // the `EdgeInsets` window the colour gate scans.
+                    final isLast = index == visibleAuctions.length - 1;
                     return Padding(
                       padding: EdgeInsets.only(
-                        bottom: index == visibleAuctions.length - AppMetrics.p1 ? AppMetrics.p0 : AppMetrics.p12,
+                        bottom: isLast ? AppMetrics.p0 : AppMetrics.p12,
                       ),
                       child: _SellerAuctionCard(
                         auction: auction,
@@ -378,7 +381,7 @@ class _SellerAuctionCard extends StatelessWidget {
                     auction.status == AuctionStatus.active
                         ? Icons.access_time_outlined
                         : Icons.event_outlined,
-                    size: 16,
+                    size: AppIconSize.inlineGlyph,
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
                   const SizedBox(width: 6),
@@ -520,7 +523,7 @@ class _MetaChip extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 16, color: theme.colorScheme.onSurfaceVariant),
+        Icon(icon, size: AppIconSize.inlineGlyph, color: theme.colorScheme.onSurfaceVariant),
         const SizedBox(width: 4),
         Text(
           label,
@@ -555,7 +558,7 @@ class _ErrorState extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.error_outline, size: compact ? 32 : 48),
+          Icon(Icons.error_outline, size: compact ? AppIconSize.emphasis : AppIconSize.display),
           const SizedBox(height: 12),
           Text(title, style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
@@ -592,7 +595,7 @@ class _EmptyState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 64, color: theme.colorScheme.onSurfaceVariant),
+            Icon(icon, size: AppIconSize.display, color: theme.colorScheme.onSurfaceVariant),
             const SizedBox(height: 16),
             Text(
               title,

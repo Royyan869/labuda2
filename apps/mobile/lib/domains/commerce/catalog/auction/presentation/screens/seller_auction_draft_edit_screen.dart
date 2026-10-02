@@ -263,7 +263,7 @@ class _SellerAuctionDraftEditScreenState
                     children: [
                       Icon(
                         Icons.lock_outline,
-                        size: 48,
+                        size: AppIconSize.display,
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                       const SizedBox(height: 12),

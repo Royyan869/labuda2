@@ -22,14 +22,14 @@ class BankAccountEmptyStateWidget extends StatelessWidget {
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.all(AppMetrics.p20),
+            padding: const EdgeInsets.all(AppMetrics.p24),
             decoration: BoxDecoration(
               color: scheme.surfaceContainerHighest,
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.account_balance,
-              size: 48,
+              size: AppIconSize.display,
               color: scheme.onSurfaceVariant,
             ),
           ),
@@ -71,7 +71,7 @@ class BankAccountEmptyStateWidget extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Icon(Icons.info_outline, color: context.statusColors.info, size: 16),
+                Icon(Icons.info_outline, color: context.statusColors.info, size: AppIconSize.inlineGlyph),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(

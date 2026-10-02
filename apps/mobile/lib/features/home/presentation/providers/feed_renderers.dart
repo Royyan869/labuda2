@@ -23,11 +23,10 @@ import 'package:labuda/core/core.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/features/home/domain/domain.dart'; // R3.1: Import FeedItem from home domain
 import 'package:go_router/go_router.dart';
-import 'package:labuda/domains/social/content/domain/entities/content.dart';
 import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_marketplace_metrics.dart';
 import 'package:labuda/shared/domain/entities/resource_projection.dart';
-import 'package:labuda/shared/widgets/carousel_video_player.dart';
 import 'package:labuda/domains/social/content/presentation/widgets/content_resource_projection_card.dart';
+import 'package:labuda/features/home/presentation/widgets/feed_media_mosaic.dart';
 import 'package:labuda/shared/governance/content_lifecycle.dart';
 import 'package:labuda/domains/social/like/domain/entities/like.dart';
 import 'package:labuda/domains/social/like/presentation/providers/like_notifier.dart';
@@ -104,9 +103,6 @@ class FeedCardFactory {
 /// - No misleading "0 likes" when data simply isn't available
 /// - Better to be simple but honest than rich but fake
 class FeedCard extends ConsumerWidget {
-  /// Height of the card media slot.
-  static const double _mediaCardHeight = 200;
-
   final FeedItem item;
 
   const FeedCard({super.key, required this.item});
@@ -178,8 +174,9 @@ class FeedCard extends ConsumerWidget {
                 ],
               ),
             ),
-            // MEDIA — below avatar/username + text (canonical)
-            if (item.media.isNotEmpty) _buildMedia(context, item.media.first),
+            // MEDIA — mosaic of the full list below avatar/username + text.
+            // Single 4:5 contain, pairs, triples, 2x2+N — never cropped.
+            if (item.media.isNotEmpty) FeedMediaMosaic(media: item.media),
             if (resourceProjection != null)
               Padding(
                 padding: const EdgeInsets.fromLTRB(
@@ -230,55 +227,6 @@ class FeedCard extends ConsumerWidget {
     }
   }
 
-  /// Canonical content media renderer for the feed card.
-  ///
-  /// [MediaEntity.type] is the render authority:
-  /// - image — [AppImage], the single network-media path (CloudFront URL
-  ///   as-is, cached; shimmer while loading, icon when it cannot load).
-  /// - video — [CarouselVideoPlayer], the shared video primitive. A video
-  ///   reference must never reach the image decoder.
-  Widget _buildMedia(BuildContext context, MediaEntity media) {
-    return SizedBox(
-      width: double.infinity,
-      height: _mediaCardHeight,
-      child: media.type == MediaType.video
-          ? LayoutBuilder(
-              builder: (context, constraints) => CarouselVideoPlayer(
-                videoUrl: media.originalUrl,
-                width: constraints.maxWidth,
-                height: constraints.maxHeight,
-                fit: BoxFit.cover,
-                onFullscreenTap: () => _navigateToDetail(context),
-              ),
-            )
-          : AppImage(
-              imageUrl: media.thumbnailUrl,
-              fit: BoxFit.cover,
-              cacheWidth: 800,
-              backgroundColor: Theme.of(
-                context,
-              ).colorScheme.surfaceContainerHighest,
-              errorWidget: _buildMediaPlaceholder(),
-            ),
-    );
-  }
-
-  /// Error icon shown when the image cannot load. Loading shows the AppImage
-  /// shimmer — the two states are never the same widget.
-  Widget _buildMediaPlaceholder() {
-    return Builder(
-      builder: (context) {
-        final scheme = Theme.of(context).colorScheme;
-        return Container(
-          width: double.infinity,
-          height: _mediaCardHeight,
-          color: scheme.surfaceContainerHighest,
-          child: Icon(Icons.image, size: 48, color: scheme.onSurfaceVariant),
-        );
-      },
-    );
-  }
-
   /// Governance UNAVAILABLE banner.
   /// Renders at the top of a card whose canonical lifecycle is `unavailable`.
   /// Tap is disabled at the InkWell, so the banner is the user-facing signal.
@@ -294,14 +242,14 @@ class FeedCard extends ConsumerWidget {
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(AppMetrics.p6),
+            padding: const EdgeInsets.all(AppMetrics.p8),
             decoration: BoxDecoration(
               color: scheme.onSurfaceVariant.withValues(alpha: 0.2),
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.visibility_off_outlined,
-              size: 16,
+              size: AppIconSize.inlineGlyph,
               color: scheme.onSurfaceVariant,
             ),
           ),
@@ -309,7 +257,7 @@ class FeedCard extends ConsumerWidget {
           Text(
             'Tidak tersedia',
             style: TextStyle(
-              fontSize: AppType.s13,
+              fontSize: AppType.s14,
               fontWeight: FontWeight.w600,
               color: scheme.onSurface,
             ),
@@ -380,7 +328,7 @@ class FeedCard extends ConsumerWidget {
                       const SizedBox(width: 6),
                       Icon(
                         visibilityIcon,
-                        size: 14,
+                        size: AppIconSize.inlineGlyph,
                         color: scheme.onSurfaceVariant,
                       ),
                     ],
@@ -475,13 +423,13 @@ class FeedCard extends ConsumerWidget {
               : null,
           borderRadius: BorderRadius.circular(AppShape.r8),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p4, vertical: AppMetrics.p6),
+            padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p4, vertical: AppMetrics.p8),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
                   isLiked ? Icons.favorite : Icons.favorite_border,
-                  size: 16,
+                  size: AppIconSize.inlineGlyph,
                   color: isLiked
                       ? scheme.primary
                       : (isAuthenticated
@@ -513,13 +461,13 @@ class FeedCard extends ConsumerWidget {
           onTap: () => _navigateToComments(context),
           borderRadius: BorderRadius.circular(AppShape.r8),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p4, vertical: AppMetrics.p6),
+            padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p4, vertical: AppMetrics.p8),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
                   Icons.chat_bubble_outline,
-                  size: 16,
+                  size: AppIconSize.inlineGlyph,
                   color: scheme.primary,
                 ),
                 if ((item.additionalData['commentCount'] as int? ?? 0) > 0) ...[
@@ -543,10 +491,10 @@ class FeedCard extends ConsumerWidget {
           onTap: () => _handleShareContent(context),
           borderRadius: BorderRadius.circular(AppShape.r8),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p4, vertical: AppMetrics.p6),
+            padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p4, vertical: AppMetrics.p8),
             child: Icon(
               Icons.share_outlined,
-              size: 16,
+              size: AppIconSize.inlineGlyph,
               color: scheme.onSurfaceVariant,
             ),
           ),
@@ -619,9 +567,9 @@ class FeedCard extends ConsumerWidget {
 
   /// Handle share action - opens ShareBottomSheet for content
   void _handleShareContent(BuildContext context) {
-    // MEDIA INTEGRATION: Use canonical media directly
+    // MEDIA INTEGRATION: share preview uses the list thumbnail variant.
     final imageUrl = item.media.isNotEmpty
-        ? item.media.first.originalUrl
+        ? item.media.first.thumbnailUrl
         : null;
 
     final shareTarget = ShareTarget(
@@ -789,7 +737,7 @@ class _PromotedBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p3),
+      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p8, vertical: AppMetrics.p4),
       decoration: BoxDecoration(
         color: scheme.primary.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(AppShape.r4),
@@ -797,13 +745,13 @@ class _PromotedBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.campaign_outlined, size: 14, color: scheme.primary),
+          Icon(Icons.campaign_outlined, size: AppIconSize.inlineGlyph, color: scheme.primary),
           const SizedBox(width: 4),
           Text(
             'Dipromosikan',
             style: TextStyle(
               color: scheme.primary,
-              fontSize: AppType.s11,
+              fontSize: AppType.s12,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -907,7 +855,7 @@ class PromotedForSaleCard extends ConsumerWidget {
                       color: scheme.surfaceContainerHighest,
                       child: Icon(
                         Icons.image_not_supported,
-                        size: 48,
+                        size: AppIconSize.display,
                         color: scheme.onSurfaceVariant,
                       ),
                     ),
@@ -929,7 +877,7 @@ class PromotedForSaleCard extends ConsumerWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: AppType.s15,
+                        fontSize: AppType.s16,
                         fontWeight: FontWeight.w600,
                         color: scheme.onSurface,
                       ),
@@ -952,14 +900,14 @@ class PromotedForSaleCard extends ConsumerWidget {
                       children: [
                         Icon(
                           Icons.storefront_outlined,
-                          size: 14,
+                          size: AppIconSize.inlineGlyph,
                           color: scheme.onSurfaceVariant,
                         ),
                         const SizedBox(width: 4),
                         Text(
                           sellerLabel,
                           style: TextStyle(
-                            fontSize: AppType.s13,
+                            fontSize: AppType.s14,
                             color: scheme.onSurfaceVariant,
                           ),
                         ),
@@ -1078,7 +1026,7 @@ class PromotedAuctionCard extends ConsumerWidget {
                       color: scheme.surfaceContainerHighest,
                       child: Icon(
                         Icons.image_not_supported,
-                        size: 48,
+                        size: AppIconSize.display,
                         color: scheme.onSurfaceVariant,
                       ),
                     ),
@@ -1099,7 +1047,7 @@ class PromotedAuctionCard extends ConsumerWidget {
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: AppMetrics.p8,
-                              vertical: AppMetrics.p3,
+                              vertical: AppMetrics.p4,
                             ),
                             decoration: BoxDecoration(
                               color: context.statusColors.warning.withValues(
@@ -1111,7 +1059,7 @@ class PromotedAuctionCard extends ConsumerWidget {
                               timeRemaining,
                               style: TextStyle(
                                 color: context.statusColors.warning,
-                                fontSize: AppType.s11,
+                                fontSize: AppType.s12,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -1126,7 +1074,7 @@ class PromotedAuctionCard extends ConsumerWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: AppType.s15,
+                        fontSize: AppType.s16,
                         fontWeight: FontWeight.w600,
                         color: scheme.onSurface,
                       ),
@@ -1156,7 +1104,7 @@ class PromotedAuctionCard extends ConsumerWidget {
                       children: [
                         Icon(
                           Icons.storefront_outlined,
-                          size: 14,
+                          size: AppIconSize.inlineGlyph,
                           color: scheme.onSurfaceVariant,
                         ),
                         const SizedBox(width: 4),
@@ -1164,7 +1112,7 @@ class PromotedAuctionCard extends ConsumerWidget {
                           child: Text(
                             sellerLabel,
                             style: TextStyle(
-                              fontSize: AppType.s13,
+                              fontSize: AppType.s14,
                               color: scheme.onSurfaceVariant,
                             ),
                           ),
@@ -1290,7 +1238,7 @@ class PromotedExternalCard extends ConsumerWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: AppType.s15,
+                        fontSize: AppType.s16,
                         fontWeight: FontWeight.w600,
                         color: scheme.onSurface,
                       ),
@@ -1303,7 +1251,7 @@ class PromotedExternalCard extends ConsumerWidget {
                         children: [
                           Icon(
                             Icons.open_in_new,
-                            size: 14,
+                            size: AppIconSize.inlineGlyph,
                             color: scheme.onSurfaceVariant,
                           ),
                           const SizedBox(width: 4),

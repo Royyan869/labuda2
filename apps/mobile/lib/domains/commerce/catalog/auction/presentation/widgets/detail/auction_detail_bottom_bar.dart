@@ -69,14 +69,20 @@ class AuctionDetailBottomBar extends StatelessWidget {
   /// Whether the primary bid CTA may open the action modal.
   ///
   /// Canonical authority when present: the backend evaluator's `can_bid`
-  /// (buyer + active + seller-trust). Absence path (non-detail payload):
-  /// keep the legacy status/trust presentation gate so the shared read
-  /// model stays consistent.
+  /// for the BUYER role. Absence path (non-detail payload) and the GUEST
+  /// path keep the status/trust presentation gate so the shared read model
+  /// stays consistent.
+  ///
+  /// GUEST (Model B parity with the fixed-price detail bar): the affordance
+  /// stays visible on raw facts; the tap routes to the canonical sign-in
+  /// flow. Owner never bids on their own auction.
   bool get _canPlaceBid {
     final caps = _capabilities;
-    if (caps != null) {
-      return caps.role == 'buyer' && caps.canBid;
+    if (caps == null) {
+      return auction.status == AuctionStatus.active && !_isSellerInactive;
     }
+    if (caps.role == 'owner') return false;
+    if (caps.role == 'buyer') return caps.canBid;
     return auction.status == AuctionStatus.active && !_isSellerInactive;
   }
 
@@ -162,33 +168,12 @@ class AuctionDetailBottomBar extends StatelessWidget {
     return _isTerminalState && onBrowseOtherAuctions != null;
   }
 
-  /// Get the main action button color.
-  ///
-  /// Urgency/success have no scheme role (palette authority); error and
-  /// info map to scheme roles. Terminal states render disabled via the
-  /// button theme, so this only needs a non-null fallback there.
-  Color _mainActionColor(BuildContext context, ColorScheme scheme) {
-    // Winner checkout - urgency tone for waiting settlement.
-    if (_shouldShowWinnerCheckout && onWinnerCheckout != null) {
-      if (auction.status == AuctionStatus.waitingSettlement) {
-        return context.statusColors.warning; // Urgent - deadline approaching
-      }
-      return scheme.error; // Regular ended checkout
-    }
-
-    // Terminal states render disabled — fallback only.
-    if (_isTerminalState) {
-      return scheme.surfaceContainerHighest;
-    }
-
-    // Scheduled - info tone.
-    if (auction.status == AuctionStatus.scheduled) {
-      return scheme.secondary;
-    }
-
-    // Active auction - success tone.
-    return context.statusColors.success;
-  }
+  // CTA fill is NOT decided here. The button theme owns the brand action
+  // colour (`scheme.primary`), exactly like the ForSale detail bar's
+  // "Beli Sekarang" — one action fill for both sale channels. A per-state
+  // status tone on a CTA was a second authority (and green on "Pasang Bid"
+  // made the auction bar read as a success state). Urgency keeps its status
+  // tone on the countdown/timer surfaces, where it marks a real deadline.
 
   @override
   Widget build(BuildContext context) {
@@ -239,7 +224,7 @@ class AuctionDetailBottomBar extends StatelessWidget {
               foregroundColor: scheme.onSurfaceVariant,
               disabledBackgroundColor: scheme.surfaceContainerHighest,
               disabledForegroundColor: scheme.onSurfaceVariant,
-              padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
+              padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
             ),
             child: Text(
               _mainActionLabel,
@@ -254,7 +239,7 @@ class AuctionDetailBottomBar extends StatelessWidget {
           style: ElevatedButton.styleFrom(
             backgroundColor: scheme.secondary,
             foregroundColor: scheme.onSecondary,
-            padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p14),
+            padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p16),
           ),
           child: const Text(
             'Lihat Lelang Lain',
@@ -285,10 +270,9 @@ class AuctionDetailBottomBar extends StatelessWidget {
           child: ElevatedButton(
             onPressed: _mainActionCallback,
             style: ElevatedButton.styleFrom(
-              backgroundColor: _mainActionColor(context, scheme),
               disabledBackgroundColor: scheme.surfaceContainerHighest,
               disabledForegroundColor: scheme.onSurfaceVariant,
-              padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
+              padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
             ),
             child: Text(
               _mainActionLabel,
@@ -315,10 +299,10 @@ class AuctionDetailBottomBar extends StatelessWidget {
           Icon(
             icon,
             color: color ?? Theme.of(context).colorScheme.onSurfaceVariant,
-            size: 20,
+            size: AppIconSize.action,
           ),
           const SizedBox(height: 2),
-          Text(label, style: const TextStyle(fontSize: AppType.s10)),
+          Text(label, style: const TextStyle(fontSize: AppType.s12)),
         ],
       ),
     );

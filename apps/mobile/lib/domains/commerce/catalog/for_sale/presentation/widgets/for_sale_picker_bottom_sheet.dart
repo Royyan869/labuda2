@@ -173,7 +173,9 @@ class _ForSalePickerBottomSheetState
       height: MediaQuery.of(context).size.height * 0.7,
       decoration: BoxDecoration(
         color: scheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(AppShape.r20)),
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(AppShape.r20),
+        ),
       ),
       child: Column(
         children: [
@@ -206,11 +208,7 @@ class _ForSalePickerBottomSheetState
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
-                      Icons.error_outline,
-                      size: 48,
-                      color: scheme.error,
-                    ),
+                    Icon(Icons.error_outline, size: AppIconSize.display, color: scheme.error),
                     const SizedBox(height: 16),
                     Text(
                       'Error loading forSales',
@@ -235,13 +233,15 @@ class _ForSalePickerBottomSheetState
       height: 300,
       decoration: BoxDecoration(
         color: scheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(AppShape.r20)),
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(AppShape.r20),
+        ),
       ),
       child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.lock_outline, size: 48, color: scheme.primary),
+            Icon(Icons.lock_outline, size: AppIconSize.display, color: scheme.primary),
             SizedBox(height: 16),
             Text('Login Diperlukan'),
           ],
@@ -253,17 +253,21 @@ class _ForSalePickerBottomSheetState
   Widget _buildHeader(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p20, vertical: AppMetrics.p16),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppMetrics.p24,
+        vertical: AppMetrics.p16,
+      ),
       decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: scheme.outlineVariant),
-        ),
+        border: Border(bottom: BorderSide(color: scheme.outlineVariant)),
       ),
       child: Row(
         children: [
           const Text(
             'Pilih ForSale',
-            style: TextStyle(fontSize: AppType.s18, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontSize: AppType.s20,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const Spacer(),
           IconButton(
@@ -333,13 +337,16 @@ class _ForSalePickerBottomSheetState
         children: [
           Icon(
             Icons.inventory_2_outlined,
-            size: 64,
+            size: AppIconSize.display,
             color: scheme.onSurfaceVariant,
           ),
           const SizedBox(height: 16),
           const Text(
             'Tidak Ada ForSale Aktif',
-            style: TextStyle(fontSize: AppType.s18, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontSize: AppType.s20,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
@@ -354,10 +361,7 @@ class _ForSalePickerBottomSheetState
     );
   }
 
-  Widget _buildForSaleList(
-    BuildContext context,
-    List<ForSale> forSales,
-  ) {
+  Widget _buildForSaleList(BuildContext context, List<ForSale> forSales) {
     return ListView.separated(
       padding: const EdgeInsets.all(AppMetrics.p16),
       itemCount: forSales.length,
@@ -421,13 +425,13 @@ class _ForSaleTile extends StatelessWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(AppShape.r8),
               child: forSale.media.isNotEmptyUrls
-          ? AppImage(
-              imageUrl: forSale.media.firstUrl,
-              width: 70,
-              height: 70,
-              fit: BoxFit.cover,
-              errorWidget: _buildPlaceholder(context),
-            )
+                  ? AppImage(
+                      imageUrl: forSale.media.firstUrl,
+                      width: 70,
+                      height: 70,
+                      fit: BoxFit.cover,
+                      errorWidget: _buildPlaceholder(context),
+                    )
                   : _buildPlaceholder(context),
             ),
             const SizedBox(width: 12),
@@ -440,7 +444,7 @@ class _ForSaleTile extends StatelessWidget {
                     forSale.title,
                     style: const TextStyle(
                       fontWeight: FontWeight.w600,
-                      fontSize: AppType.s15,
+                      fontSize: AppType.s16,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -470,7 +474,7 @@ class _ForSaleTile extends StatelessWidget {
               Icon(
                 Icons.check_circle,
                 color: Theme.of(context).colorScheme.primary,
-                size: 24,
+                size: AppIconSize.header,
               ),
           ],
         ),
@@ -489,7 +493,7 @@ class _ForSaleTile extends StatelessWidget {
       ),
       child: Icon(
         Icons.image_not_supported,
-        size: 24,
+        size: AppIconSize.header,
         color: scheme.onSurfaceVariant,
       ),
     );

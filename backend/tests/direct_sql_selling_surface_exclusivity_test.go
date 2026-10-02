@@ -41,12 +41,12 @@ func TestDirectSQL_SellingSurfaceExclusivity(t *testing.T) {
 		if surface == "" {
 			_, execErr = pool.Exec(ctx, `
 				INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, created_at, updated_at)
-				VALUES ($1, $2, 'Koi', 'desc', '[]'::jsonb, 'kohaku', 'immediate', NOW(), NOW())
+				VALUES ($1, $2, 'Koi', 'desc', '[]'::jsonb, 'kohaku', '1_3_days', NOW(), NOW())
 			`, id, sellerID)
 		} else {
 			_, execErr = pool.Exec(ctx, `
 				INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time, selling_surface, created_at, updated_at)
-				VALUES ($1, $2, 'Koi', 'desc', '[]'::jsonb, 'kohaku', 'immediate', $3, NOW(), NOW())
+				VALUES ($1, $2, 'Koi', 'desc', '[]'::jsonb, 'kohaku', '1_3_days', $3, NOW(), NOW())
 			`, id, sellerID, surface)
 		}
 		require.NoError(t, execErr)

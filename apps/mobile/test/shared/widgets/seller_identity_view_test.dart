@@ -6,10 +6,9 @@ import 'package:labuda/domains/user/profile/data/datasources/user_api_datasource
 import 'package:labuda/domains/user/profile/data/profile_providers.dart'
     show avatarCacheServiceProvider;
 import 'package:labuda/domains/user/profile/data/services/avatar_cache_service.dart';
+import 'package:labuda/shared/models/seller_identity_data.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/shared/widgets/seller_identity_view.dart';
-import 'package:labuda/shared/widgets/profile_avatar.dart';
-import 'package:labuda/shared/models/seller_identity_data.dart';
 
 class _FakeAuthController extends AuthController {
   _FakeAuthController(this._state);
@@ -27,7 +26,6 @@ class _NoOpAvatarCacheService extends AvatarCacheService {
   @override
   Future<String?> getUserAvatarUrl(String userId) async => null;
 }
-
 
 AuthUser _user({
   required String id,
@@ -56,16 +54,18 @@ Widget _wrap({
     overrides: [
       authControllerProvider.overrideWith(() => _FakeAuthController(authState)),
       avatarCacheServiceProvider.overrideWith((_) => _NoOpAvatarCacheService()),
-      userOnlineStatusProvider(trackedUserId).overrideWith((ref) => Stream.value(false)),
+      userOnlineStatusProvider(
+        trackedUserId,
+      ).overrideWith((ref) => Stream.value(false)),
     ],
-    child: MaterialApp(
-      home: Scaffold(body: Center(child: child)),
-    ),
+    child: MaterialApp(home: Scaffold(body: Center(child: child))),
   );
 }
 
 void main() {
-  List<String> collectDetailTexts(WidgetTester tester) {
+  const trackedUserId = '123e4567-e89b-12d3-a456-426614174001';
+
+  List<Text> identityTexts(WidgetTester tester) {
     return tester
         .widgetList<Text>(
           find.descendant(
@@ -73,90 +73,76 @@ void main() {
             matching: find.byType(Text),
           ),
         )
-        .map((text) => text.data)
-        .whereType<String>()
         .toList();
   }
 
-  testWidgets('SellerIdentityView.detail renders store name before handle', (
+  Widget wrapIdentity(SellerIdentityData identity) {
+    return _wrap(
+      trackedUserId: trackedUserId,
+      authState: AuthState.authenticated(
+        _user(id: 'viewer-1', username: 'viewer'),
+        emailVerified: true,
+      ),
+      child: SellerIdentityView(identity: identity, size: 48),
+    );
+  }
+
+  testWidgets('store name is the primary line and the handle the secondary', (
     tester,
   ) async {
     await tester.pumpWidget(
-      _wrap(
-        trackedUserId: '123e4567-e89b-12d3-a456-426614174001',
-        authState: AuthState.authenticated(
-          _user(
-            id: '123e4567-e89b-12d3-a456-426614174099',
-            username: 'viewer',
-            avatarUrl: 'https://example.com/viewer.png',
-          ),
-          emailVerified: true,
-        ),
-        child: SellerIdentityView(
-          identity: const SellerIdentityData(
-            userId: '123e4567-e89b-12d3-a456-426614174001',
-            username: '@@qiqijho',
-            storeName: 'Qiqi Store',
-            avatarUrl: 'https://example.com/avatar.jpg',
-            storeImageUrl: 'https://example.com/store.jpg',
-            publicOriginLine: 'Magelang, Jawa Tengah',
-            isSeller: true,
-          ),
-          variant: SellerIdentityViewVariant.detail,
-          size: 48,
+      wrapIdentity(
+        const SellerIdentityData(
+          userId: trackedUserId,
+          username: '@@qiqijho',
+          storeName: 'Qiqi Store',
+          avatarUrl: 'https://example.com/avatar.jpg',
+          storeImageUrl: 'https://example.com/store.jpg',
+          isSeller: true,
         ),
       ),
     );
 
-    final detailTexts = collectDetailTexts(tester);
+    final texts = identityTexts(tester);
+    expect(texts.map((t) => t.data).toList(), ['Qiqi Store', '@qiqijho']);
 
-    expect(detailTexts.take(3).toList(), [
-      'Qiqi Store',
-      '@qiqijho',
-      'Magelang, Jawa Tengah',
-    ]);
-    expect(find.text('@Qiqi Store'), findsNothing);
-    expect(find.byType(SellerIdentityView), findsOneWidget);
+    // OWNER TRUTH: the store name sits above and renders larger than the
+    // handle.
+    expect(
+      tester.getTopLeft(find.text('Qiqi Store')).dy,
+      lessThan(tester.getTopLeft(find.text('@qiqijho')).dy),
+    );
+    expect(
+      texts.first.style!.fontSize!,
+      greaterThan(texts.last.style!.fontSize!),
+    );
   });
 
-  testWidgets(
-    'SellerIdentityView.detail keeps separate store and avatar fallbacks',
-    (tester) async {
-      await tester.pumpWidget(
-        _wrap(
-          trackedUserId: '123e4567-e89b-12d3-a456-426614174002',
-          authState: AuthState.authenticated(
-            _user(
-              id: '123e4567-e89b-12d3-a456-426614174099',
-              username: 'viewer',
-              avatarUrl: 'https://example.com/viewer.png',
-            ),
-            emailVerified: true,
-          ),
-          child: SellerIdentityView(
-            identity: const SellerIdentityData(
-              userId: '123e4567-e89b-12d3-a456-426614174002',
-              username: '@@qiqijho',
-              storeName: 'Qiqi Store',
-              avatarUrl: null,
-              storeImageUrl: null,
-              isSeller: true,
-            ),
-            variant: SellerIdentityViewVariant.detail,
-            size: 48,
-          ),
+  testWidgets('non-seller renders the handle as the primary line only', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      wrapIdentity(
+        const SellerIdentityData(
+          userId: trackedUserId,
+          username: 'yayan',
+          isSeller: false,
         ),
-      );
+      ),
+    );
 
-      expect(find.byIcon(Icons.storefront), findsOneWidget);
-      expect(find.byType(ProfileAvatar), findsOneWidget);
-      expect(find.text('Magelang, Jawa Tengah'), findsNothing);
+    final texts = identityTexts(tester);
+    expect(texts.map((t) => t.data).toList(), ['@yayan']);
+  });
 
-      final avatar = tester.widget<ProfileAvatar>(find.byType(ProfileAvatar));
-      expect(avatar.imageUrl, isNull);
-      // Canonical: no image on the personal overlay renders the user icon.
-      expect(find.byIcon(Icons.person), findsOneWidget);
-      expect(find.text('@Qiqi Store'), findsNothing);
-    },
-  );
+  testWidgets('no identity label renders nothing', (tester) async {
+    await tester.pumpWidget(
+      wrapIdentity(
+        const SellerIdentityData(userId: trackedUserId, username: '   '),
+      ),
+    );
+
+    expect(find.byType(SellerIdentityView), findsOneWidget);
+    expect(identityTexts(tester), isEmpty);
+  });
 }

@@ -156,7 +156,7 @@ class _ListSelectionContentState<T> extends State<_ListSelectionContent<T>> {
                           color: item.enabled
                               ? scheme.onSurfaceVariant
                               : scheme.outline,
-                          size: 24,
+                          size: AppIconSize.header,
                         ),
                         const SizedBox(width: 16),
                       ],
@@ -195,7 +195,7 @@ class _ListSelectionContentState<T> extends State<_ListSelectionContent<T>> {
                         Icon(
                           Icons.check_circle,
                           color: scheme.secondary,
-                          size: 24,
+                          size: AppIconSize.header,
                         ),
                       ],
                     ],
@@ -213,7 +213,7 @@ class _ListSelectionContentState<T> extends State<_ListSelectionContent<T>> {
             children: [
               Icon(
                 Icons.search_off,
-                size: 48,
+                size: AppIconSize.display,
                 color: scheme.outline,
               ),
               const SizedBox(height: 16),

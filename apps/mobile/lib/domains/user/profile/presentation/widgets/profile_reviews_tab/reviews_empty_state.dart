@@ -15,14 +15,14 @@ class ReviewsEmptyState extends StatelessWidget {
         children: [
           Icon(
             Icons.rate_review_outlined,
-            size: 64,
+            size: AppIconSize.display,
             color: scheme.outline,
           ),
           const SizedBox(height: 16),
           Text(
             'No Reviews Yet',
             style: TextStyle(
-              fontSize: AppType.s18,
+              fontSize: AppType.s20,
               fontWeight: FontWeight.w600,
               color: scheme.onSurface,
             ),

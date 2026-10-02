@@ -87,10 +87,10 @@ func newProcessServiceForFeeSplit(
 		&processAddressRepo{
 			addresses: []*addressEntity.Address{
 				{
-					ID:      uuid.New(),
-					UserID:  userID,
-					Purpose: addressEntity.AddressPurposeSender,
-					Phone:   userPhone,
+					ID:     uuid.New(),
+					UserID: userID,
+					Tags:   []addressEntity.AddressTag{addressEntity.TagSender},
+					Phone:  userPhone,
 				},
 			},
 		},
@@ -177,14 +177,25 @@ func TestProcessSuccessfulPaymentTx_SplitsPrincipalAndFeeFromSnapshot(t *testing
 	platformRevenue := uuid.NewSHA1(uuid.NameSpaceOID, []byte(financeledger.AccountPlatformRevenue))
 	bankSettlement := uuid.NewSHA1(uuid.NameSpaceOID, []byte(financeledger.AccountBankSettlement))
 
+	// CANONICAL SIGN ARCHITECTURE (finance/account_types.go, and the balance
+	// formula in finance/infrastructure/repository/ledger_repository.go):
+	//
+	//   Asset/Expense:     Δbalance = +entry.Amount
+	//   Liability/Revenue: Δbalance = -entry.Amount
+	//
+	// PLATFORM_REVENUE is ClassRevenue and BANK_SETTLEMENT is ClassLiability,
+	// so BOTH move opposite to the raw DR/CR amount. Raw entry amounts must be
+	// read through that formula before they can be called a "balance" — summing
+	// raw amounts and comparing them to a balance figure is what made this proof
+	// look sign-flipped.
 	perTxn := make(map[string]map[uuid.UUID]int64, len(ledger.calls))
 	var platformTotal, bankTotal int64
 	for _, call := range ledger.calls {
 		balances := map[uuid.UUID]int64{}
 		var sum int64
 		for _, entry := range call.entries {
-			balances[entry.AccountID] += entry.Amount.Int64()
 			sum += entry.Amount.Int64()
+			balances[entry.AccountID] += -entry.Amount.Int64()
 		}
 		assert.Zero(t, sum, "every ledger transaction must balance (Σ entries = 0)")
 		platformTotal += balances[platformRevenue]
@@ -193,15 +204,15 @@ func TestProcessSuccessfulPaymentTx_SplitsPrincipalAndFeeFromSnapshot(t *testing
 	}
 
 	// Total ledger economics: PLATFORM_REVENUE += A+F, BANK_SETTLEMENT -= A+F.
-	assert.Equal(t, gross, platformTotal, "PLATFORM_REVENUE must receive A + F")
-	assert.Equal(t, -gross, bankTotal, "BANK_SETTLEMENT must drain A + F")
+	assert.Equal(t, gross, platformTotal, "PLATFORM_REVENUE balance must receive A + F")
+	assert.Equal(t, -gross, bankTotal, "BANK_SETTLEMENT balance must drain A + F")
 
 	// The fee transaction is keyed on the payment id; it must carry F only.
 	feeKey := "subscription_fee_revenue_" + paymentID.String()
 	feeBalances, ok := perTxn[feeKey]
 	require.True(t, ok, "fee revenue must be booked under the payment-id idempotency key")
-	assert.Equal(t, fee, feeBalances[platformRevenue], "fee transaction must debit PLATFORM_REVENUE with F")
-	assert.Equal(t, -fee, feeBalances[bankSettlement], "fee transaction must credit BANK_SETTLEMENT with F")
+	assert.Equal(t, fee, feeBalances[platformRevenue], "fee transaction must raise PLATFORM_REVENUE balance by F")
+	assert.Equal(t, -fee, feeBalances[bankSettlement], "fee transaction must drain BANK_SETTLEMENT balance by F")
 
 	// The principal transaction is keyed on the payment identity (PMF02-A1),
 	// never on the caller-supplied provider event id passed to activation.
@@ -209,7 +220,7 @@ func TestProcessSuccessfulPaymentTx_SplitsPrincipalAndFeeFromSnapshot(t *testing
 	principalBalances, ok := perTxn[principalKey]
 	require.True(t, ok, "subscription revenue must be booked under the payment identity key")
 	assert.Equal(t, principal, principalBalances[platformRevenue],
-		"principal transaction must debit PLATFORM_REVENUE with A only")
+		"principal transaction must raise PLATFORM_REVENUE balance by A only")
 	assert.Equal(t, -principal, principalBalances[bankSettlement])
 }
 

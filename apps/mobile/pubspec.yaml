@@ -53,9 +53,7 @@ dependencies:
   image: ^4.2.0
   video_player: ^2.9.2
   video_player_web: ^2.3.2
-  video_thumbnail: ^0.5.3
   chewie: ^1.8.5  # Video player with built-in controls
-  shimmer: ^3.0.0  # Shimmer loading effect
   emoji_picker_flutter: ^4.3.0
   visibility_detector: ^0.4.0+2
   flutter_local_notifications: ^20.0.0  # Local notifications (Phase 1: notification module)

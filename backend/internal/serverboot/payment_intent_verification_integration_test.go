@@ -592,8 +592,7 @@ func createPaymentIntentOrderWithToken(
 		nil,
 		"JNE Reguler",
 		"reguler",
-		"immediate", // preparationTimeSnapshot
-		nil,         // preparationNoteSnapshot
+		"1_3_days", // preparationTimeSnapshot
 		nil,         // shippingSource
 		nil,         // shippingQuoteID
 		nil,         // shippingQuotePrice

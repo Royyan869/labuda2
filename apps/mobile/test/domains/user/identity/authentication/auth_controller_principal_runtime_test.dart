@@ -86,10 +86,7 @@ class _MockUserApiDatasource extends Fake implements UserApiDatasource {}
 /// hold requests in flight and complete them out of order.
 class _ControllerUserSyncService extends UserSyncService {
   _ControllerUserSyncService({required FirebaseAuth firebaseAuth})
-    : super(
-        firebaseAuth: firebaseAuth,
-        datasource: _MockUserApiDatasource(),
-      );
+    : super(firebaseAuth: firebaseAuth, datasource: _MockUserApiDatasource());
 
   Result<AuthUser> currentUserResult = Result.error('not configured');
   Completer<Result<AuthUser>>? currentUserCompleter;
@@ -153,7 +150,10 @@ class _RecordingLocalStorageService extends Fake
   // AUTH-2 (CREDENTIAL AUTHORITY): observe the canonical credential write so
   // the "no credential on stale sync" assertions are meaningful.
   @override
-  Future<Result<void>> saveLabudaCredential(String access, String refresh) async {
+  Future<Result<void>> saveLabudaCredential(
+    String access,
+    String refresh,
+  ) async {
     setAuthTokenCalls++;
     setRefreshTokenCalls++;
     return Result.success(null);
@@ -500,141 +500,135 @@ Future<void> _seedPrincipal({
     user,
     emailVerified: user.isEmailVerified,
   );
-  await controller.refreshUserData();
+  await controller.forceRefreshAuthState();
 }
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('AuthController principal runtime', () {
-    test(
-      'A to B via signOut keeps stale generation inert and lets B sync '
-      'independently (hydration generation proof)',
-      () async {
-        final firebaseUser = _MutableFirebaseUser(uidValue: 'uid-a');
-        final controller = _TestAuthController(firebaseUser: firebaseUser);
-        final userSyncService = _ControllerUserSyncService(
-          firebaseAuth: _MutableFirebaseAuth(currentUserValue: firebaseUser),
-        );
-        final localStorage = _RecordingLocalStorageService();
-        final container = _container(
-          controller: controller,
-          userSyncService: userSyncService,
-          localStorageService: localStorage,
-        );
-        addTearDown(container.dispose);
+    test('A to B via signOut keeps stale generation inert and lets B sync '
+        'independently (hydration generation proof)', () async {
+      final firebaseUser = _MutableFirebaseUser(uidValue: 'uid-a');
+      final controller = _TestAuthController(firebaseUser: firebaseUser);
+      final userSyncService = _ControllerUserSyncService(
+        firebaseAuth: _MutableFirebaseAuth(currentUserValue: firebaseUser),
+      );
+      final localStorage = _RecordingLocalStorageService();
+      final container = _container(
+        controller: controller,
+        userSyncService: userSyncService,
+        localStorageService: localStorage,
+      );
+      addTearDown(container.dispose);
 
-        container.read(authControllerProvider.notifier);
-        await _seedPrincipal(
-          controller: controller,
-          userSyncService: userSyncService,
-          firebaseUser: firebaseUser,
-          user: _principalUser('uid-a'),
-        );
+      container.read(authControllerProvider.notifier);
+      await _seedPrincipal(
+        controller: controller,
+        userSyncService: userSyncService,
+        firebaseUser: firebaseUser,
+        user: _principalUser('uid-a'),
+      );
 
-        // A's sync fails with backend unavailable → terminal degraded (no auto-retry).
-        controller.refreshAuthState();
-        await _flushMicrotasks();
-        expect(userSyncService.syncCalls, hasLength(1));
+      // A's sync fails with backend unavailable → terminal degraded (no auto-retry).
+      controller.refreshAuthState();
+      await _flushMicrotasks();
+      expect(userSyncService.syncCalls, hasLength(1));
 
-        userSyncService.completeSync(
-          0,
-          Result.error('Backend unavailable', statusCode: 503),
-        );
-        await _flushMicrotasks();
-        expect(controller.state, isA<AuthStateBackendUnavailable>());
+      userSyncService.completeSync(
+        0,
+        Result.error('Backend unavailable', statusCode: 503),
+      );
+      await _flushMicrotasks();
+      expect(controller.state, isA<AuthStateBackendUnavailable>());
 
-        // Switch to B (signOut clears generation budget; no timer exists).
-        controller.signOut();
-        await _flushMicrotasks();
-        expect(controller.state, isA<AuthStateUnauthenticated>());
+      // Switch to B (signOut clears generation budget; no timer exists).
+      controller.signOut();
+      await _flushMicrotasks();
+      expect(controller.state, isA<AuthStateUnauthenticated>());
 
-        firebaseUser.uidValue = 'uid-b';
-        userSyncService.currentUserResult = Result.success(
-          _principalUser('uid-b'),
-        );
-        controller.state = AuthState.authenticated(
-          _principalUser('uid-b'),
-          emailVerified: true,
-        );
-        await controller.refreshUserData();
-        controller.refreshAuthState();
-        await _flushMicrotasks();
+      firebaseUser.uidValue = 'uid-b';
+      userSyncService.currentUserResult = Result.success(
+        _principalUser('uid-b'),
+      );
+      controller.state = AuthState.authenticated(
+        _principalUser('uid-b'),
+        emailVerified: true,
+      );
+      await controller.forceRefreshAuthState();
+      controller.refreshAuthState();
+      await _flushMicrotasks();
 
-        // B performs its own sync; stale A generation must not re-fire.
-        expect(userSyncService.syncCalls, hasLength(2));
+      // B performs its own sync; stale A generation must not re-fire.
+      expect(userSyncService.syncCalls, hasLength(2));
 
-        userSyncService.completeSync(1, _syncSuccess(_principalUser('uid-b')));
-        await _flushMicrotasks();
-        expect(controller.state, isA<AuthStateAuthenticated>());
-        expect((controller.state as AuthStateAuthenticated).user.id, 'uid-b');
-        expect(localStorage.clearAuthTokenCalls, 0);
-        expect(localStorage.clearRefreshTokenCalls, 0);
-      },
-    );
+      userSyncService.completeSync(1, _syncSuccess(_principalUser('uid-b')));
+      await _flushMicrotasks();
+      expect(controller.state, isA<AuthStateAuthenticated>());
+      expect((controller.state as AuthStateAuthenticated).user.id, 'uid-b');
+      expect(localStorage.clearAuthTokenCalls, 0);
+      expect(localStorage.clearRefreshTokenCalls, 0);
+    });
 
-    test(
-      'in-flight A completion cannot clear B ownership after sign-out + '
-      'login as B',
-      () async {
-        final firebaseUser = _MutableFirebaseUser(uidValue: 'uid-a');
-        final controller = _TestAuthController(firebaseUser: firebaseUser);
-        final userSyncService = _ControllerUserSyncService(
-          firebaseAuth: _MutableFirebaseAuth(currentUserValue: firebaseUser),
-        );
-        final localStorage = _RecordingLocalStorageService();
-        final container = _container(
-          controller: controller,
-          userSyncService: userSyncService,
-          localStorageService: localStorage,
-        );
-        addTearDown(container.dispose);
+    test('in-flight A completion cannot clear B ownership after sign-out + '
+        'login as B', () async {
+      final firebaseUser = _MutableFirebaseUser(uidValue: 'uid-a');
+      final controller = _TestAuthController(firebaseUser: firebaseUser);
+      final userSyncService = _ControllerUserSyncService(
+        firebaseAuth: _MutableFirebaseAuth(currentUserValue: firebaseUser),
+      );
+      final localStorage = _RecordingLocalStorageService();
+      final container = _container(
+        controller: controller,
+        userSyncService: userSyncService,
+        localStorageService: localStorage,
+      );
+      addTearDown(container.dispose);
 
-        container.read(authControllerProvider.notifier);
-        await _seedPrincipal(
-          controller: controller,
-          userSyncService: userSyncService,
-          firebaseUser: firebaseUser,
-          user: _principalUser('uid-a'),
-        );
+      container.read(authControllerProvider.notifier);
+      await _seedPrincipal(
+        controller: controller,
+        userSyncService: userSyncService,
+        firebaseUser: firebaseUser,
+        user: _principalUser('uid-a'),
+      );
 
-        controller.refreshAuthState();
-        await _flushMicrotasks();
-        controller.signOut();
-        await _flushMicrotasks();
+      controller.refreshAuthState();
+      await _flushMicrotasks();
+      controller.signOut();
+      await _flushMicrotasks();
 
-        // Login as B.
-        firebaseUser.uidValue = 'uid-b';
-        userSyncService.currentUserResult = Result.success(
-          _principalUser('uid-b'),
-        );
-        controller.state = AuthState.authenticated(
-          _principalUser('uid-b'),
-          emailVerified: true,
-        );
-        await controller.refreshUserData();
-        controller.refreshAuthState();
-        await _flushMicrotasks();
-        expect(userSyncService.syncCalls, hasLength(2));
+      // Login as B.
+      firebaseUser.uidValue = 'uid-b';
+      userSyncService.currentUserResult = Result.success(
+        _principalUser('uid-b'),
+      );
+      controller.state = AuthState.authenticated(
+        _principalUser('uid-b'),
+        emailVerified: true,
+      );
+      await controller.forceRefreshAuthState();
+      controller.refreshAuthState();
+      await _flushMicrotasks();
+      expect(userSyncService.syncCalls, hasLength(2));
 
-        // B fails first (backend unavailable), then A's stale success lands.
-        userSyncService.completeSync(
-          1,
-          Result.error('Backend unavailable', statusCode: 503),
-        );
-        await _flushMicrotasks();
-        expect(controller.state, isA<AuthStateBackendUnavailable>());
+      // B fails first (backend unavailable), then A's stale success lands.
+      userSyncService.completeSync(
+        1,
+        Result.error('Backend unavailable', statusCode: 503),
+      );
+      await _flushMicrotasks();
+      expect(controller.state, isA<AuthStateBackendUnavailable>());
 
-        userSyncService.completeSync(0, _syncSuccess(_principalUser('uid-a')));
-        await _flushMicrotasks();
+      userSyncService.completeSync(0, _syncSuccess(_principalUser('uid-a')));
+      await _flushMicrotasks();
 
-        // A's stale completion must not promote A back into ownership —
-        // the hydration generation has advanced under B.
-        expect(controller.state, isNot(isA<AuthStateAuthenticated>()));
-        expect(localStorage.setAuthTokenCalls, 0);
-        expect(localStorage.setRefreshTokenCalls, 0);
-      },
-    );
+      // A's stale completion must not promote A back into ownership —
+      // the hydration generation has advanced under B.
+      expect(controller.state, isNot(isA<AuthStateAuthenticated>()));
+      expect(localStorage.setAuthTokenCalls, 0);
+      expect(localStorage.setRefreshTokenCalls, 0);
+    });
 
     test(
       'forceRefreshAuthState with changed user data updates in-place',
@@ -660,10 +654,7 @@ void main() {
 
         // getCurrentUser returns changed authority (e.g. market authority
         // revoked by backend).
-        final changedUser = _principalUser(
-          'uid-a',
-          hasMarketAuthority: false,
-        );
+        final changedUser = _principalUser('uid-a', hasMarketAuthority: false);
         userSyncService.currentUserResult = Result.success(changedUser);
 
         await controller.forceRefreshAuthState();
@@ -671,6 +662,85 @@ void main() {
         final authed = controller.state as AuthStateAuthenticated;
         expect(authed.user.id, 'uid-a');
         expect(authed.user.hasMarketAuthority, false);
+      },
+    );
+
+    test(
+      'initial Firebase emission on a restored session is inert (double-splash regression lock)',
+      () async {
+        final firebaseUser = _MutableFirebaseUser(uidValue: 'uid-a');
+        final controller = _TestAuthController(firebaseUser: firebaseUser);
+        final userSyncService = _ControllerUserSyncService(
+          firebaseAuth: _MutableFirebaseAuth(currentUserValue: firebaseUser),
+        );
+        final container = _container(
+          controller: controller,
+          userSyncService: userSyncService,
+        );
+        addTearDown(container.dispose);
+
+        container.read(authControllerProvider.notifier);
+
+        // Simulate the canonical startup: Labuda restore published
+        // Authenticated BEFORE the Firebase listener was attached.
+        controller.state = AuthState.authenticated(
+          _principalUser('uid-a'),
+          emailVerified: true,
+        );
+
+        // The listener's FIRST (initial) emission carries the pre-existing
+        // Firebase snapshot — it must NOT regress the session.
+        await controller.debugHandleFirebaseAuthEvent(firebaseUser);
+
+        expect(
+          controller.state,
+          isA<AuthStateAuthenticated>(),
+          reason:
+              'the initial emission is not an external auth change; '
+              'regressing Authenticated → FirebaseAuthenticated re-parks the '
+              'router on /splash (second splash on every restart) and '
+              'duplicates the backend sync',
+        );
+        expect(userSyncService.syncCalls, isEmpty);
+      },
+    );
+
+    test(
+      'forceRefreshAuthState never downgrades a live session to AuthStateLoading',
+      () async {
+        final firebaseUser = _MutableFirebaseUser(uidValue: 'uid-a');
+        final controller = _TestAuthController(firebaseUser: firebaseUser);
+        final userSyncService = _ControllerUserSyncService(
+          firebaseAuth: _MutableFirebaseAuth(currentUserValue: firebaseUser),
+        );
+        final container = _container(
+          controller: controller,
+          userSyncService: userSyncService,
+        );
+        addTearDown(container.dispose);
+
+        container.read(authControllerProvider.notifier);
+        await _seedPrincipal(
+          controller: controller,
+          userSyncService: userSyncService,
+          firebaseUser: firebaseUser,
+          user: _principalUser('uid-a'),
+        );
+
+        // Called WITHOUT awaiting: everything up to the first `await` inside
+        // forceRefreshAuthState() has already executed synchronously.
+        final pending = controller.forceRefreshAuthState();
+        expect(
+          controller.state,
+          isA<AuthStateAuthenticated>(),
+          reason:
+              'AuthStateLoading maps to AppAuthStatus.initializing, which '
+              'the router turns into a forced /splash — a session refresh must '
+              'never park a signed-in user on the splash gate',
+        );
+
+        await pending;
+        expect(controller.state, isA<AuthStateAuthenticated>());
       },
     );
 
@@ -750,7 +820,7 @@ void main() {
           _principalUser('uid-b'),
           emailVerified: true,
         );
-        await controller.refreshUserData();
+        await controller.forceRefreshAuthState();
 
         // Complete A's stale refresh — it must be silently dropped because
         // the hydration generation has advanced.
@@ -766,35 +836,32 @@ void main() {
       },
     );
 
-    test(
-      'logout from authenticated publishes unauthenticated — router must '
-      'follow canonical auth route, not Home',
-      () async {
-        final firebaseUser = _MutableFirebaseUser(uidValue: 'uid-a');
-        final controller = _TestAuthController(firebaseUser: firebaseUser);
-        final userSyncService = _ControllerUserSyncService(
-          firebaseAuth: _MutableFirebaseAuth(currentUserValue: firebaseUser),
-        );
-        final container = _container(
-          controller: controller,
-          userSyncService: userSyncService,
-        );
-        addTearDown(container.dispose);
+    test('logout from authenticated publishes unauthenticated — router must '
+        'follow canonical auth route, not Home', () async {
+      final firebaseUser = _MutableFirebaseUser(uidValue: 'uid-a');
+      final controller = _TestAuthController(firebaseUser: firebaseUser);
+      final userSyncService = _ControllerUserSyncService(
+        firebaseAuth: _MutableFirebaseAuth(currentUserValue: firebaseUser),
+      );
+      final container = _container(
+        controller: controller,
+        userSyncService: userSyncService,
+      );
+      addTearDown(container.dispose);
 
-        container.read(authControllerProvider.notifier);
-        await _seedPrincipal(
-          controller: controller,
-          userSyncService: userSyncService,
-          firebaseUser: firebaseUser,
-          user: _principalUser('uid-a'),
-        );
+      container.read(authControllerProvider.notifier);
+      await _seedPrincipal(
+        controller: controller,
+        userSyncService: userSyncService,
+        firebaseUser: firebaseUser,
+        user: _principalUser('uid-a'),
+      );
 
-        await controller.signOut();
+      await controller.signOut();
 
-        expect(controller.state, isA<AuthStateUnauthenticated>());
-        expect(controller.appAuthStatus, AppAuthStatus.unauthenticated);
-      },
-    );
+      expect(controller.state, isA<AuthStateUnauthenticated>());
+      expect(controller.appAuthStatus, AppAuthStatus.unauthenticated);
+    });
 
     test(
       'initial build returns AuthStateInitial → appAuthStatus.initializing',
@@ -817,13 +884,10 @@ void main() {
       },
     );
 
-    test(
-      'explicit navigation to Home via AppRouter still works '
-      '(positive control)',
-      () {
-        final router = AppRouter();
-        expect(router.navigateToHome, isA<Function>());
-      },
-    );
+    test('explicit navigation to Home via AppRouter still works '
+        '(positive control)', () {
+      final router = AppRouter();
+      expect(router.navigateToHome, isA<Function>());
+    });
   });
 }

@@ -12,6 +12,8 @@
 /// from a URL file extension.
 library;
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:labuda/domains/social/content/domain/entities/content.dart';
@@ -96,4 +98,24 @@ void main() {
     final appImage = tester.widget<AppImage>(find.byType(AppImage).first);
     expect(appImage.imageUrl, imageUrl);
   });
+
+  group('detail hero frame contract (4:5 contain, same as card)', () {
+    final source = File(
+      'lib/domains/social/content/presentation/screens/content_detail_screen.dart',
+    ).readAsStringSync();
+
+    test('hero uses 4:5 aspect, never a fixed crop box', () {
+      expect(source.contains('aspectRatio: 4 / 5'), isTrue);
+      expect(source.contains('height: 300'), isFalse);
+    });
+
+    test('hero never crops (cover is forbidden on koi media)', () {
+      expect(
+        RegExp(r'fit:\s*BoxFit\.cover').hasMatch(source),
+        isFalse,
+        reason: 'cover crops fins — hero renders contain like every surface',
+      );
+    });
+  });
 }
+

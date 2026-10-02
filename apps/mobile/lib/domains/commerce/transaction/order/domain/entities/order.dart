@@ -467,7 +467,6 @@ class Order extends Equatable {
   // This preserves the buyer's expectation at purchase time, even if seller
   // later changes the forSale/auction preparation time
   final PreparationTime preparationTimeSnapshot;
-  final String? preparationNoteSnapshot;
   final DateTime?
   readyToShipBy; // Calculated deadline: paid_at + preparation_days
 
@@ -561,8 +560,7 @@ class Order extends Equatable {
     // 🔒 ESCROW STATUS - Financial state from backend
     // Nullable: null = unknown value (error state)
     this.escrowStatus,
-    this.preparationTimeSnapshot = PreparationTime.immediate,
-    this.preparationNoteSnapshot,
+    this.preparationTimeSnapshot = PreparationTime.days1_3,
     this.readyToShipBy,
     this.overdueTier,
     this.overdueDays,
@@ -650,7 +648,6 @@ class Order extends Equatable {
     cancelReason,
     escrowStatus, // 🔒 ESCROW STATUS - added to props
     preparationTimeSnapshot,
-    preparationNoteSnapshot,
     readyToShipBy,
     overdueTier,
     overdueDays,
@@ -712,7 +709,6 @@ class Order extends Equatable {
     String? notes,
     String? cancelReason,
     PreparationTime? preparationTimeSnapshot,
-    String? preparationNoteSnapshot,
     DateTime? readyToShipBy,
     String? overdueTier,
     int? overdueDays,
@@ -777,8 +773,6 @@ class Order extends Equatable {
       cancelReason: cancelReason ?? this.cancelReason,
       preparationTimeSnapshot:
           preparationTimeSnapshot ?? this.preparationTimeSnapshot,
-      preparationNoteSnapshot:
-          preparationNoteSnapshot ?? this.preparationNoteSnapshot,
       readyToShipBy: readyToShipBy ?? this.readyToShipBy,
       overdueTier: overdueTier ?? this.overdueTier,
       overdueDays: overdueDays ?? this.overdueDays,

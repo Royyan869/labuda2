@@ -65,7 +65,7 @@ func TestForSaleRepository_Create_PersistsRealQuantity(t *testing.T) {
 			nil, nil, nil, nil, nil, []string{"global"},
 			money.New(300000), 5, false,
 			entity.ForSaleVisibilityPublic,
-			nil, entity.PreparationTimeImmediate, nil,
+			nil, entity.PreparationTime1To3Days, nil,
 		)
 		if err != nil {
 			return err
@@ -121,7 +121,7 @@ func TestForSaleRepository_ReduceRestoreCycle_PersistsThroughUpdateStock(t *test
 			nil, nil, nil, nil, nil, []string{"global"},
 			money.New(300000), 5, false,
 			entity.ForSaleVisibilityPublic,
-			nil, entity.PreparationTimeImmediate, nil,
+			nil, entity.PreparationTime1To3Days, nil,
 		)
 		if err != nil {
 			return err
@@ -258,7 +258,7 @@ func TestForSaleRepository_OversellRejected_DBStateUnchanged(t *testing.T) {
 			nil, nil, nil, nil, nil, []string{"global"},
 			money.New(300000), 1, false,
 			entity.ForSaleVisibilityPublic,
-			nil, entity.PreparationTimeImmediate, nil,
+			nil, entity.PreparationTime1To3Days, nil,
 		)
 		if err != nil {
 			return err
@@ -330,7 +330,7 @@ func TestForSaleRepository_UniqueItemDefault_QuantityOne(t *testing.T) {
 			nil, nil, nil, nil, nil, []string{"global"},
 			money.New(500000), 1, false,
 			entity.ForSaleVisibilityPublic,
-			nil, entity.PreparationTimeImmediate, nil,
+			nil, entity.PreparationTime1To3Days, nil,
 		)
 		if err != nil {
 			return err
@@ -384,7 +384,7 @@ func TestForSaleRepository_DirectQuantityEdit_PersistsThroughUpdate(t *testing.T
 			nil, nil, nil, nil, nil, []string{"global"},
 			money.New(300000), 1, false,
 			entity.ForSaleVisibilityPublic,
-			nil, entity.PreparationTimeImmediate, nil,
+			nil, entity.PreparationTime1To3Days, nil,
 		)
 		if err != nil {
 			return err

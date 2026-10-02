@@ -43,6 +43,15 @@ type UserDTO struct {
 	SellerSubscriptionStatus *string `json:"seller_subscription_status,omitempty"` // active, expired, none
 	HasMarketAuthority       bool    `json:"has_market_authority"`                 // MARKET authority: has profile + active subscription
 
+	// Seller store identity — self projection of `seller_profiles` ownership.
+	// Same authority as the public projection (PublicUserResponse.StoreName);
+	// it travels with the authenticated session snapshot so the store name is
+	// available on the first frame instead of behind a separate profile fetch.
+	// Null/omitted when the user owns no seller profile.
+	StoreName           *string    `json:"store_name,omitempty"`
+	StoreImageURL       *string    `json:"store_image_url,omitempty"`
+	StoreImageUpdatedAt *time.Time `json:"store_image_updated_at,omitempty"`
+
 	// Warning counts (calculated from active warnings)
 	ActiveWarningCount int `json:"active_warning_count"`
 	SevereWarningCount int `json:"severe_warning_count"`
@@ -155,4 +164,11 @@ type PublicUserResponse struct {
 	StoreName           *string    `json:"store_name,omitempty"`
 	StoreImageURL       *string    `json:"store_image_url,omitempty"`
 	StoreImageUpdatedAt *time.Time `json:"store_image_updated_at,omitempty"`
+
+	// PublicOriginLine is the buyer-facing origin of the target's sender
+	// address ("City, Province"), resolved by the canonical redaction rule
+	// (identity/address). It is the ONLY public location rendering on this
+	// surface: street, district, recipient and phone never cross the wire.
+	// NULL when the target has no sender address or the identity is degraded.
+	PublicOriginLine *string `json:"public_origin_line,omitempty"`
 }

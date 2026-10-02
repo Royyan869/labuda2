@@ -50,6 +50,7 @@ import (
 	forSaleHTTP "github.com/labuda/backend/internal/commerce/forsale/delivery/http"
 	forSaleRepo "github.com/labuda/backend/internal/commerce/forsale/infrastructure/repository"
 	negotiationApp "github.com/labuda/backend/internal/commerce/negotiation/application"
+	negotiationInfraRepo "github.com/labuda/backend/internal/commerce/negotiation/infrastructure/repository"
 	negotiationWorker "github.com/labuda/backend/internal/commerce/negotiation/worker"
 	orderApp "github.com/labuda/backend/internal/commerce/order/application"
 	orderHTTP "github.com/labuda/backend/internal/commerce/order/delivery/http"
@@ -223,45 +224,45 @@ type Dependencies struct {
 	// C6.1: seller self-service bank account management.
 	BankAccountHandler *bankaccountHTTP.BankAccountHandler
 	// Address CRUD endpoints (buyer shipping + seller sender)
-	AddressHandler              *addressHTTP.AddressHandler
-	OrderHandler                *orderHTTP.OrderHandler
-	AuctionHandler              *auctionHTTP.AuctionHandler
-	AdminAuctionHandler         *auctionHTTP.AdminAuctionHandler // PASS_5B: admin emergency auction cancel/override
-	SavedItemHandler            *savedItemHTTP.SavedItemHandler
-	BiddingHandler              *biddingHTTP.BiddingHandler
-	ForSaleHandler              *forSaleHTTP.ForSaleHandler
-	PricingTokenHandler         *pricingtokenHTTP.PricingTokenHandler
-	ChatHandler                 *chatHTTP.Handler
-	DiscountHandler             *discountHTTP.DiscountHandler
-	DisputeHandler              *disputeHTTP.DisputeHandler
-	SellerHandler               *sellerHTTP.SellerHandler
-	SystemHealthHandler         *monitoring.SystemHealthHandler
-	RealtimeHandler             *realtime.Handler
-	FeedHandler                 *feedHTTP.FeedHandler
-	ContentHandler              *contentHTTP.ContentHandler
-	OGHandler                   *ogHTTP.Handler
-	CommentHandler              *contentHTTP.CommentHandler
-	LikeHandler                 *likeHTTP.LikeHandler
-	NotificationHandler         *notificationHTTP.NotificationHandler
-	FCMTokenHandler             *notificationHTTP.FCMTokenHandler
-	PresenceHandler             *presenceHTTP.Handler                   // PRESENCE SLICE-4: initial state batch read via BuildSnapshot
-	ReportHandler               *moderationHTTP.ReportHandler             // SLICE 2: canonical Report intake
-	GovernanceAdminHandler      *moderationHTTP.GovernanceAdminHandler    // SLICE 6: admin governance workflow
-	FollowHandler               *socialhttp.FollowHandler                 // SOCIAL domain: follow/block/mute
-	ShippingQuoteHandler        *shippingQuoteHTTP.Handler                // Shipping quote feature (chat-based manual quotes)
-	RatingHandler               *ratingHTTP.RatingHandler                 // RATING DOMAIN: buyer→seller order ratings
-	PromotionHandler            *promotionHTTP.PromotionHandler           // PROMOTION PHASE 4: external product surface
-	PromotionContractService    *contractApp.PromotionContractService     // PHASE 4A: canonical contract runtime composition
-	PromotionContractHandler    *contractHTTP.ContractHandler             // PHASE 4A: canonical contract HTTP surface
-	PromotionFundingIntentHandler *contractHTTP.FundingIntentHandler    // PHASE 4C: exact-shortage payment intent
-	PromotionMeasurementHandler *promotionHTTP.MeasurementHandler         // CANONICAL delivery measurement ack surface (impressions/clicks)
-	PromotionDeliveryHandoff    *contractApp.DeliveryHandoffService       // CANONICAL contract-based selection (feed/search injectors)
-	PromoteBalanceHandler       *billingHTTP.PromoteBalanceFundingHandler // PHASE 4B: canonical promote balance funding entry (TypePromoteBalanceTopUp)
-	SearchHandler               *searchHTTP.SearchHandler                 // FEDERATED SEARCH: content, users, forSales
-	AdminOrderHandler           *orderHTTP.AdminOrderHandler              // ADMIN ORDER: read-only order management
-	AdminRefundHandler          *refundHTTP.AdminRefundHandler            // TASK 34 / Phase 2a: admin-only gateway refund trigger (feature-flagged)
-	SellerRefundHandler         *refundHTTP.SellerRefundHandler           // H2-A: seller approve/reject refund endpoints
-	BuyerEscalationHandler      *refundHTTP.BuyerEscalationHandler        // H2-B: buyer escalate rejected refund
+	AddressHandler                *addressHTTP.AddressHandler
+	OrderHandler                  *orderHTTP.OrderHandler
+	AuctionHandler                *auctionHTTP.AuctionHandler
+	AdminAuctionHandler           *auctionHTTP.AdminAuctionHandler // PASS_5B: admin emergency auction cancel/override
+	SavedItemHandler              *savedItemHTTP.SavedItemHandler
+	BiddingHandler                *biddingHTTP.BiddingHandler
+	ForSaleHandler                *forSaleHTTP.ForSaleHandler
+	PricingTokenHandler           *pricingtokenHTTP.PricingTokenHandler
+	ChatHandler                   *chatHTTP.Handler
+	DiscountHandler               *discountHTTP.DiscountHandler
+	DisputeHandler                *disputeHTTP.DisputeHandler
+	SellerHandler                 *sellerHTTP.SellerHandler
+	SystemHealthHandler           *monitoring.SystemHealthHandler
+	RealtimeHandler               *realtime.Handler
+	FeedHandler                   *feedHTTP.FeedHandler
+	ContentHandler                *contentHTTP.ContentHandler
+	OGHandler                     *ogHTTP.Handler
+	CommentHandler                *contentHTTP.CommentHandler
+	LikeHandler                   *likeHTTP.LikeHandler
+	NotificationHandler           *notificationHTTP.NotificationHandler
+	FCMTokenHandler               *notificationHTTP.FCMTokenHandler
+	PresenceHandler               *presenceHTTP.Handler                     // PRESENCE SLICE-4: initial state batch read via BuildSnapshot
+	ReportHandler                 *moderationHTTP.ReportHandler             // SLICE 2: canonical Report intake
+	GovernanceAdminHandler        *moderationHTTP.GovernanceAdminHandler    // SLICE 6: admin governance workflow
+	FollowHandler                 *socialhttp.FollowHandler                 // SOCIAL domain: follow/block/mute
+	ShippingQuoteHandler          *shippingQuoteHTTP.Handler                // Shipping quote feature (chat-based manual quotes)
+	RatingHandler                 *ratingHTTP.RatingHandler                 // RATING DOMAIN: buyer→seller order ratings
+	PromotionHandler              *promotionHTTP.PromotionHandler           // PROMOTION PHASE 4: external product surface
+	PromotionContractService      *contractApp.PromotionContractService     // PHASE 4A: canonical contract runtime composition
+	PromotionContractHandler      *contractHTTP.ContractHandler             // PHASE 4A: canonical contract HTTP surface
+	PromotionFundingIntentHandler *contractHTTP.FundingIntentHandler        // PHASE 4C: exact-shortage payment intent
+	PromotionMeasurementHandler   *promotionHTTP.MeasurementHandler         // CANONICAL delivery measurement ack surface (impressions/clicks)
+	PromotionDeliveryHandoff      *contractApp.DeliveryHandoffService       // CANONICAL contract-based selection (feed/search injectors)
+	PromoteBalanceHandler         *billingHTTP.PromoteBalanceFundingHandler // PHASE 4B: canonical promote balance funding entry (TypePromoteBalanceTopUp)
+	SearchHandler                 *searchHTTP.SearchHandler                 // FEDERATED SEARCH: content, users, forSales
+	AdminOrderHandler             *orderHTTP.AdminOrderHandler              // ADMIN ORDER: read-only order management
+	AdminRefundHandler            *refundHTTP.AdminRefundHandler            // TASK 34 / Phase 2a: admin-only gateway refund trigger (feature-flagged)
+	SellerRefundHandler           *refundHTTP.SellerRefundHandler           // H2-A: seller approve/reject refund endpoints
+	BuyerEscalationHandler        *refundHTTP.BuyerEscalationHandler        // H2-B: buyer escalate rejected refund
 
 	// VERIFICATION (Phase 2 operationalization)
 	VerificationHandler      *verificationHTTP.VerificationHandler      // Seller-facing: submit identity/business, status
@@ -333,6 +334,7 @@ type Dependencies struct {
 	PushRetryWorker                  Worker // Z6: PUSH RELIABILITY - retries failed FCM pushes with exponential backoff
 	NotificationCleanupWorker        Worker // Z6: PUSH HYGIENE - deletes old delivery logs + expired retry entries
 	ChatMediaCleanupWorker           Worker // CHAT MEDIA HYGIENE - sweeps expired PENDING chat media assets (uploads never attached)
+	MediaReadinessWorker             Worker // MEDIA READINESS - flips processing video rows to ready/failed via poster probe
 	EscrowIntegrityWorker            Worker // ESCROW RECONCILIATION - shadow-rollout periodic escrow vs order check
 	TotalMoneyInvariantWorker        Worker // TOTAL MONEY INVARIANT - shadow-rollout periodic ledger sum check
 	SellerMetricsWorker              Worker // SELLER MEASUREMENT - daily seller_monthly_metrics snapshot (measurement only)
@@ -943,6 +945,8 @@ func InitServices(
 		db.Pgx(),
 		log.Logger,
 		orderRepository,
+		// DEAL BINDING: detail wire resolves the viewer's settleable deal.
+		negotiationInfraRepo.NewNegotiationRepository(),
 	)
 
 	// ===== SOCIAL REPOSITORY =====
@@ -1518,6 +1522,29 @@ func InitServices(
 		})
 	} else {
 		_ = chatMediaCleanupWorker
+	}
+
+	// MEDIA READINESS. Video status sweeper (processing → ready | failed).
+	// A video row is born `processing` (mediaref.StatusForNewRow); the remux
+	// Lambda never touches the DB, so this worker is the only flipper: HEAD
+	// the derived poster URL → ready, or failed past the timeout. Default ON:
+	// without it every uploaded video stays `processing` on all read surfaces.
+	// Disable: DISABLE_MEDIA_READINESS_WORKER=true
+	mediaReadinessWorker := worker.NewMediaReadinessWorker(
+		db.Pgx(),
+		log.Logger,
+		worker.DefaultMediaReadinessConfig(),
+	)
+	if workerEnabled("MEDIA_READINESS_WORKER", true, log.Logger) {
+		workerStartups = append(workerStartups, func() {
+			mediaReadinessWorker.Start()
+			log.Info("MediaReadinessWorker started (video status sweeper)",
+				zap.Duration("poll_interval", worker.DefaultMediaReadinessPollInterval),
+				zap.Duration("timeout", worker.DefaultMediaReadinessTimeout),
+			)
+		})
+	} else {
+		_ = mediaReadinessWorker
 	}
 
 	// 4.2. Create notification HTTP handlers
@@ -3238,39 +3265,39 @@ func InitServices(
 		BiddingHandler:           biddingHandler,
 		// CollectionHandler:     collectionHandler, // DISABLED: Collection domain being isolated for removal
 		// OfferHandler:          offerHandler,      // DISABLED: Offer domain being isolated for removal
-		ForSaleHandler:              forSaleHandler,
-		PricingTokenHandler:         pricingTokenHandler,
-		ChatHandler:                 chatHandler,
-		DiscountHandler:             discountHandler,
-		DisputeHandler:              disputeHandler,
-		SellerHandler:               sellerHandler,
-		SystemHealthHandler:         systemHealthHandler,
-		RealtimeHandler:             realtimeHandler,
-		FeedHandler:                 feedHandler,
-		ContentHandler:              contentHandler,
-		OGHandler:                   ogHandler,
-		CommentHandler:              commentHandler,
-		LikeHandler:                 likeHandler,
-		NotificationHandler:         notificationHandler,
-		FCMTokenHandler:             fcmTokenHandler,
-		PresenceHandler:             presenceHandler,                 // PRESENCE SLICE-4: initial state batch read
-		ReportHandler:               reportHandler,                   // SLICE 2: canonical Report intake
-		GovernanceAdminHandler:      governanceAdminHandler,          // SLICE 6: admin governance workflow
-		FollowHandler:               followHandler,                   // SOCIAL domain: follow/block/mute
-		ShippingQuoteHandler:        shippingQuoteHandler,            // Shipping quote feature (chat-based manual quotes)
-		RatingHandler:               ratingHandler,                   // RATING DOMAIN: buyer→seller order ratings
-		PromotionHandler:            promotionHandler,                // PROMOTION PHASE 4: external product surface
-		PromotionContractService:    canonicalContractService,        // PHASE 4A: canonical contract runtime composition
-		PromotionContractHandler:    canonicalContractHandler,        // PHASE 4A: canonical contract HTTP surface
-		PromotionFundingIntentHandler: fundingIntentHandler,          // PHASE 4C: exact-shortage payment intent
-		PromotionMeasurementHandler: promotionMeasurementHandler,     // CANONICAL delivery measurement ack surface (impressions/clicks)
-		PromotionDeliveryHandoff:    canonicalDeliveryHandoffService, // CANONICAL contract-based selection (feed/search injectors)
-		PromoteBalanceHandler:       promoteBalanceHandler,           // PHASE 4B: canonical promote balance funding entry
-		SearchHandler:               searchHandler,                   // FEDERATED SEARCH: content, users, forSales
-		AdminOrderHandler:           adminOrderHandler,               // ADMIN ORDER: read-only order management
-		AdminRefundHandler:          adminRefundHandler,              // TASK 34 / Phase 2a: admin-only gateway refund trigger
-		SellerRefundHandler:         sellerRefundHandler,             // H2-A: seller approve/reject refund
-		BuyerEscalationHandler:      buyerEscalationHandler,          // H2-B: buyer escalate rejected refund
+		ForSaleHandler:                forSaleHandler,
+		PricingTokenHandler:           pricingTokenHandler,
+		ChatHandler:                   chatHandler,
+		DiscountHandler:               discountHandler,
+		DisputeHandler:                disputeHandler,
+		SellerHandler:                 sellerHandler,
+		SystemHealthHandler:           systemHealthHandler,
+		RealtimeHandler:               realtimeHandler,
+		FeedHandler:                   feedHandler,
+		ContentHandler:                contentHandler,
+		OGHandler:                     ogHandler,
+		CommentHandler:                commentHandler,
+		LikeHandler:                   likeHandler,
+		NotificationHandler:           notificationHandler,
+		FCMTokenHandler:               fcmTokenHandler,
+		PresenceHandler:               presenceHandler,                 // PRESENCE SLICE-4: initial state batch read
+		ReportHandler:                 reportHandler,                   // SLICE 2: canonical Report intake
+		GovernanceAdminHandler:        governanceAdminHandler,          // SLICE 6: admin governance workflow
+		FollowHandler:                 followHandler,                   // SOCIAL domain: follow/block/mute
+		ShippingQuoteHandler:          shippingQuoteHandler,            // Shipping quote feature (chat-based manual quotes)
+		RatingHandler:                 ratingHandler,                   // RATING DOMAIN: buyer→seller order ratings
+		PromotionHandler:              promotionHandler,                // PROMOTION PHASE 4: external product surface
+		PromotionContractService:      canonicalContractService,        // PHASE 4A: canonical contract runtime composition
+		PromotionContractHandler:      canonicalContractHandler,        // PHASE 4A: canonical contract HTTP surface
+		PromotionFundingIntentHandler: fundingIntentHandler,            // PHASE 4C: exact-shortage payment intent
+		PromotionMeasurementHandler:   promotionMeasurementHandler,     // CANONICAL delivery measurement ack surface (impressions/clicks)
+		PromotionDeliveryHandoff:      canonicalDeliveryHandoffService, // CANONICAL contract-based selection (feed/search injectors)
+		PromoteBalanceHandler:         promoteBalanceHandler,           // PHASE 4B: canonical promote balance funding entry
+		SearchHandler:                 searchHandler,                   // FEDERATED SEARCH: content, users, forSales
+		AdminOrderHandler:             adminOrderHandler,               // ADMIN ORDER: read-only order management
+		AdminRefundHandler:            adminRefundHandler,              // TASK 34 / Phase 2a: admin-only gateway refund trigger
+		SellerRefundHandler:           sellerRefundHandler,             // H2-A: seller approve/reject refund
+		BuyerEscalationHandler:        buyerEscalationHandler,          // H2-B: buyer escalate rejected refund
 
 		// VERIFICATION (Phase 2 operationalization)
 		VerificationHandler:      verificationHandler,
@@ -3331,6 +3358,7 @@ func InitServices(
 		PushRetryWorker:                  pushRetryWorker,                  // Z6-1: PUSH RELIABILITY
 		NotificationCleanupWorker:        notificationCleanupWorker,        // Z6-2: PUSH HYGIENE
 		ChatMediaCleanupWorker:           chatMediaCleanupWorker,           // Z6-4: CHAT MEDIA HYGIENE
+		MediaReadinessWorker:             mediaReadinessWorker,             // VIDEO READINESS: processing → ready/failed sweeper
 		EscrowIntegrityWorker:            escrowIntegrityWorker,            // ESCROW RECONCILIATION (shadow default)
 		TotalMoneyInvariantWorker:        totalMoneyInvariantWorker,        // TOTAL MONEY INVARIANT (shadow default)
 		SellerMetricsWorker:              sellerMetricsWorker,              // SELLER MEASUREMENT - daily fulfillment snapshot
@@ -3974,19 +4002,19 @@ func (h *CorePaymentHandler) ListPaymentMethods(c *gin.Context) {
 	}
 
 	response.Success(c, gin.H{
-		"order_id":    order.ID,
-		"base_amount": baseAmount.Int64(),
-		"coins_to_use":  coinsToUse,
-		"methods":       out,
+		"order_id":     order.ID,
+		"base_amount":  baseAmount.Int64(),
+		"coins_to_use": coinsToUse,
+		"methods":      out,
 	})
 }
 
 // BillingPaymentResult holds the outcome of a billing payment initiation.
 type BillingPaymentResult struct {
-	PaymentID   uuid.UUID
-	PaymentURL  string
-	GrossAmount int64
-	ExpiredAt   time.Time
+	PaymentID     uuid.UUID
+	PaymentURL    string
+	GrossAmount   int64
+	ExpiredAt     time.Time
 	ReferenceType string
 	ReferenceID   *uuid.UUID
 }

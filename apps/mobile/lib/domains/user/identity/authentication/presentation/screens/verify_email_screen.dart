@@ -149,7 +149,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                     ),
                     child: Icon(
                       Icons.mark_email_unread_outlined,
-                      size: 64,
+                      size: AppIconSize.display,
                       color: context.statusColors.warning,
                     ),
                   ),
@@ -191,7 +191,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                         children: [
                           Icon(
                             Icons.email_outlined,
-                            size: 20,
+                            size: AppIconSize.action,
                             color: scheme.onSurfaceVariant,
                           ),
                           const SizedBox(width: 12),
@@ -216,7 +216,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                       style: ElevatedButton.styleFrom(
                         disabledBackgroundColor:
                             scheme.surfaceContainerHighest,
-                        padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
+                        padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
                       ),
                       child: _isChecking
                           ? SizedBox(
@@ -239,7 +239,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                               ? null
                               : _resendVerificationEmail,
                       style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
+                        padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
                       ),
                       child: Text(
                         _cooldownSeconds > 0
@@ -257,7 +257,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                     child: TextButton(
                       onPressed: _isChecking ? null : _signOut,
                       style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: AppMetrics.p14),
+                        padding: const EdgeInsets.symmetric(vertical: AppMetrics.p16),
                       ),
                       child: Text(
                         'Ganti Akun',

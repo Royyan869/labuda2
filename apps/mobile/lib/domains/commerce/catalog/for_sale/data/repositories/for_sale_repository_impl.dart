@@ -5,6 +5,7 @@
 library;
 
 import 'package:labuda/core/common/result.dart';
+import 'package:labuda/core/media/media_upload_orchestrator.dart';
 import 'package:labuda/core/src/interfaces/services/i_logger_service.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/data/dto/for_sale_dto.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/data/mappers/for_sale_dto_mapper.dart';
@@ -145,14 +146,15 @@ class ForSaleRepositoryImpl implements ForSaleRepository {
         extra: {'title': request.title},
       );
 
-      // Convert domain request to DTO
+      // Convert domain request to DTO — typed media[] carries blurhash;
+      // legacy media_urls is never sent (backend rejects mixed payloads).
       final dto = CreateForSaleRequestDto(
         title: request.title,
         description: request.description,
         price: request.price.toInt(),
         quantity: request.quantity,
         negotiationEnabled: request.negotiationEnabled,
-        mediaUrls: request.mediaUrls,
+        media: await MediaUploadOrchestrator.typedWriteItems(request.mediaUrls),
         variety: request.variety,
         sizeCm: request.sizeCm?.toInt(),
         ageMonths: request.ageMonths,
@@ -163,7 +165,6 @@ class ForSaleRepositoryImpl implements ForSaleRepository {
         farmAddressId: request.farmAddressId,
         shippingSetupIds: request.shippingSetupIds,
         preparationTime: request.preparationTime?.toJson(),
-        preparationNote: request.preparationNote,
       );
 
       final result = await _datasource.createForSale(dto);
@@ -209,7 +210,9 @@ class ForSaleRepositoryImpl implements ForSaleRepository {
         price: request.price?.toInt(),
         negotiationEnabled: request.negotiationEnabled,
         status: request.status?.name, // Convert enum to string for backend
-        mediaUrls: request.mediaUrls,
+        media: request.mediaUrls == null
+            ? null
+            : await MediaUploadOrchestrator.typedWriteItems(request.mediaUrls!),
         variety: request.variety,
         sizeCm: request.sizeCm?.toInt(),
         ageMonths: request.ageMonths,
@@ -218,7 +221,6 @@ class ForSaleRepositoryImpl implements ForSaleRepository {
         bloodline: request.bloodline,
         certificates: request.certificates,
         preparationTime: request.preparationTime?.toJson(),
-        preparationNote: request.preparationNote,
       );
 
       final result = await _datasource.updateForSale(forSaleId, dto);
@@ -302,9 +304,7 @@ class ForSaleRepositoryImpl implements ForSaleRepository {
         ForSaleStatus.sold => 'sold',
       };
 
-      final dto = UpdateForSaleRequestDto(
-        status: statusStr,
-      );
+      final dto = UpdateForSaleRequestDto(status: statusStr);
 
       final result = await _datasource.updateForSale(forSaleId, dto);
 

@@ -202,7 +202,7 @@ func (h *deliveryHarness) newForSale(t *testing.T, sellerID uuid.UUID) uuid.UUID
 	_, err := h.tdb.Pool().Exec(ctx, `
 		INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
-	`, productID, sellerID, "Sanke Koi", "A fine sanke", `["https://cdn.example.com/sanke.jpg"]`, "sanke", "immediate")
+	`, productID, sellerID, "Sanke Koi", "A fine sanke", `["https://cdn.example.com/sanke.jpg"]`, "sanke", "1_3_days")
 	require.NoError(t, err)
 	_, err = h.tdb.Pool().Exec(ctx, `
 		INSERT INTO for_sales (id, product_id, seller_id, price_per_unit, status, published_at, quantity_available)
@@ -221,7 +221,7 @@ func (h *deliveryHarness) newAuction(t *testing.T, sellerID uuid.UUID) uuid.UUID
 	_, err := h.tdb.Pool().Exec(ctx, `
 		INSERT INTO products (id, seller_id, title, description, media_urls, variety, preparation_time)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
-	`, productID, sellerID, "Kohaku Koi", "A fine kohaku", `["https://cdn.example.com/kohaku.jpg"]`, "kohaku", "immediate")
+	`, productID, sellerID, "Kohaku Koi", "A fine kohaku", `["https://cdn.example.com/kohaku.jpg"]`, "kohaku", "1_3_days")
 	require.NoError(t, err)
 	_, err = h.tdb.Pool().Exec(ctx, `
 		INSERT INTO auctions (id, seller_id, product_id, start_price, bid_increment, start_at, end_at, status, created_at, updated_at)

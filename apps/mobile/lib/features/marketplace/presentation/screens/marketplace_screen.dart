@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-import 'package:labuda/core/src/router/route_paths.dart';
 import 'package:labuda/features/home/home.dart';
 import 'package:labuda/features/marketplace/marketplace.dart';
-import 'package:labuda/core/src/theme/app_theme.dart';
 
 /// Marketplace Screen - Central hub untuk Product dan Auction
 ///
@@ -96,54 +93,26 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen>
             ),
             child: TabBar(
               controller: _tabController,
-              indicatorColor: scheme.primary,
-              labelColor: scheme.primary,
-              unselectedLabelColor: scheme.onSurfaceVariant,
-              labelStyle: const TextStyle(
-                fontSize: AppType.s14,
+              // Role, not size: the tab label is `labelLarge` (14 — the
+              // same metrics the TabBar default titleSmall carries), and the
+              // selected/unselected weights stay the call site's own decision.
+              labelStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
                 fontWeight: FontWeight.w600,
               ),
-              unselectedLabelStyle: const TextStyle(
-                fontSize: AppType.s14,
-                fontWeight: FontWeight.w400,
-              ),
+              unselectedLabelStyle:
+                  Theme.of(context).textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w400,
+                  ),
               tabs: const [
                 Tab(text: 'For Sale'),
                 Tab(text: 'Auction'),
               ],
             ),
           ),
-          // ONE create entry for the whole marketplace, following the active tab.
-          // This is where the Create FAB lands (For Sale → tab 0, Auction →
-          // tab 1) instead of pushing the form directly.
-          ListenableBuilder(
-            listenable: _tabController,
-            builder: (context, _) {
-              final isAuction = _tabController.index == 1;
-              return Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppMetrics.p16,
-                  AppMetrics.p8,
-                  AppMetrics.p16,
-                  AppMetrics.p4,
-                ),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: () => context.push(
-                      isAuction
-                          ? RoutePaths.createAuction
-                          : RoutePaths.createForSale,
-                    ),
-                    icon: Icon(
-                      isAuction ? Icons.gavel_outlined : Icons.storefront_outlined,
-                    ),
-                    label: Text(isAuction ? 'Buat Lelang' : 'Buat Listing'),
-                  ),
-                ),
-              );
-            },
-          ),
+          // NO create entry here — by owner decision the marketplace surface
+          // carries zero create buttons. The single create entry is the bottom
+          // bar (main screen), which pushes the form and, on success, lands the
+          // user back on the matching marketplace tab via pendingTabSwitch.
           // Tab Content
           Expanded(
             child: TabBarView(

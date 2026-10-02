@@ -85,17 +85,29 @@ void main() {
       contains('CommerceCommonProductDetailSection('),
     );
 
-    // 6. Canonical media block — same carousel, same 4/3 aspect, edge to edge.
+    // 6. Canonical media block — same carousel, same 4:5 contain aspect
+    // (card ≡ detail, koi never cropped), edge to edge, tap opens fullscreen.
     expect(listing, contains('MediaCarouselWidget('));
-    expect(listing, contains('aspectRatio: 4 / 3'));
+    expect(listing, contains('aspectRatio: 4 / 5'));
+    expect(listing, contains('fit: BoxFit.contain'));
+    expect(listing, contains('onImageTapWithIndex:'));
     expect(_source(_auctionDetailHeader), contains('MediaCarouselWidget('));
-    expect(_source(_auctionDetailHeader), contains('aspectRatio: 4 / 3'));
+    expect(_source(_auctionDetailHeader), contains('aspectRatio: 4 / 5'));
+    expect(_source(_auctionDetailHeader), contains('fit: BoxFit.contain'));
+    expect(_source(_auctionDetailHeader), contains('onImageTapWithIndex:'));
+    expect(listing, isNot(contains('aspectRatio: 4 / 3')));
+    expect(_source(_auctionDetailHeader), isNot(contains('aspectRatio: 4 / 3')));
   });
 
   test('seller identity resolution has ONE authority for both channels', () {
     final authority = _source(_detailSellerCardAuthority);
-    expect(authority, contains('buildCommerceSellerIdentity('));
+    // The card renders the canonical pairing straight from the identity model
+    // (store name primary, handle secondary). Composing an order locally — or
+    // reviving the purged inverse helper — is forbidden.
+    expect(authority, contains('identity.primaryLabel'));
+    expect(authority, contains('identity.secondaryLabel'));
     expect(authority, contains('publicRedactionLabel'));
+    expect(authority, isNot(contains('buildCommerceSellerIdentity(')));
 
     // Channel screens resolve no identity and redact on their own — they
     // delegate to the shared authority.

@@ -63,7 +63,7 @@ class ContentMetadataSections {
                 ),
                 deleteIcon: Icon(
                   Icons.close,
-                  size: 16,
+                  size: AppIconSize.inlineGlyph,
                   color: Theme.of(
                     context,
                   ).colorScheme.secondary.withValues(alpha: 0.7),
@@ -109,12 +109,12 @@ class ContentMetadataSections {
             children: [
               Row(
                 children: [
-                  Icon(icon, size: 18, color: iconColor),
+                  Icon(icon, size: AppIconSize.action, color: iconColor),
                   const SizedBox(width: 8),
                   Text(
                     title,
                     style: TextStyle(
-                      fontSize: AppType.s13,
+                      fontSize: AppType.s14,
                       fontWeight: FontWeight.w600,
                       color: scheme.onSurface,
                     ),
@@ -128,7 +128,7 @@ class ContentMetadataSections {
                     onTap: onEdit,
                     child: Icon(
                       Icons.edit,
-                      size: 16,
+                      size: AppIconSize.inlineGlyph,
                       color: scheme.onSurfaceVariant,
                     ),
                   ),
@@ -138,7 +138,7 @@ class ContentMetadataSections {
                       onTap: onRemove,
                       child: Icon(
                         Icons.close,
-                        size: 18,
+                        size: AppIconSize.action,
                         color: scheme.onSurfaceVariant,
                       ),
                     ),

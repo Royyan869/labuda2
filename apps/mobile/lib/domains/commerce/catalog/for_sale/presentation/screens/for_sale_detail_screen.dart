@@ -9,12 +9,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:labuda/core/core.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/domain/entities/for_sale.dart';
+import 'package:labuda/domains/commerce/catalog/for_sale/presentation/checkout_intent.dart';
 import 'package:labuda/domains/commerce/catalog/for_sale/presentation/providers/for_sale_providers.dart';
+import 'package:labuda/domains/chat/chat/presentation/providers/chat_providers.dart';
 import 'package:labuda/domains/chat/chat/presentation/utils/commerce_chat_navigation.dart';
+import 'package:labuda/domains/commerce/negotiation/negotiation/presentation/providers/negotiation_providers.dart';
+import 'package:labuda/shared/governance/content_lifecycle.dart';
 import 'package:labuda/shared/shared.dart';
 import 'package:labuda/domains/social/share/share.dart';
 import 'package:labuda/domains/system/report/domain/entities/entities.dart';
 import 'package:labuda/domains/system/report/presentation/dialogs/report_submission_dialog.dart';
+import 'package:labuda/domains/commerce/negotiation/negotiation/presentation/widgets/negotiation_offer_sheet.dart';
 import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_common_product_detail_section.dart';
 import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_detail_primitives.dart';
 import 'package:labuda/domains/commerce/catalog/shared/presentation/widgets/commerce_detail_seller_card.dart';
@@ -89,16 +94,6 @@ class _ForSaleDetailScreenState extends ConsumerState<ForSaleDetailScreen> {
               return Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Promotion is contract-based; the seller entry point is the
-                  // canonical promotion management list (owner-only — mirrors
-                  // the Auction action bar).
-                  if (isOwner && forSale.status == ForSaleStatus.active)
-                    IconButton(
-                      onPressed: () =>
-                          context.push(RoutePaths.sellerCanonicalPromotions),
-                      icon: const Icon(Icons.campaign_outlined),
-                      tooltip: 'Promote',
-                    ),
                   // Save button — non-owners only.
                   if (!isOwner)
                     CommerceSavedItemActionButton(
@@ -209,7 +204,12 @@ class _ForSaleDetailScreenState extends ConsumerState<ForSaleDetailScreen> {
         // (attributes, shipping readiness and description live here).
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p0, AppMetrics.p16, AppMetrics.p16),
+            padding: const EdgeInsets.fromLTRB(
+              AppMetrics.p16,
+              AppMetrics.p0,
+              AppMetrics.p16,
+              AppMetrics.p16,
+            ),
             child: CommerceCommonProductDetailSection(
               title: 'Detail Produk',
               data: CommerceCommonProductDetailsData.fromForSale(forSale),
@@ -223,6 +223,7 @@ class _ForSaleDetailScreenState extends ConsumerState<ForSaleDetailScreen> {
             username: forSale.sellerUsername,
             storeName: forSale.sellerFarmName,
             avatarUrl: forSale.sellerAvatar,
+            originLine: forSale.publicOriginLine,
             sellerUserLifecycle: forSale.sellerUserLifecycle,
             sellerTrustLifecycle: forSale.sellerTrustLifecycle,
             tier: forSale.sellerTier,
@@ -234,13 +235,26 @@ class _ForSaleDetailScreenState extends ConsumerState<ForSaleDetailScreen> {
 }
 
 /// Canonical DETAIL MEDIA BLOCK — identical to the Auction header: the
-/// shared `MediaCarouselWidget` at 4/3, edge to edge, no raw
-/// `Image.network`, no local `PageView` controller. When the payload
+/// shared `MediaCarouselWidget` at 4:5 contain (same as the card — koi never
+/// cropped), edge to edge, tap opens the fullscreen viewer. When the payload
 /// carries no usable URL the same neutral placeholder renders instead.
 class _ForSaleDetailMedia extends StatelessWidget {
   final ForSale forSale;
 
   const _ForSaleDetailMedia({required this.forSale});
+
+  void _openViewer(BuildContext context, int index) {
+    if (forSale.media.isEmpty) return;
+    showDialog(
+      context: context,
+      barrierColor: Theme.of(context).colorScheme.scrim.withValues(alpha: 0.87),
+      builder: (_) => MediaViewerWidget(
+        media: forSale.media,
+        initialIndex: index.clamp(0, forSale.media.length - 1),
+        title: forSale.title,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -249,19 +263,23 @@ class _ForSaleDetailMedia extends StatelessWidget {
     if (forSale.media.isNotEmptyUrls) {
       return MediaCarouselWidget(
         media: forSale.media,
-        aspectRatio: 4 / 3,
+        aspectRatio: 4 / 5,
+        fit: BoxFit.contain,
         borderRadius: BorderRadius.zero,
+        onImageTapWithIndex: (index) => _openViewer(context, index),
       );
     }
 
-    return Container(
-      height: 225,
-      color: colorScheme.surfaceContainerHighest,
-      child: Center(
-        child: Icon(
-          Icons.image_outlined,
-          size: 64,
-          color: colorScheme.onSurfaceVariant,
+    return AspectRatio(
+      aspectRatio: 4 / 5,
+      child: Container(
+        color: colorScheme.surfaceContainerHighest,
+        child: Center(
+          child: Icon(
+            Icons.image_outlined,
+            size: AppIconSize.display,
+            color: colorScheme.onSurfaceVariant,
+          ),
         ),
       ),
     );
@@ -278,7 +296,12 @@ class _ForSaleDetailTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p16, AppMetrics.p16, AppMetrics.p16),
+      padding: const EdgeInsets.fromLTRB(
+        AppMetrics.p16,
+        AppMetrics.p16,
+        AppMetrics.p16,
+        AppMetrics.p16,
+      ),
       child: Text(
         forSale.title,
         style: Theme.of(context).textTheme.headlineSmall,
@@ -302,7 +325,12 @@ class _ForSalePriceSection extends StatelessWidget {
     final colorScheme = theme.colorScheme;
 
     return CommerceDetailSectionCard(
-      margin: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p0, AppMetrics.p16, AppMetrics.p16),
+      margin: const EdgeInsets.fromLTRB(
+        AppMetrics.p16,
+        AppMetrics.p0,
+        AppMetrics.p16,
+        AppMetrics.p16,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -315,7 +343,10 @@ class _ForSalePriceSection extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p12, vertical: AppMetrics.p8),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppMetrics.p12,
+              vertical: AppMetrics.p8,
+            ),
             decoration: BoxDecoration(
               color: colorScheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(AppShape.r8),
@@ -324,7 +355,7 @@ class _ForSalePriceSection extends StatelessWidget {
               children: [
                 Icon(
                   Icons.info_outline,
-                  size: 16,
+                  size: AppIconSize.inlineGlyph,
                   color: colorScheme.onSurfaceVariant,
                 ),
                 const SizedBox(width: 8),
@@ -334,7 +365,7 @@ class _ForSalePriceSection extends StatelessWidget {
                         ? 'Beli langsung — penawaran bisa diajukan lewat chat'
                         : 'Beli langsung — harga pas tanpa tawar',
                     style: TextStyle(
-                      fontSize: AppType.s13,
+                      fontSize: AppType.s14,
                       color: colorScheme.onSurfaceVariant,
                       fontStyle: FontStyle.italic,
                     ),
@@ -364,7 +395,10 @@ class _SellerInactiveBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppMetrics.p16, vertical: AppMetrics.p12),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppMetrics.p16,
+        vertical: AppMetrics.p12,
+      ),
       decoration: BoxDecoration(
         color: theme.scaffoldBackgroundColor,
         border: Border(
@@ -376,7 +410,7 @@ class _SellerInactiveBanner extends StatelessWidget {
           children: [
             Icon(
               Icons.pause_circle_outline,
-              size: 20,
+              size: AppIconSize.action,
               color: theme.colorScheme.onSurfaceVariant,
             ),
             const SizedBox(width: 10),
@@ -419,8 +453,9 @@ class _SellerInactiveBanner extends StatelessWidget {
 /// - Guest (Model B): affordances stay visible; any CTA routes to the
 ///   canonical sign-in flow.
 /// - Owner: buyer action bar not applicable (owner actions live elsewhere).
-/// - Buyer: Chat/Nego/Buy Now per capability; an all-false capability set
-///   (seller-trust inactive) renders the explanatory inactive banner.
+/// - Buyer: Chat/Nego/Buy Now per capability; the seller-trust axis alone
+///   renders the explanatory inactive banner (never the capability set — an
+///   all-false set also means the viewer identity never reached backend).
 class _ForSaleDetailActionBar extends ConsumerWidget {
   final String forSaleId;
 
@@ -455,23 +490,39 @@ class _ForSaleDetailActionBar extends ConsumerWidget {
     }
 
     final caps = forSale.viewerCapabilities;
-    // Non-detail payload safety: no viewer-scoped capability slot on
-    // list/search payloads → no transaction CTA.
-    if (caps == null) return const SizedBox.shrink();
 
-    // Buyer with no available action (seller-trust inactive) → banner.
-    if (!caps.canChat && !caps.canNegotiate && !caps.canBuy) {
+    // SELLER-TRUST AXIS is the ONLY source of the "Penjual tidak aktif"
+    // banner. An all-false capability set is NOT: it also occurs when the
+    // viewer identity never reached the backend, and that must never be
+    // presented to the user as a seller problem.
+    if (forSale.sellerTrustLifecycle != ContentLifecycle.active) {
       return const _SellerInactiveBanner();
     }
 
-    final unavailable = caps.canChat && !caps.canBuy && !caps.canNegotiate;
+    // Caps carry at least one affordance → canonical capability-driven bar.
+    if (caps != null && (caps.canChat || caps.canNegotiate || caps.canBuy)) {
+      final unavailable = caps.canChat && !caps.canBuy && !caps.canNegotiate;
+      return _ForSaleActionBar(
+        forSale: forSale,
+        guest: false,
+        canChat: caps.canChat,
+        canNegotiate: caps.canNegotiate,
+        canBuy: caps.canBuy,
+        unavailable: unavailable,
+      );
+    }
+
+    // CAPS UNUSABLE — slot absent (non-detail payload) or all-false (viewer
+    // identity never reached the backend). NEVER render a blank bottom bar:
+    // fall back to the same presentation-only facts the guest branch uses.
+    // Permission stays server-side; the bar only promises an affordance.
     return _ForSaleActionBar(
       forSale: forSale,
       guest: false,
-      canChat: caps.canChat,
-      canNegotiate: caps.canNegotiate,
-      canBuy: caps.canBuy,
-      unavailable: unavailable,
+      canChat: true,
+      canNegotiate: forSale.isNegotiable,
+      canBuy: forSale.productId != null && forSale.stock > 0,
+      unavailable: false,
     );
   }
 }
@@ -498,11 +549,7 @@ class _ForSaleActionBar extends ConsumerWidget {
     context.push(RoutePaths.signIn);
   }
 
-  Future<void> _openChat(
-    BuildContext context,
-    WidgetRef ref, {
-    required bool negotiate,
-  }) async {
+  Future<void> _openChat(BuildContext context, WidgetRef ref) async {
     await openCommerceChat(
       context: context,
       ref: ref,
@@ -517,32 +564,91 @@ class _ForSaleActionBar extends ConsumerWidget {
         isSold: forSale.stock == 0,
       ),
       sellerId: forSale.sellerId,
-      autoOpenNegotiation: negotiate,
     );
   }
 
-  void _buyNow(BuildContext context) {
+  /// CANONICAL NEGO PATH (owner decision): the offer nominal is entered in
+  /// a bottom sheet ON the detail screen and posted straight to the
+  /// chat-room-scoped negotiation endpoint. NO navigation to chat, NO
+  /// silently auto-sent product card — the sheet reports terkirim/gagal
+  /// and the detail stays on screen.
+  Future<void> _openNegotiationOffer(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
     if (guest) {
       _requireLogin(context);
       return;
     }
-    final productId = forSale.productId;
-    if (productId == null || productId.isEmpty) return;
-    final uri = Uri(
-      path: '/checkout/${forSale.forSaleId}',
-      queryParameters: {'product_id': productId},
+    final sent = await NegotiationOfferSheet.show(
+      context: context,
+      productTitle: forSale.title,
+      onSubmit: (price) => _submitNegotiationOffer(ref, price),
     );
-    context.push(uri.toString());
+    if (!sent || !context.mounted) return;
+    AppSnackBar.showSuccess(context, 'Penawaran terkirim ke penjual');
+  }
+
+  /// Returns `null` on success, or the failure copy to render inline in the
+  /// sheet. Room resolution is required by the room-scoped contract but
+  /// never navigates — it only materializes the canonical room id.
+  Future<String?> _submitNegotiationOffer(WidgetRef ref, int price) async {
+    final authState = ref.read(authControllerProvider);
+    if (authState is! AuthStateAuthenticated) {
+      return 'Silakan masuk untuk mengirim penawaran';
+    }
+    final chat = await ref
+        .read(chatListProvider.notifier)
+        .getOrCreateChat(
+          userId: authState.user.id,
+          otherUserId: forSale.sellerId,
+        );
+    if (chat == null) {
+      return ref.read(chatListProvider).error ?? 'Gagal mengirim penawaran';
+    }
+    final result = await ref
+        .read(negotiationNotifierProvider.notifier)
+        .createNegotiation(
+          chatRoomId: chat.id,
+          fixedPriceSaleId: forSale.forSaleId,
+          price: price,
+        );
+    if (result.isSuccess && result.data != null) return null;
+    return 'Penawaran gagal. Coba lagi.';
+  }
+
+  Future<void> _buyNow(BuildContext context, WidgetRef ref) async {
+    if (guest) {
+      _requireLogin(context);
+      return;
+    }
+    // ONE FUNNEL: the commerce intent resolves the LIVE listing, enforces the
+    // seller trust gate, resolves the physical product id and carries the deal
+    // binding (viewer_negotiation_id → negotiation_id). The detail screen
+    // builds no route and plumbs no product id of its own.
+    await openForSaleCheckout(
+      context,
+      ref,
+      CheckoutIntent(
+        forSaleId: forSale.forSaleId,
+        // DEAL BINDING: detail wire's viewer_negotiation_id — checkout prices
+        // at the agreed deal, never list (owner truth: valid 24h).
+        negotiationId: forSale.viewerNegotiationId,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final showSecondary = canChat || canNegotiate;
-    final showPrimary = canBuy;
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(AppMetrics.p16, AppMetrics.p8, AppMetrics.p16, AppMetrics.p12),
+      padding: const EdgeInsets.fromLTRB(
+        AppMetrics.p16,
+        AppMetrics.p8,
+        AppMetrics.p16,
+        AppMetrics.p12,
+      ),
       decoration: BoxDecoration(
         color: theme.scaffoldBackgroundColor,
         border: Border(
@@ -572,61 +678,79 @@ class _ForSaleActionBar extends ConsumerWidget {
                   ),
                 ),
               ),
-            if (showSecondary)
-              Row(
-                children: [
-                  if (canChat)
-                    Expanded(
-                      child: _secondaryActionButton(
-                        context,
-                        icon: Icons.chat_bubble_outline,
-                        label: 'Chat',
-                        onTap: () => _openChat(context, ref, negotiate: false),
-                      ),
-                    ),
-                  if (canChat && canNegotiate) const SizedBox(width: 8),
-                  if (canNegotiate)
-                    Expanded(
-                      child: _secondaryActionButton(
-                        context,
-                        icon: Icons.handshake_outlined,
-                        label: 'Ajukan Penawaran',
-                        onTap: () => _openChat(context, ref, negotiate: true),
-                      ),
-                    ),
-                ],
-              ),
-            if (showSecondary && showPrimary) const SizedBox(height: 8),
-            if (showPrimary)
-              SizedBox(
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: () => _buyNow(context),
-                  child: const Text(
-                    'Beli Sekarang',
-                    style: TextStyle(fontSize: AppType.s16, fontWeight: FontWeight.bold),
+            // CANONICAL ONE-ROW CTA BAR — byte-shape parity with
+            // AuctionDetailBottomBar: [Chat icon+label] [Nego icon+label]
+            // [Beli Sekarang] all in the SAME row. A second CTA row is a
+            // forbidden design.
+            Row(
+              children: [
+                if (canChat)
+                  _iconActionButton(
+                    context,
+                    icon: Icons.chat_bubble_outline,
+                    label: 'Chat',
+                    onTap: () => _openChat(context, ref),
+                    expand: !canBuy,
                   ),
-                ),
-              ),
+                if (canChat && (canNegotiate || canBuy))
+                  const SizedBox(width: 12),
+                if (canNegotiate)
+                  _iconActionButton(
+                    context,
+                    icon: Icons.handshake_outlined,
+                    label: 'Nego',
+                    onTap: () => _openNegotiationOffer(context, ref),
+                    expand: !canBuy,
+                  ),
+                if ((canChat || canNegotiate) && canBuy)
+                  const SizedBox(width: 12),
+                if (canBuy)
+                  Expanded(
+                    child: SizedBox(
+                      height: AppContentSize.control,
+                      child: ElevatedButton(
+                        onPressed: () => _buyNow(context, ref),
+                        child: const Text(
+                          'Beli Sekarang',
+                          style: TextStyle(
+                            fontSize: AppType.s16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _secondaryActionButton(
+  /// Icon + label-under affordance — the SAME shape as
+  /// AuctionDetailBottomBar._buildActionButton (icon 20 → 2px → label s10).
+  /// [expand] stretches it only when the primary Buy CTA is absent, so the
+  /// row still never wraps into a second line.
+  Widget _iconActionButton(
     BuildContext context, {
     required IconData icon,
     required String label,
     required VoidCallback onTap,
+    required bool expand,
   }) {
-    return OutlinedButton.icon(
-      onPressed: onTap,
-      icon: Icon(icon, size: 18),
-      label: Text(label),
-      style: OutlinedButton.styleFrom(
-        minimumSize: const Size.fromHeight(44),
+    final theme = Theme.of(context);
+    final button = InkWell(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: theme.colorScheme.onSurfaceVariant, size: AppIconSize.action),
+          const SizedBox(height: 2),
+          Text(label, style: const TextStyle(fontSize: AppType.s12)),
+        ],
       ),
     );
+    return expand ? Expanded(child: button) : button;
   }
 }

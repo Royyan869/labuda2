@@ -64,7 +64,7 @@ func (r *OrderRepository) CreateOrderTx(
 			status, escrow_status,
 			auto_release_at, has_dispute, idempotency_key,
 			shipping_option_id, shipping_option_name, shipping_transport_type,
-			preparation_time_snapshot, preparation_note_snapshot, ready_to_ship_by, address_snapshot,
+			preparation_time_snapshot, ready_to_ship_by, address_snapshot,
 			pricing_token_id,
 			payment_expires_at,
 			shipping_source, shipping_origin_snapshot,
@@ -75,7 +75,7 @@ func (r *OrderRepository) CreateOrderTx(
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14,
 		        $15,
 		        $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29,
-		        $30, $31, $32, $33, $34, $35, $36, $37)
+		        $30, $31, $32, $33, $34, $35, $36)
 	`,
 		order.ID,
 		order.BuyerID,
@@ -101,7 +101,6 @@ func (r *OrderRepository) CreateOrderTx(
 		order.ShippingSetupName,
 		order.ShippingTransportType,
 		order.PreparationTimeSnapshot,
-		order.PreparationNoteSnapshot,
 		order.ReadyToShipBy,
 		addressSnapshotJSON,
 		order.PricingTokenID,
@@ -161,7 +160,6 @@ func (r *OrderRepository) GetByID(
 	var confirmationExtensionUsed bool
 	var idempotencyKey sql.NullString
 	var preparationTimeSnapshot sql.NullString // NULLABLE in DB
-	var preparationNoteSnapshot sql.NullString
 	var readyToShipBy sql.NullTime
 	var addressSnapshotJSON []byte
 	var originSnapshotJSON []byte
@@ -181,7 +179,7 @@ func (r *OrderRepository) GetByID(
 		       shipping_option_id, shipping_option_name, shipping_transport_type,
 	       tracking_number, proof_type, shipping_proof_media, shipping_note,
 		       order_number,
-		       preparation_time_snapshot, preparation_note_snapshot, ready_to_ship_by, address_snapshot,
+		       preparation_time_snapshot, ready_to_ship_by, address_snapshot,
 		       pricing_token_id,
 		       payment_expires_at,
 		       shipping_source, shipping_origin_snapshot,
@@ -198,7 +196,7 @@ func (r *OrderRepository) GetByID(
 		&shippingSetupID, &shippingSetupName, &shippingTransportType,
 		&trackingNumber, &proofType, &shippingProofMedia, &shippingNote,
 		&orderNum,
-		&preparationTimeSnapshot, &preparationNoteSnapshot, &readyToShipBy, &addressSnapshotJSON,
+		&preparationTimeSnapshot, &readyToShipBy, &addressSnapshotJSON,
 		&pricingTokenID,
 		&paymentExpiresAt,
 		&shippingSourceDB, &originSnapshotJSON,
@@ -264,7 +262,6 @@ func (r *OrderRepository) GetByID(
 		ShippingQuotePrice: db.ToInt64Ptr(shippingQuotePriceDB),
 		// Shipping Readiness Snapshot
 		PreparationTimeSnapshot:   preparationTimeSnapshot.String,
-		PreparationNoteSnapshot:   db.ToStringPtr(preparationNoteSnapshot),
 		ReadyToShipBy:             db.ToTimePtr(readyToShipBy),
 		AddressSnapshot:           shippingDestination,
 		Status:                    entity.Status(status),
@@ -326,7 +323,6 @@ func (r *OrderRepository) GetForUpdate(
 	var confirmationExtensionUsed bool
 	var idempotencyKey sql.NullString
 	var preparationTimeSnapshot sql.NullString // NULLABLE in DB
-	var preparationNoteSnapshot sql.NullString
 	var readyToShipBy sql.NullTime
 	var addressSnapshotJSON []byte
 	var originSnapshotJSON []byte
@@ -346,7 +342,7 @@ func (r *OrderRepository) GetForUpdate(
 		       shipping_option_id, shipping_option_name, shipping_transport_type,
 	       tracking_number, proof_type, shipping_proof_media, shipping_note,
 		       order_number,
-		       preparation_time_snapshot, preparation_note_snapshot, ready_to_ship_by, address_snapshot,
+		       preparation_time_snapshot, ready_to_ship_by, address_snapshot,
 		       pricing_token_id,
 		       payment_expires_at,
 		       shipping_source, shipping_origin_snapshot,
@@ -364,7 +360,7 @@ func (r *OrderRepository) GetForUpdate(
 		&shippingSetupID, &shippingSetupName, &shippingTransportType,
 		&trackingNumber, &proofType, &shippingProofMedia, &shippingNote,
 		&orderNum,
-		&preparationTimeSnapshot, &preparationNoteSnapshot, &readyToShipBy, &addressSnapshotJSON,
+		&preparationTimeSnapshot, &readyToShipBy, &addressSnapshotJSON,
 		&pricingTokenID,
 		&paymentExpiresAt,
 		&shippingSourceDB, &originSnapshotJSON,
@@ -430,7 +426,6 @@ func (r *OrderRepository) GetForUpdate(
 		ShippingQuotePrice: db.ToInt64Ptr(shippingQuotePriceDB),
 		// Shipping Readiness Snapshot
 		PreparationTimeSnapshot:   preparationTimeSnapshot.String,
-		PreparationNoteSnapshot:   db.ToStringPtr(preparationNoteSnapshot),
 		ReadyToShipBy:             db.ToTimePtr(readyToShipBy),
 		AddressSnapshot:           shippingDestination,
 		Status:                    entity.Status(status),
@@ -525,7 +520,6 @@ func (r *OrderRepository) GetByShippingQuoteID(
 	var confirmationExtensionUsed bool
 	var idempotencyKeyPtr *string
 	var preparationTimeSnapshot sql.NullString // NULLABLE in DB
-	var preparationNoteSnapshot *string
 	var readyToShipBy *time.Time
 	var addressSnapshotJSON []byte
 	var originSnapshotJSON []byte
@@ -542,7 +536,7 @@ func (r *OrderRepository) GetByShippingQuoteID(
 		       auto_release_at, has_dispute, confirmation_extension_used, idempotency_key,
 		       shipping_option_id, shipping_option_name, shipping_transport_type,
 	       tracking_number, shipping_note, order_number,
-		       preparation_time_snapshot, preparation_note_snapshot, ready_to_ship_by,
+		       preparation_time_snapshot, ready_to_ship_by,
 		       address_snapshot,
 		       shipping_source, shipping_origin_snapshot,
 		       shipping_quote_id, shipping_quote_price,
@@ -558,7 +552,7 @@ func (r *OrderRepository) GetByShippingQuoteID(
 		&shippingSetupID, &shippingSetupName, &shippingTransportType,
 		&trackingNumber, &shippingNote,
 		&orderNum,
-		&preparationTimeSnapshot, &preparationNoteSnapshot, &readyToShipBy, &addressSnapshotJSON,
+		&preparationTimeSnapshot, &readyToShipBy, &addressSnapshotJSON,
 		&shippingSourcePtr, &originSnapshotJSON,
 		&shippingQuoteIDPtr, &shippingQuotePricePtr,
 		&completedAt, &createdAt, &updatedAt,
@@ -615,7 +609,6 @@ func (r *OrderRepository) GetByShippingQuoteID(
 		ShippingQuoteID:           shippingQuoteIDPtr,
 		ShippingQuotePrice:        shippingQuotePricePtr,
 		PreparationTimeSnapshot:   preparationTimeSnapshot.String,
-		PreparationNoteSnapshot:   preparationNoteSnapshot,
 		ReadyToShipBy:             readyToShipBy,
 		AddressSnapshot:           shippingDestination,
 		Status:                    entity.Status(status),
@@ -690,7 +683,6 @@ func (r *OrderRepository) GetByPricingTokenID(
 	var confirmationExtensionUsed bool
 	var idempotencyKey sql.NullString
 	var preparationTimeSnapshot sql.NullString // NULLABLE in DB
-	var preparationNoteSnapshot sql.NullString
 	var readyToShipBy sql.NullTime
 	var addressSnapshotJSON []byte
 	var createdAt, updatedAt time.Time
@@ -712,7 +704,7 @@ func (r *OrderRepository) GetByPricingTokenID(
 		       shipping_option_id, shipping_option_name, shipping_transport_type,
 	       tracking_number, proof_type, shipping_proof_media, shipping_note,
 		       order_number,
-		       preparation_time_snapshot, preparation_note_snapshot, ready_to_ship_by, address_snapshot,
+		       preparation_time_snapshot, ready_to_ship_by, address_snapshot,
 		       pricing_token_id,
 		       payment_expires_at,
 		       shipping_source, shipping_origin_snapshot,
@@ -730,7 +722,7 @@ func (r *OrderRepository) GetByPricingTokenID(
 		&shippingSetupID, &shippingSetupName, &shippingTransportType,
 		&trackingNumber, &proofType, &shippingProofMedia, &shippingNote,
 		&orderNum,
-		&preparationTimeSnapshot, &preparationNoteSnapshot, &readyToShipBy, &addressSnapshotJSON,
+		&preparationTimeSnapshot, &readyToShipBy, &addressSnapshotJSON,
 		&storedPricingTokenID,
 		&paymentExpiresAt,
 		&shippingSourceDB, &originSnapshotJSON,
@@ -792,7 +784,6 @@ func (r *OrderRepository) GetByPricingTokenID(
 		ShippingQuoteID:           db.ToUUIDPtr(shippingQuoteIDDB),
 		ShippingQuotePrice:        db.ToInt64Ptr(shippingQuotePriceDB),
 		PreparationTimeSnapshot:   preparationTimeSnapshot.String,
-		PreparationNoteSnapshot:   db.ToStringPtr(preparationNoteSnapshot),
 		ReadyToShipBy:             db.ToTimePtr(readyToShipBy),
 		AddressSnapshot:           shippingDestination,
 		Status:                    entity.Status(status),

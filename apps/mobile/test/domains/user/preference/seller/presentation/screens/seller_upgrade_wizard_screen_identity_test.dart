@@ -92,12 +92,12 @@ class _FakeAddressRepository implements IAddressRepository {
   }
 
   @override
-  Future<Result<List<AddressEntity>>> getAddressesByPurpose(
+  Future<Result<List<AddressEntity>>> getAddressesByTag(
     String userId,
-    AddressPurpose purpose,
+    AddressTag tag,
   ) async {
     return Result.success(
-      _addresses.where((address) => address.purpose == purpose).toList(),
+      _addresses.where((address) => address.hasTag(tag)).toList(),
     );
   }
 
@@ -109,7 +109,7 @@ class _FakeAddressRepository implements IAddressRepository {
   @override
   Future<Result<AddressEntity?>> getPrimaryAddress(
     String userId, {
-    AddressPurpose? purpose,
+    AddressTag? tag,
   }) async {
     throw UnimplementedError();
   }
@@ -143,15 +143,15 @@ class _FakeAddressRepository implements IAddressRepository {
   }
 
   @override
-  Stream<Result<List<AddressEntity>>> watchAddressesByPurpose(
+  Stream<Result<List<AddressEntity>>> watchAddressesByTag(
     String userId,
-    AddressPurpose purpose,
+    AddressTag tag,
   ) {
     throw UnimplementedError();
   }
 
   @override
-  Future<Result<int>> countAddresses(String userId, {AddressPurpose? purpose}) {
+  Future<Result<int>> countAddresses(String userId, {AddressTag? tag}) {
     throw UnimplementedError();
   }
 
@@ -277,7 +277,7 @@ ProfileEntity _profileFor(AuthUser user, {required String farmName}) {
 AddressEntity _senderAddressFor(String userId) {
   return AddressEntity.fromJson({
     'user_id': userId,
-    'purpose': 'sender',
+    'tags': ['sender'],
     'recipient_name': 'Test Seller',
     'phone': '+62123456789',
     'province': {'id': 'province-1', 'name': 'Jawa Barat'},

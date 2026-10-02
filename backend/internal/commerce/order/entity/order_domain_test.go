@@ -339,8 +339,7 @@ func TestOrderSourceTypes(t *testing.T) {
 				nil,               // shippingSetupID: nil for test
 				"JNE",             // shippingSetupName
 				"truck",           // shippingTransportType
-				"immediate",       // preparationTimeSnapshot
-				nil,               // preparationNoteSnapshot
+				"1_3_days",       // preparationTimeSnapshot
 				nil,               // shippingSource
 				nil,               // shippingQuoteID
 				nil,               // shippingQuotePrice
@@ -402,8 +401,7 @@ func TestNoVATInOrder(t *testing.T) {
 		nil,               // shippingSetupID: nil for test
 		"JNE",             // shippingSetupName
 		"truck",           // shippingTransportType
-		"immediate",       // preparationTimeSnapshot
-		nil,               // preparationNoteSnapshot
+		"1_3_days",       // preparationTimeSnapshot
 		nil,               // shippingSource
 		nil,               // shippingQuoteID
 		nil,               // shippingQuotePrice
@@ -466,8 +464,7 @@ func TestOrderEntityFields(t *testing.T) {
 		&overrideID,       // shippingSetupID
 		"JNE",             // shippingSetupName
 		"truck",           // shippingTransportType
-		"immediate",       // preparationTimeSnapshot
-		nil,               // preparationNoteSnapshot
+		"1_3_days",       // preparationTimeSnapshot
 		nil,               // shippingSource
 		nil,               // shippingQuoteID
 		nil,               // shippingQuotePrice
@@ -529,8 +526,7 @@ func TestShippingQuoteFieldsPersistence(t *testing.T) {
 		nil,               // shippingSetupID: nil when using quote
 		"Custom",          // shippingSetupName
 		"truck",           // shippingTransportType
-		"immediate",       // preparationTimeSnapshot
-		nil,               // preparationNoteSnapshot
+		"1_3_days",       // preparationTimeSnapshot
 		&shippingSource,   // shippingSource = "shipping_quote"
 		&quoteID,          // shippingQuoteID
 		&quotePrice,       // shippingQuotePrice
@@ -568,8 +564,7 @@ func TestShippingQuoteFieldsNilWhenNotUsed(t *testing.T) {
 		&optionID,         // shippingSetupID: set for standard option
 		"JNE REG",         // shippingSetupName
 		"truck",           // shippingTransportType
-		"immediate",       // preparationTimeSnapshot
-		nil,               // preparationNoteSnapshot
+		"1_3_days",       // preparationTimeSnapshot
 		nil,               // shippingSource: nil = standard for-sale surface option
 		nil,               // shippingQuoteID: nil
 		nil,               // shippingQuotePrice: nil
@@ -605,8 +600,7 @@ func TestShippingQuoteFieldsOnAuctionOrder(t *testing.T) {
 		nil,               // shippingSetupID: nil when using quote
 		"Custom",          // shippingSetupName
 		"truck",           // shippingTransportType
-		"immediate",       // preparationTimeSnapshot
-		nil,               // preparationNoteSnapshot
+		"1_3_days",       // preparationTimeSnapshot
 		&shippingSource,   // shippingSource = "shipping_quote"
 		&quoteID,          // shippingQuoteID
 		&quotePrice,       // shippingQuotePrice
@@ -622,31 +616,32 @@ func TestShippingQuoteFieldsOnAuctionOrder(t *testing.T) {
 }
 
 // ============================================================================
-// TEST: Immediate Preparation Deadline — Every Paid Order Gets ReadyToShipBy
+// TEST: Preparation Deadline — Every Paid Order Gets ReadyToShipBy
 // ============================================================================
 
-// TestMarkPaid_ImmediateGetsDeadline proves that immediate orders get ReadyToShipBy set,
-// closing the gap where immediate orders had nil deadline and no enforcement.
-func TestMarkPaid_ImmediateGetsDeadline(t *testing.T) {
-	order := createTestOrderWithPrep(orderentity.StatusPending, "immediate")
+// TestMarkPaid_DefaultRangeGetsDeadline proves that the default 1-3 day range
+// gets ReadyToShipBy set, closing the gap where such orders had nil deadline.
+func TestMarkPaid_DefaultRangeGetsDeadline(t *testing.T) {
+	order := createTestOrderWithPrep(orderentity.StatusPending, "1_3_days")
 
 	before := time.Now()
 	err := order.MarkPaid()
 	after := time.Now()
 
 	assert.NoError(t, err)
-	assert.NotNil(t, order.ReadyToShipBy, "immediate order MUST get a ReadyToShipBy deadline")
+	assert.NotNil(t, order.ReadyToShipBy, "1-3 day order MUST get a ReadyToShipBy deadline")
 
-	// immediate = 1 day
-	expectedMin := before.Add(1 * 24 * time.Hour)
-	expectedMax := after.Add(1 * 24 * time.Hour)
+	// 1_3_days = 3 days (upper bound of the promised range)
+	expectedMin := before.Add(3 * 24 * time.Hour)
+	expectedMax := after.Add(3 * 24 * time.Hour)
 	assert.True(t, !order.ReadyToShipBy.Before(expectedMin) && !order.ReadyToShipBy.After(expectedMax),
-		"immediate ReadyToShipBy should be ~1 day from now, got %v", order.ReadyToShipBy)
+		"1_3_days ReadyToShipBy should be ~3 days from now, got %v", order.ReadyToShipBy)
 }
 
-// TestMarkPaid_ShortDeadlineUnchanged proves short mapping is still 2 days.
-func TestMarkPaid_ShortDeadlineUnchanged(t *testing.T) {
-	order := createTestOrderWithPrep(orderentity.StatusPending, "short")
+// TestMarkPaid_Range1To3DaysGets3DayDeadline proves the 1-3 day range maps
+// to the UPPER bound of the promised range (3 days).
+func TestMarkPaid_Range1To3DaysGets3DayDeadline(t *testing.T) {
+	order := createTestOrderWithPrep(orderentity.StatusPending, "1_3_days")
 
 	before := time.Now()
 	err := order.MarkPaid()
@@ -655,30 +650,16 @@ func TestMarkPaid_ShortDeadlineUnchanged(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, order.ReadyToShipBy)
 
-	expectedMin := before.Add(2 * 24 * time.Hour)
-	expectedMax := after.Add(2 * 24 * time.Hour)
+	expectedMin := before.Add(3 * 24 * time.Hour)
+	expectedMax := after.Add(3 * 24 * time.Hour)
 	assert.True(t, !order.ReadyToShipBy.Before(expectedMin) && !order.ReadyToShipBy.After(expectedMax),
-		"short ReadyToShipBy should be ~2 days from now")
+		"1_3_days ReadyToShipBy should be ~3 days from now")
 }
 
-// TestMarkPaid_MediumDeadlineUnchanged proves medium mapping is still 5 days.
-func TestMarkPaid_MediumDeadlineUnchanged(t *testing.T) {
-	order := createTestOrderWithPrep(orderentity.StatusPending, "medium")
-
-	before := time.Now()
-	err := order.MarkPaid()
-
-	assert.NoError(t, err)
-	assert.NotNil(t, order.ReadyToShipBy)
-
-	expected := before.Add(5 * 24 * time.Hour)
-	assert.WithinDuration(t, expected, *order.ReadyToShipBy, 2*time.Second,
-		"medium ReadyToShipBy should be ~5 days from now")
-}
-
-// TestMarkPaid_LongDeadlineUnchanged proves long mapping is still 7 days.
-func TestMarkPaid_LongDeadlineUnchanged(t *testing.T) {
-	order := createTestOrderWithPrep(orderentity.StatusPending, "long")
+// TestMarkPaid_Range4To7DaysGets7DayDeadline proves the 4-7 day range maps
+// to the UPPER bound of the promised range (7 days).
+func TestMarkPaid_Range4To7DaysGets7DayDeadline(t *testing.T) {
+	order := createTestOrderWithPrep(orderentity.StatusPending, "4_7_days")
 
 	before := time.Now()
 	err := order.MarkPaid()
@@ -688,11 +669,27 @@ func TestMarkPaid_LongDeadlineUnchanged(t *testing.T) {
 
 	expected := before.Add(7 * 24 * time.Hour)
 	assert.WithinDuration(t, expected, *order.ReadyToShipBy, 2*time.Second,
-		"long ReadyToShipBy should be ~7 days from now")
+		"4_7_days ReadyToShipBy should be ~7 days from now")
+}
+
+// TestMarkPaid_Range8To15DaysGets15DayDeadline proves the 8-15 day range maps
+// to the UPPER bound of the promised range (15 days).
+func TestMarkPaid_Range8To15DaysGets15DayDeadline(t *testing.T) {
+	order := createTestOrderWithPrep(orderentity.StatusPending, "8_15_days")
+
+	before := time.Now()
+	err := order.MarkPaid()
+
+	assert.NoError(t, err)
+	assert.NotNil(t, order.ReadyToShipBy)
+
+	expected := before.Add(15 * 24 * time.Hour)
+	assert.WithinDuration(t, expected, *order.ReadyToShipBy, 2*time.Second,
+		"8_15_days ReadyToShipBy should be ~15 days from now")
 }
 
 // TestMarkPaid_UnknownPrepGetsFallbackDeadline proves unknown/empty preparation
-// time gets a safe fallback deadline (2 days = short), not nil.
+// time gets a safe fallback deadline (3 days = default 1-3 day range), not nil.
 func TestMarkPaid_UnknownPrepGetsFallbackDeadline(t *testing.T) {
 	cases := []string{"", "unknown", "garbage_value"}
 
@@ -707,17 +704,17 @@ func TestMarkPaid_UnknownPrepGetsFallbackDeadline(t *testing.T) {
 			assert.NotNil(t, order.ReadyToShipBy,
 				"unknown prep %q MUST get fallback ReadyToShipBy (not nil)", prep)
 
-			expected := before.Add(2 * 24 * time.Hour)
+			expected := before.Add(3 * 24 * time.Hour)
 			assert.WithinDuration(t, expected, *order.ReadyToShipBy, 2*time.Second,
-				"unknown prep %q fallback should be ~2 days (short)", prep)
+				"unknown prep %q fallback should be ~3 days (default 1-3 range)", prep)
 		})
 	}
 }
 
-// TestImmediateOverdue_TriggersAfterReadyPlusGrace proves that an immediate
+// TestOverdue_TriggersAfterReadyPlusGrace proves that a paid
 // order with ReadyToShipBy set to 1 day ago + grace (2 days) = 3 days total
 // triggers IsShipmentOverdue correctly.
-func TestImmediateOverdue_TriggersAfterReadyPlusGrace(t *testing.T) {
+func TestOverdue_TriggersAfterReadyPlusGrace(t *testing.T) {
 	order := &orderentity.Order{
 		Status: orderentity.StatusPaid,
 	}
@@ -730,9 +727,9 @@ func TestImmediateOverdue_TriggersAfterReadyPlusGrace(t *testing.T) {
 		"order 4 days past ReadyToShipBy must be overdue (grace = 2 days)")
 }
 
-// TestImmediateNotOverdue_WithinGrace proves that an immediate order within
+// TestNotOverdue_WithinGrace proves that an order within
 // the grace period is NOT overdue.
-func TestImmediateNotOverdue_WithinGrace(t *testing.T) {
+func TestNotOverdue_WithinGrace(t *testing.T) {
 	order := &orderentity.Order{
 		Status: orderentity.StatusPaid,
 	}
@@ -748,7 +745,7 @@ func TestImmediateNotOverdue_WithinGrace(t *testing.T) {
 // TestAllPrepValues_GetNonNilDeadline is the universal guarantee test:
 // EVERY valid prep value results in a non-nil ReadyToShipBy after MarkPaid.
 func TestAllPrepValues_GetNonNilDeadline(t *testing.T) {
-	allPreps := []string{"immediate", "short", "medium", "long", "", "unknown"}
+	allPreps := []string{"1_3_days", "4_7_days", "8_15_days", "", "unknown"}
 
 	for _, prep := range allPreps {
 		t.Run("prep="+prep, func(t *testing.T) {
@@ -784,7 +781,6 @@ func createTestOrderWithPrep(status orderentity.Status, prepTime string) *ordere
 		"JNE",
 		"truck",
 		prepTime, // preparationTimeSnapshot
-		nil,      // preparationNoteSnapshot
 		nil, nil, nil, nil,
 		time.Now(),
 	)
@@ -811,8 +807,7 @@ func createTestOrder(status orderentity.Status, escrowStatus orderentity.EscrowS
 		nil,               // shippingSetupID: nil for test
 		"JNE",             // shippingSetupName
 		"truck",           // shippingTransportType
-		"immediate",       // preparationTimeSnapshot
-		nil,               // preparationNoteSnapshot
+		"1_3_days",       // preparationTimeSnapshot
 		nil,               // shippingSource
 		nil,               // shippingQuoteID
 		nil,               // shippingQuotePrice
